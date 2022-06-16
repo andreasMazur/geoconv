@@ -4,7 +4,7 @@ import os
 import trimesh
 import pyshot
 import numpy as np
-import shutil
+import tarfile
 
 
 def compute_descriptors(directory, target_directory, down_sample=None):
@@ -33,9 +33,12 @@ def compute_descriptors(directory, target_directory, down_sample=None):
         np.save(descriptor_filename, descr)
         os.remove(f"{directory}/{f}")
 
-    shutil.make_archive(target_directory, "zip", target_directory)
+    with tarfile.open(f"{target_directory}.tar.gz", "w:gz") as tar:
+        tar.add(target_directory, arcname=os.path.basename(target_directory))
+
     for f in descriptor_files:
         os.remove(f)
+
 
 if __name__ == "__main__":
 

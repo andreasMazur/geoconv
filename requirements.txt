@@ -1,0 +1,9 @@
+trimesh
+numpy
+networkx
+tqdm
+pyglet
+tensorflow
+Pillow
+scipy
+matplotlib

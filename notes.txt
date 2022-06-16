@@ -1,0 +1,97 @@
+
+From MoNet-Paper: Network architecture and training:
+    + Let n and m denote the number of vertices in X (query shape) and Y (reference shape).
+      For a point x in X, the last layer of the network is soft-max, producing an m-dimensional
+      output f(x) that is interpreted as a probability distribution on Y.
+    + Learning is done by minimizing the standard logistic regression cost.
+    + The input data are SHOT descriptors
+    + 3 convolutional layers were used in the experiment
+
+
+From MoNet-Paper: Experiment to re-conduct:
+    + 100 watertight meshes representing 10 different poses for 10 different subjects
+      with exact ground-truth correspondence
+    + Shapes were represented as meshes with 6890 vertices
+    + For all shapes: Compute point-wise 544-dimensional SHOT descriptors (input data)
+    + First 80 subjects in all the poses used for training (800 shapes in total)
+    + Last 20 subjects in all poses were used for testing
+    + Output was refined using intrinsic Bayesian filter
+
+SHOT-Descriptor:
+    + compact local representation of input data - descriptors
+    + relies on invariant features
+    + Signature: Describe 3D surface neighborhood of a given point (support) by defining an
+                 invariant local reference frame (RF) and encoding, according to local coordinates
+      ~ Ambiguity in RFs: Ambiguity of the sign of the local RF axes
+    + Histogram: Describe support by accumulating local geometrical or topological measurements into
+                 histograms (requires reference axis (RA) or RF)
+    + Local Reference Frames:
+      ~ Invariant to translations and rotations, robust to noise and clutter
+      ~ RF can be unique and/or unambiguous
+    + Computing normal vectors for points in point cloud data:
+        + Normal Estimation in R^2
+          ~ For each point O (sampled from curve in R^2):
+            - circle of radius r centered at O
+            - compute total least square line fitting all points in circle
+            - yields undirected normal of curve at O
+          ~ Orientation of normals is a global property and cannot be computed
+            locally (use breadth first search)
+        + Eigenvalue Decomposition (EVD) to get RF
+          ~ EVD of covariance matrix M of k nearest neighbors p_i of support
+          ~ Eigenvector of the smallest eigenvalue yields normal direction of support
+          ~ perform sign disambiguation globally by sign consistency (propagate
+            sign from seed chosen heuristically)
+        + Improved EVD:
+          ~ Assign distant points smaller weights
+          ~ Neglect centroid computation, replace with support
+          ~ Last eigenvector does not represent normal direction anymore
+          ~ Sign disambiguation:
+            - reorient the sign of each x and z-axes s.t. their sign are coherent
+              with signs of the majority of vectors they are representing
+            - y = x \times z
+    + SHOT-Descriptor:
+      ~ Histograms of normals of the points within the support (-sphere)
+        - aggregated representation of local surface
+      ~ Superimpose an isotropic spherical grid over the support
+      ~ At each cell, calculate local histogram of point normals
+        - accumulate "point counts" into bins according to (n_v * n_u = cos(\theta))
+          n_v (v point in local grid-volume) and n_u (fixed feature point u)
+      ~ Finally, group together all local histograms
+      - Normalize entire descriptor (total histogram) to sum up to 1
+LFR-Net:
+  + predict direction of three (RF) axes successively
+    i)   z-axis (via small subset of local point set) [TO BE ESTIMATED]
+    ii)  x-axis (weighted sum over projection vectors; Weights are predicted by MLP)
+         [TO BE ESTIMATED]
+    iii) y-axis (cross product of z- and x-axes)
+  + RF for local surface Q centered at p: L_p = [x(p), z(p) \times x(p), z(p)]
+
+Differential Geometry:
+  + Employ methods of differential calculus to describe local properties of smooth curves
+    and surfaces
+  + Repetition parametric form:
+    - parametrization function O \subset R^2 -> S \subset R^3
+    - parametrization function [a, b] -> S \subset R^2
+  + Differential Geometry - Curves:
+    - parametrization function x: [a, b] -> R^2 with x(u) = (x(u), y(u))^T
+    - tangent vector x'(u) = (x'(u), y'(u))^T
+    - regular tangent vector: x'(u) /= 0 \forall u \in [a, b]
+    - Parametrization can be different for the same curve (Reparametrization, i.e. how does u look
+      like, is possible)
+    - Differential geometry of curves is concerned with properties independent of parametrization
+    - arc length:
+        ~ length of curve segment computable as integral of tangent vector
+          (tangent vector encodes metric of curve)
+        ~ s(u) = \integral_a^u ||x'(t)||dt
+        ~ isometry: Length-preserving mapping (between parameter interval and curve)
+    - curvature:
+        ~ curvature for x(s): k(s) = ||x''(s)||
+        ~ x''(s) = k(s) n(s) <=> k(s) = x''(s) / n(s) [n(s) curve normal]
+        ~ you can reparametrize any curve according to its arc length: u -> s(u)
+  + Differential Geometry - Surfaces:
+    - parametric function for general surface: x(u,v) = (x(u, v), y(u, v), z(u, v))^T
+      ~ parametric equation of sphere: x(\theta, \phi) = (x(\theta, \phi), y(\theta, \phi), z(\theta, \phi))^T
+      ~ iso-\theta curves + iso-\phi curves -> point on sphere
+    - Metric properties:
+      ~ metric defined by first derivative of x(u, v)
+      ~
