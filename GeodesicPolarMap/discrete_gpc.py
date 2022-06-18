@@ -1,6 +1,4 @@
 from scipy.linalg import blas
-# from GeodesicPolarMap.utils import visualize_linear_combination
-from matplotlib import pyplot as plt
 
 import numpy as np
 import networkx as nx
@@ -35,14 +33,10 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
 
     """
 
-    vertex_i_idx, vertex_j_idx, vertex_k_idx = vertex_i, vertex_j, vertex_k
-
     # Convert indices to vectors
     u_j, u_k = u[[vertex_j, vertex_k]]
     theta_j, theta_k = theta[[vertex_j, vertex_k]]
     vertex_i, vertex_j, vertex_k = object_mesh.vertices[[vertex_i, vertex_j, vertex_k]]
-    vertex_i_old, vertex_j_old, vertex_k_old = np.copy(vertex_i), np.copy(vertex_j), np.copy(vertex_k)
-    s = None
 
     if use_c:
         result = np.array([0., 0.])
@@ -54,7 +48,8 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
             u_j,
             u_k,
             theta_j,
-            theta_k
+            theta_k,
+            rotation_axis
         )
         u_ijk, theta_i = result
     else:
@@ -124,11 +119,6 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
                 blas.dcopy(result_vector, s)
                 blas.daxpy(vertex_i, s)
 
-                # if vertex_i_idx == 5 and vertex_j_idx == 235 and vertex_k_idx == 1:
-                #     visualize_linear_combination(
-                #         vertex_i, vertex_j, vertex_k, vertex_i_idx, vertex_j_idx, vertex_k_idx, s
-                #     )
-
                 blas.daxpy(s, vertex_k, a=-1.0)
                 blas.daxpy(s, vertex_j, a=-1.0)
                 blas.daxpy(s, vertex_i, a=-1.0)
@@ -144,31 +134,16 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
                         u_ijk = k
                         theta_i = theta_k
                 else:
-                    alpha = phi_ij / phi_kj
-                    if theta_j == 0 and theta_k > np.pi:
-                        theta_j = 2 * np.pi
+                    # TODO: Why can `phi_ij` be greater than `phi_kj`?
+                    if phi_ij < phi_kj:
+                        alpha = phi_ij / phi_kj
+                        if theta_j == 0 and theta_k > np.pi:
+                            theta_j = 2 * np.pi
+                    else:
+                        alpha = phi_kj / phi_ij
+                        if theta_k == 0 and theta_j > np.pi:
+                            theta_k = 2 * np.pi
                     theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
-
-    # Numerical instabilities can make `theta_i` not exactly 0, but a little smaller than zero.
-    # theta_i = np.around(theta_i, decimals=15)
-    # if not (theta_k <= theta_i <= theta_j) and s is not None:
-    #     fig = plt.figure()
-    #     ax = fig.add_subplot(projection='3d')
-    #     names = ["v_i", "v_j", "v_k"]
-    #     angles = [theta_i, theta_j, theta_k]
-    #     ax.text(s[0], s[1], s[2], "s")
-    #     for idx, edge in enumerate([[s, vertex_i_old], [s, vertex_j_old], [s, vertex_k_old]]):
-    #         edge = np.stack(edge)
-    #         ax.plot(edge[:, 0], edge[:, 1], edge[:, 2], color="b")
-    #         ax.text(edge[1, 0], edge[1, 1], edge[1, 2], (names[idx], f"{(angles[idx] * 180) / np.pi:.1f}"))
-    #     rotation_axis_offset = rotation_axis
-    #     rotation_axis_offset = rotation_axis_offset / np.linalg.norm(rotation_axis_offset) * (1 / 100)
-    #     rotation_axis_offset = s + rotation_axis_offset
-    #     rotation_axis_offset = np.stack([s, rotation_axis_offset])
-    #     ax.plot(rotation_axis_offset[:, 0], rotation_axis_offset[:, 1], rotation_axis_offset[:, 2],
-    #             color="g")
-    #     print(theta_k, theta_i, theta_j)
-    #     plt.show()
 
     return u_ijk, theta_i
 
@@ -208,7 +183,8 @@ def compute_distance_and_angle(vertex_i, vertex_j, u, theta, triangle_cache, obj
         sorted_vectors = [vertex_i, vertex_j]
         sorted_vectors.sort()
         edge_indices = np.where(np.logical_and(
-            object_mesh.edges_sorted[:, 0] == sorted_vectors[0], object_mesh.edges_sorted[:, 1] == sorted_vectors[1]
+            object_mesh.edges_sorted[:, 0] == sorted_vectors[0],
+            object_mesh.edges_sorted[:, 1] == sorted_vectors[1]
         ))[0]
         face_indices = object_mesh.edges_face[edge_indices]
         considered_triangles = object_mesh.faces[face_indices]
@@ -217,26 +193,12 @@ def compute_distance_and_angle(vertex_i, vertex_j, u, theta, triangle_cache, obj
     updates = []
     for triangle in considered_triangles:
         vertex_k = [v for v in triangle if v not in [vertex_i, vertex_j]][0]
-        theta_k, theta_j = theta[[vertex_k, vertex_j]]
-        if theta_j == 0 and theta_k > np.pi:
-            theta_j = 2 * np.pi
-        if u[vertex_k] < np.inf and theta_k < theta_j:
-            # indices = np.argwhere(object_mesh.faces == triangle)[:, 0]
-            # amount = 1
-            # current_idx = indices[0]
-            # for idx in indices:
-            #     if idx == current_idx:
-            #         amount += 1
-            #         if amount == 3:
-            #             break
-            #     else:
-            #         current_idx = idx
-            # axis = object_mesh.face_normals[current_idx]
+        # We need to know the distance to `vertex_k`
+        if u[vertex_k] < np.inf:
             u_ijk, phi_i = compute_u_ijk_and_angle(
                 vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis
             )
             updates.append((u_ijk, phi_i))
-
     if not updates:
         return np.inf, -1.0, triangle_cache
     else:
@@ -257,25 +219,20 @@ def compute_vector_angle(vector_a, vector_b, rotation_axis):
     - The angle between `vector_a` and `vector_b`
 
     """
+    vector_a = vector_a / blas.dnrm2(vector_a)
+    vector_b = vector_b / blas.dnrm2(vector_b)
+    angle = blas.ddot(vector_a, vector_b)
+    if angle > 1.0:
+        angle = 1.0
+    elif angle < -1.0:
+        angle = -1.0
+    angle = np.arccos(angle)
     if rotation_axis is None:
-        x = blas.ddot(vector_a, vector_b) / (blas.dnrm2(vector_a) * blas.dnrm2(vector_b))
-
-        # clip x in between [-1, 1]
-        if x > 1.:
-            x = 1.
-        elif x < -1:
-            x = -1.
-
-        return np.arccos(x)
+        return angle
     else:
-        vector_a = vector_a / blas.dnrm2(vector_a)
-        vector_b = vector_b / blas.dnrm2(vector_b)
-        cross = np.cross(vector_a, vector_b)
-        dot = vector_a.dot(vector_b)
-        angle = np.arctan2(np.linalg.norm(cross, ord=2), dot)
-        test = rotation_axis.dot(cross)  # np.round(, decimals=5)
-        angle = 2 * np.pi - angle if test < 0.0 else angle
-
+        cross_product = np.cross(vector_a, vector_b)
+        opposite_direction = rotation_axis.dot(cross_product) < 0.0
+        angle = 2 * np.pi - angle if opposite_direction else angle
         return angle
 
 
@@ -345,7 +302,7 @@ def initialize_neighborhood(source_point, u, theta, object_mesh, graph, use_c):
         vector_a = object_mesh.vertices[ref_neighbor] - object_mesh.vertices[source_point]
         vector_b = object_mesh.vertices[neighbor] - object_mesh.vertices[source_point]
         if use_c:
-            theta_neighbors[idx] = c_extension.compute_angle(vector_a, vector_b)
+            theta_neighbors[idx] = c_extension.compute_angle_360(vector_a, vector_b, rotation_axis)
         else:
             theta_neighbors[idx] = compute_vector_angle(vector_a, vector_b, rotation_axis)
 
@@ -411,7 +368,7 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
     return u, theta, triangle_cache, graph
 
 
-def discrete_gpc(object_mesh, u_max=.04, eps=0.000001):
+def discrete_gpc(object_mesh, u_max=.04, eps=0.000001, use_c=False):
     """Computes approximated geodesic polar coordinates for all vertices within an object mesh.
 
     > [Geodesic polar coordinates on polygonal
@@ -434,7 +391,7 @@ def discrete_gpc(object_mesh, u_max=.04, eps=0.000001):
     u, theta, triangle_cache, graph = [], [], dict(), None
     for vertex_idx in tqdm.tqdm(range(object_mesh.vertices.shape[0])):
         u_v, theta_v, triangle_cache, graph = local_gpc(
-            vertex_idx, u_max, object_mesh, True, eps, triangle_cache, graph
+            vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache, graph
         )
         u.append(u_v)
         theta.append(theta_v)

@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     # np.seterr(all="raise")
 
-    local_gpc_systems = discrete_gpc(object_mesh, u_max=0.32, eps=0.000001)
+    local_gpc_systems = discrete_gpc(object_mesh, u_max=0.05, eps=0.000001, use_c=False)
     np.save("./test_gpc_systems", local_gpc_systems)
 
     # TODO: Plot mesh nodes and color them according to their geodesic distance
