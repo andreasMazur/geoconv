@@ -6,7 +6,7 @@
 #include "cblas.h"
 
 
-double compute_angle(double vector_1[], double vector_2[])
+double compute_angle(double vector_1[], double vector_2[], double rotation_axis[])
 {
     double v1_norm = cblas_dnrm2(3, vector_1, 1);
     double v2_norm = cblas_dnrm2(3, vector_2, 1);
@@ -17,6 +17,16 @@ double compute_angle(double vector_1[], double vector_2[])
     if (x < -1) x = -1;
 
     return acos(x);
+
+    vector_a = vector_a / blas.dnrm2(vector_a)
+    vector_b = vector_b / blas.dnrm2(vector_b)
+    cross = np.cross(vector_a, vector_b)
+    dot = vector_a.dot(vector_b)
+    angle = np.arctan2(np.linalg.norm(cross, ord=2), dot)
+    test = np.round(rotation_axis.dot(cross), decimals=5)
+    angle = 2 * np.pi - angle if test < 0.0 else angle
+
+    return angle
 }
 
 
@@ -114,6 +124,9 @@ void compute_dist_and_dir(double vertex_i[],
                 }
             } else {
                 double alpha = phi_ij / phi_kj;
+                if (theta_j == 0 && theta_k > M_PI) {
+                    theta_j = 2 * M_PI;
+                }
                 theta_i = fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * M_PI);
             }
         }
