@@ -1,7 +1,6 @@
 import numpy as np
 import scipy
 import warnings
-import tqdm
 
 
 def polar_2_cartesian(coordinate_array):
@@ -121,11 +120,21 @@ def barycentric_coords_local_gpc(local_gpc_system, kernel, object_mesh):
 
     **Input**
 
-    -
+    - The local GPC system translated into cartesian coordinates (required for KD-tree).
+    - The kernel coordinates translated into cartesian coordinates (required for KD-tree).
+    - The considered object mesh
 
     **Output**
 
-    -
+    - A tuple `t` containing the following elements:
+        * `t[0]`: Kernel index `i` referring to the radial coordinate
+        * `t[1]`: Kernel index `j` referring to the radial coordinate
+        * `t[2]`: 1. Barycentric coordinate (`t[2][0]`) and corresponding node index (`t[2][1]`)
+        * `t[3]`: 1. Barycentric coordinate (`t[3][0]`) and corresponding node index (`t[3][1]`)
+        * `t[4]`: 1. Barycentric coordinate (`t[4][0]`) and corresponding node index (`t[4][1]`)
+
+    If a kernel vertex does not fall into any triangle in the local GPC-system, then the closest neighbor of
+    gets a `1.0`-barycentric coordinate assigned.
 
     """
     kernel = np.round(kernel, decimals=10)
@@ -169,7 +178,7 @@ def barycentric_coords_local_gpc(local_gpc_system, kernel, object_mesh):
                     if try_ > v_with_coords.shape[0]:
                         # Failsafe: If no triangle was found, then use the closest vertex as approximation.
                         _, nn_idx = kd_tree.query(k)
-                        b_coords = ((i, j), [1.0, nn_idx], None, None)
+                        b_coords = ([1.0, nn_idx], None, None)
 
             barycentric_coordinates.append((i, j) + b_coords)
 
@@ -223,6 +232,8 @@ def barycentric_weights(local_gpc_systems, kernel, object_mesh):
         bary_coords = barycentric_coords_local_gpc(gpc_system, kernel, object_mesh)
         for c in bary_coords:
             E[source_point, c[0], c[1], c[2][1]] = c[2][0]
-            E[source_point, c[0], c[1], c[3][1]] = c[3][0]
-            E[source_point, c[0], c[1], c[4][1]] = c[4][0]
+            if c[3] is not None:
+                E[source_point, c[0], c[1], c[3][1]] = c[3][0]
+            if c[4] is not None:
+                E[source_point, c[0], c[1], c[4][1]] = c[4][0]
     return E
