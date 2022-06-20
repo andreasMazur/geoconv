@@ -16,9 +16,9 @@ if __name__ == "__main__":
     chosen_file = file_list[0]
     object_mesh = trimesh.load_mesh(f"{faust_dir}/{chosen_file}")
 
-    # np.seterr(all="raise")
+    np.seterr(all="raise")
 
-    local_gpc_systems = discrete_gpc(object_mesh, u_max=0.05, eps=0.000001, use_c=False)
+    local_gpc_systems = discrete_gpc(object_mesh, u_max=0.05, eps=0.000001, use_c=True)
     np.save("./test_gpc_systems", local_gpc_systems)
 
     # TODO: Plot mesh nodes and color them according to their geodesic distance

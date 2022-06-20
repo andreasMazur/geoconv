@@ -194,7 +194,7 @@ def compute_distance_and_angle(vertex_i, vertex_j, u, theta, triangle_cache, obj
     for triangle in considered_triangles:
         vertex_k = [v for v in triangle if v not in [vertex_i, vertex_j]][0]
         # We need to know the distance to `vertex_k`
-        if u[vertex_k] < np.inf:
+        if u[vertex_k] < np.inf and theta[vertex_k] >= 0.:
             u_ijk, phi_i = compute_u_ijk_and_angle(
                 vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis
             )

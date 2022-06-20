@@ -1,10 +1,7 @@
 import numpy as np
 import scipy
 import warnings
-
-from GeodesicPolarMap.discrete_gpc import local_gpc
-
-NUMPY_ROUNDING_DECIMAL = 10
+import tqdm
 
 
 def polar_2_cartesian(coordinate_array):
@@ -28,7 +25,7 @@ def polar_2_cartesian(coordinate_array):
         warnings.filterwarnings("ignore", "invalid value encountered in multiply")
         B[:, :, 1] = coordinate_array[:, :, 0] * np.sin(coordinate_array[:, :, 1])
 
-    return np.round(B, decimals=NUMPY_ROUNDING_DECIMAL)
+    return B
 
 
 def create_kernel_matrix(n_radial, n_angular, radius):
@@ -53,7 +50,7 @@ def create_kernel_matrix(n_radial, n_angular, radius):
             angular_coordinate = (2 * k * np.pi) / n_angular
             coordinates[j - 1, k - 1, 0] = radial_coordinate
             coordinates[j - 1, k - 1, 1] = angular_coordinate
-    return np.round(coordinates, decimals=NUMPY_ROUNDING_DECIMAL)
+    return coordinates
 
 
 def compute_barycentric(query_vertex, triangle):
@@ -69,34 +66,21 @@ def compute_barycentric(query_vertex, triangle):
     dot00, dot01, dot02 = v0.dot(v0), v0.dot(v1), v0.dot(v2)
     dot11, dot12 = v1.dot(v1), v1.dot(v2)
 
-    x = 1 / (dot00 * dot11 - dot01 * dot01)
-    point_2_weight = (dot11 * dot02 - dot01 * dot12) * x
-    point_1_weight = (dot00 * dot12 - dot01 * dot02) * x
-    point_0_weight = 1 - point_2_weight - point_1_weight
+    denominator = dot00 * dot11 - dot01 * dot01
+    if denominator > 0:
+        x = 1 / denominator
+        point_2_weight = (dot11 * dot02 - dot01 * dot12) * x
+        point_1_weight = (dot00 * dot12 - dot01 * dot02) * x
+        point_0_weight = 1 - point_2_weight - point_1_weight
 
-    is_inside_triangle = point_2_weight >= 0 and point_1_weight >= 0 and point_2_weight + point_1_weight < 1
+        is_inside_triangle = point_2_weight >= 0 and point_1_weight >= 0 and point_2_weight + point_1_weight < 1
 
-    return (point_0_weight, point_1_weight, point_2_weight), is_inside_triangle
+        return (point_0_weight, point_1_weight, point_2_weight), is_inside_triangle
+    else:
+        return (None, None, None), False
 
 
-def compute_barycentric_help(query_vertex, triangles, local_gpc_system):
-
-    result = None
-    held_back = []
-    for triangle in triangles:
-        # Determine 2D geodesic coordinates of the considered triangle
-        geodesic_coordinates = local_gpc_system[triangle]
-        if not np.any(geodesic_coordinates == np.inf):
-            # Compute the barycentric coordinates of the triangle
-            (b0, b1, b2), query_inside_tri = compute_barycentric(query_vertex, geodesic_coordinates)
-            if query_inside_tri:
-                result = [b0, triangle[0]], [b1, triangle[1]], [b2, triangle[2]]
-        else:
-            held_back.append(triangle)
-
-    return result, held_back
-
-def compute_barycentric_triangles(query_vertex, triangles, local_gpc_system, source_point, object_mesh, gpc_radius):
+def compute_barycentric_triangles(kernel_vertex, faces, local_gpc_system):
     """Looks for the triangle which contains the query vertex and computes the corresponding barycentric coordinates.
 
     **Input**
@@ -115,36 +99,24 @@ def compute_barycentric_triangles(query_vertex, triangles, local_gpc_system, sou
       local GPC-system.
 
     """
-    result, held_back = compute_barycentric_help(query_vertex, triangles, local_gpc_system)
-    if result is not None:
-        return result
 
-    # TODO: Recompute local GPC-system with larger radius and check
-    # TODO: whether triangles are now fully included
-    # raise RuntimeError(
-    #     f"Your local GPCs do not include all vertices necessary to capture required triangles. Consider to shrink your"
-    #     f" kernel radius or to increase your local GPC-system's radius."
-    # )
-    triangle_cache, graph = dict(), None
-    iteration = 0
-    while result is None:
-        # Compute larger GPC-system
-        gpc_radius *= 2
-        print(f"Iteration: {iteration} with radius: {gpc_radius}")
-        u, theta, triangle_cache, graph = local_gpc(
-            source_point, gpc_radius, object_mesh, triangle_cache=triangle_cache, graph=graph
-        )
-        local_gpc_system = np.round(np.stack([u, theta], axis=-1), decimals=NUMPY_ROUNDING_DECIMAL)
-        local_gpc_system = polar_2_cartesian(np.expand_dims(local_gpc_system, axis=0))[0]
-
-        result, held_back = compute_barycentric_help(query_vertex, triangles, local_gpc_system)
-
-    print("Done.\n\n")
+    result = None
+    held_back = []
+    for face in faces:
+        # Determine 2D geodesic coordinates of the considered triangle
+        geodesic_coordinates = local_gpc_system[face]
+        if not np.any(geodesic_coordinates == np.inf):
+            # Compute the barycentric coordinates of the triangle
+            (b0, b1, b2), query_inside_tri = compute_barycentric(kernel_vertex, geodesic_coordinates)
+            if query_inside_tri:
+                result = [b0, face[0]], [b1, face[1]], [b2, face[2]]
+        else:
+            held_back.append(face)
 
     return result
 
 
-def barycentric_weights_local_gpc(local_gpc_system, kernel, object_mesh, source_point):
+def barycentric_weights_local_gpc(local_gpc_system, kernel, object_mesh):
     """Computes barycentric weights for a kernel placed in a source point.
 
     **Input**
@@ -164,16 +136,39 @@ def barycentric_weights_local_gpc(local_gpc_system, kernel, object_mesh, source_
     kernel = kernel.reshape((kernel.shape[0] * kernel.shape[1], 2))
     barycentric_coordinates = []
     for k in kernel:
-        # Query the KD-tree for the vertex index of the nearest neighbor of `k`
-        _, gpc_system_idx = kd_tree.query(k)
-        nearest_neighbor = v_with_coords[gpc_system_idx]
-        row_indices, _ = np.where(local_gpc_system == nearest_neighbor)
-        queried_vertex = row_indices[0]
+        b_coords = None
+        try_ = 1
+        while not b_coords:
+            # Query the KD-tree for the vertex index of the nearest neighbor of `k`
+            _, nn_idx = kd_tree.query(k, k=try_)
+            if try_ > 1:
+                nn_idx = nn_idx[try_ - 1]
+            nearest_neighbor = v_with_coords[nn_idx]
+            row_indices, _ = np.where(local_gpc_system == nearest_neighbor)
 
-        # Query for the triangle indices of all triangles that contain `queried_vertex`
-        triangle_indices = [x for x in object_mesh.vertex_faces[queried_vertex] if x != -1]
-        triangles = object_mesh.faces[triangle_indices]
-        b_coords = compute_barycentric_triangles(k, triangles, local_gpc_system, source_point, object_mesh, gpc_radius=.04)
+            # Check for validity of the GPC
+            if row_indices.shape != (2,):
+                zipped_rows = np.stack([row_indices, np.append(row_indices[1:], row_indices[0])], axis=-1)[:-1]
+                matches = np.where(zipped_rows[:, 0] == zipped_rows[:, 1])[0]
+                if matches.shape[0] > 1:
+                    raise RuntimeError("Multiple occurrences of the same coordinate in a GPC!")
+                else:
+                    queried_vertex = row_indices[matches[0]]
+            else:
+                queried_vertex = row_indices[0]
+
+            # Query for the triangle indices of all triangles that contain `queried_vertex`
+            face_indices = [x for x in object_mesh.vertex_faces[queried_vertex] if x != -1]
+            faces = object_mesh.faces[face_indices]
+            b_coords = compute_barycentric_triangles(k, faces, local_gpc_system)
+            if not b_coords:
+                try_ += 1
+                if try_ > v_with_coords.shape[0]:
+                    raise RuntimeError(
+                        "Your kernel coordinates could not be described with the local GPC. Consider to decrease the "
+                        "kernel's- or to increase the GPC-system's radius."
+                    )
+
         barycentric_coordinates.append(b_coords)
 
     return barycentric_coordinates
@@ -191,10 +186,11 @@ def barycentric_weights(local_gpc_systems, kernel, object_mesh):
                 2.2.1) Find the nearest neighbor within the local GPC-system querying within the KD-tree.
                        Let this vertex be `x`.
                 2.2.2) For each triangle of `x` compute the barycentric weights w.r.t. `k`.
-                2.2.3) Given the barycentric weights, determine the triangle `T` that contains `k`.
+                2.2.3) Given the barycentric weights, determine the triangle `T` that contains `k`. IF there is not such
+                       `T` then go back to (2.2.1) and compute the next nearest neighbor apart from `x` and repeat.
                 2.2.4) Store the barycentric weights of `T` w.r.t. `k`.
-        3.) Store the barycentric weights in an array `W` in the following manner (compare paper below, section 4.3):
-            - `W` has size `(N_v, N_rho, N_theta, N_v)`
+        3.) Store the barycentric weights in an array `E` in the following manner (compare paper below, section 4.3):
+            - `E` has size `(N_v, N_rho, N_theta, N_v)`
                 * `N_v = object_mesh.vertices.shape[0]` (amount vertices)
                 * `N_rho = kernel.shape[0]` (amount radial coordinates)
                 * `N_theta = kernel.shape[1]` (amount angular coordinates)
@@ -215,10 +211,8 @@ def barycentric_weights(local_gpc_systems, kernel, object_mesh):
 
     """
 
-    local_gpc_systems = np.round(local_gpc_systems, decimals=NUMPY_ROUNDING_DECIMAL)
     local_gpc_systems = polar_2_cartesian(local_gpc_systems)
     kernel = polar_2_cartesian(kernel)
-
-    for source_point, gpc_system in enumerate(local_gpc_systems):
-        b_coords = barycentric_weights_local_gpc(gpc_system, kernel, object_mesh, source_point)
-        print()
+    E = []
+    for s, gpc_system in tqdm.tqdm(enumerate(local_gpc_systems)):
+        E.append((s, barycentric_weights_local_gpc(gpc_system, kernel, object_mesh)))

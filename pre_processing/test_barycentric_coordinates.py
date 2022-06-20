@@ -16,9 +16,9 @@ if __name__ == "__main__":
     chosen_file = file_list[0]
     object_mesh = trimesh.load_mesh(f"{faust_dir}/{chosen_file}")
 
-    # np.seterr(all="raise")
+    np.seterr(all="raise")
 
-    kernel = create_kernel_matrix(n_radial=2, n_angular=4, radius=.04)
+    kernel = create_kernel_matrix(n_radial=2, n_angular=4, radius=.02)
     local_gpc_systems = np.load("../GeodesicPolarMap/test_gpc_systems.npy")
     W_ijkl = barycentric_weights(local_gpc_systems, kernel, object_mesh)
 

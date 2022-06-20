@@ -107,11 +107,16 @@ def visualize_gpc(source_point, radial_coordinates, angular_coordinates, object_
     # Visualize radial coordinates
     radial_coordinates[radial_coordinates == np.inf] = 0.0
     colors = trimesh.visual.interpolate(radial_coordinates, color_map="Reds")
+    colors[source_point] = np.array([255, 255, 0, 255])
     point_cloud = trimesh.points.PointCloud(object_mesh.vertices, colors=colors)
     point_cloud.show()
 
     # Visualize angular coordinates
     colors = trimesh.visual.interpolate(angular_coordinates, color_map="YlGn")
+    colors[source_point] = np.array([255, 255, 0, 255])
+    # for idx in range(angular_coordinates.shape[0]):
+    #     if angular_coordinates[idx] == 0.0:
+    #         colors[idx] = np.array([255, 255, 0, 255])
     point_cloud = trimesh.points.PointCloud(object_mesh.vertices, colors=colors)
     point_cloud.show()
 
@@ -126,7 +131,7 @@ if __name__ == "__main__":
     chosen_file = file_list[0]
     object_mesh_ = trimesh.load_mesh(f"{faust_dir}/{chosen_file}")
 
-    # Good source point examples: 10, 920, 930, 1200, 1280, 1330, 2000
-    source_point_ = 1280
+    # Good source point examples: 10, 920, 930, 1200, 1280, 1330, 2000, 2380
+    source_point_ = 1
     u, theta, _, _ = local_gpc(source_point_, u_max=0.05, object_mesh=object_mesh_, use_c=True, eps=0.000001)
     visualize_gpc(source_point_, u, theta, object_mesh_)
