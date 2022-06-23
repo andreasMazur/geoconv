@@ -53,8 +53,8 @@ class ConvGeodesic(Layer):
 
         With K[i, j] containing the weight-matrix for a kernel vertex and x[i, j] being the interpolated signal at the
         kernel vertex (i, j). Furthermore, x1, x2 and x3 are the nodes in the mesh used to interpolate the signal at
-        the kernel vertex (i, j) [usually the triangle including it]. Compare Equation (7) and (11) in [1] as well as
-        section 4.4 in [2].
+        the kernel vertex (i, j) [usually the triangle including it]. E contains the necessary Barycentric coordinates
+        for the interpolation. Compare Equation (7) and (11) in [1] as well as section 4.4 in [2].
 
         [1]:
         > Jonathan Masci, Davide Boscaini, Michael M. Bronstein, Pierre Vandergheynst
