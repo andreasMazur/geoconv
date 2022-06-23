@@ -1,4 +1,4 @@
-from GeodesicPolarMap.discrete_gpc import compute_vector_angle
+from geodesic_polar_coordinates.discrete_gpc import compute_vector_angle
 import numpy as np
 import c_extension
 

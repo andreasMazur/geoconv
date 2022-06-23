@@ -1,4 +1,4 @@
-from GeodesicPolarMap.discrete_gpc import local_gpc
+from geodesic_polar_coordinates.discrete_gpc import local_gpc
 from matplotlib import pyplot as plt
 
 import os
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     chosen_file = file_list[0]
     object_mesh_ = trimesh.load_mesh(f"{faust_dir}/{chosen_file}")
 
-    # Good source point examples: 10, 920, 930, 1200, 1280, 1330, 2000, 2380
-    source_point_ = 1
+    # Source point examples: 10, 920, 930, 1200, 1280, 1330, 2000, 2380
+    source_point_ = 2380
     u, theta, _, _ = local_gpc(source_point_, u_max=0.05, object_mesh=object_mesh_, use_c=True, eps=0.000001)
     visualize_gpc(source_point_, u, theta, object_mesh_)

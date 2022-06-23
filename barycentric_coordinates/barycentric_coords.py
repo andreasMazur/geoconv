@@ -108,7 +108,7 @@ def compute_barycentric_triangles(kernel_vertex, faces, local_gpc_system):
             # Compute the barycentric coordinates of the triangle
             (b0, b1, b2), query_inside_tri = compute_barycentric(kernel_vertex, geodesic_coordinates)
             if query_inside_tri:
-                result = [b0, face[0]], [b1, face[1]], [b2, face[2]]
+                result = (b0, face[0], b1, face[1], b2, face[2])
         else:
             held_back.append(face)
 
@@ -116,7 +116,7 @@ def compute_barycentric_triangles(kernel_vertex, faces, local_gpc_system):
 
 
 def barycentric_coords_local_gpc(local_gpc_system, kernel, object_mesh):
-    """Computes barycentric weights for a kernel placed in a source point.
+    """Computes barycentric coordinates for a kernel placed in a source point.
 
     **Input**
 
@@ -128,10 +128,13 @@ def barycentric_coords_local_gpc(local_gpc_system, kernel, object_mesh):
 
     - A tuple `t` containing the following elements:
         * `t[0]`: Kernel index `i` referring to the radial coordinate
-        * `t[1]`: Kernel index `j` referring to the radial coordinate
-        * `t[2]`: 1. Barycentric coordinate (`t[2][0]`) and corresponding node index (`t[2][1]`)
-        * `t[3]`: 1. Barycentric coordinate (`t[3][0]`) and corresponding node index (`t[3][1]`)
-        * `t[4]`: 1. Barycentric coordinate (`t[4][0]`) and corresponding node index (`t[4][1]`)
+        * `t[1]`: Kernel index `j` referring to the angular coordinate
+        * `t[2]`: 1. Barycentric coordinate
+        * `t[3]`: Corresponding node index for 1. Barycentric coordinate
+        * `t[4]`: 2. Barycentric coordinate
+        * `t[5]`: Corresponding node index for 2. Barycentric coordinate
+        * `t[6]`: 3. Barycentric coordinate
+        * `t[7]`: Corresponding node index for 3. Barycentric coordinate
 
     If a kernel vertex does not fall into any triangle in the local GPC-system, then the closest neighbor of
     gets a `1.0`-barycentric coordinate assigned.
@@ -178,29 +181,29 @@ def barycentric_coords_local_gpc(local_gpc_system, kernel, object_mesh):
                     if try_ > v_with_coords.shape[0]:
                         # Failsafe: If no triangle was found, then use the closest vertex as approximation.
                         _, nn_idx = kd_tree.query(k)
-                        b_coords = ([1.0, nn_idx], None, None)
+                        b_coords = (1.0, nn_idx, None, None, None, None)
 
             barycentric_coordinates.append((i, j) + b_coords)
 
     return barycentric_coordinates
 
 
-def barycentric_weights(local_gpc_systems, kernel, object_mesh):
-    """Computes barycentric weights for a kernel placed in all source points of an object mesh.
+def barycentric_coordinates(local_gpc_systems, kernel, object_mesh):
+    """Computes barycentric coordinates for a kernel placed in all source points of an object mesh.
 
-    In order to compute the barycentric weights for kernel vertices we do the following:
+    In order to compute the barycentric coordinates for kernel vertices we do the following:
 
-        1.) Translate coordinates for kernel vertices and local GPC-systems into cartesian coordinates.
+        1.) Translate coordinates for kernel vertices and local GPC-systems into 2D cartesian coordinates.
         2.) For each local GPC-system:
             2.1) Compute a KD-tree.
             2.2) For each kernel vertex `k`:
                 2.2.1) Find the nearest neighbor within the local GPC-system querying within the KD-tree.
                        Let this vertex be `x`.
-                2.2.2) For each triangle of `x` compute the barycentric weights w.r.t. `k`.
-                2.2.3) Given the barycentric weights, determine the triangle `T` that contains `k`. IF there is not such
+                2.2.2) For each triangle of `x` compute the barycentric coordinates w.r.t. `k`.
+                2.2.3) Given the barycentric coordinates, determine the triangle `T` that contains `k`. IF there is not such
                        `T` then go back to (2.2.1) and compute the next nearest neighbor apart from `x` and repeat.
-                2.2.4) Store the barycentric weights of `T` w.r.t. `k`.
-        3.) Store the barycentric weights in an array `E` in the following manner (compare paper below, section 4.3):
+                2.2.4) Store the barycentric coordinates of `T` w.r.t. `k`.
+        3.) Store the barycentric coordinates in an array `E` in the following manner (compare paper below, section 4.3):
             - `E` has size `(N_v, N_rho, N_theta, N_v)`
                 * `N_v = object_mesh.vertices.shape[0]` (amount vertices)
                 * `N_rho = kernel.shape[0]` (amount radial coordinates)
@@ -213,27 +216,22 @@ def barycentric_weights(local_gpc_systems, kernel, object_mesh):
     **Input**
 
     - Array that contains the local GPC-systems for every considered node in an object mesh (compare output of
-      `GeodesicPolarMap.discrete_gpc`)
+      `geodesic_polar_coordinates.discrete_gpc`)
     - Array that contains the polar coordinates of the kernel's vertices (compare output of `create_kernel_matrix`)
 
     **Output**
 
-    -
+    - 3-dimensional array `E` with size `(#gpc_systems, #radial_coord's * #angular_coord's, 8)`. Per GPC-system it
+      stores for every kernel-vertex the tuple given by `barycentric_coords_local_gpc`. These tuples described the
+      Barycentric coordinates for each kernel-vertex and the corresponding node indices.
 
     """
-    amt_nodes = local_gpc_systems.shape[0]
-    amt_radial_coordinates = kernel.shape[0]
-    amt_angular_bins = kernel.shape[1]
-
     local_gpc_systems = polar_2_cartesian(local_gpc_systems)
     kernel = polar_2_cartesian(kernel)
-    E = np.zeros((amt_nodes, amt_radial_coordinates, amt_angular_bins, amt_nodes))
+
+    # E = np.zeros((amt_nodes, amt_radial_coordinates, amt_angular_bins, amt_nodes))
+    E = []
     for source_point, gpc_system in enumerate(local_gpc_systems):
-        bary_coords = barycentric_coords_local_gpc(gpc_system, kernel, object_mesh)
-        for c in bary_coords:
-            E[source_point, c[0], c[1], c[2][1]] = c[2][0]
-            if c[3] is not None:
-                E[source_point, c[0], c[1], c[3][1]] = c[3][0]
-            if c[4] is not None:
-                E[source_point, c[0], c[1], c[4][1]] = c[4][0]
-    return E
+        E.append(barycentric_coords_local_gpc(gpc_system, kernel, object_mesh))
+
+    return np.array(E)

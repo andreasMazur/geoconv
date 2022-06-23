@@ -1,4 +1,4 @@
-from pre_processing.barycentric_coordinates import barycentric_weights, create_kernel_matrix
+from barycentric_coordinates.barycentric_coords import barycentric_coordinates, create_kernel_matrix
 
 import numpy as np
 import trimesh
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     np.seterr(all="raise")
 
     kernel = create_kernel_matrix(n_radial=2, n_angular=4, radius=.02)
-    local_gpc_systems = np.load("../GeodesicPolarMap/test_gpc_systems.npy")
-    W_ijkl = barycentric_weights(local_gpc_systems, kernel, object_mesh)
+    local_gpc_systems = np.load("../misc/test_gpc_systems.npy")
+    W_ijkl = barycentric_coordinates(local_gpc_systems, kernel, object_mesh)
 
     print()

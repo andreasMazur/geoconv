@@ -1,4 +1,4 @@
-from GeodesicPolarMap.discrete_gpc import discrete_gpc
+from geodesic_polar_coordinates.discrete_gpc import discrete_gpc
 
 import os
 import numpy as np
