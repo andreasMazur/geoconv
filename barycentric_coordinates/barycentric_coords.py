@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 import warnings
+import tqdm
 
 
 def polar_2_cartesian(coordinate_array):
@@ -115,7 +116,7 @@ def compute_barycentric_triangles(kernel_vertex, faces, local_gpc_system):
     return result
 
 
-def barycentric_coords_local_gpc(local_gpc_system, kernel, object_mesh):
+def barycentric_coords_local_gpc(local_gpc_system, kernel, om_faces, om_vertex_faces):
     """Computes barycentric coordinates for a kernel placed in a source point.
 
     **Input**
@@ -141,6 +142,8 @@ def barycentric_coords_local_gpc(local_gpc_system, kernel, object_mesh):
 
     """
     kernel = np.round(kernel, decimals=10)
+
+    # Trimesh object meshes cache queries. This takes time. Normal numpy arrays are faster here.
 
     # Consider only the vertices which we have coordinates for
     v_with_coords = local_gpc_system != np.inf
@@ -173,8 +176,9 @@ def barycentric_coords_local_gpc(local_gpc_system, kernel, object_mesh):
                     queried_vertex = row_indices[0]
 
                 # Query for the triangle indices of all triangles that contain `queried_vertex`
-                face_indices = [x for x in object_mesh.vertex_faces[queried_vertex] if x != -1]
-                faces = object_mesh.faces[face_indices]
+                face_indices = om_vertex_faces[queried_vertex]
+                face_indices = face_indices[face_indices != -1]
+                faces = om_faces[face_indices]
                 b_coords = compute_barycentric_triangles(k, faces, local_gpc_system)
                 if not b_coords:
                     try_ += 1
@@ -229,9 +233,12 @@ def barycentric_coordinates(local_gpc_systems, kernel, object_mesh):
     local_gpc_systems = polar_2_cartesian(local_gpc_systems)
     kernel = polar_2_cartesian(kernel)
 
+    faces = np.copy(object_mesh.faces)
+    vertex_faces = np.copy(object_mesh.vertex_faces)
+
     # E = np.zeros((amt_nodes, amt_radial_coordinates, amt_angular_bins, amt_nodes))
     E = []
-    for source_point, gpc_system in enumerate(local_gpc_systems):
-        E.append(barycentric_coords_local_gpc(gpc_system, kernel, object_mesh))
+    for gpc_system in tqdm.tqdm(local_gpc_systems):
+        E.append(barycentric_coords_local_gpc(gpc_system, kernel, faces, vertex_faces))
 
     return np.array(E)
