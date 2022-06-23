@@ -45,14 +45,16 @@ class ConvGeodesic(Layer):
     def call(self, inputs):
         """The geodesic convolution Layer performs a geodesic convolution.
 
-        The geodesic convolution as described in [1] and [2]. In particular, this layer computes:
+        This layer computes:
 
-            (f (*) K)[v] = activation(max_k { sum_ijw: K[i, (j+k) % N_theta] * x[i, j] })
+            (f (*) K)[v] = activation(max_k { sum_ij: K[i, (j+k) % N_theta] * x[i, j] })
 
             x[i, j] = E[v, i, j, x1] * f[x1] + E[v, i, j, x2] * f[x2] + E[v, i, j, x3] * f[x3]
 
         With K[i, j] containing the weight-matrix for a kernel vertex and x[i, j] being the interpolated signal at the
-        kernel vertex (i, j). Compare Equation (7) and (11) in [1] as well as section 4.4 in [2].
+        kernel vertex (i, j). Furthermore, x1, x2 and x3 are the nodes in the mesh used to interpolate the signal at
+        the kernel vertex (i, j) [usually the triangle including it]. Compare Equation (7) and (11) in [1] as well as
+        section 4.4 in [2].
 
         [1]:
         > Jonathan Masci, Davide Boscaini, Michael M. Bronstein, Pierre Vandergheynst
