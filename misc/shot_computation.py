@@ -48,10 +48,10 @@ if __name__ == "__main__":
     os.makedirs("SHOT-DESCRIPTORS/test/scans", exist_ok=True)
 
     # Compute descriptors
-    # print("Currently working on: 'MPI-FAUST/training/registrations'")
-    # compute_descriptors(
-    #     "MPI-FAUST/training/registrations", "SHOT-DESCRIPTORS/training/registrations"
-    # )
+    print("Currently working on: 'MPI-FAUST/training/registrations'")
+    compute_descriptors(
+        "MPI-FAUST/training/registrations", "SHOT-DESCRIPTORS/training/registrations"
+    )
     print("Currently working on: 'MPI-FAUST/training/scans'")
     compute_descriptors("MPI-FAUST/training/scans", "SHOT-DESCRIPTORS/training/scans", 20_000)
     print("Currently working on: 'MPI-FAUST/test/scans'")

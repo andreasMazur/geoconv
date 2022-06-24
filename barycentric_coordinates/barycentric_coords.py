@@ -185,7 +185,7 @@ def barycentric_coords_local_gpc(local_gpc_system, kernel, om_faces, om_vertex_f
                     if try_ > v_with_coords.shape[0]:
                         # Failsafe: If no triangle was found, then use the closest vertex as approximation.
                         _, nn_idx = kd_tree.query(k)
-                        b_coords = (1.0, nn_idx, None, None, None, None)
+                        b_coords = (1.0, nn_idx, 0, 0, 0, 0)
 
             barycentric_coordinates.append((i, j) + b_coords)
 
@@ -241,4 +241,4 @@ def barycentric_coordinates(local_gpc_systems, kernel, object_mesh):
     for gpc_system in tqdm.tqdm(local_gpc_systems):
         E.append(barycentric_coords_local_gpc(gpc_system, kernel, faces, vertex_faces))
 
-    return np.array(E)
+    return np.array(E).astype(np.float32)
