@@ -31,7 +31,7 @@ def signal_pullback(signal, barycentric_coords_vertex):
 
 class ConvGeodesic(Layer):
 
-    def __init__(self, kernel_size, output_dim, barycentric_coordinates, activation="relu"):
+    def __init__(self, barycentric_coordinates, kernel_size, output_dim, amt_kernel, activation="relu"):
         super().__init__()
         self.kernel_size = kernel_size  # (#radial, #angular) used while computing barycentric coordinates
         self.output_dim = output_dim  # dimension of the output signal
@@ -39,11 +39,36 @@ class ConvGeodesic(Layer):
         self.barycentric_coordinates = barycentric_coordinates
         self.activation = Activation(activation)
         self.all_rotations = tf.range(self.kernel_size[1])
+        self.amt_kernel = amt_kernel
 
     def build(self, input_shape):
+        """Defines the kernel for the geodesic convolution layer.
+
+        In one layer we have:
+            * `self.amt_kernel`-many kernels (referred to as 'filters' in [1]).
+            * With `(self.kernel_size[0], self.kernel_size[1])` we reference to a weight matrix corresponding to a
+              kernel vertex.
+            * With `(self.output_dim, input_shape[1])` we define the size of the weight matrix of a kernel vertex.
+              With `self.output_dim` we modify the output dimensionality of the signal after the convolution.
+
+        An expressive illustration of how these kernels are used during the convolution is given in Figure 3 in [1].
+
+        [1]:
+        > Jonathan Masci, Davide Boscaini, Michael M. Bronstein, Pierre Vandergheynst
+
+        > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://www.cv-foundation.org/
+        openaccess/content_iccv_2015_workshops/w22/html/Masci_Geodesic_Convolutional_Neural_ICCV_2015_paper.html)
+
+
+        **Input**
+
+        - `input_shape`: The shape of the tensor containing the signal on the graph.
+
+        """
+
         self.kernel = self.add_weight(
             "Kernel",
-            shape=(self.kernel_size[0], self.kernel_size[1], self.output_dim, input_shape[1]),
+            shape=(self.kernel_size[0], self.kernel_size[1], self.amt_kernel, self.output_dim, input_shape[1]),
             initializer="glorot_uniform",
             trainable=True
         )
@@ -88,11 +113,14 @@ class ConvGeodesic(Layer):
         """
 
         call_fn = lambda barycentric_coords_gpc: self._call_wrapper(inputs, barycentric_coords_gpc)
-        new_signal = tf.vectorized_map(
+        new_signal = tf.map_fn(
             call_fn,
-            self.barycentric_coordinates
+            self.barycentric_coordinates,
+            fn_output_signature=tf.TensorSpec([self.all_rotations.shape[0], self.output_dim], dtype=tf.float32)
         )
         new_signal = self.activation(new_signal)
+
+        # Angular max pooling
         return tf.reduce_max(new_signal, axis=1)
 
     @tf.function
@@ -154,10 +182,14 @@ class ConvGeodesic(Layer):
         products = tf.map_fn(
             geodesic_conv_fn,
             barycentric_coords_gpc,
-            fn_output_signature=tf.TensorSpec([self.output_dim], dtype=tf.float32)
+            fn_output_signature=tf.TensorSpec([self.amt_kernel, self.output_dim], dtype=tf.float32)
         )
 
-        return tf.reduce_sum(products, axis=0)
+        # At this point, we compute the sum over every vertex-convolution for each kernel
+        sum_ij_per_kernel = tf.reduce_sum(products, axis=0)
+
+        # Equation (11) in [1]: Return the sum over all kernels
+        return tf.reduce_sum(sum_ij_per_kernel, axis=0)
 
     @tf.function
     def _geodesic_conv_vertex(self, inputs, barycentric_coords, rotation):
@@ -166,7 +198,8 @@ class ConvGeodesic(Layer):
         In essence this function computes:
             K[i, (j+r) % N_theta] * x[i, j]
 
-        with all variables (i, j, r) are already given at this point in the computation.
+        with all variables (i, j, r) are already given at this point in the computation. Keep in mind that we calculate
+        with `self.amt_kernel`-many `K` at once.
 
         **Input**
 
