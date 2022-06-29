@@ -4,6 +4,34 @@ import tensorflow as tf
 
 
 @tf.function
+def angular_max_pooling(signal):
+    """Angular maximum pooling to filter for the maximal response of a geodesic convolution.
+
+    The signals are measured at the hand of their norms.
+
+    **Input**
+
+    - The result of a geodesic convolution for each rotation in a tensor of size `(m, r, o)`, where `m` is the amount
+      of nodes on the mesh, `r` the amount of rotations and `o` the output dimesion of the convolution.
+
+    **Output**
+
+    - A tensor containing the maximal response at each vertex. Compare Eq. (12) in [1].
+
+    [1]:
+    > Jonathan Masci, Davide Boscaini, Michael M. Bronstein, Pierre Vandergheynst
+
+    > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://www.cv-foundation.org/
+    openaccess/content_iccv_2015_workshops/w22/html/Masci_Geodesic_Convolutional_Neural_ICCV_2015_paper.html)
+
+    """
+    column_indices = tf.argmax(tf.norm(signal, ord="euclidean", axis=-1), axis=-1)
+    row_indices = tf.range(tf.shape(signal)[0], dtype=tf.int64)
+    indices = tf.stack([row_indices, column_indices], axis=1)
+    return tf.gather_nd(signal, indices)
+
+
+@tf.function
 def signal_pullback(signal, barycentric_coords_vertex):
     """Computes the pullback of signals onto the position of a kernel vertex.
 
@@ -31,15 +59,32 @@ def signal_pullback(signal, barycentric_coords_vertex):
 
 class ConvGeodesic(Layer):
 
-    def __init__(self, barycentric_coordinates, kernel_size, output_dim, amt_kernel, activation="relu"):
+    def __init__(self, kernel_size, output_dim, amt_kernel, activation="relu"):
         super().__init__()
-        self.kernel_size = kernel_size  # (#radial, #angular) used while computing barycentric coordinates
-        self.output_dim = output_dim  # dimension of the output signal
+
+        # Define kernel attributes
         self.kernel = None
-        self.barycentric_coordinates = barycentric_coordinates
+        self.kernel_size = kernel_size  # (#radial, #angular)
+
+        # Define output attributes
+        self.output_dim = output_dim  # dimension of the output signal
         self.activation = Activation(activation)
+
+        # Define convolution attributes
         self.all_rotations = tf.range(self.kernel_size[1])
         self.amt_kernel = amt_kernel
+
+    def get_config(self):
+        config = super(ConvGeodesic, self).get_config()
+        config.update(
+            {
+                "kernel_size": self.kernel_size,
+                "output_dim": self.output_dim,
+                "activation": self.activation,
+                "all_rotations": self.all_rotations
+            }
+        )
+        return config
 
     def build(self, input_shape):
         """Defines the kernel for the geodesic convolution layer.
@@ -65,10 +110,10 @@ class ConvGeodesic(Layer):
         - `input_shape`: The shape of the tensor containing the signal on the graph.
 
         """
-
+        signal_shape, _ = input_shape
         self.kernel = self.add_weight(
             "Kernel",
-            shape=(self.kernel_size[0], self.kernel_size[1], self.amt_kernel, self.output_dim, input_shape[1]),
+            shape=(self.kernel_size[0], self.kernel_size[1], self.amt_kernel, self.output_dim, signal_shape[2]),
             initializer="glorot_uniform",
             trainable=True
         )
@@ -88,6 +133,13 @@ class ConvGeodesic(Layer):
         the kernel vertex (i, j) [usually the triangle including it]. E contains the necessary Barycentric coordinates
         for the interpolation. Compare Equation (7) and (11) in [1] as well as section 4.4 in [2].
 
+        NOTE! It does not make sense to define this layer such that it computes the convolution for only one vertex.
+        The reason is that the convolution depends on the entire local GPC-system surrounding the vertex. In
+        particular, the convolution depends on the current signal at the nodes included in the GPC-system. Extracting
+        those signals before computing for every input not only yields a huge overhead but also turns out to be
+        incompatible with the tensorflow forward-pass pipeline for functional models. That is, a single input should
+        always correspond to a complete object mesh.
+
         [1]:
         > Jonathan Masci, Davide Boscaini, Michael M. Bronstein, Pierre Vandergheynst
 
@@ -102,8 +154,12 @@ class ConvGeodesic(Layer):
 
         **Input**
 
-        - `inputs`: A Tensor containing the signal on the graph. It has the size `(m, n)` where `m` is the amount of
-          nodes in the graph and `n` the dimensionality of the signal on the graph.
+        - `inputs`:
+            * A tensor containing the signal on the graph. It has the size `(m, n)` where `m` is the amount of
+              nodes in the graph and `n` the dimensionality of the signal on the graph.
+            * A tensor containing the Barycentric coordinates corresponding to the kernel defined for this layer.
+              It has the size `(m, self.kernel_size[0] * self.kernel_size[1], 8)` and is structured like described in
+              `barycentric_coordinates.barycentric_coords.barycentric_coords_local_gpc`.
 
         **Output**
 
@@ -112,19 +168,25 @@ class ConvGeodesic(Layer):
 
         """
 
-        call_fn = lambda barycentric_coords_gpc: self._call_wrapper(inputs, barycentric_coords_gpc)
-        new_signal = tf.map_fn(
-            call_fn,
-            self.barycentric_coordinates,
-            fn_output_signature=tf.TensorSpec([self.all_rotations.shape[0], self.output_dim], dtype=tf.float32)
-        )
-        new_signal = self.activation(new_signal)
+        signal, b_coordinates = inputs
+        result_tensor = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
+        batch_size = tf.shape(signal)[0]
+        for idx in tf.range(batch_size):
+            call_fn = lambda barycentric_coords_gpc: self._rotations(signal[idx], barycentric_coords_gpc)
+            new_signal = tf.map_fn(
+                call_fn,
+                b_coordinates[idx],
+                fn_output_signature=tf.TensorSpec([self.all_rotations.shape[0], self.output_dim], dtype=tf.float32)
+            )
+            new_signal = self.activation(new_signal)
+            # Angular max pooling over all rotations
+            new_signal = angular_max_pooling(new_signal)
 
-        # Angular max pooling
-        return tf.reduce_max(new_signal, axis=1)
+            result_tensor = result_tensor.write(idx, new_signal)
+        return result_tensor.stack()
 
     @tf.function
-    def _call_wrapper(self, inputs, barycentric_coords_gpc):
+    def _rotations(self, signal, barycentric_coords_gpc):
         """Wrapper for computing the geodesic convolution w.r.t. each rotation.
 
         In essence this function computes for all r in self.all_rotations:
@@ -145,7 +207,7 @@ class ConvGeodesic(Layer):
 
         """
 
-        conv_fn = lambda rotation: self._geodesic_conv(inputs, barycentric_coords_gpc, rotation)
+        conv_fn = lambda rotation: self._kernel_vertices(signal, barycentric_coords_gpc, rotation)
         convolutions = tf.map_fn(
             conv_fn,
             self.all_rotations,
@@ -155,7 +217,7 @@ class ConvGeodesic(Layer):
         return convolutions
 
     @tf.function
-    def _geodesic_conv(self, inputs, barycentric_coords_gpc, rotation):
+    def _kernel_vertices(self, signal, barycentric_coords_gpc, rotation):
         """Computes the geodesic convolution for given rotation and barycentric coordinates of a local GPC-system.
 
         In essence this function computes for exactly one r:
@@ -178,7 +240,7 @@ class ConvGeodesic(Layer):
 
         """
 
-        geodesic_conv_fn = lambda bary_c: self._geodesic_conv_vertex(inputs, bary_c, rotation)
+        geodesic_conv_fn = lambda bary_c: self._geodesic_conv(signal, bary_c, rotation)
         products = tf.map_fn(
             geodesic_conv_fn,
             barycentric_coords_gpc,
@@ -192,7 +254,7 @@ class ConvGeodesic(Layer):
         return tf.reduce_sum(sum_ij_per_kernel, axis=0)
 
     @tf.function
-    def _geodesic_conv_vertex(self, inputs, barycentric_coords, rotation):
+    def _geodesic_conv(self, signal, barycentric_coords, rotation):
         """Computes the most inner part of the geodesic convolution within a given local GPC.
 
         In essence this function computes:
@@ -217,7 +279,7 @@ class ConvGeodesic(Layer):
 
         """
 
-        pullback = signal_pullback(inputs, barycentric_coords)
+        pullback = signal_pullback(signal, barycentric_coords)
         radial_idx = tf.cast(barycentric_coords[0], tf.int32)
         angular_idx = tf.cast(barycentric_coords[1], tf.int32) + rotation
         angular_idx = tf.math.floormod(angular_idx, self.kernel_size[1])
