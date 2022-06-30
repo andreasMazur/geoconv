@@ -9,3 +9,4 @@ gcc -I/usr/include/python3.10 -I/home/andreas/programs/anaconda3/envs/Masterarbe
 
 https://canvas.kth.se/courses/24933/pages/tutorial-blas-library-and-mkl
 https://askubuntu.com/questions/1270161/how-to-build-and-link-blas-and-lapack-libraries-by-hand-for-use-on-cluster
+apt install libatlas-base-dev

@@ -38,6 +38,6 @@ if __name__ == "__main__":
     vertex1 = np.array([-0.00117344, -0.0023157, 0.01018211])
     vertex2 = np.array([-0.00117344, -0.0023157, 0.01018211])
     rot_axis = np.array([0.99052361, 0.13718135, 0.00665194])
-    angle_2 = c_extension.test_fn(vertex1, vertex2, rot_axis)
+    angle_2 = c_extension.compute_angle_360(vertex1, vertex2, rot_axis)
     py_angle_2 = compute_vector_angle(vertex1, vertex2, rot_axis)
     print(f"Angle_360(y_axis, x_axis): Python {py_angle_2} - C {angle_2}")

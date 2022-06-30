@@ -279,7 +279,7 @@ static PyObject *compute_angle_360_wrapper(PyObject *self, PyObject *args) {
 static PyMethodDef C_Extension_Methods[] = {
     {"compute_dist_and_dir", compute_dist_and_dir_wrapper, METH_VARARGS, "Compute GPC in C."},
     {"compute_angle", compute_angle_wrapper, METH_VARARGS, "Compute the angle between two vectors."},
-    {"test_fn", compute_angle_360_wrapper, METH_VARARGS, "Compute the angle between two vectors (range 360)."},
+    {"compute_angle_360", compute_angle_360_wrapper, METH_VARARGS, "Compute the angle between two vectors (range 360)."},
     {NULL, NULL, 0, NULL}
 };
 
