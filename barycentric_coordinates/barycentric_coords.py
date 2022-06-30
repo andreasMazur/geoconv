@@ -1,7 +1,8 @@
+from tqdm import tqdm
+
 import numpy as np
 import scipy
 import warnings
-import tqdm
 
 
 def polar_2_cartesian(coordinate_array):
@@ -192,7 +193,7 @@ def barycentric_coords_local_gpc(local_gpc_system, kernel, om_faces, om_vertex_f
     return barycentric_coordinates
 
 
-def barycentric_coordinates(local_gpc_systems, kernel, object_mesh):
+def barycentric_coordinates(local_gpc_systems, kernel, object_mesh, tqdm_msg=""):
     """Computes barycentric coordinates for a kernel placed in all source points of an object mesh.
 
     In order to compute the barycentric coordinates for kernel vertices we do the following:
@@ -238,7 +239,7 @@ def barycentric_coordinates(local_gpc_systems, kernel, object_mesh):
 
     # E = np.zeros((amt_nodes, amt_radial_coordinates, amt_angular_bins, amt_nodes))
     E = []
-    for gpc_system in tqdm.tqdm(local_gpc_systems):
+    for gpc_system in tqdm(local_gpc_systems, position=0, postfix=tqdm_msg):
         E.append(barycentric_coords_local_gpc(gpc_system, kernel, faces, vertex_faces))
 
     return np.array(E).astype(np.float32)

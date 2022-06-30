@@ -6,10 +6,11 @@ module = Extension(
     "c_extension",
     ["c_extension.c"],
     include_dirs=[np.get_include(), "/home/andreas/programs/c_libraries"],
-    extra_objects=[
-        "/home/andreas/programs/c_libraries/cblas_LINUX.a",
-        "/home/andreas/programs/c_libraries/libblas.a"
-    ]
+    libraries=["blas", "cblas"]
+    # extra_objects=[
+    #     "/path/to/libblas.a",
+    #     "/path/to/libcblas.a"
+    # ]
 )
 
 

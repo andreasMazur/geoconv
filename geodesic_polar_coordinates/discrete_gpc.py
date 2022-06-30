@@ -1,11 +1,10 @@
 from scipy.linalg import blas
+from tqdm import tqdm
 
 import numpy as np
 import networkx as nx
 import c_extension
 import heapq
-import tqdm
-import sys
 
 
 def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis):
@@ -368,7 +367,7 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
     return u, theta, triangle_cache, graph
 
 
-def discrete_gpc(object_mesh, u_max=.04, eps=0.000001, use_c=False):
+def discrete_gpc(object_mesh, u_max=.04, eps=0.000001, use_c=False, tqdm_msg=""):
     """Computes approximated geodesic polar coordinates for all vertices within an object mesh.
 
     > [Geodesic polar coordinates on polygonal
@@ -387,9 +386,9 @@ def discrete_gpc(object_mesh, u_max=.04, eps=0.000001, use_c=False):
       `initialize_neighborhood` for how the reference direction is selected).
 
     """
-    sys.stderr.write("Calculating local gpc-systems..")
+
     u, theta, triangle_cache, graph = [], [], dict(), None
-    for vertex_idx in tqdm.tqdm(range(object_mesh.vertices.shape[0])):
+    for vertex_idx in tqdm(range(object_mesh.vertices.shape[0]), position=0, postfix=tqdm_msg):
         u_v, theta_v, triangle_cache, graph = local_gpc(
             vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache, graph
         )
