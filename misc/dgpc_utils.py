@@ -1,4 +1,4 @@
-from geodesic_polar_coordinates.discrete_gpc import local_gpc
+from preprocessing.discrete_gpc import local_gpc
 from matplotlib import pyplot as plt
 
 import os

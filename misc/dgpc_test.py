@@ -1,8 +1,8 @@
-from barycentric_coordinates.barycentric_coords import barycentric_coordinates, create_kernel_matrix
+from preprocessing.discrete_gpc import discrete_gpc
 
+import os
 import numpy as np
 import trimesh
-import os
 
 
 if __name__ == "__main__":
@@ -18,8 +18,9 @@ if __name__ == "__main__":
 
     np.seterr(all="raise")
 
-    kernel = create_kernel_matrix(n_radial=2, n_angular=4, radius=.04)
-    local_gpc_systems = np.load("../misc/test_gpc_systems.npy")
+    local_gpc_systems = discrete_gpc(object_mesh, u_max=0.05, eps=0.000001, use_c=True)
+    print(local_gpc_systems.shape)
+    # np.save("./test_gpc_systems", local_gpc_systems)
 
-    W_ijkl = barycentric_coordinates(local_gpc_systems, kernel, object_mesh)
-    np.save("./test_bary_coords", W_ijkl)
+    # TODO: Plot mesh nodes and color them according to their geodesic distance
+    # TODO: Plot mesh nodes and color them according to their angular coordinate

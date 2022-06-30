@@ -251,6 +251,7 @@ static PyObject *compute_angle_360_wrapper(PyObject *self, PyObject *args) {
                          "O!O!O!",
                          &PyArray_Type,
                          &vector_1_numpy,
+                         &vector_1_numpy,
                          &PyArray_Type,
                          &vector_2_numpy,
                          &PyArray_Type,

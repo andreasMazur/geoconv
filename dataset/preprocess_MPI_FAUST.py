@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
-from barycentric_coordinates.barycentric_coords import create_kernel_matrix, barycentric_coordinates
-from geodesic_polar_coordinates.discrete_gpc import discrete_gpc
+from preprocessing.barycentric_coords import create_kernel_matrix, barycentric_coordinates
+from preprocessing.discrete_gpc import discrete_gpc
 
 import os
 import trimesh
@@ -66,7 +66,7 @@ def compute_descriptors(directory, target_dir):
 def preprocess(path, gpc_max_radius, kernel_size, use_c, eps):
     # Note that this directory will be deleted (recursively!) when preprocessing is finished.
     # Only the similar named zip-file will be kept. The zip-file will be used by the 'MpiFaust'-dataset class.
-    TARGET_DIR = "./dataset/MPI_FAUST/preprocessed_faust"
+    TARGET_DIR = "./preprocessed_faust"
     if not os.path.exists(TARGET_DIR):
         os.makedirs(TARGET_DIR)
 

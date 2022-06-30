@@ -5,12 +5,9 @@ import numpy as np
 module = Extension(
     "c_extension",
     ["c_extension.c"],
-    include_dirs=[np.get_include(), "/home/andreas/programs/c_libraries"],
+    include_dirs=[np.get_include(), "/home/andreas/programs/c_libraries/cblas_install"],
+    library_dirs=["/home/andreas/programs/c_libraries/cblas_install"],
     libraries=["blas", "cblas"]
-    # extra_objects=[
-    #     "/path/to/libblas.a",
-    #     "/path/to/libcblas.a"
-    # ]
 )
 
 
