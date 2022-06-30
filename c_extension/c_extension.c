@@ -251,7 +251,6 @@ static PyObject *compute_angle_360_wrapper(PyObject *self, PyObject *args) {
                          "O!O!O!",
                          &PyArray_Type,
                          &vector_1_numpy,
-                         &vector_1_numpy,
                          &PyArray_Type,
                          &vector_2_numpy,
                          &PyArray_Type,
@@ -267,6 +266,7 @@ static PyObject *compute_angle_360_wrapper(PyObject *self, PyObject *args) {
             PyErr_SetString(PyExc_ValueError, "Array must be one-dimensional and of type numpy.float64!");
             return NULL;
         }
+
         for (int j = 0; j < 3; j++) {
             vectors[i][j] = *(double *)(vectors_numpy[i]->data + j * vectors_numpy[i]->strides[0]);
         }
@@ -279,7 +279,7 @@ static PyObject *compute_angle_360_wrapper(PyObject *self, PyObject *args) {
 static PyMethodDef C_Extension_Methods[] = {
     {"compute_dist_and_dir", compute_dist_and_dir_wrapper, METH_VARARGS, "Compute GPC in C."},
     {"compute_angle", compute_angle_wrapper, METH_VARARGS, "Compute the angle between two vectors."},
-    {"compute_angle_360", compute_angle_360_wrapper, METH_VARARGS, "Compute the angle between two vectors (range 360)."},
+    {"test_fn", compute_angle_360_wrapper, METH_VARARGS, "Compute the angle between two vectors (range 360)."},
     {NULL, NULL, 0, NULL}
 };
 
