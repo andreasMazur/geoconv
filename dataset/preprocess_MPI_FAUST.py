@@ -17,7 +17,7 @@ def compute_barycentric_coordinates(directory, target_dir, k_radius, k_radial_co
     file_list.sort()
     file_list = [f for f in file_list if f[-4:] != ".png"]
     amt_files = len(file_list)
-    for file_num, file in enumerate(file_list[:1]):
+    for file_num, file in enumerate(file_list):
         # Load object mesh and corresponding GPC-systems
         object_mesh = trimesh.load_mesh(f"{directory}/{file}")
         local_gpc_systems = np.load(f"{target_dir}/GPC_{file[:-4]}.npy")
@@ -37,7 +37,7 @@ def compute_gpc_systems(directory, target_dir, u_max, eps, use_c):
     file_list.sort()
     file_list = [f for f in file_list if f[-4:] != ".png"]
     amt_files = len(file_list)
-    for file_num, file in enumerate(file_list[:1]):
+    for file_num, file in enumerate(file_list):
         object_mesh = trimesh.load_mesh(f"{directory}/{file}")
         local_gpc_systems = discrete_gpc(object_mesh, u_max, eps, use_c, tqdm_msg=f"File {file_num+1}/{amt_files}")
         np.save(f"{target_dir}/GPC_{file[:-4]}.npy", local_gpc_systems)
@@ -49,7 +49,7 @@ def compute_descriptors(directory, target_dir):
     file_list = os.listdir(directory)
     file_list.sort()
     file_list = [f for f in file_list if f[-4:] != ".png"]
-    for f in tqdm(file_list[:1]):
+    for f in tqdm(file_list):
         mesh = trimesh.load_mesh(f"{directory}/{f}")
         descr = pyshot.get_descriptors(
             np.array(mesh.vertices),
@@ -66,7 +66,7 @@ def compute_descriptors(directory, target_dir):
 def preprocess(path, gpc_max_radius, kernel_size, use_c, eps):
     # Note that this directory will be deleted (recursively!) when preprocessing is finished.
     # Only the similar named zip-file will be kept. The zip-file will be used by the 'MpiFaust'-dataset class.
-    TARGET_DIR = "./preprocessed_faust"
+    TARGET_DIR = "./preprocessed_registrations"
     if not os.path.exists(TARGET_DIR):
         os.makedirs(TARGET_DIR)
 
