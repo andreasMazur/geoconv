@@ -1,13 +1,14 @@
 from tensorflow.keras.layers import Input
-from gcnn import ConvGeodesic
 
-import numpy as np
+from gcnnMESH import ConvGeodesic
+from dataset.tf_MPI_FAUST_dataset import faust_generator
+
 import tensorflow as tf
 
 
 if __name__ == "__main__":
-    signal = np.load("/home/andreas/Uni/Masterarbeit/MPI-FAUST/training/registrations_SHOT/tr_reg_000.npy")
-    barycentric_coords = np.load("./misc/test_bary_coords.npy", allow_pickle=True)
+    gen = faust_generator("/home/andreas/Uni/Masterarbeit/MPI-FAUST/preprocessed_faust.zip")
+    signal, barycentric_coords = next(gen)
 
     # Define model
     signal_input = Input(shape=signal.shape, name="signal")
