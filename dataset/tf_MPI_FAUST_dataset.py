@@ -38,7 +38,7 @@ def load_preprocessed_faust(path_to_zip):
         lambda: gen,  # "gen must be callable"
         output_signature=(
             tf.TensorSpec(shape=(6890, 1056), dtype=tf.float64),
-            tf.TensorSpec(shape=(6890, 6890, 2), dtype=tf.float64),
+            # tf.TensorSpec(shape=(6890, 6890, 2), dtype=tf.float64),
             tf.TensorSpec(shape=(6890, 8, 8), dtype=tf.float32)
         )
     )
