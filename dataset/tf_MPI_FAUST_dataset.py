@@ -13,9 +13,9 @@ def faust_generator(path_to_zip):
     SHOT.sort(), GPC.sort(), BC.sort()
     for idx in range(100):
         shot = dataset[SHOT[idx]]
-        gpc = dataset[GPC[idx]]
+        # gpc = dataset[GPC[idx]] not required as input in the GCNN
         bc = dataset[BC[idx]]
-        yield shot, gpc, bc
+        yield shot, bc
 
 
 def load_preprocessed_faust(path_to_zip):
