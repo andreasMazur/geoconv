@@ -1,5 +1,5 @@
 from tensorflow.keras.layers import Input
-from gcnn import ConvGeodesic
+from gcnn_vertex_wise import ConvGeodesic
 
 import tensorflow as tf
 

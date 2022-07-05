@@ -1,6 +1,6 @@
 from tensorflow.keras.layers import Input
 
-from gcnnMESH import ConvGeodesic
+from gcnn import ConvGeodesic
 from dataset.tf_MPI_FAUST_dataset import faust_generator
 
 import tensorflow as tf
@@ -14,10 +14,7 @@ if __name__ == "__main__":
     signal_input = Input(shape=signal.shape, name="signal")
     bary_input = Input(shape=barycentric_coords.shape, name="Barycentric c.")
     geodesic_conv = ConvGeodesic(
-        kernel_size=(2, 4),
-        output_dim=1,
-        amt_kernel=5,
-        activation="relu"
+        kernel_size=(2, 4), output_dim=1, amt_kernel=5, activation="relu"
     )([signal_input, bary_input])
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[geodesic_conv])
 
