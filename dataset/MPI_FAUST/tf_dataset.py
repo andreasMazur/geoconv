@@ -11,15 +11,15 @@ def faust_generator(path_to_zip):
     GPC = [file_name for file_name in file_names if file_name.startswith("GPC")]
     BC = [file_name for file_name in file_names if file_name.startswith("BC")]
     SHOT.sort(), GPC.sort(), BC.sort()
-    # label_matrix = np.expand_dims(np.eye(6890), axis=0)
-    label_matrix = np.ones((1, 6890, 1))
+    label_matrix = np.expand_dims(np.eye(6890), axis=0)
+    # label_matrix = np.ones((1, 6890, 1))
 
     for idx in range(100):
-        shot = dataset[SHOT[idx]][:, :1]
+        shot = dataset[SHOT[idx]]
         shot = np.expand_dims(shot, axis=0)
         # gpc = dataset[GPC[idx]] not required as input in the GCNN
         bc = np.expand_dims(dataset[BC[idx]], axis=0)
-        yield shot, bc, label_matrix
+        yield (shot, bc), label_matrix
 
 
 def load_preprocessed_faust(path_to_zip):
@@ -41,10 +41,11 @@ def load_preprocessed_faust(path_to_zip):
         faust_generator,
         args=(path_to_zip,),
         output_signature=(
-            tf.TensorSpec(shape=(1, 6890, 1), dtype=tf.float64),
-            # tf.TensorSpec(shape=(6890, 6890, 2), dtype=tf.float64),
-            tf.TensorSpec(shape=(1, 6890, 8, 8), dtype=tf.float32),
-            tf.TensorSpec(shape=(1, 6890, 1), dtype=tf.int32)
+            (
+                tf.TensorSpec(shape=(1, 6890, 1056), dtype=tf.float64),
+                tf.TensorSpec(shape=(1, 6890, 8, 8), dtype=tf.float32)
+            ),
+            tf.TensorSpec(shape=(1, 6890, 6890), dtype=tf.int32)
         )
     )
 
@@ -52,5 +53,5 @@ def load_preprocessed_faust(path_to_zip):
 if __name__ == "__main__":
     tf_faust_dataset = load_preprocessed_faust("/home/andreas/Uni/Masterarbeit/MPI-FAUST/preprocessed_faust.zip")
     for elem in tf_faust_dataset:
-        print(elem[0].shape, elem[1].shape, elem[2].shape)
+        print(elem[0][0].shape, elem[0][1].shape, elem[1].shape)
         break

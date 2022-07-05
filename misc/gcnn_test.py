@@ -1,7 +1,7 @@
 from tensorflow.keras.layers import Input
 
 from gcnn import ConvGeodesic
-from dataset.tf_MPI_FAUST_dataset import faust_generator
+from dataset.MPI_FAUST.tf_dataset import faust_generator
 
 import tensorflow as tf
 
