@@ -71,7 +71,7 @@ class ConvGeodesic(Layer):
         self.activation = Activation(activation)
 
         # Define convolution attributes
-        self.all_rotations = tf.range(self.kernel_size[1])
+        self.all_rotations = self.kernel_size[1]
         self.amt_kernel = amt_kernel
 
     def get_config(self):
@@ -169,7 +169,7 @@ class ConvGeodesic(Layer):
             new_signal = tf.map_fn(
                 call_fn,
                 b_coordinates[idx],
-                fn_output_signature=tf.TensorSpec([self.all_rotations.shape[0], self.output_dim], dtype=tf.float32)
+                fn_output_signature=tf.TensorSpec([self.all_rotations, self.output_dim], dtype=tf.float32)
             )
             new_signal = self.activation(new_signal)
             # Angular max pooling over all rotations
@@ -203,7 +203,7 @@ class ConvGeodesic(Layer):
         conv_fn = lambda rotation: self._kernel_vertices(signal, barycentric_coords_gpc, rotation)
         convolutions = tf.map_fn(
             conv_fn,
-            self.all_rotations,
+            tf.range(self.all_rotations),
             fn_output_signature=tf.TensorSpec([self.output_dim], dtype=tf.float32)
         )
 

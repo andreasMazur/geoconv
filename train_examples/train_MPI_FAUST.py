@@ -28,11 +28,11 @@ def define_model(signal_shape, bc_shape):
     # GC32+AMP+ReLU
     signal = ConvGeodesic(kernel_size=(2, 4), output_dim=32, amt_kernel=1, activation="relu")([signal, bary_input])
     # GC64+AMP+ReLU
-    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
+    # signal = ConvGeodesic(kernel_size=(2, 4), output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
     # GC128+AMP+ReLU
-    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=128, amt_kernel=1, activation="relu")([signal, bary_input])
+    # signal = ConvGeodesic(kernel_size=(2, 4), output_dim=128, amt_kernel=1, activation="relu")([signal, bary_input])
     # LIN256
-    signal = Dense(256)(signal)
+    # signal = Dense(256)(signal)
     # LIN6890
     logits = Dense(6890)(signal)
 
@@ -50,7 +50,12 @@ def train():
     log_dir = "./logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-    model.fit(tf_faust_dataset, epochs=1, callbacks=[tensorboard_callback])
+    checkpoint_path = "./training/cp.ckpt"
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_path, save_weights_only=True, verbose=1
+    )
+
+    model.fit(tf_faust_dataset, epochs=1, callbacks=[tensorboard_callback, cp_callback])
 
 
 if __name__ == "__main__":
