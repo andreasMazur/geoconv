@@ -1,13 +1,13 @@
 from preprocessing.barycentric_coords import create_kernel_matrix, barycentric_coordinates
 from preprocessing.discrete_gpc import discrete_gpc
 
+import scipy
 import os
 import trimesh
 import pyshot
 import numpy as np
 import shutil
 import sys
-import open3d as o3d
 import tqdm
 
 
@@ -17,11 +17,11 @@ def preprocess(directory,
                kernel_size,
                use_c,
                eps,
-               poisson_depth,
-               poisson_lin_fit):
+               shuffle=True,
+               reference_path=None):
     # Note that this directory will be deleted (recursively!) when preprocessing is finished.
     # Only the similar named zip-file will be kept.
-    sub_meshes_dir = f"{target_dir}/sub_meshes"
+    shuffled_meshes_dir = f"{target_dir}/shuffled_meshes"
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
@@ -30,30 +30,47 @@ def preprocess(directory,
     file_list = [f for f in file_list if f[-4:] != ".png"]
     amt_files = len(file_list)
 
-    print("Sub-meshing original meshes...")
-    for file in tqdm.tqdm(file_list):
-        if not os.path.exists(sub_meshes_dir):
-            os.makedirs(sub_meshes_dir)
+    if shuffle:
+        print("Shuffling original meshes...")
+        for file in tqdm.tqdm(file_list):
+            if not os.path.exists(shuffled_meshes_dir):
+                os.makedirs(shuffled_meshes_dir)
 
-        # Sub-mesh the given registrations
-        object_mesh = o3d.io.read_triangle_mesh(f"{directory}/{file}")
-        object_mesh.compute_vertex_normals()
-        point_cloud = o3d.geometry.PointCloud()
-        point_cloud.points = object_mesh.vertices
-        point_cloud.normals = object_mesh.vertex_normals
+            object_mesh = trimesh.load_mesh(f"{directory}/{file}")
+            object_mesh_vertices = np.copy(object_mesh.vertices)
+            object_mesh_faces = np.copy(object_mesh.faces)
 
-        poisson_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
-            pcd=point_cloud, depth=poisson_depth, linear_fit=poisson_lin_fit
-        )[0]
-        # o3d.visualization.draw_geometries([poisson_mesh[0]])
-        o3d.io.write_triangle_mesh(f"{sub_meshes_dir}/sm_{file}", poisson_mesh)
+            shuffled_row_indices = np.arange(object_mesh.vertices.shape[0])
+            np.random.shuffle(shuffled_row_indices)
 
-    print("Preprocessing sub-meshes...")
+            object_mesh_vertices = object_mesh_vertices[shuffled_row_indices]
+            for face in object_mesh_faces:
+                face[0] = np.where(shuffled_row_indices == face[0])[0]
+                face[1] = np.where(shuffled_row_indices == face[1])[0]
+                face[2] = np.where(shuffled_row_indices == face[2])[0]
+            shuffled_object_mesh = trimesh.Trimesh(vertices=object_mesh_vertices, faces=object_mesh_faces)
+            shuffled_object_mesh.export(f"{shuffled_meshes_dir}/{file}")
+
+    if reference_path:
+        print("Compute ground-truth for shape correspondence")
+        query_dir = shuffled_meshes_dir if shuffle else directory
+        reference_mesh = trimesh.load(reference_path)
+        ref_mesh_kd_tree = scipy.spatial.KDTree(reference_mesh.vertices)
+        for file in tqdm.tqdm(file_list):
+            object_mesh = trimesh.load_mesh(f"{query_dir}/{file}")
+            label_matrix = np.zeros(
+                shape=(object_mesh.vertices.shape[0], reference_mesh.vertices.shape[0]), dtype=np.int32
+            )
+            for vertex_idx, vertex in enumerate(object_mesh.vertices):
+                _, gt_idx = ref_mesh_kd_tree.query(vertex)
+                label_matrix[vertex_idx, gt_idx] = 1.
+            np.save(f"{target_dir}/GT_{file[:-4]}.npy", label_matrix)
+
+    print("Preprocessing...")
+    processing_dir = shuffled_meshes_dir if shuffle else directory
     for file_num, file in enumerate(file_list):
         sys.stdout.write(f"\rPreprocessing file {file}")
-        object_mesh = trimesh.load_mesh(f"{sub_meshes_dir}/sm_{file}")
-        # point_cloud = trimesh.points.PointCloud(object_mesh.vertices)
-        # point_cloud.show()
+        object_mesh = trimesh.load_mesh(f"{processing_dir}/{file}")
 
         # Compute shot descriptor
         sys.stdout.write(f"\rComputing SHOT-descriptors...")
@@ -90,12 +107,10 @@ def preprocess(directory,
 if __name__ == "__main__":
     FAUST_REGISTRATIONS = "/home/andreas/Uni/Masterarbeit/MPI-FAUST/training/registrations"
     TARGET_DIR = "../dataset/MPI_FAUST/preprocessed_registrations"
+    REF_PATH = "/home/andreas/Uni/Masterarbeit/MPI-FAUST/training/registrations/tr_reg_000.ply"
     GPC_MAX_RADIUS = 0.05
     KERNEL_SIZE = (2, 4)
     USE_C = True
     EPS = 0.000001
-    POISSON_DEPTH = 7
-    POISSON_LIN_FIT = True
-    preprocess(
-        FAUST_REGISTRATIONS, TARGET_DIR, GPC_MAX_RADIUS, KERNEL_SIZE, USE_C, EPS, POISSON_DEPTH, POISSON_LIN_FIT
-    )
+    SHUFFLE = True
+    preprocess(FAUST_REGISTRATIONS, TARGET_DIR, GPC_MAX_RADIUS, KERNEL_SIZE, USE_C, EPS, SHUFFLE, REF_PATH)

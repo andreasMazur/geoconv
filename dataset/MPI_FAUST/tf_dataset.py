@@ -1,5 +1,8 @@
 import numpy as np
 import tensorflow as tf
+import zipfile
+import scipy
+import trimesh
 
 
 def faust_generator(path_to_zip):
@@ -8,21 +11,21 @@ def faust_generator(path_to_zip):
     dataset = np.load(path_to_zip)
     file_names = dataset.files
     SHOT = [file_name for file_name in file_names if file_name.startswith("SHOT")]
-    GPC = [file_name for file_name in file_names if file_name.startswith("GPC")]
+    # GPC = [file_name for file_name in file_names if file_name.startswith("GPC")]
     BC = [file_name for file_name in file_names if file_name.startswith("BC")]
-    SHOT.sort(), GPC.sort(), BC.sort()
-    label_matrix = np.expand_dims(np.eye(6890), axis=0)
-    # label_matrix = np.ones((1, 6890, 1))
+    GT = [file_name for file_name in file_names if file_name.startswith("GT")]
+    SHOT.sort(), BC.sort(), GT.sort()  # , GPC.sort()
 
     for idx in range(100):
-        shot = dataset[SHOT[idx]]
-        shot = np.expand_dims(shot, axis=0)
+        shot = np.expand_dims(dataset[SHOT[idx]], axis=0)
         # gpc = dataset[GPC[idx]] not required as input in the GCNN
         bc = np.expand_dims(dataset[BC[idx]], axis=0)
-        yield (shot, bc), label_matrix
+        gt = np.expand_dims(dataset[GT[idx]], axis=0)
+
+        yield (shot, bc), gt
 
 
-def load_preprocessed_faust(path_to_zip):
+def load_preprocessed_faust(path_to_zip, path_to_ref_mesh):
     """Returns a 'tf.data.Dataset' of the preprocessed MPI-FAUST dataset.
 
     Requires that preprocessing already happened. This function operates directly on the resulting 'zip'-file.
@@ -51,7 +54,9 @@ def load_preprocessed_faust(path_to_zip):
 
 
 if __name__ == "__main__":
-    tf_faust_dataset = load_preprocessed_faust("/home/andreas/Uni/Masterarbeit/MPI-FAUST/preprocessed_faust.zip")
+    tf_faust_dataset = load_preprocessed_faust(
+        "/home/andreas/Uni/Masterarbeit/MPI-FAUST/preprocessed_registrations.zip",
+    )
     for elem in tf_faust_dataset:
         print(elem[0][0].shape, elem[0][1].shape, elem[1].shape)
         break
