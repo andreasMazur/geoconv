@@ -7,5 +7,5 @@ tensorflow
 Pillow
 scipy
 matplotlib
-tensorflow_datasets
 Cython
+open3d

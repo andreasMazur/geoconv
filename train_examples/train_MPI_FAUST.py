@@ -28,11 +28,11 @@ def define_model(signal_shape, bc_shape):
     # GC32+AMP+ReLU
     signal = ConvGeodesic(kernel_size=(2, 4), output_dim=32, amt_kernel=1, activation="relu")([signal, bary_input])
     # GC64+AMP+ReLU
-    # signal = ConvGeodesic(kernel_size=(2, 4), output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
+    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
     # GC128+AMP+ReLU
-    # signal = ConvGeodesic(kernel_size=(2, 4), output_dim=128, amt_kernel=1, activation="relu")([signal, bary_input])
+    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=128, amt_kernel=1, activation="relu")([signal, bary_input])
     # LIN256
-    # signal = Dense(256)(signal)
+    signal = Dense(256)(signal)
     # LIN6890
     logits = Dense(6890)(signal)
 

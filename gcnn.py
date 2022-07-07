@@ -81,7 +81,8 @@ class ConvGeodesic(Layer):
                 "kernel_size": self.kernel_size,
                 "output_dim": self.output_dim,
                 "activation": self.activation,
-                "all_rotations": self.all_rotations
+                "all_rotations": self.all_rotations,
+                "amt_kernel": self.amt_kernel
             }
         )
         return config
