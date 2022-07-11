@@ -1,8 +1,5 @@
 import numpy as np
 import tensorflow as tf
-import zipfile
-import scipy
-import trimesh
 
 
 def faust_generator(path_to_zip):
