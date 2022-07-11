@@ -1,25 +1,14 @@
+from dataset.MPI_FAUST.tf_dataset import faust_generator
 from preprocessing.barycentric_coords import barycentric_coordinates, create_kernel_matrix
 
 import numpy as np
-import trimesh
-import os
 
 
 if __name__ == "__main__":
-    # Load polygonal mesh
-    faust_dir = "/home/andreas/Uni/Masterarbeit/MPI-FAUST/training/registrations"
-    file_list = os.listdir(faust_dir)
-    file_list.sort()
-    file_list = [f for f in file_list if f[-4:] != ".png"]
-
-    # Choose mesh here
-    chosen_file = file_list[0]
-    object_mesh = trimesh.load_mesh(f"{faust_dir}/{chosen_file}")
-
-    np.seterr(all="raise")
+    gen = faust_generator("/home/andreas/PycharmProjects/Masterarbeit/dataset/MPI_FAUST/preprocessed_registrations.zip")
+    (_, _, local_gpc_systems, object_mesh), _ = next(gen)
 
     kernel = create_kernel_matrix(n_radial=2, n_angular=4, radius=.04)
-    local_gpc_systems = np.load("../misc/test_gpc_systems.npy")
 
     W_ijkl = barycentric_coordinates(local_gpc_systems, kernel, object_mesh)
     np.save("./test_bary_coords", W_ijkl)

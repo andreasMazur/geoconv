@@ -128,15 +128,16 @@ def barycentric_coords_local_gpc(local_gpc_system, kernel, om_faces, om_vertex_f
 
     **Output**
 
-    - A tuple `t` containing the following elements:
-        * `t[0]`: Kernel index `i` referring to the radial coordinate
-        * `t[1]`: Kernel index `j` referring to the angular coordinate
-        * `t[2]`: 1. Barycentric coordinate
-        * `t[3]`: Corresponding node index for 1. Barycentric coordinate
-        * `t[4]`: 2. Barycentric coordinate
-        * `t[5]`: Corresponding node index for 2. Barycentric coordinate
-        * `t[6]`: 3. Barycentric coordinate
-        * `t[7]`: Corresponding node index for 3. Barycentric coordinate
+    - An array `bary_coordinates` of size `(#angular_coord's, #radial_coord's, 8)` that stores signal-indices and their
+      corresponding barycentric coordinates. In particular, entry `(i, j)` contains the necessary information to compute
+      the interpolated signal for kernel vertex with ANGULAR coordinate `i` and RADIAL coordinate `j`. This information
+      is stored in the following manner:
+        * `t[0]`: 1. Barycentric coordinate
+        * `t[1]`: Corresponding node index for 1. Barycentric coordinate
+        * `t[2]`: 2. Barycentric coordinate
+        * `t[3]`: Corresponding node index for 2. Barycentric coordinate
+        * `t[4]`: 3. Barycentric coordinate
+        * `t[5]`: Corresponding node index for 3. Barycentric coordinate
 
     If a kernel vertex does not fall into any triangle in the local GPC-system, then the closest neighbor of
     gets a `1.0`-barycentric coordinate assigned.
@@ -151,7 +152,7 @@ def barycentric_coords_local_gpc(local_gpc_system, kernel, om_faces, om_vertex_f
     v_with_coords = local_gpc_system[np.logical_and(v_with_coords[:, 0], v_with_coords[:, 1])]
     kd_tree = scipy.spatial.KDTree(v_with_coords)
 
-    barycentric_coordinates = []
+    bary_coordinates = np.zeros((kernel.shape[1], kernel.shape[0], 6))
     for i in range(kernel.shape[0]):
         for j in range(kernel.shape[1]):
             k = kernel[i, j]
@@ -188,9 +189,9 @@ def barycentric_coords_local_gpc(local_gpc_system, kernel, om_faces, om_vertex_f
                         _, nn_idx = kd_tree.query(k)
                         b_coords = (1.0, nn_idx, 0, 0, 0, 0)
 
-            barycentric_coordinates.append((i, j) + b_coords)
+            bary_coordinates[j, i] = b_coords
 
-    return barycentric_coordinates
+    return bary_coordinates
 
 
 def barycentric_coordinates(local_gpc_systems, kernel, object_mesh, tqdm_msg=""):
@@ -226,7 +227,7 @@ def barycentric_coordinates(local_gpc_systems, kernel, object_mesh, tqdm_msg="")
 
     **Output**
 
-    - 3-dimensional array `E` with size `(#gpc_systems, #radial_coord's * #angular_coord's, 8)`. Per GPC-system it
+    - 4-dimensional array `E` with size `(#gpc_systems, #angular_coord's, #radial_coord's, 8)`. Per GPC-system it
       stores for every kernel-vertex the tuple given by `barycentric_coords_local_gpc`. These tuples described the
       Barycentric coordinates for each kernel-vertex and the corresponding node indices.
 
@@ -237,7 +238,6 @@ def barycentric_coordinates(local_gpc_systems, kernel, object_mesh, tqdm_msg="")
     faces = np.copy(object_mesh.faces)
     vertex_faces = np.copy(object_mesh.vertex_faces)
 
-    # E = np.zeros((amt_nodes, amt_radial_coordinates, amt_angular_bins, amt_nodes))
     E = []
     for gpc_system in tqdm(local_gpc_systems, position=0, postfix=tqdm_msg):
         E.append(barycentric_coords_local_gpc(gpc_system, kernel, faces, vertex_faces))
