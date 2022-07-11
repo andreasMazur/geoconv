@@ -54,7 +54,7 @@ def load_preprocessed_faust(path_to_zip):
         output_signature=(
             (
                 tf.TensorSpec(shape=(1, 6890, 1056), dtype=tf.float32),
-                tf.TensorSpec(shape=(1, 6890, 8, 8), dtype=tf.float32)
+                tf.TensorSpec(shape=(1, 6890, 4, 2, 6), dtype=tf.float32)
             ),
             tf.TensorSpec(shape=(1, 6890, 6890), dtype=tf.int32)
         )

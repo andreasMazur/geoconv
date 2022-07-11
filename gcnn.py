@@ -12,7 +12,7 @@ def angular_max_pooling(signal):
     **Input**
 
     - The result of a geodesic convolution for each rotation in a tensor of size `(m, r, o)`, where `m` is the amount
-      of nodes on the mesh, `r` the amount of rotations and `o` the output dimesion of the convolution.
+      of nodes on the mesh, `r` the amount of rotations and `o` the output dimension of the convolution.
 
     **Output**
 
@@ -25,8 +25,8 @@ def angular_max_pooling(signal):
     openaccess/content_iccv_2015_workshops/w22/html/Masci_Geodesic_Convolutional_Neural_ICCV_2015_paper.html)
 
     """
-    column_indices = tf.argmax(tf.norm(signal, ord="euclidean", axis=-1), axis=-1)
-    row_indices = tf.range(tf.shape(signal)[0], dtype=tf.int64)
+    row_indices = tf.argmax(tf.norm(signal, ord="euclidean", axis=-1), axis=0)
+    column_indices = tf.range(tf.shape(signal)[1], dtype=tf.int64)
     indices = tf.stack([row_indices, column_indices], axis=1)
     return tf.gather_nd(signal, indices)
 
@@ -40,7 +40,7 @@ def signal_pullback(signal, bary_coords):
     - `signal`: A Tensor containing the signal on the graph. It has the size `(m, n)` where `m` is the amount of
       nodes in the graph and `n` the dimensionality of the signal on the graph.
 
-    - `barycentric_coords_vertex`: The barycentric coordinates for one kernel vertex of one local GPC-system. The form
+    - `barycentric_coords_vertex`: The barycentric coordinates for all kernel vertices of one local GPC-system. The form
       should be of the one described in `barycentric_coords_local_gpc`.
 
     **Output**
@@ -49,16 +49,17 @@ def signal_pullback(signal, bary_coords):
       tensor corresponds to the dimensionality of the input signal.
 
     """
-    vertex_signals = tf.gather(signal, tf.cast(bary_coords[:, 3], tf.int32))
-    fst_weighted_sig = tf.reshape(bary_coords[:, 2], (-1, 1)) * vertex_signals
+    vertex_signals = tf.gather(signal, tf.cast(tf.reshape(bary_coords[:, :, 1], (-1,)), tf.int32))
+    fst_weighted_sig = tf.reshape(bary_coords[:, :, 0], (-1, 1)) * vertex_signals
 
-    vertex_signals = tf.gather(signal, tf.cast(bary_coords[:, 5], tf.int32))
-    snd_weighted_sig = tf.reshape(bary_coords[:, 4], (-1, 1)) * vertex_signals
+    vertex_signals = tf.gather(signal, tf.cast(tf.reshape(bary_coords[:, :, 3], (-1,)), tf.int32))
+    snd_weighted_sig = tf.reshape(bary_coords[:, :, 2], (-1, 1)) * vertex_signals
 
-    vertex_signals = tf.gather(signal, tf.cast(bary_coords[:, 7], tf.int32))
-    thr_weighted_sig = tf.reshape(bary_coords[:, 6], (-1, 1)) * vertex_signals
+    vertex_signals = tf.gather(signal, tf.cast(tf.reshape(bary_coords[:, :, 5], (-1,)), tf.int32))
+    thr_weighted_sig = tf.reshape(bary_coords[:, :, 4], (-1, 1)) * vertex_signals
 
-    return tf.reduce_sum([fst_weighted_sig, snd_weighted_sig, thr_weighted_sig], axis=0)
+    result = tf.reduce_sum([fst_weighted_sig, snd_weighted_sig, thr_weighted_sig], axis=0)
+    return tf.reshape(result, (tf.shape(bary_coords)[0], tf.shape(bary_coords)[1], -1))
 
 
 class ConvGeodesic(Layer):
@@ -124,7 +125,7 @@ class ConvGeodesic(Layer):
             trainable=True
         )
 
-    # @tf.function
+    @tf.function
     def call(self, inputs):
         """The geodesic convolution Layer performs a geodesic convolution.
 
@@ -171,22 +172,12 @@ class ConvGeodesic(Layer):
         result_tensor = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
         batch_size = tf.shape(signal)[0]
         for idx in tf.range(batch_size):
-            call_fn = lambda barycentric_coords_gpc: self._rotations(signal[idx], barycentric_coords_gpc)
-            call_fn(b_coordinates[0])
-            new_signal = tf.map_fn(
-                call_fn,
-                b_coordinates[idx],
-                fn_output_signature=tf.TensorSpec([self.all_rotations, self.output_dim], dtype=tf.float32)
-            )
-            new_signal = self.activation(new_signal)
-            # Angular max pooling over all rotations
-            new_signal = angular_max_pooling(new_signal)
-
+            new_signal = self._geodesic_convolution(signal[idx], b_coordinates[idx])
             result_tensor = result_tensor.write(idx, new_signal)
         return result_tensor.stack()
 
-    # @tf.function
-    def _rotations(self, signal, barycentric_coords_gpc):
+    @tf.function
+    def _geodesic_convolution(self, signal, barycentric_coords):
         """Wrapper for computing the geodesic convolution w.r.t. each rotation.
 
         In essence this function computes for all r in self.all_rotations:
@@ -207,114 +198,31 @@ class ConvGeodesic(Layer):
 
         """
 
-        conv_fn = lambda rotation: self._kernel_vertices(signal, barycentric_coords_gpc, rotation)
-        conv_fn(0)
-        convolutions = tf.map_fn(
-            conv_fn,
-            tf.range(self.all_rotations, dtype=tf.int16),
-            fn_output_signature=tf.TensorSpec([self.output_dim], dtype=tf.float32)
-        )
-
-        return convolutions
-
-    # @tf.function
-    def _kernel_vertices(self, signal, barycentric_coords, rotation):
-        """Computes the geodesic convolution for given rotation and barycentric coordinates of a local GPC-system.
-
-        In essence this function computes for exactly one r:
-            sum_ij: K[i, (j+r) % N_theta] * x[i, j]
-
-
-        **Input**
-
-        - `inputs`: A Tensor containing the signal on the graph. It has the size `(m, n)` where `m` is the amount of
-          nodes in the graph and `n` the dimensionality of the signal on the graph.
-
-        - `barycentric_coords_gpc`: The barycentric coordinates for each kernel vertex of one local GPC-system. The form
-          should be of the one described in `barycentric_coords_local_gpc`.
-
-        - `rotation`: The considered rotation for the kernel.
-
-        **Output**
-
-        - A tensor of size `o` where `o` is the desired output dimensionality of the convolved signal.
-
-        """
-
-        # geodesic_conv_fn = lambda bary_c: self._geodesic_conv(signal, bary_c, rotation)
-        # products = tf.map_fn(
-        #     geodesic_conv_fn,
-        #     barycentric_coords_gpc,
-        #     fn_output_signature=tf.TensorSpec([self.amt_kernel, self.output_dim], dtype=tf.float32)
-        # )
         pullback_fn = lambda local_gpc_system: signal_pullback(signal, local_gpc_system)
         pullback = tf.vectorized_map(pullback_fn, barycentric_coords)
 
-        # As we apply the same kernel over all local gpc-systems, the radial- and angular indices remain the same over
-        # all nodes. Thus, we can take the first index-tensor to index the kernel for all convolutions.
-        # radial_indices = tf.cast(barycentric_coords[0, :, 0], tf.int32)
-        # angular_indices = tf.cast(barycentric_coords[0, :, 1], tf.int32) + rotation
-        # angular_indices = tf.math.floormod(angular_indices, self.kernel_size[1])
+        # We will need to sum over the convolutions of every kernel
+        kernels = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
+        for k in tf.range(self.amt_kernel):
+            # We will need to consider every rotation of each kernel
+            kernel_rotations = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
+            for rotation in tf.range(self.all_rotations):
+                angular_convolutions = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
+                for angular_coord in tf.range(self.kernel_size[1]):
+                    # Compute the product from within the sum of Eq. (7) in [1]
+                    rotation = tf.math.floormod(angular_coord + rotation, self.kernel_size[1])
+                    angular_convolutions = angular_convolutions.write(
+                        rotation,
+                        tf.linalg.matvec(self.kernel[k, rotation], pullback[:, angular_coord])
+                    )
+                angular_convolutions = angular_convolutions.stack()
+                kernel_rotations = kernel_rotations.write(rotation, angular_convolutions)
+            kernel_rotations = kernel_rotations.stack()
+            kernels = kernels.write(k, kernel_rotations)
+        kernels = kernels.stack()
 
-        weight_matrices = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
-        for w in tf.range(self.amt_kernel):
-            # Aligns one kernel with all patches (centered in each node of the mesh) which were defined by the
-            # Barycentric coordinates and computes their convolutions.
-            weight_matrices = weight_matrices.write(w, tf.linalg.matvec(self.kernel[w], pullback))
-        weight_matrices = weight_matrices.stack()
-
-        # radial = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
-        # for r in radial_indices:
-        #     angular = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
-        #     for a in angular_indices:
-        #         weight_m = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
-        #         for w in tf.range(tf.shape(self.kernel)[1]):
-        #             idx = self.kernel_size[1] * r + a
-        #             # Compute convolution for all pullbacks simultaneously
-        #             convolutions = tf.linalg.matvec(self.kernel[r, a, w], pullback[:, idx])
-        #             weight_m = weight_m.write(w, convolutions)
-        #         weight_m = weight_m.stack()
-        #         angular = angular.write(a, weight_m)
-        #     angular = angular.stack()
-        #     radial = radial.write(r, angular)
-        # radial = radial.stack()
-
-        # At this point, we compute the sum over every vertex-convolution for each kernel
-        # TODO
-        sum_ij_per_kernel = tf.reduce_sum(convolutions, axis=0)
-
-        # Equation (11) in [1]: Return the sum over all kernels
-        return tf.reduce_sum(sum_ij_per_kernel, axis=0)
-
-    # @tf.function
-    def _geodesic_conv(self, signal, barycentric_coords, rotation):
-        """Computes the most inner part of the geodesic convolution within a given local GPC.
-
-        In essence this function computes:
-            K[i, (j+r) % N_theta] * x[i, j]
-
-        with all variables (i, j, r) are already given at this point in the computation. Keep in mind that we calculate
-        with `self.amt_kernel`-many `K` at once.
-
-        **Input**
-
-        - `inputs`: A Tensor containing the signal on the graph. It has the size `(m, n)` where `m` is the amount of
-          nodes in the graph and `n` the dimensionality of the signal on the graph.
-
-        - `barycentric_coords_gpc`: The barycentric coordinates for each kernel vertex of one local GPC-system. The form
-          should be of the one described in `barycentric_coords_local_gpc`.
-
-        - `rotation`: The considered rotation for the kernel.
-
-        **Output**
-
-        - A tensor of size `o` where `o` is the desired output dimensionality of the convolved signal.
-
-        """
-
-        pullback = signal_pullback(signal, barycentric_coords)
-        radial_idx = tf.cast(barycentric_coords[0], tf.int32)
-        angular_idx = tf.cast(barycentric_coords[1], tf.int32) + rotation
-        angular_idx = tf.math.floormod(angular_idx, self.kernel_size[1])
-
-        return tf.linalg.matvec(self.kernel[radial_idx, angular_idx], pullback)
+        # Compute the sum over all filter banks (0), as well as radial (-3) and angular (-2) coordinates
+        # Compare Equations (7) and (11) in [1]
+        kernels = tf.reduce_sum(kernels, axis=[0, 2, 4])
+        kernels = self.activation(kernels)
+        return angular_max_pooling(kernels)
