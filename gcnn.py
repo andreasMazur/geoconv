@@ -221,7 +221,7 @@ class ConvGeodesic(Layer):
             kernels = kernels.write(k, kernel_rotations)
         kernels = kernels.stack()
 
-        # Compute the sum over all filter banks (0), as well as radial (-3) and angular (-2) coordinates
+        # Compute the sum over all filter banks (0), as well as radial (2) and angular (4) coordinates
         # Compare Equations (7) and (11) in [1]
         kernels = tf.reduce_sum(kernels, axis=[0, 2, 4])
         kernels = self.activation(kernels)

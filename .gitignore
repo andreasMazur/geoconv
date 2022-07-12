@@ -1,6 +1,7 @@
 .idea/
 __pycache__/
 *.zip
+misc/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

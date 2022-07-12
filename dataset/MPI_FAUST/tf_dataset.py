@@ -1,10 +1,11 @@
 import numpy as np
+import scipy as sp
 import tensorflow as tf
 import trimesh
 import zipfile
 
 
-def faust_generator(path_to_zip):
+def faust_generator(path_to_zip, sparse=True):
     """Reads one element of preprocessed FAUST-dataset into memory per 'next'-call."""
 
     dataset = np.load(path_to_zip)
@@ -19,12 +20,19 @@ def faust_generator(path_to_zip):
     # GPC = [file_name for file_name in file_names if file_name.startswith("GPC")]
     # GPC.sort(), PLY.sort()
 
-    for idx in range(100):
-        shot = np.expand_dims(dataset[SHOT[idx]], axis=0)
-        bc = np.expand_dims(dataset[BC[idx]], axis=0)
-        gt = np.expand_dims(dataset[GT[idx]], axis=0)
+    for idx in range(2):
+        shot = tf.cast(dataset[SHOT[idx]], tf.float32)
+        bc = tf.cast(dataset[BC[idx]], tf.float32)
 
-        # not required as input in the GCNN
+        if sparse:
+            # Return the indices of the ones for each row
+            # (as required by `tf.keras.losses.SparseCategoricalCrossentropy`)
+            gt = sp.sparse.csc_array(dataset[GT[idx]])
+            gt = tf.cast(gt.nonzero()[1], tf.float32)
+        else:
+            gt = dataset[GT[idx]]
+
+        # Not required as input in the GCNN
         # gpc = dataset[GPC[idx]]
         # ply = trimesh.exchange.ply.load_ply(z.open(PLY[idx]))
         # ply = trimesh.Trimesh(vertices=ply["vertices"], faces=ply["faces"])
@@ -53,22 +61,22 @@ def load_preprocessed_faust(path_to_zip):
         args=(path_to_zip,),
         output_signature=(
             (
-                tf.TensorSpec(shape=(1, 6890, 1056), dtype=tf.float32),
-                tf.TensorSpec(shape=(1, 6890, 4, 2, 6), dtype=tf.float32)
+                tf.TensorSpec(shape=(6890, 1056), dtype=tf.float32),
+                tf.TensorSpec(shape=(6890, 4, 2, 6), dtype=tf.float32)
             ),
-            tf.TensorSpec(shape=(1, 6890, 6890), dtype=tf.int32)
+            tf.TensorSpec(shape=(6890,), dtype=tf.float32)
         )
     )
 
 
 if __name__ == "__main__":
-    tf_faust_dataset = load_preprocessed_faust(
+    faust_dataset = load_preprocessed_faust(
         "/home/andreas/PycharmProjects/Masterarbeit/dataset/MPI_FAUST/preprocessed_registrations.zip"
     )
     # faust_dataset = faust_generator(
     #     "/home/andreas/PycharmProjects/Masterarbeit/dataset/MPI_FAUST/preprocessed_registrations.zip"
     # )
-    for elem in tf_faust_dataset:
+    for elem in faust_dataset:
         print("Signal:", elem[0][0].shape, elem[0][0].dtype)
         print("Barycentric coordinates:", elem[0][1].shape, elem[0][1].dtype)
         print("Labels:", elem[1].shape, elem[1].dtype)

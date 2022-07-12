@@ -32,7 +32,7 @@ def preprocess(directory,
 
     if shuffle:
         print("Shuffling original meshes...")
-        for file in tqdm.tqdm(file_list[:1]):
+        for file in tqdm.tqdm(file_list):
             if not os.path.exists(shuffled_meshes_dir):
                 os.makedirs(shuffled_meshes_dir)
 
@@ -56,7 +56,7 @@ def preprocess(directory,
         query_dir = shuffled_meshes_dir if shuffle else directory
         reference_mesh = trimesh.load(reference_path)
         ref_mesh_kd_tree = scipy.spatial.KDTree(reference_mesh.vertices)
-        for file in tqdm.tqdm(file_list[:1]):
+        for file in tqdm.tqdm(file_list):
             object_mesh = trimesh.load_mesh(f"{query_dir}/{file}")
             label_matrix = np.zeros(
                 shape=(object_mesh.vertices.shape[0], reference_mesh.vertices.shape[0]), dtype=np.int32
@@ -68,7 +68,7 @@ def preprocess(directory,
 
     print("Preprocessing...")
     processing_dir = shuffled_meshes_dir if shuffle else directory
-    for file_num, file in enumerate(file_list[:1]):
+    for file_num, file in enumerate(file_list):
         sys.stdout.write(f"\rPreprocessing file {file}")
         object_mesh = trimesh.load_mesh(f"{processing_dir}/{file}")
 
