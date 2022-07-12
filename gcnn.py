@@ -68,7 +68,7 @@ class ConvGeodesic(Layer):
         super().__init__()
 
         # Define kernel attributes
-        self.kernel = None
+        self.kernels = []
         self.kernel_size = kernel_size  # (#radial, #angular)
 
         # Define output attributes
@@ -97,10 +97,8 @@ class ConvGeodesic(Layer):
 
         In one layer we have:
             * `self.amt_kernel`-many kernels (referred to as 'filters' in [1]).
-            * With `(self.kernel_size[0], self.kernel_size[1])` we reference to a weight matrix corresponding to a
-              kernel vertex.
-            * With `(self.output_dim, input_shape[1])` we define the size of the weight matrix of a kernel vertex.
-              With `self.output_dim` we modify the output dimensionality of the signal after the convolution.
+            * Each kernel defines `self.kernel_size[1]` (angular-coordinates-many) weight-tensors. Each of those
+              describes weight-matrices for all `self-kernel_size[0]` (radial) coordinates.
 
         An expressive illustration of how these kernels are used during the convolution is given in Figure 3 in [1].
 
@@ -117,13 +115,16 @@ class ConvGeodesic(Layer):
 
         """
         signal_shape, _ = input_shape
-        self.kernel = self.add_weight(
-            "Kernel",
-            # Broadcasting in convolution requires to make angular coordinate first coordinate
-            shape=(self.amt_kernel, self.kernel_size[1], self.kernel_size[0], self.output_dim, signal_shape[2]),
-            initializer="glorot_uniform",
-            trainable=True
-        )
+        self.kernels = [
+            [
+                self.add_weight(
+                    f"Kernel_{k}/AngularWeights_{a}",
+                    shape=(self.kernel_size[0], self.output_dim, signal_shape[2]),
+                    initializer="glorot_uniform",
+                    trainable=True
+                ) for a in range(self.kernel_size[1])
+            ] for k in range(self.amt_kernel)
+        ]
 
     @tf.function
     def call(self, inputs):
@@ -202,27 +203,31 @@ class ConvGeodesic(Layer):
         pullback = tf.vectorized_map(pullback_fn, barycentric_coords)
 
         # We will need to sum over the convolutions of every kernel
-        kernels = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
-        for k in tf.range(self.amt_kernel):
-            # We will need to consider every rotation of each kernel
-            kernel_rotations = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
-            for rotation in tf.range(self.all_rotations):
-                angular_convolutions = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
-                for angular_coord in tf.range(self.kernel_size[1]):
-                    # Compute the product from within the sum of Eq. (7) in [1]
-                    rotation = tf.math.floormod(angular_coord + rotation, self.kernel_size[1])
-                    angular_convolutions = angular_convolutions.write(
-                        rotation,
-                        tf.linalg.matvec(self.kernel[k, rotation], pullback[:, angular_coord])
-                    )
-                angular_convolutions = angular_convolutions.stack()
-                kernel_rotations = kernel_rotations.write(rotation, angular_convolutions)
-            kernel_rotations = kernel_rotations.stack()
-            kernels = kernels.write(k, kernel_rotations)
-        kernels = kernels.stack()
+        kernel_results = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
+        kernel_idx = tf.constant(0)
+        for kernel in self.kernels:
+            angular_results = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
+            angular_coordinate = tf.constant(0)
+            for angular_weights in kernel:
+                rotation_results = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
+                for rotation in tf.range(self.all_rotations):
+                    # For given angular weights `angular_weights` choose the signal-interpolations `pullback` of the
+                    # desired angular-coordinate `angular_coordinate`. However, we might want to rotate the
+                    # kernel-patch alignment. We do so by adding a `rotation` onto the `angular_coordinate`.
+                    # Geometrically speaking, we rotate the patch, not the kernel.
+                    rotation = tf.math.floormod(angular_coordinate + rotation, self.kernel_size[1])
+                    result = tf.linalg.matvec(angular_weights, pullback[:, rotation])
+                    rotation_results = rotation_results.write(rotation, result)
+                rotation_results = rotation_results.stack()
+                angular_results = angular_results.write(angular_coordinate, rotation_results)
+                angular_coordinate = angular_coordinate + tf.constant(1)
+            angular_results = angular_results.stack()
+            kernel_results = kernel_results.write(kernel_idx, angular_results)
+            kernel_idx = kernel_idx + tf.constant(1)
+        kernel_results = kernel_results.stack()
 
-        # Compute the sum over all filter banks (0), as well as radial (2) and angular (4) coordinates
+        # Compute the sum over all filter banks/kernels (0), as well as radial (1) and angular (4) coordinates
         # Compare Equations (7) and (11) in [1]
-        kernels = tf.reduce_sum(kernels, axis=[0, 2, 4])
-        kernels = self.activation(kernels)
-        return angular_max_pooling(kernels)
+        kernel_results = tf.reduce_sum(kernel_results, axis=[0, 1, 4])
+        kernel_results = self.activation(kernel_results)
+        return angular_max_pooling(kernel_results)
