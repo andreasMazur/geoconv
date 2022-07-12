@@ -38,7 +38,7 @@ if __name__ == "__main__":
     bary_input = Input(shape=(6890, 4, 2, 6))
     down_scaling = Dense(16, activation="relu")(signal_input)
     geodesic_conv = ConvGeodesic(
-        kernel_size=(2, 4), output_dim=8, amt_kernel=1, activation="relu"
+        kernel_size=(2, 4), output_dim=8, amt_kernel=2, activation="relu"
     )([down_scaling, bary_input])
     up_scaling = Dense(6890, activation="relu")(geodesic_conv)
     model = Model(inputs=[signal_input, bary_input], outputs=[up_scaling])
