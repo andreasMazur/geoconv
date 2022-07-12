@@ -46,7 +46,7 @@ def define_model(signal_shape, bc_shape):
 def train():
     tf_faust_dataset = load_preprocessed_faust(
         "/home/andreas/PycharmProjects/Masterarbeit/dataset/MPI_FAUST/preprocessed_registrations.zip"
-    )
+    ).take(80)
     model = define_model(signal_shape=(6890, 1056), bc_shape=(6890, 4, 2, 6))
 
     log_dir = "./logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
