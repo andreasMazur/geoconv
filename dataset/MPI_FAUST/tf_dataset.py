@@ -20,7 +20,7 @@ def faust_generator(path_to_zip, sparse=True):
     # GPC = [file_name for file_name in file_names if file_name.startswith("GPC")]
     # GPC.sort(), PLY.sort()
 
-    for idx in range(2):
+    for idx in range(100):
         shot = tf.cast(dataset[SHOT[idx]], tf.float32)
         bc = tf.cast(dataset[BC[idx]], tf.float32)
 

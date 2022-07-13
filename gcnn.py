@@ -4,14 +4,39 @@ import tensorflow as tf
 
 
 @tf.function
-def angular_max_pooling(signal):
-    """Angular maximum pooling to filter for the maximal response of a geodesic convolution.
+def angular_max_pooling_global(signal):
+    """Global angular maximum pooling to filter for the maximal response of a geodesic convolution.
 
-    The signals are measured at the hand of their norms.
+    The signals at all vertices are added together for each rotation. The resulting rotation-many vectors are compared
+    at the hand of their norms. The signal of the rotation with the largest corresponding norm is returned.
 
     **Input**
 
-    - The result of a geodesic convolution for each rotation in a tensor of size `(m, r, o)`, where `m` is the amount
+    - The result of a geodesic convolution for each rotation in a tensor of size `(r, m, o)`, where `m` is the amount
+      of nodes on the mesh, `r` the amount of rotations and `o` the output dimension of the convolution.
+
+    **Output**
+
+    - A tensor containing the maximal global response.
+
+    :param signal:
+    :return:
+    """
+
+    rotation_activations = tf.norm(tf.reduce_sum(signal, axis=1), ord="euclidean", axis=1)
+    maximal_activation = tf.argmax(rotation_activations)
+    return signal[maximal_activation]
+
+
+@tf.function
+def angular_max_pooling(signal):
+    """Angular maximum pooling to filter for the maximal response of a geodesic convolution.
+
+    The signals are compared vertex-wise at the hand of their norms.
+
+    **Input**
+
+    - The result of a geodesic convolution for each rotation in a tensor of size `(r, m, o)`, where `m` is the amount
       of nodes on the mesh, `r` the amount of rotations and `o` the output dimension of the convolution.
 
     **Output**
@@ -25,8 +50,8 @@ def angular_max_pooling(signal):
     openaccess/content_iccv_2015_workshops/w22/html/Masci_Geodesic_Convolutional_Neural_ICCV_2015_paper.html)
 
     """
-    row_indices = tf.argmax(tf.norm(signal, ord="euclidean", axis=-1), axis=0)
-    column_indices = tf.range(tf.shape(signal)[1], dtype=tf.int64)
+    row_indices = tf.cast(tf.argmax(tf.norm(signal, ord="euclidean", axis=-1), axis=0), tf.int32)
+    column_indices = tf.range(tf.shape(signal)[1], dtype=tf.int32)
     indices = tf.stack([row_indices, column_indices], axis=1)
     return tf.gather_nd(signal, indices)
 
