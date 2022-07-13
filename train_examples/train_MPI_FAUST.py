@@ -57,7 +57,7 @@ def train():
     checkpoint_path = "./training/cp.ckpt"
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_freq='epoch', verbose=1)
 
-    model.fit(tf_faust_dataset.batch(1), epochs=5, callbacks=[tensorboard_callback, cp_callback])
+    model.fit(tf_faust_dataset.take(80).batch(1), epochs=25, callbacks=[tensorboard_callback, cp_callback])
 
 
 if __name__ == "__main__":
