@@ -10,25 +10,18 @@ import sys
 
 
 def train_step(nn, data, step):
-    # Unpack the data. Its structure depends on your model and
-    # on what you pass to `fit()`.
     (shot, bc), y = data
 
     with tf.GradientTape() as tape:
-        y_pred = nn((shot, bc), training=True)  # Forward pass
-        # Compute the loss value
-        # (the loss function is configured in `compile()`)
+        y_pred = nn((shot, bc), training=True)
         loss = nn.compiled_loss(y, y_pred, regularization_losses=nn.losses)
 
-    # Compute gradients
     trainable_vars = nn.trainable_variables
     gradients = tape.gradient(loss, trainable_vars)
 
-    # Update weights
     zipped = list(zip(gradients, trainable_vars))
     nn.optimizer.apply_gradients(zipped)
 
-    # Update metrics (includes the metric that tracks the loss)
     nn.compiled_metrics.update_state(y, y_pred)
 
     for grad, var in zipped:
@@ -37,7 +30,9 @@ def train_step(nn, data, step):
     for var in nn.trainable_variables:
         tf.summary.histogram(var.name, var, step=step)
 
-    tf.summary.scalar("Loss", loss, step=step)
+    tf.summary.scalar("Manual loss tracking", loss, step=step)
+    for metric in nn.metrics:
+        tf.summary.scalar(metric.name, metric.result(), step=step)
 
 
 if __name__ == "__main__":
@@ -47,7 +42,7 @@ if __name__ == "__main__":
     bary_input = Input(shape=(6890, 4, 2, 6))
     down_scaling = Dense(16, activation="relu")(signal_input)
     geodesic_conv = ConvGeodesic(
-        kernel_size=(2, 4), output_dim=8, amt_kernel=2, activation="relu"
+        kernel_size=(2, 4), output_dim=16, amt_kernel=2, activation="relu"
     )([down_scaling, bary_input])
     up_scaling = Dense(6890, activation="relu")(geodesic_conv)
     model = Model(inputs=[signal_input, bary_input], outputs=[up_scaling])
@@ -66,9 +61,11 @@ if __name__ == "__main__":
     # Logs
     logdir = "./logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
     writer = tf.summary.create_file_writer(logdir)
+    epochs = 10
     with writer.as_default():
         training_step = 0
-        for elem in tf_faust_dataset.take(5).batch(1):
-            sys.stdout.write(f"\rTrain step: {training_step}")
-            train_step(model, elem, training_step)
-            training_step += 1
+        for _ in range(epochs):
+            for elem in tf_faust_dataset.take(80).batch(1):
+                sys.stdout.write(f"\rTrain step: {training_step}")
+                train_step(model, elem, training_step)
+                training_step += 1

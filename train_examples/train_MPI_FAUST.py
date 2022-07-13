@@ -8,7 +8,7 @@ import tensorflow as tf
 import datetime
 
 
-def define_model(signal_shape, bc_shape):
+def define_model(signal_shape, bc_shape, lr):
     """Similar architecture to the one used in Section 7.2 in [1].
 
     Just the input SHOT-vector differs: Here it has 1056 entries. In [1] it has 150.
@@ -38,16 +38,17 @@ def define_model(signal_shape, bc_shape):
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    model.compile(optimizer="adam", loss=loss, metrics=["categorical_accuracy"])
+    opt = tf.keras.optimizers.Adam(learning_rate=lr)
+    model.compile(optimizer=opt, loss=loss, metrics=["categorical_accuracy"])
     model.summary()
     return model
 
 
-def train():
+def train(lr, batch_size):
     tf_faust_dataset = load_preprocessed_faust(
         "/home/andreas/PycharmProjects/Masterarbeit/dataset/MPI_FAUST/preprocessed_registrations.zip"
     ).take(80)
-    model = define_model(signal_shape=(6890, 1056), bc_shape=(6890, 4, 2, 6))
+    model = define_model(signal_shape=(6890, 1056), bc_shape=(6890, 4, 2, 6), lr=lr)
 
     log_dir = "./logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
@@ -57,8 +58,8 @@ def train():
     checkpoint_path = "./training/cp.ckpt"
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_freq='epoch', verbose=1)
 
-    model.fit(tf_faust_dataset.take(80).batch(1), epochs=25, callbacks=[tensorboard_callback, cp_callback])
+    model.fit(tf_faust_dataset.take(80).batch(batch_size), epochs=25, callbacks=[tensorboard_callback, cp_callback])
 
 
 if __name__ == "__main__":
-    train()
+    train(lr=0.1, batch_size=1)
