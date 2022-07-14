@@ -255,4 +255,6 @@ class ConvGeodesic(Layer):
         # Compare Equations (7) and (11) in [1]
         kernel_results = tf.reduce_sum(kernel_results, axis=[0, 1, 4])
         kernel_results = self.activation(kernel_results)
+
+        # TODO: + Bias matrix?
         return angular_max_pooling(kernel_results)

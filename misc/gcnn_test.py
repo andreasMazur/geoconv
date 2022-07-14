@@ -49,7 +49,7 @@ if __name__ == "__main__":
     model.compile(
         optimizer="adam",
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        metrics=["categorical_accuracy"]
+        metrics=["sparse_categorical_accuracy"]
     )
     model.summary()
 
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     with writer.as_default():
         training_step = 0
         for _ in range(epochs):
-            for elem in tf_faust_dataset.take(80).batch(1):
+            for elem in tf_faust_dataset.take(80).batch(4):
                 sys.stdout.write(f"\rTrain step: {training_step}")
                 train_step(model, elem, training_step)
                 training_step += 1

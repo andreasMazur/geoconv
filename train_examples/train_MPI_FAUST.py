@@ -24,7 +24,7 @@ def define_model(signal_shape, bc_shape, lr):
     bary_input = Input(shape=bc_shape)
 
     # LIN16+ReLU
-    signal = Dense(16, activation="relu")(signal_input)
+    signal = Dense(32, activation="relu")(signal_input)
     # GC32+AMP+ReLU
     signal = ConvGeodesic(kernel_size=(2, 4), output_dim=32, amt_kernel=1, activation="relu")([signal, bary_input])
     # GC64+AMP+ReLU
@@ -39,7 +39,7 @@ def define_model(signal_shape, bc_shape, lr):
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     opt = tf.keras.optimizers.Adam(learning_rate=lr)
-    model.compile(optimizer=opt, loss=loss, metrics=["categorical_accuracy"])
+    model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
     model.summary()
     return model
 
@@ -58,8 +58,12 @@ def train(lr, batch_size):
     checkpoint_path = "./training/cp.ckpt"
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_freq='epoch', verbose=1)
 
-    model.fit(tf_faust_dataset.take(80).batch(batch_size), epochs=25, callbacks=[tensorboard_callback, cp_callback])
+    model.fit(
+        tf_faust_dataset.take(80).batch(batch_size).prefetch(tf.data.AUTOTUNE),
+        epochs=25,
+        callbacks=[tensorboard_callback, cp_callback]
+    )
 
 
 if __name__ == "__main__":
-    train(lr=0.1, batch_size=1)
+    train(lr=0.1, batch_size=4)
