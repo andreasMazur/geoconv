@@ -1,8 +1,8 @@
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Dense
 
-from dataset.MPI_FAUST.tf_dataset import load_preprocessed_faust
-from gcnn import ConvGeodesic
+from GeodesicConvolution.dataset.MPI_FAUST.tf_dataset import load_preprocessed_faust
+from GeodesicConvolution.conv_geodesic import ConvGeodesic
 
 import tensorflow as tf
 import datetime
@@ -46,7 +46,7 @@ def define_model(signal_shape, bc_shape, lr):
 
 def train_on_faust(lr, batch_size):
     tf_faust_dataset = load_preprocessed_faust(
-        "/home/andreas/PycharmProjects/Masterarbeit/dataset/MPI_FAUST/preprocessed_registrations.zip"
+        "/GeodesicConvolution/dataset/MPI_FAUST/preprocessed_registrations.zip"
     )
     model = define_model(signal_shape=(6890, 1056), bc_shape=(6890, 4, 2, 6), lr=lr)
 

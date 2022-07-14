@@ -3,7 +3,7 @@ __pycache__/
 *.zip
 logs/
 training/
-misc/
+GeodesicConvolution/misc/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
