@@ -102,15 +102,3 @@ def preprocess(directory,
     shutil.make_archive(target_dir, "zip", target_dir)
     shutil.rmtree(target_dir)
     print("Preprocessing finished.")
-
-
-if __name__ == "__main__":
-    FAUST_REGISTRATIONS = "/home/andreas/Uni/Masterarbeit/MPI-FAUST/training/registrations"
-    TARGET_DIR = "../dataset/MPI_FAUST/preprocessed_registrations"
-    REF_PATH = "/home/andreas/Uni/Masterarbeit/MPI-FAUST/training/registrations/tr_reg_000.ply"
-    GPC_MAX_RADIUS = 0.05
-    KERNEL_SIZE = (2, 4)
-    USE_C = True
-    EPS = 0.000001
-    SHUFFLE = True
-    preprocess(FAUST_REGISTRATIONS, TARGET_DIR, GPC_MAX_RADIUS, KERNEL_SIZE, USE_C, EPS, SHUFFLE, REF_PATH)

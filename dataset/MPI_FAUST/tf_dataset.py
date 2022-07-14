@@ -67,17 +67,3 @@ def load_preprocessed_faust(path_to_zip):
             tf.TensorSpec(shape=(6890,), dtype=tf.float32)
         )
     )
-
-
-if __name__ == "__main__":
-    faust_dataset = load_preprocessed_faust(
-        "/home/andreas/PycharmProjects/Masterarbeit/dataset/MPI_FAUST/preprocessed_registrations.zip"
-    )
-    # faust_dataset = faust_generator(
-    #     "/home/andreas/PycharmProjects/Masterarbeit/dataset/MPI_FAUST/preprocessed_registrations.zip"
-    # )
-    for elem in faust_dataset:
-        print("Signal:", elem[0][0].shape, elem[0][0].dtype)
-        print("Barycentric coordinates:", elem[0][1].shape, elem[0][1].dtype)
-        print("Labels:", elem[1].shape, elem[1].dtype)
-        break

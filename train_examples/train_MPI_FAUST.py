@@ -44,10 +44,10 @@ def define_model(signal_shape, bc_shape, lr):
     return model
 
 
-def train(lr, batch_size):
+def train_on_faust(lr, batch_size):
     tf_faust_dataset = load_preprocessed_faust(
         "/home/andreas/PycharmProjects/Masterarbeit/dataset/MPI_FAUST/preprocessed_registrations.zip"
-    ).take(80)
+    )
     model = define_model(signal_shape=(6890, 1056), bc_shape=(6890, 4, 2, 6), lr=lr)
 
     log_dir = "./logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -63,7 +63,3 @@ def train(lr, batch_size):
         epochs=25,
         callbacks=[tensorboard_callback, cp_callback]
     )
-
-
-if __name__ == "__main__":
-    train(lr=0.1, batch_size=4)
