@@ -3,6 +3,7 @@ __pycache__/
 *.zip
 logs/
 training/
+misc/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
