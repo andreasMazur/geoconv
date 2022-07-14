@@ -28,7 +28,7 @@ def faust_generator(path_to_zip, sparse=True):
         yield (shot, bc), gt
 
 
-def load_preprocessed_faust(path_to_zip):
+def load_preprocessed_faust(path_to_zip, kernel_size=(2, 4)):
     """Returns a 'tf.data.Dataset' of the preprocessed MPI-FAUST datasets.
 
     Requires that preprocessing already happened. This function operates directly on the resulting 'zip'-file.
@@ -49,7 +49,7 @@ def load_preprocessed_faust(path_to_zip):
         output_signature=(
             (
                 tf.TensorSpec(shape=(6890, 1056), dtype=tf.float32),
-                tf.TensorSpec(shape=(6890, 4, 2, 6), dtype=tf.float32)
+                tf.TensorSpec(shape=(6890,) + kernel_size[::-1] + (6,), dtype=tf.float32)
             ),
             tf.TensorSpec(shape=(6890,), dtype=tf.float32)
         )
