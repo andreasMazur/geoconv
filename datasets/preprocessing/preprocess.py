@@ -1,5 +1,5 @@
-from GeodesicConvolution.preprocessing.barycentric_coords import create_kernel_matrix, barycentric_coordinates
-from GeodesicConvolution.preprocessing.discrete_gpc import discrete_gpc
+from datasets.preprocessing.barycentric_coords import create_kernel_matrix, barycentric_coordinates
+from datasets.preprocessing.discrete_gpc import discrete_gpc
 
 import scipy
 import os

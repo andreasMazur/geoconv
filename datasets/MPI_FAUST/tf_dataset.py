@@ -1,8 +1,6 @@
 import numpy as np
 import scipy as sp
 import tensorflow as tf
-import trimesh
-import zipfile
 
 
 def faust_generator(path_to_zip, sparse=True):
@@ -14,11 +12,6 @@ def faust_generator(path_to_zip, sparse=True):
     BC = [file_name for file_name in file_names if file_name.startswith("BC")]
     GT = [file_name for file_name in file_names if file_name.startswith("GT")]
     SHOT.sort(), BC.sort(), GT.sort()
-
-    # z = zipfile.ZipFile(path_to_zip)
-    # PLY = [file_name for file_name in file_names if file_name.endswith("ply")]
-    # GPC = [file_name for file_name in file_names if file_name.startswith("GPC")]
-    # GPC.sort(), PLY.sort()
 
     for idx in range(100):
         shot = tf.cast(dataset[SHOT[idx]], tf.float32)
@@ -32,13 +25,7 @@ def faust_generator(path_to_zip, sparse=True):
         else:
             gt = dataset[GT[idx]]
 
-        # Not required as input in the GCNN
-        # gpc = datasets[GPC[idx]]
-        # ply = trimesh.exchange.ply.load_ply(z.open(PLY[idx]))
-        # ply = trimesh.Trimesh(vertices=ply["vertices"], faces=ply["faces"])
-
         yield (shot, bc), gt
-        # yield (shot, bc, gpc, ply), gt
 
 
 def load_preprocessed_faust(path_to_zip):

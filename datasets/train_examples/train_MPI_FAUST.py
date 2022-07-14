@@ -1,7 +1,7 @@
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Dense
 
-from GeodesicConvolution.datasets.MPI_FAUST.tf_dataset import load_preprocessed_faust
+from datasets.MPI_FAUST.tf_dataset import load_preprocessed_faust
 from GeodesicConvolution.conv_geodesic import ConvGeodesic
 
 import tensorflow as tf
