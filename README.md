@@ -1,1 +1,1 @@
-# Masterarbeit
+# GeodesicConvolution
