@@ -6,7 +6,7 @@ import zipfile
 
 
 def faust_generator(path_to_zip, sparse=True):
-    """Reads one element of preprocessed FAUST-dataset into memory per 'next'-call."""
+    """Reads one element of preprocessed FAUST-datasets into memory per 'next'-call."""
 
     dataset = np.load(path_to_zip)
     file_names = dataset.files
@@ -33,7 +33,7 @@ def faust_generator(path_to_zip, sparse=True):
             gt = dataset[GT[idx]]
 
         # Not required as input in the GCNN
-        # gpc = dataset[GPC[idx]]
+        # gpc = datasets[GPC[idx]]
         # ply = trimesh.exchange.ply.load_ply(z.open(PLY[idx]))
         # ply = trimesh.Trimesh(vertices=ply["vertices"], faces=ply["faces"])
 
@@ -42,7 +42,7 @@ def faust_generator(path_to_zip, sparse=True):
 
 
 def load_preprocessed_faust(path_to_zip):
-    """Returns a 'tf.data.Dataset' of the preprocessed MPI-FAUST dataset.
+    """Returns a 'tf.data.Dataset' of the preprocessed MPI-FAUST datasets.
 
     Requires that preprocessing already happened. This function operates directly on the resulting 'zip'-file.
 
@@ -52,7 +52,7 @@ def load_preprocessed_faust(path_to_zip):
 
     **Output**
 
-    - A tf.data.Dataset of the preprocessed MPI-FAUST dataset.
+    - A tf.data.Dataset of the preprocessed MPI-FAUST datasets.
 
     """
 
