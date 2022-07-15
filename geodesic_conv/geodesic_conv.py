@@ -95,6 +95,7 @@ class ConvGeodesic(Layer):
         # Define kernel attributes
         self.kernels = []
         self.kernel_size = kernel_size  # (#radial, #angular)
+        self.bias = None
 
         # Define output attributes
         self.output_dim = output_dim  # dimension of the output signal
@@ -150,6 +151,9 @@ class ConvGeodesic(Layer):
                 ) for a in range(self.kernel_size[1])
             ] for k in range(self.amt_kernel)
         ]
+        self.bias = self.add_weight(
+            "Bias", shape=(signal_shape[1], self.output_dim), initializer="glorot_uniform", trainable=True
+        )
 
     @tf.function
     def call(self, inputs):
@@ -256,5 +260,4 @@ class ConvGeodesic(Layer):
         kernel_results = tf.reduce_sum(kernel_results, axis=[0, 1, 4])
         kernel_results = self.activation(kernel_results)
 
-        # TODO: + Bias matrix?
-        return angular_max_pooling(kernel_results)
+        return angular_max_pooling(kernel_results) + self.bias
