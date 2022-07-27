@@ -133,7 +133,6 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
                         u_ijk = k
                         theta_i = theta_k
                 else:
-                    # TODO: Why can `phi_ij` be greater than `phi_kj`?
                     if phi_ij < phi_kj:
                         alpha = phi_ij / phi_kj
                         if theta_j == 0 and theta_k > np.pi:

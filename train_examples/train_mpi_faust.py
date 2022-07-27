@@ -8,7 +8,7 @@ import tensorflow as tf
 import datetime
 
 
-def define_model(signal_shape, bc_shape, lr):
+def define_model(signal_shape, bc_shape, lr=.00045):
     """Similar architecture to the one used in Section 7.2 in [1].
 
     Just the input SHOT-vector differs: Here it has 1056 entries. In [1] it has 150.
@@ -23,17 +23,9 @@ def define_model(signal_shape, bc_shape, lr):
     signal_input = Input(shape=signal_shape)
     bary_input = Input(shape=bc_shape)
 
-    # LIN16+ReLU
     signal = Dense(32, activation="relu")(signal_input)
-    # GC32+AMP+ReLU
-    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=32, amt_kernel=1, activation="relu")([signal, bary_input])
-    # GC64+AMP+ReLU
-    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
-    # GC128+AMP+ReLU
-    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=128, amt_kernel=1, activation="relu")([signal, bary_input])
-    # LIN256
-    signal = Dense(256)(signal)
-    # LIN6890
+    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
+    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
     logits = Dense(6890)(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
@@ -44,7 +36,7 @@ def define_model(signal_shape, bc_shape, lr):
     return model
 
 
-def train_on_faust(lr, batch_size, path_to_preprocessing_result):
+def train_on_faust(path_to_preprocessing_result, lr=.00045, batch_size=1):
     tf_faust_dataset = load_preprocessed_faust(path_to_preprocessing_result)
 
     model = define_model(signal_shape=(6890, 1056), bc_shape=(6890, 4, 2, 6), lr=lr)
