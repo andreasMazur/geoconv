@@ -51,7 +51,7 @@ def train_on_faust(path_to_preprocessing_result, lr=.00045, batch_size=1):
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_freq='epoch', verbose=1)
 
     model.fit(
-        tf_faust_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE),
+        tf_faust_dataset.batch(batch_size).shuffle(5, reshuffle_each_iteration=True),
         epochs=200,
         callbacks=[tensorboard_callback, cp_callback],
         validation_data=tf_faust_dataset_val.batch(batch_size).prefetch(tf.data.AUTOTUNE)
