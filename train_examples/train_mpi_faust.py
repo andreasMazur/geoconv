@@ -24,8 +24,8 @@ def define_model(signal_shape, bc_shape, lr=.00045):
     bary_input = Input(shape=bc_shape)
 
     signal = Dense(32, activation="relu")(signal_input)
-    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
-    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
+    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=32, amt_kernel=1, activation="relu")([signal, bary_input])
+    # signal = ConvGeodesic(kernel_size=(2, 4), output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
     logits = Dense(6890)(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
@@ -38,6 +38,7 @@ def define_model(signal_shape, bc_shape, lr=.00045):
 
 def train_on_faust(path_to_preprocessing_result, lr=.00045, batch_size=1):
     tf_faust_dataset = load_preprocessed_faust(path_to_preprocessing_result)
+    tf_faust_dataset_val = load_preprocessed_faust(path_to_preprocessing_result, val=True)
 
     model = define_model(signal_shape=(6890, 1056), bc_shape=(6890, 4, 2, 6), lr=lr)
 
@@ -50,7 +51,8 @@ def train_on_faust(path_to_preprocessing_result, lr=.00045, batch_size=1):
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_freq='epoch', verbose=1)
 
     model.fit(
-        tf_faust_dataset.take(80).batch(batch_size).prefetch(tf.data.AUTOTUNE),
-        epochs=25,
-        callbacks=[tensorboard_callback, cp_callback]
+        tf_faust_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE),
+        epochs=200,
+        callbacks=[tensorboard_callback, cp_callback],
+        validation_data=tf_faust_dataset_val.batch(batch_size).prefetch(tf.data.AUTOTUNE)
     )

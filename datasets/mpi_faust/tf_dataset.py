@@ -3,7 +3,7 @@ import scipy as sp
 import tensorflow as tf
 
 
-def faust_generator(path_to_zip, sparse=True):
+def faust_generator(path_to_zip, sparse=True, val=False):
     """Reads one element of preprocessed FAUST-datasets into memory per 'next'-call."""
 
     dataset = np.load(path_to_zip)
@@ -13,7 +13,12 @@ def faust_generator(path_to_zip, sparse=True):
     GT = [file_name for file_name in file_names if file_name.startswith("GT")]
     SHOT.sort(), BC.sort(), GT.sort()
 
-    for idx in range(100):
+    if val:
+        indices = range(80, 100)
+    else:
+        indices = range(80)
+
+    for idx in indices:
         shot = tf.cast(dataset[SHOT[idx]], tf.float32)
         bc = tf.cast(dataset[BC[idx]], tf.float32)
 
@@ -28,7 +33,7 @@ def faust_generator(path_to_zip, sparse=True):
         yield (shot, bc), gt
 
 
-def load_preprocessed_faust(path_to_zip, kernel_size=(2, 4)):
+def load_preprocessed_faust(path_to_zip, kernel_size=(2, 4), sparse=True, val=False):
     """Returns a 'tf.data.Dataset' of the preprocessed MPI-FAUST datasets.
 
     Requires that preprocessing already happened. This function operates directly on the resulting 'zip'-file.
@@ -45,7 +50,7 @@ def load_preprocessed_faust(path_to_zip, kernel_size=(2, 4)):
 
     return tf.data.Dataset.from_generator(
         faust_generator,
-        args=(path_to_zip,),
+        args=(path_to_zip, sparse, val),
         output_signature=(
             (
                 tf.TensorSpec(shape=(6890, 1056), dtype=tf.float32),
