@@ -239,7 +239,11 @@ def barycentric_coordinates(local_gpc_systems, kernel, object_mesh, tqdm_msg="")
     vertex_faces = np.copy(object_mesh.vertex_faces)
 
     E = []
-    for gpc_system in tqdm(local_gpc_systems, position=0, postfix=tqdm_msg):
-        E.append(barycentric_coords_local_gpc(gpc_system, kernel, faces, vertex_faces))
+    if tqdm_msg:
+        for gpc_system in tqdm(local_gpc_systems, position=0, postfix=tqdm_msg):
+            E.append(barycentric_coords_local_gpc(gpc_system, kernel, faces, vertex_faces))
+    else:
+        for gpc_system in local_gpc_systems:
+            E.append(barycentric_coords_local_gpc(gpc_system, kernel, faces, vertex_faces))
 
     return np.array(E).astype(np.float32)

@@ -387,11 +387,19 @@ def discrete_gpc(object_mesh, u_max=.04, eps=0.000001, use_c=False, tqdm_msg="")
     """
 
     u, theta, triangle_cache, graph = [], [], dict(), None
-    for vertex_idx in tqdm(range(object_mesh.vertices.shape[0]), position=0, postfix=tqdm_msg):
-        u_v, theta_v, triangle_cache, graph = local_gpc(
-            vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache, graph
-        )
-        u.append(u_v)
-        theta.append(theta_v)
+    if tqdm_msg:
+        for vertex_idx in tqdm(range(object_mesh.vertices.shape[0]), position=0, postfix=tqdm_msg):
+            u_v, theta_v, triangle_cache, graph = local_gpc(
+                vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache, graph
+            )
+            u.append(u_v)
+            theta.append(theta_v)
+    else:
+        for vertex_idx in range(object_mesh.vertices.shape[0]):
+            u_v, theta_v, triangle_cache, graph = local_gpc(
+                vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache, graph
+            )
+            u.append(u_v)
+            theta.append(theta_v)
 
     return np.stack([u, theta], axis=-1)
