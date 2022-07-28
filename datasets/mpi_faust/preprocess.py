@@ -23,7 +23,7 @@ def preprocess(directory, target_dir, sub_sample_amount, reference_mesh):
     ref_mesh_kd_tree = scipy.spatial.KDTree(reference_mesh.vertices)
 
     with tqdm.tqdm(total=len(file_list[:3])) as pbar:
-        for file in file_list[:3]:
+        for file in file_list:
 
             pbar.set_postfix({"Step": "Sub-sample the original meshes"})
             #################################
