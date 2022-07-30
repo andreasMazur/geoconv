@@ -24,8 +24,8 @@ def define_model(signal_shape, bc_shape, lr=.00045):
     bary_input = Input(shape=bc_shape)
 
     signal = Dense(32, activation="relu")(signal_input)
-    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
-    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
+    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=32, amt_kernel=1, activation="relu")([signal, bary_input])
+    # signal = ConvGeodesic(kernel_size=(2, 4), output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
     logits = Dense(6890)(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
@@ -40,7 +40,7 @@ def train_on_faust(path_to_preprocessing_result, lr=.00045, batch_size=1, amt_no
     tf_faust_dataset = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes)
     tf_faust_dataset_val = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, val=True)
 
-    model = define_model(signal_shape=(6890, 1056), bc_shape=(6890, 4, 2, 6), lr=lr)
+    model = define_model(signal_shape=(amt_nodes, 1056), bc_shape=(amt_nodes, 4, 2, 6), lr=lr)
 
     log_dir = "./logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
