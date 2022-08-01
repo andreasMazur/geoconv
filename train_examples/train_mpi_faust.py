@@ -9,17 +9,7 @@ import datetime
 
 
 def define_model(signal_shape, bc_shape, output_dim, lr=.00045):
-    """Similar architecture to the one used in Section 7.2 in [1].
-
-    Just the input SHOT-vector differs: Here it has 1056 entries. In [1] it has 150.
-
-    [1]:
-    > Jonathan Masci, Davide Boscaini, Michael M. Bronstein, Pierre Vandergheynst
-
-    > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://www.cv-foundation.org/
-    openaccess/content_iccv_2015_workshops/w22/html/Masci_Geodesic_Convolutional_Neural_ICCV_2015_paper.html)
-
-    """
+    """ """
     signal_input = Input(shape=signal_shape, name="Signal")
     bary_input = Input(shape=bc_shape, name="Barycentric")
 
