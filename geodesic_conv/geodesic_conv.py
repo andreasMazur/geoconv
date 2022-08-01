@@ -89,8 +89,11 @@ def signal_pullback(signal, bary_coords):
 
 class ConvGeodesic(Layer):
 
-    def __init__(self, kernel_size, output_dim, amt_kernel, activation="relu"):
-        super().__init__()
+    def __init__(self, kernel_size, output_dim, amt_kernel, activation="relu", name=None):
+        if name:
+            super().__init__(name=name)
+        else:
+            super().__init__()
 
         # Define kernel attributes
         self.kernels = []

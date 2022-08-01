@@ -24,8 +24,12 @@ def define_model(signal_shape, bc_shape, lr=.00045):
     bary_input = Input(shape=bc_shape)
 
     signal = Dense(32, activation="relu")(signal_input)
-    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=32, amt_kernel=1, activation="relu")([signal, bary_input])
-    # signal = ConvGeodesic(kernel_size=(2, 4), output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
+    signal = ConvGeodesic(
+        kernel_size=(2, 4), output_dim=32, amt_kernel=2, activation="relu", name="G1_2_kernel"
+    )([signal, bary_input])
+    signal = ConvGeodesic(
+        kernel_size=(2, 4), output_dim=256, amt_kernel=2, activation="relu", name="G2_2_kernel"
+    )([signal, bary_input])
     logits = Dense(6890)(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
