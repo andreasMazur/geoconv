@@ -1,4 +1,4 @@
-# Geodesic Convolutional Neural Networks
+# GeoConv
 
 **Geo**desic **conv**olutional neural networks belong to the category of intrinsic mesh CNNs [1].
 They operate directly on object surfaces, therefore expanding the application of convolutions
