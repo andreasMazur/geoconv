@@ -1,11 +1,10 @@
-from datasets.preprocessing.barycentric_coords import create_kernel_matrix, barycentric_coordinates
-from datasets.preprocessing.discrete_gpc import discrete_gpc
+from geoconv.preprocessing.barycentric_coords import create_kernel_matrix, barycentric_coordinates
+from geoconv.preprocessing.discrete_gpc import discrete_gpc
 
 import open3d as o3d
 import os
 import tqdm
 import numpy as np
-import pyshot
 import scipy
 import shutil
 import trimesh
