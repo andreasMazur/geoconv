@@ -37,7 +37,7 @@ from geoconv.geodesic_conv import ConvGeodesic
 import tensorflow as tf
 
 
-def define_model(signal_shape, barycentric_shape, output_dim, kernel_size=(2, 4), lr=.00045):
+def define_model(signal_shape, barycentric_shape, output_dim, kernel_size):
     """Define a geodesic convolutional neural network"""
     
     signal_input = InputLayer(shape=signal_shape)
