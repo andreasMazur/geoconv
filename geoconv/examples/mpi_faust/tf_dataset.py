@@ -14,9 +14,9 @@ def faust_generator(path_to_zip, sparse=True, val=False):
     SHOT.sort(), BC.sort(), GT.sort()
 
     if val:
-        indices = range(80, 100)
+        indices = range(90, 100)
     else:
-        indices = range(80)
+        indices = range(90)
 
     for idx in indices:
         shot = tf.cast(dataset[SHOT[idx]], tf.float32)
