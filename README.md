@@ -26,7 +26,7 @@ are not required to install **BLAS** and **CBLAS**. However, preprocessing will 
 
 In order to make the usage as simple as possible, we implement the geodesic convolution as a Tensorflow-layer.
 Thus, it can be used as any other default Tensorflow layer, making it easy to the users who are familiar 
-with the Tensorflow notion.
+with Tensorflow.
 
 ### Define a GCNN with geoconv:
 
