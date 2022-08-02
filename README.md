@@ -55,15 +55,15 @@ An example training-pipeline is given in ``geoconv.train_examples.train_mpi_faus
 
 ### Inputs and preprocessing
 
-As visible in the minimal example above, the geodesic convolutional layer expects 2 inputs:
+As visible in the minimal example above, the geodesic convolutional layer expects two inputs:
 1. The signal defined on the mesh vertices (can be anything from descriptors like SHOT [5] to simple 3D-coordinates of
 the vertices).
 2. Barycentric coordinates for signal interpolation in the format specified by
 ``geoconv.preprocessing.barycentric_coords.barycentric_coordinates``.
 
 For the latter: **geoconv** supplies you with the necessary preprocessing functions:
-1. Use ``geoconv.preprocessing.discrete_gpc.discrete_gpc`` on your triangle meshes (which are given in a format that is
-supported by [Trimesh](https://trimsh.org/index.html), e.g. 'ply') to compute discrete local geodesic polar coordinate
+1. Use ``geoconv.preprocessing.discrete_gpc.discrete_gpc`` on your triangle meshes (which are stored in a format that is
+supported by **[Trimesh](https://trimsh.org/index.html)**, e.g. 'ply') to compute discrete local geodesic polar coordinate
 systems with the algorithm suggested by [4].
 2. Use the GPC-systems and ``geoconv.preprocessing.barycentric_coords.barycentric_coordinates`` to compute the
 Barycentric coordinates in the required format. The result can without further effort directly be fed into the layer.
