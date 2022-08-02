@@ -14,6 +14,7 @@ convolution layer, are included too.
      git clone https://github.com/andreasMazur/geoconv.git
      cd ./GeodesicConvolution
      pip install -r requirements.txt
+     pip install .
      ```
 ### Hint:
 
