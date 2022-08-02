@@ -4,7 +4,7 @@ import tensorflow as tf
 
 
 def faust_generator(path_to_zip, sparse=True, val=False):
-    """Reads one element of preprocessed FAUST-datasets into memory per 'next'-call."""
+    """Reads one element of preprocessed FAUST-examples into memory per 'next'-call."""
 
     dataset = np.load(path_to_zip)
     file_names = dataset.files
@@ -34,7 +34,7 @@ def faust_generator(path_to_zip, sparse=True, val=False):
 
 
 def load_preprocessed_faust(path_to_zip, amt_vertices, kernel_size=(2, 4), sparse=True, val=False):
-    """Returns a 'tf.data.Dataset' of the preprocessed MPI-FAUST datasets.
+    """Returns a 'tf.data.Dataset' of the preprocessed MPI-FAUST examples.
 
     Requires that preprocessing already happened. This function operates directly on the resulting 'zip'-file.
 
@@ -44,7 +44,7 @@ def load_preprocessed_faust(path_to_zip, amt_vertices, kernel_size=(2, 4), spars
 
     **Output**
 
-    - A tf.data.Dataset of the preprocessed MPI-FAUST datasets.
+    - A tf.data.Dataset of the preprocessed MPI-FAUST examples.
 
     """
 

@@ -1,7 +1,7 @@
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Dense, Normalization, Dropout
 
-from geoconv.datasets.mpi_faust.tf_dataset import load_preprocessed_faust
+from geoconv.examples.mpi_faust.tf_dataset import load_preprocessed_faust
 from geoconv.geodesic_conv import ConvGeodesic
 
 import tensorflow as tf
