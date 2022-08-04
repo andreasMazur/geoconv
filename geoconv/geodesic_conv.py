@@ -154,11 +154,15 @@ class ConvGeodesic(Layer):
                 ) for a in range(self.kernel_size[1])
             ] for k in range(self.amt_kernel)
         ]
-        self.bias = self.add_weight(
-            "Bias", shape=(signal_shape[1], self.output_dim), initializer="glorot_uniform", trainable=True
-        )
+        self.bias = [
+            self.add_weight(
+                f"Bias_{k}", shape=(self.output_dim,),
+                initializer="glorot_uniform",
+                trainable=True
+            ) for k in range(self.amt_kernel)
+        ]
 
-    @tf.function
+    # @tf.function
     def call(self, inputs):
         """The geodesic convolution Layer performs a geodesic convolution.
 
@@ -209,7 +213,7 @@ class ConvGeodesic(Layer):
             result_tensor = result_tensor.write(idx, new_signal)
         return result_tensor.stack()
 
-    @tf.function
+    # @tf.function
     def _geodesic_convolution(self, signal, barycentric_coords):
         """Wrapper for computing the geodesic convolution w.r.t. each rotation.
 
@@ -243,24 +247,29 @@ class ConvGeodesic(Layer):
             for angular_weights in kernel:
                 rotation_results = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
                 for rotation in tf.range(self.all_rotations):
-                    # For given angular weights `angular_weights` choose the signal-interpolations `pullback` of the
-                    # desired angular-coordinate `angular_coordinate`. However, we might want to rotate the
-                    # kernel-patch alignment. We do so by adding a `rotation` onto the `angular_coordinate`.
-                    # Geometrically speaking, we rotate the patch, not the kernel.
                     rotation = tf.math.floormod(angular_coordinate + rotation, self.kernel_size[1])
+                    # (amt_nodes, amt_radial_coords, output_dim)
                     result = tf.linalg.matvec(angular_weights, pullback[:, rotation])
                     rotation_results = rotation_results.write(rotation, result)
                 rotation_results = rotation_results.stack()
+                # (amt_rotations, amt_nodes, amt_radial_coords, output_dim)
                 angular_results = angular_results.write(angular_coordinate, rotation_results)
                 angular_coordinate = angular_coordinate + tf.constant(1)
             angular_results = angular_results.stack()
+            # (amt_angular_coords, amt_rotations, amt_nodes, amt_radial_coords, output_dim)
             kernel_results = kernel_results.write(kernel_idx, angular_results)
             kernel_idx = kernel_idx + tf.constant(1)
+
+        # (amt_kernel, amt_angular_coords, amt_rotations, amt_nodes, amt_radial_coords, output_dim)
+        idx = tf.constant(0)
+        for bias in self.bias:
+            bias_added = kernel_results.read(idx) + bias
+            kernel_results = kernel_results.write(idx, bias_added)
+            idx = idx + tf.constant(1)
         kernel_results = kernel_results.stack()
 
-        # Compute the sum over all filter banks/kernels (0), as well as radial (1) and angular (4) coordinates
-        # Compare Equations (7) and (11) in [1]
+        # Compute the sum over all filter banks/kernels (0), as well as angular (1) and radial (4) coordinates
         kernel_results = tf.reduce_sum(kernel_results, axis=[0, 1, 4])
         kernel_results = self.activation(kernel_results)
 
-        return angular_max_pooling(kernel_results) + self.bias
+        return angular_max_pooling(kernel_results)
