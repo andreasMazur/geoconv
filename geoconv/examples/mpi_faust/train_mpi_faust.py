@@ -29,13 +29,19 @@ def define_model(signal_shape, bc_shape, output_dim, layer_properties, lr=.00045
     return model
 
 
-def train_on_faust(path_to_preprocessing_result, lr=.00045, batch_size=1, amt_nodes=6890, model=None, run=0):
-    tf_faust_dataset = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, signal_dim=1056)
-    tf_faust_dataset_val = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, signal_dim=1056, val=True)
+def train_on_faust(path_to_preprocessing_result,
+                   lr=.00045,
+                   batch_size=1,
+                   amt_nodes=6890,
+                   signal_dim=1056,
+                   model=None,
+                   run=0):
+    tf_faust_dataset = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, signal_dim)
+    tf_faust_dataset_val = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, signal_dim, val=True)
 
     if model is None:
         model = define_model(
-            signal_shape=(amt_nodes, 1056),
+            signal_shape=(amt_nodes, signal_dim),
             bc_shape=(amt_nodes, 4, 2, 6),
             lr=lr,
             output_dim=amt_nodes,
