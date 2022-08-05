@@ -30,7 +30,7 @@ def define_model(signal_shape, bc_shape, output_dim, layer_properties, lr=.00045
     return model
 
 
-def train_on_faust(path_to_preprocessing_result, lr=.00045, batch_size=1, amt_nodes=6890, model=None):
+def train_on_faust(path_to_preprocessing_result, lr=.00045, batch_size=1, amt_nodes=6890, model=None, run=0):
     tf_faust_dataset = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes)
     tf_faust_dataset_val = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, val=True)
 
@@ -43,17 +43,17 @@ def train_on_faust(path_to_preprocessing_result, lr=.00045, batch_size=1, amt_no
             layer_properties=[(256, 2, 0.2), (256, 2, 0.)]
         )
 
-    log_dir = "./logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = f"./logs/fit/{run}/"
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
         log_dir=log_dir, histogram_freq=1, update_freq="epoch", write_steps_per_second=True, profile_batch=(1, 1000)
     )
 
-    checkpoint_path = "./training/cp.ckpt"
+    checkpoint_path = f"./training/{run}_cp.ckpt"
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_freq='epoch', verbose=1)
 
     model.fit(
         tf_faust_dataset.batch(batch_size).shuffle(5, reshuffle_each_iteration=True),
-        epochs=10,
+        epochs=200,
         callbacks=[tensorboard_callback, cp_callback],
         validation_data=tf_faust_dataset_val.batch(batch_size).prefetch(tf.data.AUTOTUNE)
     )
