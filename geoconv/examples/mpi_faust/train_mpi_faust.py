@@ -5,7 +5,6 @@ from geoconv.examples.mpi_faust.tf_dataset import load_preprocessed_faust
 from geoconv.geodesic_conv import ConvGeodesic
 
 import tensorflow as tf
-import datetime
 
 
 def define_model(signal_shape, bc_shape, output_dim, layer_properties, lr=.00045):
@@ -31,8 +30,8 @@ def define_model(signal_shape, bc_shape, output_dim, layer_properties, lr=.00045
 
 
 def train_on_faust(path_to_preprocessing_result, lr=.00045, batch_size=1, amt_nodes=6890, model=None, run=0):
-    tf_faust_dataset = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes)
-    tf_faust_dataset_val = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, val=True)
+    tf_faust_dataset = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, signal_dim=1056)
+    tf_faust_dataset_val = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, signal_dim=1056, val=True)
 
     if model is None:
         model = define_model(
