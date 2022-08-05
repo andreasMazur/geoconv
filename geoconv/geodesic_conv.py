@@ -162,7 +162,7 @@ class ConvGeodesic(Layer):
             ) for k in range(self.amt_kernel)
         ]
 
-    # @tf.function
+    @tf.function
     def call(self, inputs):
         """The geodesic convolution Layer performs a geodesic convolution.
 
@@ -213,7 +213,7 @@ class ConvGeodesic(Layer):
             result_tensor = result_tensor.write(idx, new_signal)
         return result_tensor.stack()
 
-    # @tf.function
+    @tf.function
     def _geodesic_convolution(self, signal, barycentric_coords):
         """Wrapper for computing the geodesic convolution w.r.t. each rotation.
 
