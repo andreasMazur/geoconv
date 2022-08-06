@@ -8,6 +8,7 @@ import numpy as np
 import scipy
 import shutil
 import trimesh
+import pyshot
 
 
 def preprocess(directory, target_dir, sub_sample_amount, reference_mesh, sub_samples_per_mesh=3):
@@ -55,15 +56,18 @@ def preprocess(directory, target_dir, sub_sample_amount, reference_mesh, sub_sam
                 ###########################
                 # Compute SHOT descriptors
                 ###########################
-                # descriptors = pyshot.get_descriptors(
-                #     np.array(mesh.vertices),
-                #     np.array(mesh.triangles, dtype=np.int64),
-                #     radius=100,
-                #     local_rf_radius=.1,
-                #     min_neighbors=3,
-                #     n_bins=32
-                # )
-                np.save(f"{target_dir}/SHOT_{file[:-4]}_{sample}.npy", np.array(mesh.vertices))
+                descriptors = pyshot.get_descriptors(
+                    np.array(mesh.vertices),
+                    np.array(mesh.triangles, dtype=np.int64),
+                    radius=100,
+                    local_rf_radius=.1,
+                    min_neighbors=3,
+                    n_bins=8,
+                    double_volumes_sectors=False,
+                    use_interpolation=True,
+                    use_normalization=True,
+                ).astype(np.float32)
+                np.save(f"{target_dir}/SHOT_{file[:-4]}_{sample}.npy", descriptors)  # np.array(mesh.vertices)
 
                 pbar.set_postfix({"Step": "Compute local GPC-systems"})
                 ############################
