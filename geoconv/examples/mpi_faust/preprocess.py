@@ -28,8 +28,7 @@ def preprocess(directory, target_dir, sub_sample_amount, reference_mesh):
     ref_mesh_kd_tree = scipy.spatial.KDTree(reference_mesh.points)
 
     with tqdm.tqdm(total=len(file_list)) as pbar:
-        for file_no, file in enumerate(file_list):
-
+        for file_no, file in enumerate(file_list[11:]):
             pbar.set_postfix({"Step": "Sub-sample the original meshes"})
             ############
             # Load mesh
@@ -72,8 +71,7 @@ def preprocess(directory, target_dir, sub_sample_amount, reference_mesh):
             ############################
             local_gpc_systems = discrete_gpc(
                 mesh, u_max=0.05, eps=.000001, use_c=True, tqdm_msg=f"File {file_no} - Compute local GPC-systems"
-            ).astype(np.float32)
-            np.save(f"{target_dir}/GPC_{file[:-4]}.npy", local_gpc_systems)
+            ).astype(np.float64)
 
             pbar.set_postfix({"Step": "Compute Barycentric coordinates"})
             ##################################
