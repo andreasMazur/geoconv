@@ -1,12 +1,11 @@
 import numpy as np
-import scipy as sp
 import tensorflow as tf
 
 
-def faust_generator(path_to_zip, sample_amt=1, sparse=True, val=False):
+def faust_generator(path_to_zip, val=False):
     """Reads one element of preprocessed FAUST-examples into memory per 'next'-call."""
 
-    dataset = np.load(path_to_zip)
+    dataset = np.load(path_to_zip, allow_pickle=True)
     file_names = dataset.files
     SHOT = [file_name for file_name in file_names if file_name.startswith("SHOT")]
     BC = [file_name for file_name in file_names if file_name.startswith("BC")]
@@ -14,19 +13,17 @@ def faust_generator(path_to_zip, sample_amt=1, sparse=True, val=False):
     SHOT.sort(), BC.sort(), GT.sort()
 
     if val:
-        indices = range(90 * sample_amt, 100 * sample_amt)
+        indices = range(90, 100)
     else:
-        indices = range(90 * sample_amt)
+        indices = range(90)
 
     for idx in indices:
         shot = tf.cast(dataset[SHOT[idx]], tf.float32)
         bc = tf.cast(dataset[BC[idx]], tf.float32)
-        gt = dataset[GT[idx]]
-        if sparse:
-            # Return the indices of the ones for each row
-            # (as required by `tf.keras.losses.SparseCategoricalCrossentropy`)
-            gt = sp.sparse.csc_array(gt)
-            gt = tf.cast(gt.nonzero()[1], tf.float32)
+        gt = dataset[GT[idx]][()]
+        # Return the indices of the ones for each row
+        # (as required by `tf.keras.losses.SparseCategoricalCrossentropy`)
+        gt = tf.cast(gt.nonzero()[1], tf.float32)
 
         yield (shot, bc), gt
 
@@ -34,9 +31,7 @@ def faust_generator(path_to_zip, sample_amt=1, sparse=True, val=False):
 def load_preprocessed_faust(path_to_zip,
                             amt_vertices,
                             signal_dim,
-                            sample_amt=1,
                             kernel_size=(2, 4),
-                            sparse=True,
                             val=False):
     """Returns a 'tf.data.Dataset' of the preprocessed MPI-FAUST examples.
 
@@ -54,7 +49,7 @@ def load_preprocessed_faust(path_to_zip,
 
     return tf.data.Dataset.from_generator(
         faust_generator,
-        args=(path_to_zip, sample_amt, sparse, val),
+        args=(path_to_zip, val),
         output_signature=(
             (
                 tf.TensorSpec(shape=(amt_vertices, signal_dim), dtype=tf.float32),
