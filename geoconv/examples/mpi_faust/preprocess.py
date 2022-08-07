@@ -28,7 +28,7 @@ def preprocess(directory, target_dir, sub_sample_amount, reference_mesh):
     ref_mesh_kd_tree = scipy.spatial.KDTree(reference_mesh.points)
 
     with tqdm.tqdm(total=len(file_list)) as pbar:
-        for file_no, file in enumerate(file_list[11:]):
+        for file_no, file in enumerate(file_list):
             pbar.set_postfix({"Step": "Sub-sample the original meshes"})
             ############
             # Load mesh
