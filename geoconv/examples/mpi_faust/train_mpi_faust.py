@@ -3,8 +3,32 @@ from tensorflow.keras.layers import Dense, Normalization, Dropout
 
 from geoconv.examples.mpi_faust.tf_dataset import load_preprocessed_faust
 from geoconv.geodesic_conv import ConvGeodesic
+from geoconv.ResNetBlock import ResNetBlock
 
 import tensorflow as tf
+
+
+def define_res_model(signal_shape, bc_shape, output_dim, layer_properties, lr=.00045, dropout=.2):
+
+    signal_input = Input(shape=signal_shape, name="Signal")
+    bary_input = Input(shape=bc_shape, name="Barycentric")
+
+    signal = Normalization()(signal_input)
+    signal = Dropout(rate=dropout)(signal)
+    for (n_dim, n_kernel, dropout_rate) in layer_properties:
+        signal = ResNetBlock(
+            kernel_size=(bc_shape[2], bc_shape[1]), output_dim=n_dim, amt_kernel=n_kernel, activation="relu"
+        )([signal, bary_input])
+        if dropout_rate:
+            signal = Dropout(rate=dropout_rate)(signal)
+    logits = Dense(output_dim)(signal)
+
+    model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    opt = tf.keras.optimizers.Adam(learning_rate=lr)
+    model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
+    model.summary()
+    return model
 
 
 def define_model(signal_shape, bc_shape, output_dim, layer_properties, lr=.00045):

@@ -15,8 +15,11 @@ class ResNetBlock(Model):
                  kernel_size_2=None,
                  amt_kernel_2=None,
                  activation_2=None,
-                 name=""):
-        super().__init__(name=name)
+                 name=None):
+        if name is not None:
+            super().__init__(name=name)
+        else:
+            super().__init__()
         self.kernel_size = kernel_size
         self.amt_kernel = amt_kernel
         self.kernel_size_2 = kernel_size_2
