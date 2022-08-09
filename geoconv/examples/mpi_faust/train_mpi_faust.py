@@ -31,12 +31,13 @@ def define_res_model(signal_shape, bc_shape, output_dim, layer_properties, lr=.0
     return model
 
 
-def define_model(signal_shape, bc_shape, output_dim, layer_properties, lr=.00045):
+def define_model(signal_shape, bc_shape, output_dim, layer_properties, lr=.00045, dropout=.2):
 
     signal_input = Input(shape=signal_shape, name="Signal")
     bary_input = Input(shape=bc_shape, name="Barycentric")
 
     signal = Normalization()(signal_input)
+    signal = Dropout(rate=dropout)(signal)
     for (n_dim, n_kernel, dropout_rate) in layer_properties:
         signal = ConvGeodesic(
             kernel_size=(bc_shape[2], bc_shape[1]), output_dim=n_dim, amt_kernel=n_kernel, activation="relu"
