@@ -34,13 +34,10 @@ def train_on_faust(path_to_preprocessing_result,
                    batch_size=1,
                    amt_nodes=6890,
                    signal_dim=1056,
-                   sample_amt=1,
                    model=None,
                    run=0):
-    tf_faust_dataset = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, signal_dim, sample_amt)
-    tf_faust_dataset_val = load_preprocessed_faust(
-        path_to_preprocessing_result, amt_nodes, signal_dim, sample_amt, val=True
-    )
+    tf_faust_dataset = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, signal_dim)
+    tf_faust_dataset_val = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, signal_dim, val=True)
 
     if model is None:
         model = define_model(
