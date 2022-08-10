@@ -8,11 +8,13 @@ from geoconv.ResNetBlock import ResNetBlock
 import tensorflow as tf
 
 
-def define_model_paper(signal_shape, bc_shape, kernel_amt, output_shape, lr):
+def define_model_paper(signal_shape, bc_shape, kernel_amt, output_shape, lr, dropout=.2):
     signal_input = Input(shape=signal_shape, name="Signal")
     bary_input = Input(shape=bc_shape, name="Barycentric")
 
-    signal = Dense(16, activation="relu")(signal_input)
+    signal = Normalization()(signal_input)
+    signal = Dropout(rate=dropout)(signal)
+    signal = Dense(16, activation="relu")(signal)
     signal = ConvGeodesic(
         kernel_size=(bc_shape[2], bc_shape[1]), output_dim=32, amt_kernel=kernel_amt, activation="relu"
     )([signal, bary_input])
