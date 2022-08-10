@@ -8,7 +8,7 @@ from geoconv.ResNetBlock import ResNetBlock
 import tensorflow as tf
 
 
-def define_model_paper(signal_shape, bc_shape, kernel_amt):
+def define_model_paper(signal_shape, bc_shape, kernel_amt, output_shape):
     signal_input = Input(shape=signal_shape, name="Signal")
     bary_input = Input(shape=bc_shape, name="Barycentric")
 
@@ -23,7 +23,7 @@ def define_model_paper(signal_shape, bc_shape, kernel_amt):
         kernel_size=(bc_shape[2], bc_shape[1]), output_dim=128, amt_kernel=kernel_amt, activation="relu"
     )([signal, bary_input])
     signal = Dense(256)(signal)
-    signal_output = Dense(6890)(signal)
+    signal_output = Dense(output_shape)(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[signal_output])
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
