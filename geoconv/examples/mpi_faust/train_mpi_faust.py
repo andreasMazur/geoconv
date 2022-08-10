@@ -8,7 +8,7 @@ from geoconv.ResNetBlock import ResNetBlock
 import tensorflow as tf
 
 
-def define_model_paper(signal_shape, bc_shape, kernel_amt, output_shape):
+def define_model_paper(signal_shape, bc_shape, kernel_amt, output_shape, lr):
     signal_input = Input(shape=signal_shape, name="Signal")
     bary_input = Input(shape=bc_shape, name="Barycentric")
 
