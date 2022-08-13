@@ -16,7 +16,7 @@ def preprocess(directory, target_dir, reference_mesh):
 
     file_list = os.listdir(directory)
     file_list.sort()
-    file_list = [f for f in file_list if f[-4:] != ".png"][:1]
+    file_list = [f for f in file_list if f[-4:] != ".png"]
 
     ######################
     # Load reference mesh
