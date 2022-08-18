@@ -35,16 +35,17 @@ def define_model_paper(signal_shape, bc_shape, kernel_amt, output_shape, lr, dro
     return model
 
 
-def define_res_model(signal_shape, bc_shape, output_dim, layer_properties, lr=.00045, dropout=.2):
+def define_res_model(signal_shape, bc_shape, output_dim, layer_properties, down_scaling, lr=.00045, dropout=.2):
 
     signal_input = Input(shape=signal_shape, name="Signal")
     bary_input = Input(shape=bc_shape, name="Barycentric")
 
     signal = Normalization()(signal_input)
     signal = Dropout(rate=dropout)(signal)
-    for (n_dim, n_kernel, dropout_rate) in layer_properties:
+    signal = Dense(down_scaling, activation="relu")(signal)
+    for (n_kernel, dropout_rate) in layer_properties:
         signal = ResNetBlock(
-            kernel_size=(bc_shape[2], bc_shape[1]), output_dim=n_dim, amt_kernel=n_kernel, activation="relu"
+            kernel_size=(bc_shape[2], bc_shape[1]), output_dim=down_scaling, amt_kernel=n_kernel, activation="relu"
         )([signal, bary_input])
         if dropout_rate:
             signal = Dropout(rate=dropout_rate)(signal)
