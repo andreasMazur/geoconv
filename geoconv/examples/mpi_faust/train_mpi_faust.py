@@ -1,46 +1,27 @@
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Dense, Normalization, Dropout
 
-from geoconv.examples.mpi_faust.tf_dataset import load_preprocessed_faust
 from geoconv.geodesic_conv import ConvGeodesic
 from geoconv.ResNetBlock import ResNetBlock
 
 import tensorflow as tf
 
 
-def define_model_paper(signal_shape, bc_shape, kernel_amt, output_shape, lr, dropout=.2):
+def define_res_model(signal_shape,
+                     bc_shape,
+                     output_dim,
+                     layer_properties,
+                     down_scaling,
+                     dataset_mean,
+                     dataset_var,
+                     lr=.00045,
+                     dropout=.2):
+
+    # Define model
     signal_input = Input(shape=signal_shape, name="Signal")
     bary_input = Input(shape=bc_shape, name="Barycentric")
 
-    signal = Normalization()(signal_input)
-    signal = Dropout(rate=dropout)(signal)
-    signal = Dense(16, activation="relu")(signal)
-    signal = ConvGeodesic(
-        kernel_size=(bc_shape[2], bc_shape[1]), output_dim=32, amt_kernel=kernel_amt, activation="relu"
-    )([signal, bary_input])
-    signal = ConvGeodesic(
-        kernel_size=(bc_shape[2], bc_shape[1]), output_dim=64, amt_kernel=kernel_amt, activation="relu"
-    )([signal, bary_input])
-    signal = ConvGeodesic(
-        kernel_size=(bc_shape[2], bc_shape[1]), output_dim=128, amt_kernel=kernel_amt, activation="relu"
-    )([signal, bary_input])
-    signal = Dense(256)(signal)
-    signal_output = Dense(output_shape)(signal)
-
-    model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[signal_output])
-    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    opt = tf.keras.optimizers.Adam(learning_rate=lr)
-    model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
-    model.summary()
-    return model
-
-
-def define_res_model(signal_shape, bc_shape, output_dim, layer_properties, down_scaling, lr=.00045, dropout=.2):
-
-    signal_input = Input(shape=signal_shape, name="Signal")
-    bary_input = Input(shape=bc_shape, name="Barycentric")
-
-    signal = Normalization()(signal_input)
+    signal = Normalization(axis=None, mean=dataset_mean, variance=dataset_var)(signal_input)
     signal = Dropout(rate=dropout)(signal)
     signal = Dense(down_scaling, activation="relu")(signal)
     for (n_kernel, dropout_rate) in layer_properties:
@@ -59,12 +40,20 @@ def define_res_model(signal_shape, bc_shape, output_dim, layer_properties, down_
     return model
 
 
-def define_model(signal_shape, bc_shape, output_dim, layer_properties, lr=.00045, dropout=.2):
+def define_model(signal_shape,
+                 bc_shape,
+                 output_dim,
+                 layer_properties,
+                 dataset_mean,
+                 dataset_var,
+                 lr=.00045,
+                 dropout=.2):
 
+    # Define model
     signal_input = Input(shape=signal_shape, name="Signal")
     bary_input = Input(shape=bc_shape, name="Barycentric")
 
-    signal = Normalization()(signal_input)
+    signal = Normalization(axis=None, mean=dataset_mean, variance=dataset_var)(signal_input)
     signal = Dropout(rate=dropout)(signal)
     for (n_dim, n_kernel, dropout_rate) in layer_properties:
         signal = ConvGeodesic(
@@ -82,24 +71,19 @@ def define_model(signal_shape, bc_shape, output_dim, layer_properties, lr=.00045
     return model
 
 
-def train_on_faust(path_to_preprocessing_result,
-                   lr=.00045,
+def faust_mean_variance(faust_dataset):
+    shot_list = []
+    for elem in faust_dataset:
+        shot_list.append(elem[0][0])
+    shot_list = tf.stack(shot_list)
+    return tf.math.reduce_mean(shot_list), tf.math.reduce_variance(shot_list)
+
+
+def train_on_faust(tf_faust_dataset,
+                   tf_faust_dataset_val,
                    batch_size=1,
-                   amt_nodes=6890,
-                   signal_dim=1056,
                    model=None,
                    run=0):
-    tf_faust_dataset = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, signal_dim)
-    tf_faust_dataset_val = load_preprocessed_faust(path_to_preprocessing_result, amt_nodes, signal_dim, val=True)
-
-    if model is None:
-        model = define_model(
-            signal_shape=(amt_nodes, signal_dim),
-            bc_shape=(amt_nodes, 4, 2, 6),
-            lr=lr,
-            output_dim=amt_nodes,
-            layer_properties=[(256, 2, 0.2), (256, 2, 0.)]
-        )
 
     log_dir = f"./logs/fit/{run}/"
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
