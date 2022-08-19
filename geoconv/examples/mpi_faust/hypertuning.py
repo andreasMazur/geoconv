@@ -70,11 +70,14 @@ def faust_hypertuning(path_preprocessed_dataset,
                       kernel_size=(2, 4),
                       batch_size=1):
 
+    # Load dataset
     tf_faust_dataset = load_preprocessed_faust(path_preprocessed_dataset, amt_nodes, signal_dim)
     tf_faust_dataset_val = load_preprocessed_faust(path_preprocessed_dataset, amt_nodes, signal_dim, val=True)
     faust_mean, faust_var = faust_mean_variance(tf_faust_dataset)
 
+    # Declare hyperband-tuner
     tuner = kt.Hyperband(
+        # Create hypermodel
         hypermodel=GeoConvHyperModel(
             dataset_mean=faust_mean,
             dataset_var=faust_var,
@@ -99,12 +102,15 @@ def faust_hypertuning(path_preprocessed_dataset,
         profile_batch=(1, 1000)
     )
 
+    # Initiate hyperparameter search
     tuner.search(
         x=tf_faust_dataset.batch(batch_size).shuffle(5, reshuffle_each_iteration=True),
         validation_data=tf_faust_dataset_val.batch(batch_size).prefetch(tf.data.AUTOTUNE),
         epochs=200,
         callbacks=[tensorboard, stop]
     )
+
+    # Print best hyperparameters
     best_hp = tuner.get_best_hyperparameters()[0]
     print(best_hp)
 
