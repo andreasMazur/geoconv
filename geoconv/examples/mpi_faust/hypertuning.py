@@ -25,6 +25,7 @@ class GeoConvHyperModel(kt.HyperModel):
         self.amt_target_nodes = amt_target_nodes
         self.kernel_size = kernel_size
         self.input_dim = input_dim
+        self.use_resnet = use_resnet
 
     def build(self, hp):
         # Define model
@@ -35,7 +36,7 @@ class GeoConvHyperModel(kt.HyperModel):
         signal = layers.Normalization(axis=None, mean=self.dataset_mean, variance=self.dataset_var)(signal_input)
         signal = layers.Dropout(rate=hp.Float(name="dropout_rate", min_value=.0, max_value=.3, step=.1))(signal)
 
-        if hp.Boolean(name="use_resnet"):
+        if self.use_resnet:
             signal = layers.Dense(
                 units=hp.Int(name="dense_1", min_value=32, max_value=144, step=2),
                 activation="relu"
