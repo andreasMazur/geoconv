@@ -2,6 +2,14 @@ import numpy as np
 import tensorflow as tf
 
 
+def faust_mean_variance(faust_dataset):
+    shot_list = []
+    for elem in faust_dataset:
+        shot_list.append(elem[0][0])
+    shot_list = tf.stack(shot_list)
+    return tf.math.reduce_mean(shot_list), tf.math.reduce_variance(shot_list)
+
+
 def faust_generator(path_to_zip, val=False):
     """Reads one element of preprocessed FAUST-examples into memory per 'next'-call."""
 

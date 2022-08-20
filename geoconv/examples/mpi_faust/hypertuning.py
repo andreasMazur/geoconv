@@ -1,7 +1,7 @@
-from geoconv.examples.mpi_faust.tf_dataset import load_preprocessed_faust
+from geoconv.ResNetBlock import ResNetBlock
+from geoconv.examples.mpi_faust.tf_dataset import load_preprocessed_faust, faust_mean_variance
 from tensorflow.keras import layers
 
-from geoconv.examples.mpi_faust.train_mpi_faust import faust_mean_variance
 from geoconv.geodesic_conv import ConvGeodesic
 
 import keras_tuner as kt
@@ -16,7 +16,8 @@ class GeoConvHyperModel(kt.HyperModel):
                  input_dim=144,
                  amt_nodes=6890,
                  amt_target_nodes=6890,
-                 kernel_size=(2, 4)):
+                 kernel_size=(2, 4),
+                 use_resnet=False):
         super().__init__()
         self.dataset_mean = dataset_mean
         self.dataset_var = dataset_var
@@ -31,22 +32,41 @@ class GeoConvHyperModel(kt.HyperModel):
         bary_input = layers.Input(
             shape=(self.amt_nodes, self.kernel_size[1], self.kernel_size[0], 6), name="Barycentric"
         )
-
         signal = layers.Normalization(axis=None, mean=self.dataset_mean, variance=self.dataset_var)(signal_input)
-        signal = layers.Dropout(rate=hp.Float(name="rate", min_value=.1, max_value=.5, step=.1))(signal)
+        signal = layers.Dropout(rate=hp.Float(name="dropout_rate", min_value=.0, max_value=.3, step=.1))(signal)
 
-        signal = ConvGeodesic(
-            kernel_size=self.kernel_size,
-            output_dim=hp.Int(name="output_dim", min_value=16, max_value=64, step=2),
-            amt_kernel=hp.Int(name="amt_kernel", min_value=1, max_value=2),
-            activation="relu"
-        )([signal, bary_input])
-        signal = ConvGeodesic(
-            kernel_size=self.kernel_size,
-            output_dim=hp.Int(name="output_dim", min_value=16, max_value=64, step=2),
-            amt_kernel=hp.Int(name="amt_kernel", min_value=1, max_value=2),
-            activation="relu"
-        )([signal, bary_input])
+        if hp.Boolean(name="use_resnet"):
+            signal = layers.Dense(
+                units=hp.Int(name="dense_1", min_value=32, max_value=144, step=2),
+                activation="relu"
+            )(signal)
+            signal = ResNetBlock(
+                kernel_size=self.kernel_size,
+                amt_kernel=hp.Int(name="amt_kernel_1", min_value=1, max_value=2),
+                activation="relu"
+            )([signal, bary_input])
+            signal = layers.Dense(
+                units=hp.Int(name="dense_2", min_value=32, max_value=144, step=2),
+                activation="relu"
+            )(signal)
+            signal = ResNetBlock(
+                kernel_size=self.kernel_size,
+                amt_kernel=hp.Int(name="amt_kernel_2", min_value=1, max_value=2),
+                activation="relu"
+            )([signal, bary_input])
+        else:
+            signal = ConvGeodesic(
+                kernel_size=self.kernel_size,
+                output_dim=hp.Int(name="output_dim_1", min_value=32, max_value=144, step=2),
+                amt_kernel=hp.Int(name="amt_kernel_1", min_value=1, max_value=2),
+                activation="relu"
+            )([signal, bary_input])
+            signal = ConvGeodesic(
+                kernel_size=self.kernel_size,
+                output_dim=hp.Int(name="output_dim_2", min_value=32, max_value=256, step=2),
+                amt_kernel=hp.Int(name="amt_kernel_2", min_value=1, max_value=2),
+                activation="relu"
+            )([signal, bary_input])
         logits = layers.Dense(self.amt_target_nodes)(signal)
 
         # Declare model
