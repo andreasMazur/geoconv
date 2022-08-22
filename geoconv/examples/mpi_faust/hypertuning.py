@@ -89,7 +89,8 @@ def faust_hypertuning(path_preprocessed_dataset,
                       amt_nodes=6890,
                       amt_target_nodes=6890,
                       kernel_size=(2, 4),
-                      batch_size=1):
+                      batch_size=1,
+                      use_resnet=False):
 
     # Load dataset
     tf_faust_dataset = load_preprocessed_faust(path_preprocessed_dataset, amt_nodes, signal_dim)
@@ -105,7 +106,8 @@ def faust_hypertuning(path_preprocessed_dataset,
             input_dim=signal_dim,
             amt_nodes=amt_nodes,
             amt_target_nodes=amt_target_nodes,
-            kernel_size=kernel_size
+            kernel_size=kernel_size,
+            use_resnet=False
         ),
         objective="val_sparse_categorical_accuracy",
         max_epochs=200,
