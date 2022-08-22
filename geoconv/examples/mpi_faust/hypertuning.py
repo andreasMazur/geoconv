@@ -117,20 +117,21 @@ def faust_hypertuning(path_preprocessed_dataset,
     )
     # Create callbacks
     stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
-    tensorboard = tf.keras.callbacks.TensorBoard(
-        log_dir=f"./logs/fit/{run_id}/",
-        histogram_freq=1,
-        update_freq="epoch",
-        write_steps_per_second=True,
-        profile_batch=(1, 1000)
-    )
+    # Tensorboard callback requires too much space
+    # tensorboard = tf.keras.callbacks.TensorBoard(
+    #     log_dir=f"./logs/fit/{run_id}/",
+    #     histogram_freq=1,
+    #     update_freq="epoch",
+    #     write_steps_per_second=True,
+    #     profile_batch=(1, 1000)
+    # )
 
     # Initiate hyperparameter search
     tuner.search(
         x=tf_faust_dataset.batch(batch_size).shuffle(5, reshuffle_each_iteration=True),
         validation_data=tf_faust_dataset_val.batch(batch_size).prefetch(tf.data.AUTOTUNE),
         epochs=200,
-        callbacks=[tensorboard, stop]
+        callbacks=[stop]  # tensorboard
     )
 
     # Print best hyperparameters
