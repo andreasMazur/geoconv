@@ -107,7 +107,7 @@ def faust_hypertuning(path_preprocessed_dataset,
             amt_nodes=amt_nodes,
             amt_target_nodes=amt_target_nodes,
             kernel_size=kernel_size,
-            use_resnet=False
+            use_resnet=use_resnet
         ),
         objective="val_sparse_categorical_accuracy",
         max_epochs=200,
@@ -136,10 +136,3 @@ def faust_hypertuning(path_preprocessed_dataset,
     # Print best hyperparameters
     best_hp = tuner.get_best_hyperparameters()[0]
     print(best_hp)
-
-
-if __name__ == "__main__":
-    faust_hypertuning(
-        path_preprocessed_dataset="./preprocessed_smaller_shot.zip",
-        run_id=0
-    )
