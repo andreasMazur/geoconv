@@ -122,10 +122,10 @@ void compute_dist_and_dir(double vertex_i[],
             cblas_daxpy(3, -1.0, s, 1, vertex_k, 1);
             cblas_daxpy(3, -1.0, s, 1, vertex_j, 1);
             cblas_daxpy(3, -1.0, s, 1, vertex_i, 1);
-            double phi_kj = compute_angle_360(vertex_k, vertex_j, rotation_axis);
-            double phi_ij = compute_angle_360(vertex_i, vertex_j, rotation_axis);
-//            double phi_kj = compute_angle(vertex_k, vertex_j);
-//            double phi_ij = compute_angle(vertex_i, vertex_j);
+//            double phi_kj = compute_angle_360(vertex_k, vertex_j, rotation_axis);
+//            double phi_ij = compute_angle_360(vertex_i, vertex_j, rotation_axis);
+            double phi_kj = compute_angle(vertex_k, vertex_j);
+            double phi_ij = compute_angle(vertex_i, vertex_j);
             if (!phi_kj) {
                 double j = u_j + cblas_dnrm2(3, e_j, 1);
                 double k = u_k + cblas_dnrm2(3, e_k, 1);

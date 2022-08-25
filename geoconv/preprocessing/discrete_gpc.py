@@ -7,6 +7,36 @@ import c_extension
 import heapq
 
 
+def revise_angles(object_mesh, u, theta):
+    considered_node_ids = np.where(u != np.inf)[0]
+    for node_id in considered_node_ids:
+        face_ids = np.where(object_mesh.faces == node_id)[0]
+        faces = object_mesh.faces[face_ids]
+        for face in faces:
+            triangle_angular = theta[face]
+            if -1. not in triangle_angular:
+                pair1 = (triangle_angular[0], triangle_angular[1])
+                pair2 = (triangle_angular[0], triangle_angular[2])
+                pair3 = (triangle_angular[1], triangle_angular[2])
+                for pair in [pair1, pair2, pair3]:
+                    theta_i = list(set(triangle_angular) - set(pair))
+                    if len(theta_i) > 0:
+                        theta_i = theta_i[0]
+                        new_theta_i = None
+                        if pair[0] < (1 / 4) * np.pi and pair[1] > (3 / 4) * np.pi:
+                            theta_k = pair[0] + 2 * np.pi
+                            theta_j = pair[1]
+                            alpha = (theta_i - theta_j) / (theta_k - theta_j)
+                            new_theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
+                        elif pair[1] < (1 / 4) * np.pi and pair[0] > (3 / 4) * np.pi:
+                            theta_k = pair[0]
+                            theta_j = pair[1] + 2 * np.pi
+                            alpha = (theta_i - theta_j) / (theta_k - theta_j)
+                            new_theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
+                        if new_theta_i and new_theta_i != theta_i:
+                            print()
+
+
 def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis):
     """Euclidean update procedure for a vertex i in a given triangle and angle computation.
 
@@ -34,7 +64,7 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
 
     # Convert indices to vectors
     u_j, u_k = u[[vertex_j, vertex_k]]
-    theta_j, theta_k = theta[[vertex_j, vertex_k]]
+    theta_i_init, theta_j, theta_k = theta[[vertex_i, vertex_j, vertex_k]]
     vertex_i, vertex_j, vertex_k = object_mesh.vertices[[vertex_i, vertex_j, vertex_k]]
 
     if use_c:
@@ -121,8 +151,8 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
                 blas.daxpy(s, vertex_k, a=-1.0)
                 blas.daxpy(s, vertex_j, a=-1.0)
                 blas.daxpy(s, vertex_i, a=-1.0)
-                phi_kj = compute_vector_angle(vertex_k, vertex_j, rotation_axis)
-                phi_ij = compute_vector_angle(vertex_i, vertex_j, rotation_axis)
+                phi_kj = compute_vector_angle(vertex_k, vertex_j, None)
+                phi_ij = compute_vector_angle(vertex_i, vertex_j, None)
                 if not phi_kj:
                     j = u_j + blas.dnrm2(e_j)
                     k = u_k + blas.dnrm2(e_k)
@@ -135,12 +165,8 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
                 else:
                     if phi_ij < phi_kj:
                         alpha = phi_ij / phi_kj
-                        if theta_j == 0 and theta_k > np.pi:
-                            theta_j = 2 * np.pi
                     else:
                         alpha = phi_kj / phi_ij
-                        if theta_k == 0 and theta_j > np.pi:
-                            theta_k = 2 * np.pi
                     theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
 
     return u_ijk, theta_i
@@ -330,6 +356,7 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
 
     """
 
+    # Initialization
     u = np.full((object_mesh.vertices.shape[0],), np.inf)
     theta = np.full((object_mesh.vertices.shape[0],), -1.0)
     u, theta, source_point_neighbors, graph, rotation_axis = initialize_neighborhood(
@@ -342,6 +369,7 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
         candidates.append((u[neighbor], neighbor))
     heapq.heapify(candidates)
 
+    # Iteration
     while candidates:
         # as we work with a min-heap the shortest distance is stored in root
         j_dist, j = heapq.heappop(candidates)

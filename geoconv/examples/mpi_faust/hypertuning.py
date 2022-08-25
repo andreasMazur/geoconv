@@ -1,4 +1,4 @@
-from geoconv.ResNetBlock import ResNetBlock
+from geoconv.resnet_block import ResNetBlock
 from geoconv.examples.mpi_faust.tf_dataset import load_preprocessed_faust, faust_mean_variance
 from tensorflow.keras import layers
 

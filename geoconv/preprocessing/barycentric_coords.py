@@ -26,7 +26,7 @@ def polar_2_cartesian(coordinate_array):
         warnings.filterwarnings("ignore", "invalid value encountered in multiply")
         B[:, :, 1] = coordinate_array[:, :, 0] * np.sin(coordinate_array[:, :, 1])
 
-    return np.round(B, decimals=10)
+    return B
 
 
 def create_kernel_matrix(n_radial, n_angular, radius):
@@ -74,7 +74,7 @@ def compute_barycentric(query_vertex, triangle):
         point_1_weight = (dot00 * dot12 - dot01 * dot02) * x
         point_0_weight = 1 - point_2_weight - point_1_weight
 
-        is_inside_triangle = point_2_weight >= 0 and point_1_weight >= 0 and point_2_weight + point_1_weight < 1
+        is_inside_triangle = point_2_weight >= 0 and point_1_weight >= 0 and point_2_weight + point_1_weight <= 1
 
         return (point_0_weight, point_1_weight, point_2_weight), is_inside_triangle
     else:
@@ -143,9 +143,8 @@ def barycentric_coords_local_gpc(local_gpc_system, kernel, om_faces, om_vertex_f
     gets a `1.0`-barycentric coordinate assigned.
 
     """
-    kernel = np.round(kernel, decimals=10)
 
-    # Trimesh object meshes cache queries. This takes time. Normal numpy arrays are faster here.
+    # Trimesh object meshes cache queries. This takes time. Normal numpy arrays are faster here
 
     # Consider only the vertices which we have coordinates for
     v_with_coords = local_gpc_system != np.inf
