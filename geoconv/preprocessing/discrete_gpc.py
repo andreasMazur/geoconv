@@ -134,15 +134,15 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
                         theta_i = theta_k
                 else:
                     alpha = phi_ij / phi_kj
+                    theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
                     if theta_k < (1 / 4) * np.pi and theta_j > (3 / 4) * np.pi:
-                        theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
                         if not theta_j <= theta_i <= theta_j:
                             theta_k = theta_k + 2 * np.pi
+                            theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
                     elif theta_j < (1 / 4) * np.pi and theta_k > (3 / 4) * np.pi:
-                        theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
                         if not theta_j <= theta_i <= theta_j:
                             theta_j = theta_j + 2 * np.pi
-                    theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
+                            theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
 
     return u_ijk, theta_i
 
