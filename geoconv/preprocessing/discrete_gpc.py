@@ -7,36 +7,6 @@ import c_extension
 import heapq
 
 
-def revise_angles(object_mesh, u, theta):
-    considered_node_ids = np.where(u != np.inf)[0]
-    for node_id in considered_node_ids:
-        face_ids = np.where(object_mesh.faces == node_id)[0]
-        faces = object_mesh.faces[face_ids]
-        for face in faces:
-            triangle_angular = theta[face]
-            if -1. not in triangle_angular:
-                pair1 = (triangle_angular[0], triangle_angular[1])
-                pair2 = (triangle_angular[0], triangle_angular[2])
-                pair3 = (triangle_angular[1], triangle_angular[2])
-                for pair in [pair1, pair2, pair3]:
-                    theta_i = list(set(triangle_angular) - set(pair))
-                    if len(theta_i) > 0:
-                        theta_i = theta_i[0]
-                        new_theta_i = None
-                        if pair[0] < (1 / 4) * np.pi and pair[1] > (3 / 4) * np.pi:
-                            theta_k = pair[0] + 2 * np.pi
-                            theta_j = pair[1]
-                            alpha = (theta_i - theta_j) / (theta_k - theta_j)
-                            new_theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
-                        elif pair[1] < (1 / 4) * np.pi and pair[0] > (3 / 4) * np.pi:
-                            theta_k = pair[0]
-                            theta_j = pair[1] + 2 * np.pi
-                            alpha = (theta_i - theta_j) / (theta_k - theta_j)
-                            new_theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
-                        if new_theta_i and new_theta_i != theta_i:
-                            print()
-
-
 def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis):
     """Euclidean update procedure for a vertex i in a given triangle and angle computation.
 
