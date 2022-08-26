@@ -1,5 +1,6 @@
 import numpy as np
 import scipy as sp
+import sys
 import warnings
 
 
@@ -185,20 +186,34 @@ def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
 
                 # Find triangles of the closest node and compute Barycentric coordinates for them
                 considered_triangle_indices = np.unique(np.where(gpc_triangles == closest_node)[0])
-                face, barycentric_coords = None, None
                 for triangle_idx in considered_triangle_indices:
                     face = gpc_faces[triangle_idx]
                     barycentric_coords, is_within = compute_barycentric(query_vertex, gpc_triangles[triangle_idx])
                     if is_within:
-                        break
+                        # Store Barycentric coordinates and respective node indices
+                        for idx in range(3):
+                            barycentric[j, i, idx, 0] = face[idx]
+                            barycentric[j, i, idx, 1] = barycentric_coords[idx]
 
-                # Store Barycentric coordinates and respective node indices
-                if is_within:
-                    for idx in range(3):
-                        barycentric[j, i, idx, 0] = face[idx]
-                        barycentric[j, i, idx, 1] = barycentric_coords[idx]
-                else:
+                if not is_within:
+                    # Look for triangles of the next closest point
                     nth_closest_vertex += 1
+
+                # Fallback: If there is no triangle containing the kernel vertex then use the closest vertex as
+                #           approximation
+                if nth_closest_vertex >= all_gpc_nodes.shape[0] and not is_within:
+                    # Get closest node
+                    _, closest_node_idx = gpc_kd_tree.query(query_vertex)
+                    closest_node = all_gpc_nodes[closest_node_idx]
+
+                    # Get id of closest node
+                    node_id = np.argwhere(gpc_triangles == closest_node)[0]
+                    node_id = gpc_faces[node_id[0], node_id[1]]
+
+                    # Give closest node weight 1. (interpolation value equals signal at that vertex)
+                    barycentric[j, i, 0, 0] = node_id
+                    barycentric[j, i, 0, 1] = 1.
+                    break
 
     return barycentric
 
@@ -212,7 +227,7 @@ def barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angular=4, r
         The corresponding object mesh for the GPC-systems
     gpc_systems: np.ndarray
         3D-array in which the i-th entry corresponds to the GPC-system centered in vertex i from the given object mesh
-        - contains polar coordinates
+        - contains polar coordinates (radial, angular)
         - just use the output of geoconv.preprocessing.discrete_gpc.discrete_gpc
     n_radial: int
         The amount of radial coordinates of the kernel you wish to use
@@ -245,6 +260,9 @@ def barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angular=4, r
     # Translate all coordinates into cartesian coordinates such that we can work with KD-trees
     kernel = polar_to_cartesian(kernel.reshape((-1, 2))).reshape((n_radial, n_angular, 2))
     for gpc_system_idx, gpc_system in enumerate(gpc_systems):
+        sys.stdout.write(
+            f"\rCurrently computing Barycentric coordinates for GPC-system centered in vertex {gpc_system_idx}"
+        )
         gpc_system = polar_to_cartesian(gpc_system)
 
         # Determine triangles which are contained within the currently considered local GPC-system
@@ -254,4 +272,4 @@ def barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angular=4, r
         barycentric_coords = barycentric_coordinates_kernel(kernel, contained_gpc_triangles, contained_gpc_faces)
         all_barycentric_coords[gpc_system_idx] = barycentric_coords
 
-    return all_barycentric_coords
+    return all_barycentric_coords.astype(np.float32)

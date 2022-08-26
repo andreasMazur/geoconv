@@ -1,4 +1,4 @@
-from geoconv.preprocessing.barycentric_coords import create_kernel_matrix, barycentric_coordinates
+from geoconv.preprocessing.barycentric_coords import barycentric_coordinates
 from geoconv.preprocessing.discrete_gpc import discrete_gpc
 
 import os
@@ -86,7 +86,6 @@ def preprocess(directory, target_dir, reference_mesh):
             ##################################
             # Compute Barycentric coordinates
             ##################################
-            kernel = create_kernel_matrix(n_radial=2, n_angular=4, radius=0.04)
             bary_coords = barycentric_coordinates(mesh, local_gpc_systems, n_radial=2, n_angular=4, radius=0.05)
             np.save(f"{target_dir}/BC_{file[:-4]}.npy", bary_coords)
 
