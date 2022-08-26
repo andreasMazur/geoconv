@@ -79,7 +79,7 @@ def preprocess(directory, target_dir, reference_mesh):
             # Compute local GPC-systems
             ############################
             local_gpc_systems = discrete_gpc(
-                mesh, u_max=0.05, eps=.000001, use_c=True, tqdm_msg=f"File {file_no} - Compute local GPC-systems"
+                mesh, u_max=0.06, eps=.000001, use_c=True, tqdm_msg=f"File {file_no} - Compute local GPC-systems"
             ).astype(np.float64)
 
             pbar.set_postfix({"Step": "Compute Barycentric coordinates"})
@@ -87,9 +87,7 @@ def preprocess(directory, target_dir, reference_mesh):
             # Compute Barycentric coordinates
             ##################################
             kernel = create_kernel_matrix(n_radial=2, n_angular=4, radius=0.04)
-            bary_coords = barycentric_coordinates(
-                local_gpc_systems, kernel, mesh, tqdm_msg=f"File {file_no} - Compute Barycentric coordinates"
-            )
+            bary_coords = barycentric_coordinates(mesh, local_gpc_systems, n_radial=2, n_angular=4, radius=0.05)
             np.save(f"{target_dir}/BC_{file[:-4]}.npy", bary_coords)
 
             pbar.update(1)
