@@ -1,47 +1,24 @@
-from tqdm import tqdm
-
 import numpy as np
-import scipy
+import scipy as sp
 import warnings
-
-
-def polar_2_cartesian(coordinate_array):
-    """Compute cartesian coordinate for given polar coordinates.
-
-    **Input**
-
-    - Array A of size (n_radial, n_angular, 2) with A[i, j] containing (radial_coordinate, angular_coordinate).
-
-    **Output**
-
-    - Array B of same size as input array. However, polar coordinates are replaced with cartesian coordinates. That is,
-      B[i, j] contains cartesian coordinates (x, y) for polar coordinates A[i, j].
-
-    """
-    B = np.zeros_like(coordinate_array)
-    B[:, :, 0] = coordinate_array[:, :, 0] * np.cos(coordinate_array[:, :, 1])
-    with warnings.catch_warnings():
-        # If this function is applied onto the result of `discrete_gpc` the array `coordinate_array[:, :, 0]` may
-        # contain `np.inf`-values. Multiplying them results in a warning which is unnecessary here.
-        warnings.filterwarnings("ignore", "invalid value encountered in multiply")
-        B[:, :, 1] = coordinate_array[:, :, 0] * np.sin(coordinate_array[:, :, 1])
-
-    return B
 
 
 def create_kernel_matrix(n_radial, n_angular, radius):
     """Creates a kernel matrix with radius `radius` and `n_radial` radial- and `n_angular` angular coordinates.
 
-    **Input**
+    Parameters
+    ----------
+    n_radial: int
+        The amount of radial coordinates
+    n_angular: int
+        The amount of angular coordinates
+    radius: float
+        The radius of the kernel
 
-    - The amount of radial coordinates.
-    - The amount of angular coordinates.
-    - The radius of the kernel.
-
-    **Output**
-
-    - A kernel matrix K with K[i, j] containing polar coordinates (radial, angular) of point (i. j).
-
+    Returns
+    -------
+    np.ndarray
+        A kernel matrix K with K[i, j] containing polar coordinates (radial, angular) of point (i. j)
     """
 
     coordinates = np.zeros((n_radial, n_angular, 2))
@@ -55,9 +32,22 @@ def create_kernel_matrix(n_radial, n_angular, radius):
 
 
 def compute_barycentric(query_vertex, triangle):
-    """Computes barycentric coordinates.
+    """Computes barycentric coordinates
 
     Compare: https://blackpawn.com/texts/pointinpoly/
+
+    Parameters
+    ----------
+    query_vertex: np.ndarray
+        1D-array that contains query-vertex in polar coordinates
+    triangle: np.ndarray
+        2D-array that depicts a triangle in polar coordinates
+
+    Returns
+    -------
+    ((np.float32, np.float32, np.float32), bool)
+        A tuple containing a triple and a boolean. The triple contains the barycentric coordinates for the vertices of
+        the triangle. The boolean tells whether the query-vertex is within the triangle.
     """
 
     v0 = triangle[2] - triangle[0]
@@ -69,9 +59,8 @@ def compute_barycentric(query_vertex, triangle):
 
     denominator = dot00 * dot11 - dot01 * dot01
     if denominator > 0:
-        x = 1 / denominator
-        point_2_weight = (dot11 * dot02 - dot01 * dot12) * x
-        point_1_weight = (dot00 * dot12 - dot01 * dot02) * x
+        point_2_weight = (dot11 * dot02 - dot01 * dot12) / denominator
+        point_1_weight = (dot00 * dot12 - dot01 * dot02) / denominator
         point_0_weight = 1 - point_2_weight - point_1_weight
 
         is_inside_triangle = point_2_weight >= 0 and point_1_weight >= 0 and point_2_weight + point_1_weight <= 1
@@ -81,168 +70,188 @@ def compute_barycentric(query_vertex, triangle):
         return (None, None, None), False
 
 
-def compute_barycentric_triangles(kernel_vertex, faces, local_gpc_system):
-    """Looks for the triangle which contains the query vertex and computes the corresponding barycentric coordinates.
+def polar_to_cartesian(coordinate_array):
+    """Compute cartesian coordinates for given polar coordinates
 
-    **Input**
+    Parameters
+    ----------
+    coordinate_array: np.ndarray
+        A 2D-array with coordinate_array[:, 0] containing radial coordinates and coordinate_array[:, 1] containing
+        angular coordinates
 
-    - The query vertex.
-    - Triangles, which may include the query vertex. Usually the triangles of the closest point to the query vertex.
-    - The local GPC-system in cartesian coordinates within which the barycentric coordinates are computed.
+    Returns
+    -------
+    np.ndarray
+        A 2D-array with cartesian[:, 0] containing x-coordinates and cartesian[:, 1] containing y-coordinates
+    """
+    cartesian = np.zeros_like(coordinate_array)
+    cartesian[:, 0] = coordinate_array[:, 0] * np.cos(coordinate_array[:, 1])
+    with warnings.catch_warnings():
+        # If this function is applied onto the result of `discrete_gpc` the array `coordinate_array[:, :, 0]` may
+        # contain `np.inf`-values. Multiplying them results in a warning which is unnecessary here.
+        warnings.filterwarnings("ignore", "invalid value encountered in multiply")
+        cartesian[:, 1] = coordinate_array[:, 0] * np.sin(coordinate_array[:, 1])
 
-    **Output**
+    return cartesian
 
-    - The barycentric coordinates for the query vertex combined with their corresponding vertex index.
 
-    **Raises**
+def determine_gpc_triangles(object_mesh, local_gpc_system):
+    """Get triangles and faces which are contained within a given local GPC-system
 
-    - A runtime error if the query index is contained within a triangle that is not captured entirely by the
-      local GPC-system.
+    Parameters
+    ----------
+    object_mesh: trimesh.Trimesh
+        The object mesh
+    local_gpc_system: np.ndarray
+        2D-array containing the cartesian coordinates for each vertex in the local GPC-system
 
+    Returns
+    -------
+    (np.ndarray, np.ndarray):
+        Two arrays. The first 3D-array contains all triangles that are entirely contained in the GPC-system. The second
+        2D-array contains the same triangles described in node-indices.
     """
 
-    result = None
-    held_back = []
-    for face in faces:
-        # Determine 2D geodesic coordinates of the considered triangle
-        geodesic_coordinates = local_gpc_system[face]
-        if not np.any(geodesic_coordinates == np.inf):
-            # Compute the barycentric coordinates of the triangle
-            (b0, b1, b2), query_inside_tri = compute_barycentric(kernel_vertex, geodesic_coordinates)
-            if query_inside_tri:
-                result = (b0, face[0], b1, face[1], b2, face[2])
-        else:
-            held_back.append(face)
+    # Filter triangles such that only those remain that are entirely described by local GPC-system
+    local_triangles = local_gpc_system[object_mesh.faces]
+    valid_triangle_indices = list(
+        set(range(local_triangles.shape[0])) - set(np.where(local_triangles == np.inf)[0])
+    )
+    valid_gpc_triangles = local_triangles[valid_triangle_indices]
+    valid_gpc_faces = np.array(object_mesh.faces[valid_triangle_indices])
 
-    return result
+    return valid_gpc_triangles, valid_gpc_faces
 
 
-def barycentric_coords_local_gpc(local_gpc_system, kernel, om_faces, om_vertex_faces):
-    """Computes barycentric coordinates for a kernel placed in a source point.
-
-    **Input**
-
-    - The local GPC system translated into cartesian coordinates (required for KD-tree).
-    - The kernel coordinates translated into cartesian coordinates (required for KD-tree).
-    - The considered object mesh
-
-    **Output**
-
-    - An array `bary_coordinates` of size `(#angular_coord's, #radial_coord's, 8)` that stores signal-indices and their
-      corresponding barycentric coordinates. In particular, entry `(i, j)` contains the necessary information to compute
-      the interpolated signal for kernel vertex with ANGULAR coordinate `i` and RADIAL coordinate `j`. This information
-      is stored in the following manner:
-        * `t[0]`: 1. Barycentric coordinate
-        * `t[1]`: Corresponding node index for 1. Barycentric coordinate
-        * `t[2]`: 2. Barycentric coordinate
-        * `t[3]`: Corresponding node index for 2. Barycentric coordinate
-        * `t[4]`: 3. Barycentric coordinate
-        * `t[5]`: Corresponding node index for 3. Barycentric coordinate
-
-    If a kernel vertex does not fall into any triangle in the local GPC-system, then the closest neighbor of
-    gets a `1.0`-barycentric coordinate assigned.
-
-    """
-
-    # Trimesh object meshes cache queries. This takes time. Normal numpy arrays are faster here
-
-    # Consider only the vertices which we have coordinates for
-    v_with_coords = local_gpc_system != np.inf
-    v_with_coords = local_gpc_system[np.logical_and(v_with_coords[:, 0], v_with_coords[:, 1])]
-    kd_tree = scipy.spatial.KDTree(v_with_coords)
-
-    bary_coordinates = np.zeros((kernel.shape[1], kernel.shape[0], 6))
-    for i in range(kernel.shape[0]):
-        for j in range(kernel.shape[1]):
-            k = kernel[i, j]
-            b_coords = None
-            try_ = 1
-            while not b_coords:
-                # Query the KD-tree for the vertex index of the nearest neighbor of `k`
-                _, nn_idx = kd_tree.query(k, k=try_)
-                if try_ > 1:
-                    nn_idx = nn_idx[try_ - 1]
-                nearest_neighbor = v_with_coords[nn_idx]
-                row_indices, _ = np.where(local_gpc_system == nearest_neighbor)
-
-                # Check for validity of the GPC
-                if row_indices.shape != (2,):
-                    zipped_rows = np.stack([row_indices, np.append(row_indices[1:], row_indices[0])], axis=-1)[:-1]
-                    matches = np.where(zipped_rows[:, 0] == zipped_rows[:, 1])[0]
-                    if matches.shape[0] > 1:
-                        raise RuntimeError("Multiple occurrences of the same coordinate in a GPC!")
-                    else:
-                        queried_vertex = row_indices[matches[0]]
-                else:
-                    queried_vertex = row_indices[0]
-
-                # Query for the triangle indices of all triangles that contain `queried_vertex`
-                face_indices = om_vertex_faces[queried_vertex]
-                face_indices = face_indices[face_indices != -1]
-                faces = om_faces[face_indices]
-                b_coords = compute_barycentric_triangles(k, faces, local_gpc_system)
-                if not b_coords:
-                    try_ += 1
-                    if try_ > v_with_coords.shape[0]:
-                        # Failsafe: If no triangle was found, then use the closest vertex as approximation.
-                        _, nn_idx = kd_tree.query(k)
-                        b_coords = (1.0, nn_idx, 0, 0, 0, 0)
-
-            bary_coordinates[j, i] = b_coords
-
-    return bary_coordinates
-
-
-def barycentric_coordinates(local_gpc_systems, kernel, object_mesh, tqdm_msg=""):
-    """Computes barycentric coordinates for a kernel placed in all source points of an object mesh.
+def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
+    """Find suiting Barycentric coordinates for kernel-vertices among all triangles of a GPC-system
 
     In order to compute the barycentric coordinates for kernel vertices we do the following:
 
-        1.) Translate coordinates for kernel vertices and local GPC-systems into 2D cartesian coordinates.
-        2.) For each local GPC-system:
-            2.1) Compute a KD-tree.
-            2.2) For each kernel vertex `k`:
-                2.2.1) Find the nearest neighbor within the local GPC-system querying within the KD-tree.
-                       Let this vertex be `x`.
-                2.2.2) For each triangle of `x` compute the barycentric coordinates w.r.t. `k`.
-                2.2.3) Given the barycentric coordinates, determine the triangle `T` that contains `k`. IF there is not such
-                       `T` then go back to (2.2.1) and compute the next nearest neighbor apart from `x` and repeat.
-                2.2.4) Store the barycentric coordinates of `T` w.r.t. `k`.
-        3.) Store the barycentric coordinates in an array `E` in the following manner (compare paper below, section 4.3):
-            - `E` has size `(N_v, N_rho, N_theta, N_v)`
-                * `N_v = object_mesh.vertices.shape[0]` (amount vertices)
-                * `N_rho = kernel.shape[0]` (amount radial coordinates)
-                * `N_theta = kernel.shape[1]` (amount angular coordinates)
+    1.) For each local GPC-system:
+        1.1) Compute a KD-tree.
+        1.2) For each kernel vertex `k`:
+            1.2.1) Find the nearest neighbor within the local GPC-system querying within the KD-tree. Let this vertex be
+                   `x`.
+            1.2.2) For each triangle of `x` compute the barycentric coordinates w.r.t. `k`.
+            1.2.3) Given the barycentric coordinates, determine the triangle `T` that contains `k`. IF there is not
+                   such `T` then go back to (2.2.1) and compute the next nearest neighbor apart from `x` and repeat.
+            1.2.4) Store the barycentric coordinates of `T` w.r.t. `k`.
+    3.) Store the barycentric coordinates.
 
-    > [Multi-directional geodesic neural networks via equivariant
-    convolution](https://dl.acm.org/doi/abs/10.1145/3272127.3275102)
-    > Adrien Poulenard and Maks Ovsjanikov.
+    Parameters
+    ----------
+    kernel: np.ndarray
+        A 3D-array containing the kernel-vertices described in cartesian coordinates
+        - kernel[i, j] contains cartesian kernel coordinates for kernel vertex referenced by i-th radial and j-angular
+          coordinate
+    gpc_triangles: np.ndarray
+        A 3D-array containing the triangles of the considered GPC-system
+        - gpc_triangles[i] contains i-th triangle depicted in cartesian coordinates
+    gpc_faces: np.ndarray
+        A 2D-array containing the triangles of the considered GPC-system
+        - gpc_faces[i] contains i-th triangle depicted in vertex indices
 
-    **Input**
-
-    - Array that contains the local GPC-systems for every considered node in an object mesh (compare output of
-      `geodesic_polar_coordinates.discrete_gpc`)
-    - Array that contains the polar coordinates of the kernel's vertices (compare output of `create_kernel_matrix`)
-
-    **Output**
-
-    - 4-dimensional array `E` with size `(#gpc_systems, #angular_coord's, #radial_coord's, 8)`. Per GPC-system it
-      stores for every kernel-vertex the tuple given by `barycentric_coords_local_gpc`. These tuples described the
-      Barycentric coordinates for each kernel-vertex and the corresponding node indices.
-
+    Returns
+    -------
+    np.ndarray
+        A 4D-array barycentric
+        - barycentric[j, i, :3, 0] contains vertex indices that have Barycentric coordinates for kernel-vertex (i, j)
+        - barycentric[j, i, :3, 1] contains respective Barycentric coordinates of vertices barycentric[i, j, :3, 0] for
+          kernel-vertex (i, j)
+        Note that the radial- and angular dimension have been switched! This allows the geodesic convolution to benefit
+        in efficiency from tensorflow broadcasting.
     """
-    local_gpc_systems = polar_2_cartesian(local_gpc_systems)
-    kernel = polar_2_cartesian(kernel)
+    # Find closest point to query vertex in considered GPC-system
+    all_gpc_nodes = np.unique(gpc_triangles.reshape((-1, 2)), axis=0)
+    gpc_kd_tree = sp.spatial.KDTree(all_gpc_nodes)
 
-    faces = np.copy(object_mesh.faces)
-    vertex_faces = np.copy(object_mesh.vertex_faces)
+    # Find Barycentric coordinates iteratively for every kernel vertex
+    n_radial = kernel.shape[0]
+    n_angular = kernel.shape[1]
+    barycentric = np.zeros((n_angular, n_radial, 3, 2))
+    for i in range(n_radial):
+        for j in range(n_angular):
+            query_vertex = kernel[i, j]
+            nth_closest_vertex = 1
+            is_within = False
 
-    E = []
-    if tqdm_msg:
-        for gpc_system in tqdm(local_gpc_systems, position=0, postfix=tqdm_msg):
-            E.append(barycentric_coords_local_gpc(gpc_system, kernel, faces, vertex_faces))
-    else:
-        for gpc_system in local_gpc_systems:
-            E.append(barycentric_coords_local_gpc(gpc_system, kernel, faces, vertex_faces))
+            while not is_within:
+                # Find n-th closest node among GPC-system vertices
+                _, closest_node_idx = gpc_kd_tree.query(query_vertex, k=nth_closest_vertex)
+                if nth_closest_vertex > 1:
+                    closest_node_idx = closest_node_idx[nth_closest_vertex - 1]
+                closest_node = all_gpc_nodes[closest_node_idx]
 
-    return np.array(E).astype(np.float32)
+                # Find triangles of the closest node and compute Barycentric coordinates for them
+                considered_triangle_indices = np.unique(np.where(gpc_triangles == closest_node)[0])
+                face, barycentric_coords = None, None
+                for triangle_idx in considered_triangle_indices:
+                    face = gpc_faces[triangle_idx]
+                    barycentric_coords, is_within = compute_barycentric(query_vertex, gpc_triangles[triangle_idx])
+                    if is_within:
+                        break
+
+                # Store Barycentric coordinates and respective node indices
+                if is_within:
+                    for idx in range(3):
+                        barycentric[j, i, idx, 0] = face[idx]
+                        barycentric[j, i, idx, 1] = barycentric_coords[idx]
+                else:
+                    nth_closest_vertex += 1
+
+    return barycentric
+
+
+def barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angular=4, radius=0.05):
+    """Compute the barycentric coordinates for the given GPC-systems
+
+    Parameters
+    ----------
+    object_mesh: trimesh.Trimesh
+        The corresponding object mesh for the GPC-systems
+    gpc_systems: np.ndarray
+        3D-array in which the i-th entry corresponds to the GPC-system centered in vertex i from the given object mesh
+        - contains polar coordinates
+        - just use the output of geoconv.preprocessing.discrete_gpc.discrete_gpc
+    n_radial: int
+        The amount of radial coordinates of the kernel you wish to use
+    n_angular: int
+        The amount of angular coordinates of the kernel you wish to use
+    radius: float
+        The radius of the kernel of the kernel you wish to use
+
+    Returns
+    -------
+    A 5D-array containing the Barycentric coordinates for each kernel vertex and each GPC-system. It has the following
+    structure:
+        B[a, b, c, d, e]:
+            - a: References GPC-system centered in vertex `a` of object mesh `object_mesh`
+            - b: References the b-th angular coordinate of the kernel
+            - c: References the c-th radial coordinate of the kernel
+            - B[a, b, c, :, 0]: Returns the **indices** of the nodes that construct the triangle containing the kernel
+                                vertex (b, c) in GPC-system centered in node `a`
+            - B[a, b, c, :, 1]: Returns the **Barycentric coordinates** of the nodes that construct the triangle
+                                containing the kernel vertex (b, c) in GPC-system centered in node `a`
+    """
+
+    # Define kernel vertices at which interpolation values will be needed
+    kernel = create_kernel_matrix(n_radial=n_radial, n_angular=n_angular, radius=radius)
+
+    # We lay the kernel once onto every local GPC-system centered in origin
+    amt_gpc_systems = gpc_systems.shape[0]
+    all_barycentric_coords = np.zeros((amt_gpc_systems, n_angular, n_radial, 3, 2))
+
+    # Translate all coordinates into cartesian coordinates such that we can work with KD-trees
+    kernel = polar_to_cartesian(kernel.reshape((-1, 2))).reshape((n_radial, n_angular, 2))
+    for gpc_system_idx, gpc_system in enumerate(gpc_systems):
+        gpc_system = polar_to_cartesian(gpc_system)
+
+        # Determine triangles which are contained within the currently considered local GPC-system
+        contained_gpc_triangles, contained_gpc_faces = determine_gpc_triangles(object_mesh, gpc_system)
+
+        # Store Barycentric coordinates for kernel in i-th GPC-system
+        barycentric_coords = barycentric_coordinates_kernel(kernel, contained_gpc_triangles, contained_gpc_faces)
+        all_barycentric_coords[gpc_system_idx] = barycentric_coords
+
+    return all_barycentric_coords
