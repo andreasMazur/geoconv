@@ -141,14 +141,14 @@ void compute_dist_and_dir(double vertex_i[],
                 double alpha = phi_ij / phi_kj;
                 theta_i = fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * M_PI);
                 if (theta_k < (1. / 4.) * M_PI && theta_j > (3. / 4.) * M_PI) {
-                    if (!(theta_j <= theta_i && theta_i <= theta_j)) {
+                    if (!(theta_j <= theta_i && theta_i <= theta_k)) {
                         theta_k = theta_k + 2 * M_PI;
                         theta_i = fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * M_PI);
                     }
                 }
                 if (theta_j < (1. / 4.) * M_PI && theta_k > (3. / 4.) * M_PI) {
                     theta_i = fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * M_PI);
-                    if (!(theta_j <= theta_i && theta_i <= theta_j)) {
+                    if (!(theta_k <= theta_i && theta_i <= theta_j)) {
                         theta_j = theta_j + 2 * M_PI;
                         theta_i = fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * M_PI);
                     }
