@@ -61,7 +61,7 @@ def load_preprocessed_faust(path_to_zip,
         output_signature=(
             (
                 tf.TensorSpec(shape=(amt_vertices, signal_dim), dtype=tf.float32),
-                tf.TensorSpec(shape=(amt_vertices,) + kernel_size[::-1] + (6,), dtype=tf.float32)
+                tf.TensorSpec(shape=(amt_vertices,) + kernel_size[::-1] + (3, 2), dtype=tf.float32)
             ),
             tf.TensorSpec(shape=(amt_vertices,), dtype=tf.float32)
         )
