@@ -26,8 +26,9 @@ def angular_max_pooling(signal):
 
     """
     rotation_norms = tf.norm(signal, ord="euclidean", axis=-1)
-    winner_rotation = tf.argmax(rotation_norms, axis=0)
-    return tf.gather_nd(signal, winner_rotation)
+    winner_rotation = tf.cast(tf.argmax(rotation_norms, axis=0), dtype=tf.int32)
+    winner_rotation = tf.stack([winner_rotation, tf.range(winner_rotation.shape[0])], axis=-1)
+    return tf.gather_nd(params=signal, indices=winner_rotation)
 
 
 class ConvGeodesic(Layer):

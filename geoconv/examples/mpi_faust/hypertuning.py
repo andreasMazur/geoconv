@@ -31,7 +31,7 @@ class GeoConvHyperModel(kt.HyperModel):
         # Define model
         signal_input = layers.Input(shape=(self.amt_nodes, self.input_dim), name="Signal")
         bary_input = layers.Input(
-            shape=(self.amt_nodes, self.kernel_size[1], self.kernel_size[0], 6), name="Barycentric"
+            shape=(self.amt_nodes, self.kernel_size[1], self.kernel_size[0], 3, 2), name="Barycentric"
         )
         signal = layers.Normalization(axis=None, mean=self.dataset_mean, variance=self.dataset_var)(signal_input)
         signal = layers.Dropout(rate=hp.Float(name="dropout_rate", min_value=.0, max_value=.3, step=.1))(signal)
