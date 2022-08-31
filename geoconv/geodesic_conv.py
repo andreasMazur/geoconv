@@ -33,7 +33,7 @@ def angular_max_pooling(signal):
 
 class ConvGeodesic(Layer):
 
-    def __init__(self, kernel_size, output_dim, amt_kernel, activation="relu", name=None):
+    def __init__(self, output_dim, amt_kernel, activation="relu", name=None):
         if name:
             super().__init__(name=name)
         else:
@@ -41,7 +41,7 @@ class ConvGeodesic(Layer):
 
         # Define kernel attributes
         self.kernels = []
-        self.kernel_size = kernel_size  # (#radial, #angular)
+        self.kernel_size = None  # (#radial, #angular)
         self.bias = None
 
         # Define output attributes
@@ -49,7 +49,7 @@ class ConvGeodesic(Layer):
         self.activation = Activation(activation)
 
         # Define convolution attributes
-        self.all_rotations = self.kernel_size[1]
+        self.all_rotations = None
         self.amt_kernel = amt_kernel
 
     def get_config(self):
@@ -87,7 +87,9 @@ class ConvGeodesic(Layer):
         - `input_shape`: The shape of the tensor containing the signal on the graph.
 
         """
-        signal_shape, _ = input_shape
+        signal_shape, barycentric_shape = input_shape
+        self.kernel_size = (barycentric_shape[3], barycentric_shape[2])
+        self.all_rotations = self.kernel_size[1]
         self.kernels = [
             [
                 self.add_weight(

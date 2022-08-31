@@ -57,13 +57,11 @@ class GeoConvHyperModel(kt.HyperModel):
             )([signal, bary_input])
         else:
             signal = ConvGeodesic(
-                kernel_size=self.kernel_size,
                 output_dim=hp.Int(name="output_dim_1", min_value=32, max_value=144, step=2),
                 amt_kernel=hp.Int(name="amt_kernel_1", min_value=1, max_value=2),
                 activation="relu"
             )([signal, bary_input])
             signal = ConvGeodesic(
-                kernel_size=self.kernel_size,
                 output_dim=hp.Int(name="output_dim_2", min_value=32, max_value=256, step=2),
                 amt_kernel=hp.Int(name="amt_kernel_2", min_value=1, max_value=2),
                 activation="relu"
