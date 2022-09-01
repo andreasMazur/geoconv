@@ -1,0 +1,14 @@
+authors:
+  - family-names: Mazur
+    given-names: Andreas
+cff-version: 1.2.0
+message: "If you use this software, please cite it using these metadata."
+title: "GeoConv - Geodesic Convolutions with Tensorflow"
+keywords:
+  - research
+  - geodesic convolutions
+  - deep learning
+  - geometric deep learning
+  - machine learning
+license: GPL-3.0
+repository-code: "https://github.com/andreasMazur/geoconv"
