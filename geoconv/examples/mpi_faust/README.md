@@ -70,10 +70,3 @@ def define_model(amt_nodes, kernel_size, output_dim=6890, lr=.00045):
 
 We want to define a dataset that allows us to load single meshes into memory instead of the
 entire dataset at once. An example-implementation can be looked up in ``tf_dataset.py``
-
-## Training
-
-Once preprocessing is done and the network as well as the dataset are defined, we simply call Tensorflow's 
-``fit``-function to train the model in ``train_mpi_faust.train_on_faust``.
-
-

@@ -52,8 +52,6 @@ def define_model(signal_shape, barycentric_shape, output_dim, kernel_size):
 # Now train/validate/use it like you would with any other tensorflow model..
 ```
 
-An example training-pipeline is given in ``geoconv.train_examples.train_mpi_faust``
-
 ### Inputs and preprocessing
 
 As visible in the minimal example above, the geodesic convolutional layer expects two inputs:
