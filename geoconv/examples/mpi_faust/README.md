@@ -68,3 +68,22 @@ def define_model(amt_nodes, kernel_size, output_dim=6890, lr=.00045):
 
 We want to define a dataset that allows us to load single meshes into memory instead of the
 entire dataset at once. An example-implementation can be looked up in ``tf_dataset.py``
+
+## Finding Hyperparameters
+
+Instead of implementing our own hyperparameter search, we make use of the Hyperband-implementation from the
+[Keras Tuner](https://www.tensorflow.org/tutorials/keras/keras_tuner). Take a look on `hypertuning.py` for
+further details. One can start the hypertuning with a simple script:
+
+```python
+from geoconv.examples.mpi_faust.hypertuning import faust_hypertuning
+
+if __name__ == "__main__":
+    faust_hypertuning(
+        path_preprocessed_dataset="../preprocessed_smaller_shot_v3.zip",
+        run_id=0,
+        use_resnet=False  # Switch to true to use ResNet-blocks
+    )
+```
+
+Once optimal hyperparameters are found, you can copy them and train you final network with them.
