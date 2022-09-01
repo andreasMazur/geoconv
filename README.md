@@ -12,7 +12,7 @@ convolution layer, are included too.
 2. Clone and install **geoconv**:
      ```bash
      git clone https://github.com/andreasMazur/geoconv.git
-     cd ./GeodesicConvolution
+     cd ./geoconv
      pip install -r requirements.txt
      pip install .
      ```
