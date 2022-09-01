@@ -26,18 +26,14 @@ if __name__ == "__main__":
 ```
 The preprocessing function:
 1. Loads the original data
-2. Creates sub-meshes by sampling from the originally given meshes to reduce memory usage per mesh and
-create more training files
-3. Computes ground-truth values for supervised learning
-4. Calculates local GPC-systems and Barycentric coordinates of the sub-meshes
-5. Zips the final dataset
+2. Computes ground-truth values for supervised learning
+3. Calculates local GPC-systems and Barycentric coordinates of the sub-meshes
+4. Zips the final dataset
 
 Note the meanings of the arguments:
 - directory: The path to the FAUST-dataset
 - target_dir: The path to the zip-file that will contain the preprocessed data
-- reference_mesh: The path to the mesh which will be used to compute ground truth values 
-- sub_sample_amount: The wished amount of nodes per mesh
-- sub_samples_per_mesh: The amount of how often to sample from one original mesh
+- reference_mesh: The path to the mesh which will be used to compute ground truth values
 
 ## Neural Network Definition
 
