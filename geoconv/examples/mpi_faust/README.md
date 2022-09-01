@@ -21,9 +21,7 @@ if __name__ == "__main__":
     preprocess(
         directory=path_to_registrations,
         target_dir=f"/home/user/preprocessed_registrations",
-        reference_mesh=f"{path_to_registrations}/tr_reg_000.ply",
-        sub_sample_amount=3400,
-        sub_samples_per_mesh=5
+        reference_mesh=f"{path_to_registrations}/tr_reg_000.ply"
     )
 ```
 The preprocessing function:
