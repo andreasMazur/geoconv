@@ -49,7 +49,8 @@ def define_model(amt_nodes, kernel_size, output_dim=6890, lr=.00045):
     bary_input = InputLayer(shape=(amt_nodes, kernel_size[1], kernel_size[0], 3, 2))
 
     signal = Normalization()(signal_input)
-    signal = ConvGeodesic(kernel_size=(2, 4), output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
+    # Layer detects kernel size automatically
+    signal = ConvGeodesic(output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
     logits = Dense(output_dim)(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
