@@ -71,6 +71,11 @@ Barycentric coordinates in the required format. The result can without further e
 
 An example preprocessing-pipeline is given in ``geoconv.datasets.mpi_faust.preprocess``.
 
+## Cite
+
+Using my work? Please cite this repository by using the **"Cite this repository"-option** of GitHub
+in the right panel.
+
 ## Referenced Literature
 
 [1]: Bronstein, Michael M., et al. "Geometric deep learning: Grids, groups, graphs, geodesics, and gauges." 
