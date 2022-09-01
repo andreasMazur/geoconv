@@ -52,7 +52,7 @@ from geoconv.geodesic_conv import ConvGeodesic
 
 def define_model(amt_nodes, kernel_size, output_dim=6890, lr=.00045):
     signal_input = InputLayer(shape=(amt_nodes, 3))
-    bary_input = InputLayer(shape=(amt_nodes, kernel_size[1], kernel_size[0], 6))
+    bary_input = InputLayer(shape=(amt_nodes, kernel_size[1], kernel_size[0], 3, 2))
 
     signal = Normalization()(signal_input)
     signal = ConvGeodesic(kernel_size=(2, 4), output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
