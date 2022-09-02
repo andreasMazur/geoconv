@@ -179,6 +179,7 @@ def compute_distance_and_angle(vertex_i, vertex_j, u, theta, triangle_cache, obj
     if vertex_i + vertex_j in triangle_cache.keys():
         considered_triangles = triangle_cache[vertex_i + vertex_j]
     else:
+        # Determine both triangles of edge [vertex_i, vertex_j] and cache those
         sorted_vectors = [vertex_i, vertex_j]
         sorted_vectors.sort()
         edge_indices = np.where(np.logical_and(
@@ -235,16 +236,13 @@ def compute_vector_angle(vector_a, vector_b, rotation_axis):
         return angle
 
 
-def get_neighbors(vertex, object_mesh, graph=None):
+def get_neighbors(vertex, object_mesh):
     """Calculates the one-hop neighbors of a vertex.
-
-    See: https://github.com/mikedh/trimesh/issues/52
 
     **Input**
 
     - The index of the vertex for which the neighbor indices shall be computed.
     - A loaded object mesh.
-    - The graph representation of the given object mesh.
 
     **Output**
 
@@ -252,15 +250,10 @@ def get_neighbors(vertex, object_mesh, graph=None):
 
     """
 
-    if graph:
-        return list(graph[vertex].keys()), graph
-    else:
-        mesh_edges = object_mesh.edges_unique
-        graph = nx.from_edgelist(mesh_edges)
-        return list(graph[vertex].keys()), graph
+    return list(object_mesh.vertex_adjacency_graph[vertex].keys())
 
 
-def initialize_neighborhood(source_point, u, theta, object_mesh, graph, use_c):
+def initialize_neighborhood(source_point, u, theta, object_mesh, use_c):
     """Compute the initial radial and angular coordinates around a source point.
 
     Angle coordinates are always given w.r.t. some reference direction. The choice of a reference
@@ -273,7 +266,6 @@ def initialize_neighborhood(source_point, u, theta, object_mesh, graph, use_c):
     - An array `u` of radial coordinates from the source point to other points in the object mesh.
     - An array `theta` of angular coordinates of neighbors from `source_point` in its window.
     - A loaded object mesh.
-    - The graph representation of the loaded object mesh.
     - A flag whether to use the c-extension.
 
     **Output**
@@ -284,7 +276,7 @@ def initialize_neighborhood(source_point, u, theta, object_mesh, graph, use_c):
 
     """
 
-    source_point_neighbors, graph = get_neighbors(source_point, object_mesh, graph)
+    source_point_neighbors = get_neighbors(source_point, object_mesh)
     r3_source_point = object_mesh.vertices[source_point]
     ref_neighbor = source_point_neighbors[0]
 
@@ -308,10 +300,10 @@ def initialize_neighborhood(source_point, u, theta, object_mesh, graph, use_c):
     theta[source_point_neighbors] = theta_neighbors
     theta[source_point] = 0.0
 
-    return u, theta, source_point_neighbors, graph, rotation_axis
+    return u, theta, source_point_neighbors, rotation_axis
 
 
-def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_cache=None, graph=None):
+def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_cache=None):
     """Computes local GPC for one given source point.
 
     **Input**
@@ -322,7 +314,6 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
     - A flag whether to use the c-extension.
     - An epsilon.
     - A cache storing the faces of a given edge.
-    - A graph consisting of the edges of the mesh.
 
     **Output**
 
@@ -334,8 +325,8 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
     # Initialization
     u = np.full((object_mesh.vertices.shape[0],), np.inf)
     theta = np.full((object_mesh.vertices.shape[0],), -1.0)
-    u, theta, source_point_neighbors, graph, rotation_axis = initialize_neighborhood(
-        source_point, u, theta, object_mesh, graph, use_c
+    u, theta, source_point_neighbors, rotation_axis = initialize_neighborhood(
+        source_point, u, theta, object_mesh, use_c
     )
     u[source_point] = .0
 
@@ -348,7 +339,7 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
     while candidates:
         # as we work with a min-heap the shortest distance is stored in root
         j_dist, j = heapq.heappop(candidates)
-        j_neighbors, _ = get_neighbors(j, object_mesh, graph)
+        j_neighbors = get_neighbors(j, object_mesh)
         j_neighbors = [j for j in j_neighbors if j != source_point]
 
         for i in j_neighbors:
@@ -366,7 +357,7 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
                 if new_u_i < u_max:
                     heapq.heappush(candidates, (new_u_i, i))
 
-    return u, theta, triangle_cache, graph
+    return u, theta, triangle_cache
 
 
 def discrete_gpc(object_mesh, u_max=.04, eps=0.000001, use_c=False, tqdm_msg=""):
@@ -389,18 +380,18 @@ def discrete_gpc(object_mesh, u_max=.04, eps=0.000001, use_c=False, tqdm_msg="")
 
     """
 
-    u, theta, triangle_cache, graph = [], [], dict(), None
+    u, theta, triangle_cache = [], [], dict()
     if tqdm_msg:
         for vertex_idx in tqdm(range(object_mesh.vertices.shape[0]), position=0, postfix=tqdm_msg):
-            u_v, theta_v, triangle_cache, graph = local_gpc(
-                vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache, graph
+            u_v, theta_v, triangle_cache = local_gpc(
+                vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache
             )
             u.append(u_v)
             theta.append(theta_v)
     else:
         for vertex_idx in range(object_mesh.vertices.shape[0]):
-            u_v, theta_v, triangle_cache, graph = local_gpc(
-                vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache, graph
+            u_v, theta_v, triangle_cache = local_gpc(
+                vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache
             )
             u.append(u_v)
             theta.append(theta_v)
