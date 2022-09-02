@@ -42,7 +42,6 @@ class GeoConvHyperModel(kt.HyperModel):
                 activation="relu"
             )(signal)
             signal = ResNetBlock(
-                kernel_size=self.kernel_size,
                 amt_kernel=hp.Int(name="amt_kernel_1", min_value=1, max_value=2),
                 activation="relu"
             )([signal, bary_input])
@@ -51,7 +50,6 @@ class GeoConvHyperModel(kt.HyperModel):
                 activation="relu"
             )(signal)
             signal = ResNetBlock(
-                kernel_size=self.kernel_size,
                 amt_kernel=hp.Int(name="amt_kernel_2", min_value=1, max_value=2),
                 activation="relu"
             )([signal, bary_input])
