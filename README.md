@@ -43,7 +43,7 @@ def define_model(signal_shape, barycentric_shape, output_dim, kernel_size):
     
     signal_input = InputLayer(shape=signal_shape)
     barycentric = InputLayer(shape=barycentric_shape)
-    signal = ConvGeodesic(kernel_size=kernel_size, output_dim=256, amt_kernel=2, activation="relu")([signal, barycentric])
+    signal = ConvGeodesic(output_dim=256, amt_kernel=2, activation="relu")([signal, barycentric])
     logits = Dense(output_dim)(signal)
 
     model = tf.keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
