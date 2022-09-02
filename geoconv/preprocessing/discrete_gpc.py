@@ -2,13 +2,12 @@ from scipy.linalg import blas
 from tqdm import tqdm
 
 import numpy as np
-import networkx as nx
 import c_extension
 import heapq
 
 
 def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis):
-    """Euclidean update procedure for a vertex i in a given triangle and angle computation.
+    """Euclidean update procedure for a vertex i in a given triangle and angle computation
 
     See Section 3 in:
 
@@ -16,20 +15,29 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
     meshes](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1467-8659.2012.03187.x)
     > Melvær, Eivind Lyche, and Martin Reimers.
 
-    **Input**
+    Parameters
+    ----------
+    vertex_i: int
+        The index of the vertex for which we want to update the distance and angle
+    vertex_j: int
+        The index of the second vertex in the triangle of vertex i
+    vertex_k: int
+        The index of the third vertex in the triangle of vertex i
+    u: np.ndarray
+        The currently known radial coordinates
+    theta: np.ndarray
+        The currently known angular coordinates
+    object_mesh: trimesh.Trimesh
+        A loaded object mesh
+    use_c: bool
+        A flag whether to use the c-extension
+    rotation_axis: np.ndarray [DEPRECATED]
+        The vertex normal of the center vertex from the considered GPC-system
 
-    - The index of the vertex i for which we want to update the distance.
-    - The index of the second vertex j in the triangle of vertex i.
-    - The index of the third vertex k in the triangle of vertex i.
-    - The currently known radial coordinates `u`.
-    - The currently known angular coordinates `theta`.
-    - A loaded object mesh.
-    - A flag whether to use the c-extension.
-
-    **Output**
-
-    - The Euclidean update u_ijk (see equation 13 in paper)
-
+    Returns
+    -------
+    (float, float)
+        The Euclidean update u_ijk for vertex i (see equation 13 in paper) and the new angle vertex i
     """
 
     # Convert indices to vectors
@@ -147,8 +155,8 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
     return u_ijk, theta_i
 
 
-def compute_distance_and_angle(vertex_i, vertex_j, u, theta, triangle_cache, object_mesh, use_c, rotation_axis):
-    """Euclidean update procedure for geodesic distance approximation.
+def compute_distance_and_angle(vertex_i, vertex_j, u, theta, face_cache, object_mesh, use_c, rotation_axis):
+    """Euclidean update procedure for geodesic distance approximation
 
     See Section 4 in:
 
@@ -156,28 +164,38 @@ def compute_distance_and_angle(vertex_i, vertex_j, u, theta, triangle_cache, obj
     meshes](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1467-8659.2012.03187.x)
     > Melvær, Eivind Lyche, and Martin Reimers.
 
-    **Input**
+    Parameters
+    ----------
+    vertex_i: int
+        The index of the vertex for which we want to update the distance and angle
+    vertex_j: int
+        The index of a second vertex in the triangle of vertex i (candidate vertex from heap)
+    u: np.ndarray
+        The currently known radial coordinates
+    theta: np.ndarray
+        The currently known angular coordinates
+    face_cache: dict
+        A cache storing (or not storing) the faces for edge `(vertex_i, vertex_j)`
+    object_mesh: trimesh.Trimesh
+        A loaded object mesh
+    use_c: bool
+        A flag whether to use the c-extension
+    rotation_axis: np.ndarray [DEPRECATED]
+        The vertex normal of the center vertex from the considered GPC-system
 
-    - The vertex for which we want to update the distance: `vertex_i`.
-    - Another `vertex_j` in the triangle of `vertex_i`, s.t. we have an edge `(vertex_i, vertex_j)`.
-    - The currently known distances `u`.
-    - The currently known angular coordinates `theta`.
-    - A cache storing (or not storing) the triangles for edge `(vertex_i, vertex_j)`.
-    - A loaded object mesh.
-    - A flag whether to use the c-extension.
-
-    **Output**
-
-    - The updated distance to `vertex_i`.
-
+    Returns
+    -------
+    (float, float, dict)
+        The Euclidean update u_ijk for vertex i (see equation 13 in paper) and the new angle vertex i. Also, the
+        possibly updated face cache is returned.
     """
 
-    if triangle_cache is None:
-        triangle_cache = dict()
+    if face_cache is None:
+        face_cache = dict()
 
     # Caching considered triangles to save time
-    if vertex_i + vertex_j in triangle_cache.keys():
-        considered_triangles = triangle_cache[vertex_i + vertex_j]
+    if vertex_i + vertex_j in face_cache.keys():
+        considered_faces = face_cache[vertex_i + vertex_j]
     else:
         # Determine both triangles of edge [vertex_i, vertex_j] and cache those
         sorted_vectors = [vertex_i, vertex_j]
@@ -187,11 +205,11 @@ def compute_distance_and_angle(vertex_i, vertex_j, u, theta, triangle_cache, obj
             object_mesh.edges_sorted[:, 1] == sorted_vectors[1]
         ))[0]
         face_indices = object_mesh.edges_face[edge_indices]
-        considered_triangles = object_mesh.faces[face_indices]
-        triangle_cache[vertex_i + vertex_j] = considered_triangles
+        considered_faces = object_mesh.faces[face_indices]
+        face_cache[vertex_i + vertex_j] = considered_faces
 
     updates = []
-    for triangle in considered_triangles:
+    for triangle in considered_faces:
         vertex_k = [v for v in triangle if v not in [vertex_i, vertex_j]][0]
         # We need to know the distance to `vertex_k`
         if u[vertex_k] < np.inf and theta[vertex_k] >= 0.:
@@ -200,24 +218,29 @@ def compute_distance_and_angle(vertex_i, vertex_j, u, theta, triangle_cache, obj
             )
             updates.append((u_ijk, phi_i))
     if not updates:
-        return np.inf, -1.0, triangle_cache
+        return np.inf, -1.0, face_cache
     else:
         u_ijk, phi_i = min(updates)
-        return u_ijk, phi_i, triangle_cache
+        return u_ijk, phi_i, face_cache
 
 
 def compute_vector_angle(vector_a, vector_b, rotation_axis):
-    """Compute the angle between two vectors.
+    """Compute the angle between two vectors
 
-    **Input**
+    Parameters
+    ----------
+    vector_a: np.ndarray
+        The first vector
+    vector_b: np.ndarray
+        The second vector
+    rotation_axis: [np.ndarray, None]
+        For angles in [0, 2*pi[ in the 3-dimensional space an "up"-direction is required. If `None` is passed an angle
+        between [0, pi[ is returned.
 
-    - The first vector
-    - The second vector
-
-    **Output**
-
-    - The angle between `vector_a` and `vector_b`
-
+    Returns
+    -------
+    float:
+        The angle between `vector_a` and `vector_b`
     """
     vector_a = vector_a / blas.dnrm2(vector_a)
     vector_b = vector_b / blas.dnrm2(vector_b)
@@ -237,17 +260,19 @@ def compute_vector_angle(vector_a, vector_b, rotation_axis):
 
 
 def get_neighbors(vertex, object_mesh):
-    """Calculates the one-hop neighbors of a vertex.
+    """Calculates the one-hop neighbors of a vertex
 
-    **Input**
+    Parameters
+    ----------
+    vertex: int
+        The index of the vertex for which the neighbor indices shall be computed
+    object_mesh: trimesh.Trimesh
+        An object mesh
 
-    - The index of the vertex for which the neighbor indices shall be computed.
-    - A loaded object mesh.
-
-    **Output**
-
-    - A list of neighboring vertex-indices.
-
+    Returns
+    -------
+    list:
+        A list of neighboring vertex-indices.
     """
 
     return list(object_mesh.vertex_adjacency_graph[vertex].keys())
@@ -260,20 +285,25 @@ def initialize_neighborhood(source_point, u, theta, object_mesh, use_c):
     direction can be arbitrary. Here, we choose the vector `x - source_point` with `x` being the
     first neighbor return by `get_neighbors` as the reference direction.
 
-    **Input**
+    Parameters
+    ----------
+    source_point: int
+        The index of the source point around which a window (GPC-system) shall be established
+    u: np.ndarray
+        An array `u` of radial coordinates from the source point to other points in the object mesh
+    theta: np.ndarray
+        An array `theta` of angular coordinates of neighbors from `source_point` in its window
+    object_mesh: trimesh.Trimesh
+        A loaded object mesh
+    use_c: bool
+        A flag whether to use the c-extension
 
-    - The index of the source point around which a window (GPC-system) shall be established.
-    - An array `u` of radial coordinates from the source point to other points in the object mesh.
-    - An array `theta` of angular coordinates of neighbors from `source_point` in its window.
-    - A loaded object mesh.
-    - A flag whether to use the c-extension.
-
-    **Output**
-
-    - The `u` array with updated values at the neighboring nodes of `source_point`.
-    - The `theta` array with updated values at the neighboring nodes of `source_point`.
-    - The neighbors of `source_point`.
-
+    Returns
+    -------
+    (np.ndarray, np.ndarray, list, np.ndarray):
+        This function returns updated radial coordinates `u` (fst. value), updated angular coordinates `theta` (snd.
+        value), The neighbors of `source_point` (thr. value) and lastly the rotation axis for this GPC-system (vertex+
+        normal of the center vertex).
     """
 
     source_point_neighbors = get_neighbors(source_point, object_mesh)
@@ -306,20 +336,26 @@ def initialize_neighborhood(source_point, u, theta, object_mesh, use_c):
 def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_cache=None):
     """Computes local GPC for one given source point.
 
-    **Input**
+    Parameters
+    ----------
+    source_point: int
+        The index of the source point around which a window (GPC-system) shall be established
+    u_max: float
+        The maximal distance (e.g. radius of the patch) which a vertex may have to `source_point`
+    object_mesh: trimesh.Trimesh
+        A loaded object mesh
+    use_c: bool
+        A flag whether to use the c-extension
+    eps: float
+        An epsilon
+    triangle_cache: [dict, None]
+        A cache storing the faces of a given edge
 
-    - The index of the source point around which a window (GPC-system) shall be established.
-    - The maximal distance (e.g. radius of the patch) which a vertex may have to `source_point`.
-    - A loaded object mesh.
-    - A flag whether to use the c-extension.
-    - An epsilon.
-    - A cache storing the faces of a given edge.
-
-    **Output**
-
-    - An array `u` of radial coordinates from the source point to other points in the object mesh.
-    - An array `theta` of angular coordinates of neighbors from `source_point` in its window.
-
+    Returns
+    -------
+    (np.ndarray, np.ndarray, dict)
+        An array `u` of radial coordinates from the source point to other points in the object mesh. An array `theta` of
+        angular coordinates of neighbors from `source_point` in its window. The face cache as a dictionary.
     """
 
     # Initialization
@@ -367,16 +403,26 @@ def discrete_gpc(object_mesh, u_max=.04, eps=0.000001, use_c=False, tqdm_msg="")
     meshes](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1467-8659.2012.03187.x)
     > Melvær, Eivind Lyche, and Martin Reimers.
 
-    **Input**
+    Parameters
+    ----------
+    object_mesh: trimesh.Trimesh
+        An object mesh
+    u_max: float
+        The maximal radius for the GPC-system
+    eps: float
+        A threshold for update-improvements
+    use_c: bool
+        A flag whether to use the c-extension
+    tqdm_msg: str
+        A string to display as suffix with tqdm
 
-    - A loaded object mesh.
-
-    **Output**
-
-    - Array A with dimensions `(2, n, n)` with `n = object_mesh.vertices.shape[0]`. A[i][j][0] stores the radial
-      distance (with max value `u_max`) from node `j` to origin `i` of the local GPC-system. A[i][j][1] contains
-      the radial coordinate of node `j` in the local GPC-system of node `i` w.r.t. a reference direction (see
-      `initialize_neighborhood` for how the reference direction is selected).
+    Returns
+    -------
+    np.ndarray:
+        Array A with dimensions `(2, n, n)` with `n = object_mesh.vertices.shape[0]`. A[i][j][0] stores the radial
+        distance (with max value `u_max`) from node `j` to origin `i` of the local GPC-system. A[i][j][1] contains
+        the radial coordinate of node `j` in the local GPC-system of node `i` w.r.t. a reference direction (see
+        `initialize_neighborhood` for how the reference direction is selected).
 
     """
 
