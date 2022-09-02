@@ -2,10 +2,10 @@
 
 **Geo**desic **conv**olutional neural networks belong to the category of intrinsic mesh CNNs [1].
 They operate directly on object surfaces, therefore expanding the application of convolutions
-to non-Euclidean data. The **geoconv** library delivers an implementation of the **geodesic convolution** [2] 
-while taking into account discretization ideas which were given in [3]. Additionally, preprocessing functions, like
-computing geodesic polar coordinates on triangulated object meshes [4], which are required to feed data into the geodesic
-convolution layer, are included too.
+to non-Euclidean data. The **GeoConv** library delivers an implementation of the **geodesic convolution** [2] 
+while taking into account suggestions for implementation details which were given in [3].
+Additionally, all required preprocessing functions, like computing geodesic polar coordinates on triangulated object
+meshes [4] and the computation of Barycentric coordinates, are included too.
 
 ## Installation
 1. Install **[BLAS](https://netlib.org/blas/#_reference_blas_version_3_10_0)** and **[CBLAS](https://netlib.org/blas/#_cblas)**
