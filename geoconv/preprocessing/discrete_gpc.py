@@ -423,7 +423,6 @@ def discrete_gpc(object_mesh, u_max=.04, eps=0.000001, use_c=False, tqdm_msg="")
         distance (with max value `u_max`) from node `j` to origin `i` of the local GPC-system. A[i][j][1] contains
         the radial coordinate of node `j` in the local GPC-system of node `i` w.r.t. a reference direction (see
         `initialize_neighborhood` for how the reference direction is selected).
-
     """
 
     u, theta, triangle_cache = [], [], dict()

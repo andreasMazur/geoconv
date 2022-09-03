@@ -89,8 +89,12 @@ def faust_hypertuning(path_preprocessed_dataset,
                       use_resnet=False):
 
     # Load dataset
-    tf_faust_dataset = load_preprocessed_faust(path_preprocessed_dataset, amt_nodes, signal_dim)
-    tf_faust_dataset_val = load_preprocessed_faust(path_preprocessed_dataset, amt_nodes, signal_dim, val=True)
+    tf_faust_dataset = load_preprocessed_faust(
+        path_preprocessed_dataset, amt_nodes, signal_dim, kernel_size=kernel_size
+    )
+    tf_faust_dataset_val = load_preprocessed_faust(
+        path_preprocessed_dataset, amt_nodes, signal_dim, kernel_size=kernel_size, val=True
+    )
     faust_mean, faust_var = faust_mean_variance(tf_faust_dataset)
 
     # Declare hyperband-tuner
