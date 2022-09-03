@@ -53,33 +53,3 @@ def train_on_faust(tf_faust_dataset,
         callbacks=[tensorboard_callback, cp_callback],
         validation_data=tf_faust_dataset_val.batch(batch_size).prefetch(tf.data.AUTOTUNE)
     )
-
-
-if __name__ == "__main__":
-    path_preprocessed_dataset = "../geoconv/examples/mpi_faust/preprocessed_smaller_shot_v4_a8.zip"
-    amt_nodes = 6890
-    signal_dim = 144
-    kernel_size = (2, 8)
-    dataset = load_preprocessed_faust(
-        path_preprocessed_dataset, amt_nodes, signal_dim, kernel_size=kernel_size
-    )
-    dataset_val = load_preprocessed_faust(
-        path_preprocessed_dataset, amt_nodes, signal_dim, kernel_size=kernel_size, val=True
-    )
-    faust_mean, faust_var = faust_mean_variance(dataset)
-    network = define_model(
-        signal_shape=(amt_nodes, signal_dim),
-        bc_shape=(amt_nodes, kernel_size[1], kernel_size[0], 3, 2),
-        output_dim=amt_nodes,
-        dataset_mean=faust_mean,
-        dataset_var=faust_var,
-        lr=.0047,
-        dropout=.0
-    )
-    train_on_faust(
-        tf_faust_dataset=dataset,
-        tf_faust_dataset_val=dataset_val,
-        batch_size=1,
-        model=network,
-        run=0,
-    )
