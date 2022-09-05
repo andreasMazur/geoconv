@@ -194,6 +194,7 @@ def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
                         for idx in range(3):
                             barycentric[j, i, idx, 0] = face[idx]
                             barycentric[j, i, idx, 1] = barycentric_coords[idx]
+                        break
 
                 if not is_within:
                     # Look for triangles of the next closest point
