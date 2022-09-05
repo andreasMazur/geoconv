@@ -52,7 +52,7 @@ def search_parameters(faust_dir):
                 bary_coords = barycentric_coordinates(object_mesh, gpc_systems, n_radial, n_angular, radius - 0.005)
 
                 avg_kernel_coverage = evaluate_kernel_coverage(object_mesh, gpc_systems, bary_coords, verbose=False)
-                print(f"{(radius, n_radial, n_angular)} - Average kernel coverage: {avg_kernel_coverage * 100:.2f}%")
+                print(f"\n{(radius, n_radial, n_angular)} - Average kernel coverage: {avg_kernel_coverage * 100:.2f}%")
                 if avg_kernel_coverage > best_parameters[1] * 1.02:
                     best_parameters = ((radius, n_radial, n_angular), avg_kernel_coverage)
 
