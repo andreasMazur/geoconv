@@ -36,15 +36,15 @@ def search_parameters(faust_dir):
     file_list = [f for f in file_list if f[-4:] != ".png"]
     object_mesh = trimesh.load_mesh(f"{faust_dir}/{file_list[0]}")
 
-    source_points = np.random.randint(0, object_mesh.vertices.shape[0], size=(50,))
+    source_points = np.random.randint(0, object_mesh.vertices.shape[0], size=(70,))
     best_parameters = (None, 0)
     for radius in [0.02, 0.03, 0.04, 0.05, 0.06]:
         for n_radial in [2, 3, 4]:
-            for n_angular in [4, 5, 6, 7, 8, 9, 10]:
+            for n_angular in [5, 6, 7, 8, 9, 10]:
                 gpc_systems = []
                 for source_point in source_points:
                     r_all, theta_all, _ = local_gpc(
-                        source_point, u_max=radius, object_mesh=object_mesh, use_c=False, eps=0.000001
+                        source_point, u_max=radius, object_mesh=object_mesh, use_c=True, eps=0.000001
                     )
                     gpc_system = np.stack([r_all, theta_all], axis=-1)
                     gpc_systems.append(gpc_system)
@@ -57,9 +57,9 @@ def search_parameters(faust_dir):
                     best_parameters = ((radius, n_radial, n_angular), avg_kernel_coverage)
 
     print(
-        f"Best parameters found: radius = {best_parameters[0]}; "
-        f"n_radial = {best_parameters[1]}; "
-        f"n_angular = {best_parameters[2]}"
+        f"Best parameters found: radius = {best_parameters[0][0]}; "
+        f"n_radial = {best_parameters[0][1]}; "
+        f"n_angular = {best_parameters[0][2]}"
     )
     return best_parameters[0]
 
@@ -76,6 +76,11 @@ def preprocess(directory, target_dir, reference_mesh):
     # Load reference mesh
     ######################
     reference_mesh = trimesh.load_mesh(reference_mesh)
+
+    #####################################
+    # Find good preprocessing parameters
+    #####################################
+    radius, n_radial, n_angular = search_parameters(directory)
 
     with tqdm.tqdm(total=len(file_list)) as pbar:
         for file_no, file in enumerate(file_list):
@@ -133,14 +138,16 @@ def preprocess(directory, target_dir, reference_mesh):
             # Compute local GPC-systems
             ############################
             local_gpc_systems = discrete_gpc(
-                mesh, u_max=0.06, eps=.000001, use_c=True, tqdm_msg=f"File {file_no} - Compute local GPC-systems"
+                mesh, u_max=radius, eps=.000001, use_c=True, tqdm_msg=f"File {file_no} - Compute local GPC-systems"
             ).astype(np.float64)
 
             pbar.set_postfix({"Step": "Compute Barycentric coordinates"})
             ##################################
             # Compute Barycentric coordinates
             ##################################
-            bary_coords = barycentric_coordinates(mesh, local_gpc_systems, n_radial=2, n_angular=4, radius=0.05)
+            bary_coords = barycentric_coordinates(
+                mesh, local_gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=radius - 0.005
+            )
             np.save(f"{target_dir}/BC_{file[:-4]}.npy", bary_coords)
 
             pbar.update(1)
