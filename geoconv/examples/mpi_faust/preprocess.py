@@ -1,5 +1,5 @@
 from geoconv.preprocessing.barycentric_coords import barycentric_coordinates
-from geoconv.preprocessing.discrete_gpc import discrete_gpc
+from geoconv.preprocessing.discrete_gpc import discrete_gpc, local_gpc
 
 import os
 import tqdm
@@ -8,6 +8,60 @@ import scipy
 import shutil
 import trimesh
 import pyshot
+
+from geoconv.utils.measures import evaluate_kernel_coverage
+
+
+def search_parameters(faust_dir):
+    """Search for good preprocessing parameters
+
+    Here, 'good' means that we want to the kernel to cover a large portion
+    of the triangles included in the GPC-system.
+
+    Parameters
+    ----------
+    faust_dir: str
+        The directory to the registration files of the faust dataset
+
+    Returns
+    -------
+    (float, int, int)
+        - A radius
+        - Amount of radial coordinates
+        - Amount of angular coordinates
+    """
+
+    file_list = os.listdir(faust_dir)
+    file_list.sort()
+    file_list = [f for f in file_list if f[-4:] != ".png"]
+    object_mesh = trimesh.load_mesh(f"{faust_dir}/{file_list[0]}")
+
+    source_points = np.random.randint(0, object_mesh.vertices.shape[0], size=(50,))
+    best_parameters = (None, 0)
+    for radius in [0.02, 0.03, 0.04, 0.05, 0.06]:
+        for n_radial in [2, 3, 4]:
+            for n_angular in [4, 5, 6, 7, 8, 9, 10]:
+                gpc_systems = []
+                for source_point in source_points:
+                    r_all, theta_all, _ = local_gpc(
+                        source_point, u_max=radius, object_mesh=object_mesh, use_c=False, eps=0.000001
+                    )
+                    gpc_system = np.stack([r_all, theta_all], axis=-1)
+                    gpc_systems.append(gpc_system)
+                gpc_systems = np.stack(gpc_systems)
+                bary_coords = barycentric_coordinates(object_mesh, gpc_systems, n_radial, n_angular, radius - 0.005)
+
+                avg_kernel_coverage = evaluate_kernel_coverage(object_mesh, gpc_systems, bary_coords, verbose=False)
+                print(f"{(radius, n_radial, n_angular)} - Average kernel coverage: {avg_kernel_coverage * 100:.2f}%")
+                if avg_kernel_coverage > best_parameters[1] * 1.02:
+                    best_parameters = ((radius, n_radial, n_angular), avg_kernel_coverage)
+
+    print(
+        f"Best parameters found: radius = {best_parameters[0]}; "
+        f"n_radial = {best_parameters[1]}; "
+        f"n_angular = {best_parameters[2]}"
+    )
+    return best_parameters[0]
 
 
 def preprocess(directory, target_dir, reference_mesh):
