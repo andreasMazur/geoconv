@@ -72,7 +72,7 @@ class GeoConvHyperModel(kt.HyperModel):
         # Compile model
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.Adam(
-            learning_rate=hp.Float(name="learning_rate", min_value=0.0001, max_value=0.01, step=0.0002)
+            learning_rate=hp.Float(name="learning_rate", min_value=0.0001, max_value=0.1, step=0.0002)
         )
         model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
@@ -136,4 +136,6 @@ def faust_hypertuning(path_preprocessed_dataset,
 
     # Print best hyperparameters
     best_hp = tuner.get_best_hyperparameters()[0]
-    print(best_hp)
+    print("Best hyperparameters:")
+    for key, value in best_hp.values.items():
+        print(key, value)
