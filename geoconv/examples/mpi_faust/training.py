@@ -2,7 +2,6 @@ from tensorflow.keras import Input
 from tensorflow.keras.layers import Dense, Normalization, Dropout
 
 from geoconv.geodesic_conv import ConvGeodesic
-from geoconv.examples.mpi_faust.tf_dataset import load_preprocessed_faust, faust_mean_variance
 
 import tensorflow as tf
 
