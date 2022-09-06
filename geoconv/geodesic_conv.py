@@ -91,14 +91,13 @@ class ConvGeodesic(Layer):
         self.kernel_size = (barycentric_shape[3], barycentric_shape[2])
         self.all_rotations = self.kernel_size[1]
         self.kernels = [
-            [
-                self.add_weight(
-                    f"Kernel_{k}/AngularWeights_{a}",
-                    shape=(self.kernel_size[0], self.output_dim, signal_shape[2]),
-                    initializer="glorot_uniform",
-                    trainable=True
-                ) for a in range(self.kernel_size[1])
-            ] for k in range(self.amt_kernel)
+            self.add_weight(
+                f"AngularWeights_{a}",
+                # 1 at second position because of broadcasting compatibility
+                shape=(self.amt_kernel, 1, self.kernel_size[0], self.output_dim, signal_shape[2]),
+                initializer="glorot_uniform",
+                trainable=True
+            ) for a in range(self.kernel_size[1])
         ]
         self.bias = [
             self.add_weight(
@@ -184,42 +183,34 @@ class ConvGeodesic(Layer):
         interpolation_values = tf.vectorized_map(interpolation_fn, barycentric_coords)
 
         # We will need to sum over the convolutions of every kernel
-        kernel_results = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
-        kernel_idx = tf.constant(0)
-        for kernel in self.kernels:
-            angular_results = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
-            angular_coordinate = tf.constant(0)
-            for angular_weights in kernel:
-                rotation_results = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
-                for rotation in tf.range(self.all_rotations):
-                    rotation = tf.math.floormod(angular_coordinate + rotation, self.kernel_size[1])
-                    # (amt_gpc_systems, amt_radial_coords, output_dim)
-                    result = tf.linalg.matvec(angular_weights, interpolation_values[:, rotation])
-                    rotation_results = rotation_results.write(rotation, result)
-                # (amt_rotations, amt_gpc_systems, amt_radial_coords, output_dim)
-                rotation_results = rotation_results.stack()
-                angular_results = angular_results.write(angular_coordinate, rotation_results)
-                angular_coordinate = angular_coordinate + tf.constant(1)
-            # (amt_angular_coords, amt_rotations, amt_gpc_systems, amt_radial_coords, output_dim)
-            angular_results = angular_results.stack()
-            kernel_results = kernel_results.write(kernel_idx, angular_results)
-            kernel_idx = kernel_idx + tf.constant(1)
-
+        angular_results = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
+        angular_coordinate = tf.constant(0)
+        for angular_weights in self.kernels:
+            rotation_results = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
+            for rotation in tf.range(self.all_rotations):
+                rotation = tf.math.floormod(angular_coordinate + rotation, self.kernel_size[1])
+                # (amt_kernel, amt_gpc_systems, amt_radial_coords, output_dim)
+                result = tf.linalg.matvec(angular_weights, interpolation_values[:, rotation])
+                rotation_results = rotation_results.write(rotation, result)
+            # (amt_rotations, amt_kernel, amt_gpc_systems, amt_radial_coords, output_dim)
+            rotation_results = rotation_results.stack()
+            angular_results = angular_results.write(angular_coordinate, rotation_results)
+            angular_coordinate = angular_coordinate + tf.constant(1)
+        # Add bias
         idx = tf.constant(0)
         for bias in self.bias:
-            bias_added = kernel_results.read(idx) + bias
-            kernel_results = kernel_results.write(idx, bias_added)
+            bias_added = angular_results.read(idx) + bias
+            angular_results = angular_results.write(idx, bias_added)
             idx = idx + tf.constant(1)
+        # (amt_angular_coords, amt_rotations, amt_kernel, amt_gpc_systems, amt_radial_coords, output_dim)
+        angular_results = angular_results.stack()
 
-        # (amt_kernel, amt_angular_coords, amt_rotations, amt_gpc_systems, amt_radial_coords, output_dim)
-        kernel_results = kernel_results.stack()
-
-        # Compute the sum over all filter kernels (0), as well as angular (1) and radial (4) coordinates
+        # Compute the sum over all kernels (2), as well as angular (0) and radial (4) coordinates
         # => (amt_rotations, amt_gpc_systems, output_dim)
-        kernel_results = tf.reduce_sum(kernel_results, axis=[0, 1, 4])
-        kernel_results = self.activation(kernel_results)
+        angular_results = tf.reduce_sum(angular_results, axis=[2, 0, 4])
+        angular_results = self.activation(angular_results)
 
-        return angular_max_pooling(kernel_results)
+        return angular_max_pooling(angular_results)
 
     @tf.function
     def interpolate(self, signal, bary_coords):
