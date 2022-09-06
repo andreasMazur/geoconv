@@ -20,8 +20,12 @@ def define_model(signal_shape,
 
     signal = Normalization(axis=None, mean=dataset_mean, variance=dataset_var)(signal_input)
     signal = Dropout(rate=dropout)(signal)
-    signal = ConvGeodesic(output_dim=116, amt_kernel=1, activation="relu")([signal, bary_input])
-    signal = ConvGeodesic(output_dim=136, amt_kernel=1, activation="relu")([signal, bary_input])
+
+    signal = Dense(16, activation="relu")(signal)
+    signal = ConvGeodesic(output_dim=32, amt_kernel=1, activation="relu")([signal, bary_input])
+    signal = ConvGeodesic(output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
+    signal = ConvGeodesic(output_dim=128, amt_kernel=1, activation="relu")([signal, bary_input])
+    signal = Dense(256)(signal)
     logits = Dense(output_dim)(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
