@@ -138,7 +138,7 @@ def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
             1.2.3) Given the barycentric coordinates, determine the triangle `T` that contains `k`. IF there is not
                    such `T` then go back to (1.2.1) and compute the next nearest neighbor apart from `x` and repeat.
             1.2.4) Store the barycentric coordinates of `T` w.r.t. `k`.
-    3.) Store the barycentric coordinates.
+    2.) Store the barycentric coordinates.
 
     Parameters
     ----------
