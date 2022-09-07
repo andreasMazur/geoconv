@@ -243,8 +243,8 @@ def barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angular=4, r
     structure:
         B[a, b, c, d, e]:
             - a: References GPC-system centered in vertex `a` of object mesh `object_mesh`
-            - b: References the b-th angular coordinate of the kernel
-            - c: References the c-th radial coordinate of the kernel
+            - b: References the b-th radial coordinate of the kernel
+            - c: References the c-th angular coordinate of the kernel
             - B[a, b, c, :, 0]: Returns the **indices** of the nodes that construct the triangle containing the kernel
                                 vertex (b, c) in GPC-system centered in node `a`
             - B[a, b, c, :, 1]: Returns the **Barycentric coordinates** of the nodes that construct the triangle
