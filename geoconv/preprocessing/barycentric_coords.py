@@ -157,8 +157,8 @@ def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
     -------
     np.ndarray
         A 4D-array barycentric
-        - barycentric[j, i, :3, 0] contains vertex indices that have Barycentric coordinates for kernel-vertex (i, j)
-        - barycentric[j, i, :3, 1] contains respective Barycentric coordinates of vertices barycentric[i, j, :3, 0] for
+        - barycentric[i, j, :3, 0] contains vertex indices that have Barycentric coordinates for kernel-vertex (i, j)
+        - barycentric[i, j, :3, 1] contains respective Barycentric coordinates of vertices barycentric[i, j, :3, 0] for
           kernel-vertex (i, j)
         Note that the radial- and angular dimension have been switched! This allows the geodesic convolution to benefit
         in efficiency from tensorflow broadcasting.
@@ -170,7 +170,7 @@ def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
     # Find Barycentric coordinates iteratively for every kernel vertex
     n_radial = kernel.shape[0]
     n_angular = kernel.shape[1]
-    barycentric = np.zeros((n_angular, n_radial, 3, 2))
+    barycentric = np.zeros((n_radial, n_angular, 3, 2))
     for i in range(n_radial):
         for j in range(n_angular):
             query_vertex = kernel[i, j]
@@ -192,8 +192,8 @@ def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
                     if is_within:
                         # Store Barycentric coordinates and respective node indices
                         for idx in range(3):
-                            barycentric[j, i, idx, 0] = face[idx]
-                            barycentric[j, i, idx, 1] = barycentric_coords[idx]
+                            barycentric[i, j, idx, 0] = face[idx]
+                            barycentric[i, j, idx, 1] = barycentric_coords[idx]
                         break
 
                 if not is_within:
@@ -212,8 +212,8 @@ def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
                     node_id = gpc_faces[node_id[0], node_id[1]]
 
                     # Give closest node weight 1. (interpolation value equals signal at that vertex)
-                    barycentric[j, i, 0, 0] = node_id
-                    barycentric[j, i, 0, 1] = 1.
+                    barycentric[i, j, 0, 0] = node_id
+                    barycentric[i, j, 0, 1] = 1.
                     break
 
     return barycentric
@@ -256,7 +256,7 @@ def barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angular=4, r
 
     # We lay the kernel once onto every local GPC-system centered in origin
     amt_gpc_systems = gpc_systems.shape[0]
-    all_barycentric_coords = np.zeros((amt_gpc_systems, n_angular, n_radial, 3, 2))
+    all_barycentric_coords = np.zeros((amt_gpc_systems, n_radial, n_angular, 3, 2))
 
     # Translate all coordinates into cartesian coordinates such that we can work with KD-trees
     kernel = polar_to_cartesian(kernel.reshape((-1, 2))).reshape((n_radial, n_angular, 2))
