@@ -3,34 +3,6 @@ from tensorflow.keras.layers import Layer, Activation
 import tensorflow as tf
 
 
-@tf.function
-def angular_max_pooling(signal):
-    """Angular maximum pooling to filter for the maximal response of a geodesic convolution.
-
-    The signals are compared vertex-wise at the hand of their norms.
-
-    **Input**
-
-    - The result of a geodesic convolution for each rotation in a tensor of size `(r, o)` where
-      `r` the amount of rotations and `o` the output dimension of the convolution.
-
-    **Output**
-
-    - A tensor containing the maximal response at each vertex. Compare Eq. (12) in [1].
-
-    [1]:
-    > Jonathan Masci, Davide Boscaini, Michael M. Bronstein, Pierre Vandergheynst
-
-    > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://www.cv-foundation.org/
-    openaccess/content_iccv_2015_workshops/w22/html/Masci_Geodesic_Convolutional_Neural_ICCV_2015_paper.html)
-
-    """
-    rotation_norms = tf.norm(signal, ord="euclidean", axis=-1)
-    winner_rotation = tf.cast(tf.argmax(rotation_norms, axis=0), dtype=tf.int32)
-    winner_rotation = tf.stack([winner_rotation, tf.range(winner_rotation.shape[0])], axis=-1)
-    return tf.gather_nd(params=signal, indices=winner_rotation)
-
-
 class ConvGeodesic(Layer):
 
     def __init__(self, output_dim, amt_kernel, activation="relu", name=None):
@@ -210,7 +182,7 @@ class ConvGeodesic(Layer):
         angular_results = tf.reduce_sum(angular_results, axis=[2, 0, 4])
         angular_results = self.activation(angular_results)
 
-        return angular_max_pooling(angular_results)
+        return angular_results
 
     @tf.function
     def interpolate(self, signal, bary_coords):
