@@ -1,6 +1,7 @@
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Dense, Normalization, Dropout
 
+from geoconv.angular_max_pooling import AngularMaxPooling
 from geoconv.geodesic_conv import ConvGeodesic
 
 import tensorflow as tf
@@ -17,14 +18,18 @@ def define_model(signal_shape,
     # Define model
     signal_input = Input(shape=signal_shape, name="Signal")
     bary_input = Input(shape=bc_shape, name="Barycentric")
+    amp = AngularMaxPooling()
 
     signal = Normalization(axis=None, mean=dataset_mean, variance=dataset_var)(signal_input)
     signal = Dropout(rate=dropout)(signal)
 
-    signal = Dense(16, activation="relu")(signal)
-    signal = ConvGeodesic(output_dim=32, amt_kernel=1, activation="relu")([signal, bary_input])
-    signal = ConvGeodesic(output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
-    signal = ConvGeodesic(output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
+    signal = Dense(1, activation="relu")(signal)
+    signal = ConvGeodesic(output_dim=1, amt_kernel=1, activation="relu")([signal, bary_input])
+    signal = amp(signal)
+    # signal = ConvGeodesic(output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
+    # signal = amp(signal)
+    # signal = ConvGeodesic(output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
+    # signal = amp(signal)
     logits = Dense(output_dim)(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])

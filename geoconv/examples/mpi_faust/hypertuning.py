@@ -1,6 +1,7 @@
-from geoconv.examples.mpi_faust.tf_dataset import load_preprocessed_faust, faust_mean_variance
 from tensorflow.keras import layers
 
+from geoconv.angular_max_pooling import AngularMaxPooling
+from geoconv.examples.mpi_faust.tf_dataset import load_preprocessed_faust, faust_mean_variance
 from geoconv.geodesic_conv import ConvGeodesic
 
 import keras_tuner as kt
@@ -26,6 +27,7 @@ class GeoConvHyperModel(kt.HyperModel):
 
     def build(self, hp):
         # Define model
+        amp = AngularMaxPooling()
         signal_input = layers.Input(shape=(self.amt_nodes, self.input_dim), name="Signal")
         bary_input = layers.Input(
             shape=(self.amt_nodes, self.kernel_size[1], self.kernel_size[0], 3, 2), name="Barycentric"
@@ -39,16 +41,22 @@ class GeoConvHyperModel(kt.HyperModel):
             amt_kernel=1,
             activation="relu"
         )([signal, bary_input])
+        signal = amp(signal)
+
         signal = ConvGeodesic(
             output_dim=hp.Int(name="output_dim_2", min_value=16, max_value=64, step=1),
             amt_kernel=1,
             activation="relu"
         )([signal, bary_input])
+        signal = amp(signal)
+
         signal = ConvGeodesic(
             output_dim=hp.Int(name="output_dim_3", min_value=16, max_value=64, step=1),
             amt_kernel=1,
             activation="relu"
         )([signal, bary_input])
+        signal = amp(signal)
+
         logits = layers.Dense(self.amt_target_nodes)(signal)
 
         # Declare model

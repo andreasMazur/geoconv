@@ -1,5 +1,6 @@
 from tensorflow.keras import Model
 
+from geoconv.angular_max_pooling import AngularMaxPooling
 from geoconv.geodesic_conv import ConvGeodesic
 
 import tensorflow as tf
@@ -17,6 +18,7 @@ class ResNetBlock(Model):
             super().__init__()
         self.activation = activation
         self.amt_kernel = amt_kernel
+        self.amp = AngularMaxPooling()
         self.first_call = True
         self.gc1 = None
         self.gc2 = None
@@ -30,7 +32,12 @@ class ResNetBlock(Model):
             self.gc1 = ConvGeodesic(signal_input.shape[2], self.amt_kernel, self.activation)
             self.gc2 = ConvGeodesic(signal_input.shape[2], self.amt_kernel, self.activation)
             self.first_call = False
+
         signal = self.gc1([signal_input, b_coordinates])
+        signal = self.amp(signal)
+
         signal = self.gc2([signal, b_coordinates])
+        signal = self.amp(signal)
+
         signal = self.add([signal, signal_input])
         return signal
