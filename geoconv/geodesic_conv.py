@@ -46,7 +46,7 @@ class ConvGeodesic(Layer):
         self.all_rotations = self.kernel_size[1]
         self.kernels = self.add_weight(
             # 1 at second position because of broadcasting compatibility
-            shape=(self.amt_kernel, 1, self.kernel_size[0], self.kernel_size[1], self.output_dim, signal_shape[2]),
+            shape=(self.amt_kernel, self.kernel_size[0], self.kernel_size[1], self.output_dim, signal_shape[2]),
             initializer="glorot_uniform",
             trainable=True
         )
@@ -77,23 +77,23 @@ class ConvGeodesic(Layer):
         """
 
         # Interpolate signals at kernel vertices
-        interpolation_fn = lambda bc: self.interpolate(signal, bc)
+        interpolation_fn = lambda bc: self._interpolate(signal, bc)
         interpolation_values = tf.vectorized_map(interpolation_fn, barycentric_coords)
-        interpolation_values = tf.expand_dims(interpolation_values, axis=0)
+        interpolation_values = tf.expand_dims(interpolation_values, axis=1)
 
         # Compute all rotations
-        all_rotations_fn = lambda rot: tf.roll(interpolation_values, shift=rot, axis=2)
+        all_rotations_fn = lambda rot: tf.roll(interpolation_values, shift=rot, axis=3)
         interpolation_values = tf.vectorized_map(all_rotations_fn, tf.range(self.all_rotations))
 
         # Compute convolution
         result = tf.linalg.matvec(self.kernels, interpolation_values)
         result = result + self.bias
 
-        # Sum over all kernels, radial and angular coordinates
-        return tf.reduce_sum(result, axis=[1, 3, 4])
+        # Sum over all kernels (2), radial (3) and angular (4) coordinates
+        return tf.reduce_sum(result, axis=[2, 3, 4])
 
     @tf.function
-    def interpolate(self, signal, bary_coords):
+    def _interpolate(self, signal, bary_coords):
         """
 
         """
@@ -107,5 +107,5 @@ class ConvGeodesic(Layer):
 
         # Compute interpolation and reshape back to original shape
         interpolations = tf.math.reduce_sum(vertex_signals, axis=1)
-        interpolations = tf.reshape(interpolations, (self.kernel_size[1], self.kernel_size[0], -1))
+        interpolations = tf.reshape(interpolations, (self.kernel_size[0], self.kernel_size[1], -1))
         return interpolations
