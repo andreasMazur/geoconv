@@ -45,7 +45,7 @@ class ConvGeodesic(Layer):
         self.kernel_size = (barycentric_shape[2], barycentric_shape[3])
         self.all_rotations = self.kernel_size[1]
         self.kernels = self.add_weight(
-            # 1 second position because of broadcasting compatibility
+            # 1 at second position because of broadcasting compatibility
             shape=(self.amt_kernel, 1, self.kernel_size[0], self.kernel_size[1], self.output_dim, signal_shape[2]),
             initializer="glorot_uniform",
             trainable=True
