@@ -24,12 +24,12 @@ def define_model(signal_shape,
     signal = Dropout(rate=dropout)(signal)
 
     signal = Dense(1, activation="relu")(signal)
-    signal = ConvGeodesic(output_dim=1, amt_kernel=1, activation="relu")([signal, bary_input])
+    signal = ConvGeodesic(output_dim=32, amt_kernel=1, activation="relu")([signal, bary_input])
     signal = amp(signal)
-    # signal = ConvGeodesic(output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
-    # signal = amp(signal)
-    # signal = ConvGeodesic(output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
-    # signal = amp(signal)
+    signal = ConvGeodesic(output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
+    signal = amp(signal)
+    signal = ConvGeodesic(output_dim=64, amt_kernel=1, activation="relu")([signal, bary_input])
+    signal = amp(signal)
     logits = Dense(output_dim)(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
