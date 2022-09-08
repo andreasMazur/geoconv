@@ -85,10 +85,14 @@ class ConvGeodesic(Layer):
         interpolation_values = tf.vectorized_map(all_rotations_fn, tf.range(self.all_rotations))
 
         # Compute convolution
+        # Shape kernel: (                            n_kernel, n_radial, n_angular, new_dim, feature_dim)
+        # Shape values: (n_rotations, n_gpc_systems,        1, n_radial, n_angular,          feature_dim)
+        # Shape result: (n_rotations, n_gpc_systems, n_kernel, n_radial, n_angular,          new_dim)
         result = tf.linalg.matvec(self.kernels, interpolation_values)
         result = result + self.bias
 
         # Sum over all kernels (2), radial (3) and angular (4) coordinates
+        # Shape result: (n_rotations, n_gpc_systems, new_dim)
         return tf.reduce_sum(result, axis=[2, 3, 4])
 
     @tf.function
