@@ -17,7 +17,7 @@ class ConvGeodesic(Layer):
         self.bias = None
 
         # Define output attributes
-        self.output_dim = output_dim  # dimension of the output signal
+        self.output_dim = output_dim
         self.activation = Activation(activation)
 
         # Define convolution attributes
@@ -45,11 +45,13 @@ class ConvGeodesic(Layer):
         self.kernel_size = (barycentric_shape[2], barycentric_shape[3])
         self.all_rotations = self.kernel_size[1]
         self.kernels = self.add_weight(
+            name="GeoConvKernel",
             shape=(self.amt_kernel, self.kernel_size[0], self.kernel_size[1], self.output_dim, signal_shape[2]),
             initializer="glorot_uniform",
             trainable=True
         )
         self.bias = self.add_weight(
+            name="GeoConvBias",
             shape=(self.kernel_size[0], self.kernel_size[1], self.output_dim),
             initializer="glorot_uniform",
             trainable=True
