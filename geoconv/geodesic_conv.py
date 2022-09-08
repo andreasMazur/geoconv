@@ -87,7 +87,7 @@ class ConvGeodesic(Layer):
         # Compute convolution
         # Shape kernel: (                            n_kernel, n_radial, n_angular, new_dim, feature_dim)
         # Shape values: (n_rotations, n_gpc_systems,        1, n_radial, n_angular,          feature_dim)
-        # Shape result: (n_rotations, n_gpc_systems, n_kernel, n_radial, n_angular,          new_dim)
+        # Shape result: (n_rotations, n_gpc_systems, n_kernel, n_radial, n_angular,          new_dim    )
         result = tf.linalg.matvec(self.kernels, interpolation_values)
         result = result + self.bias
 
