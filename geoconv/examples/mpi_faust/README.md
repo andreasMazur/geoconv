@@ -43,16 +43,20 @@ model. For example:
 
 ```python
 from tensorflow.keras.layers import InputLayer, Dense, Normalization
-from layers.geodesic_conv import ConvGeodesic
+from geoconv.layers.geodesic_conv import ConvGeodesic
+from geoconv.layers.angular_max_pooling import AngularMaxPooling 
 
 
 def define_model(amt_nodes, kernel_size, output_dim=6890, lr=.00045):
     signal_input = InputLayer(shape=(amt_nodes, 3))
     bary_input = InputLayer(shape=(amt_nodes, kernel_size[1], kernel_size[0], 3, 2))
-
+    amp = AngularMaxPooling()
+    
     signal = Normalization()(signal_input)
-    # Layer detects kernel size automatically
-    signal = ConvGeodesic(output_dim=256, amt_kernel=2, activation="relu")([signal, bary_input])
+    signal = ConvGeodesic(
+        output_dim=64, amt_kernel=2, activation="relu", rotation_delta=2
+    )([signal, bary_input])
+    signal = amp(signal)
     logits = Dense(output_dim)(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
@@ -80,8 +84,7 @@ from layers.examples.mpi_faust.hypertuning import faust_hypertuning
 if __name__ == "__main__":
     faust_hypertuning(
         path_preprocessed_dataset="../preprocessed_smaller_shot_v3.zip",
-        run_id=0,
-        use_resnet=False  # Switch to true to use ResNet-blocks
+        run_id=0
     )
 ```
 

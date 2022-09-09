@@ -33,7 +33,8 @@ with Tensorflow.
 
 ```python
 from tensorflow.keras.layers import InputLayer, Dense
-from layers.geodesic_conv import ConvGeodesic
+from geoconv.layers.geodesic_conv import ConvGeodesic
+from geoconv.layers.angular_max_pooling import AngularMaxPooling
 
 import tensorflow as tf
 
@@ -43,7 +44,10 @@ def define_model(signal_shape, barycentric_shape, output_dim):
 
      signal_input = InputLayer(shape=signal_shape)
      barycentric = InputLayer(shape=barycentric_shape)
-     signal = ConvGeodesic(output_dim=256, amt_kernel=2, activation="relu")([signal_input, barycentric])
+     signal = ConvGeodesic(
+          output_dim=64, amt_kernel=2, activation="relu", rotation_delta=2
+     )([signal_input, barycentric])
+     signal = AngularMaxPooling()(signal)
      logits = Dense(output_dim)(signal)
 
      model = tf.keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
