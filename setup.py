@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     setup(
         author="Andreas Mazur",
-        name="layers",
+        name="geoconv",
         version="1.0.0",
         packages=find_packages(),
         license="GNU General Public License v3.0",
