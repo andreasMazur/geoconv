@@ -4,7 +4,7 @@ import tensorflow as tf
 
 
 class ConvGeodesic(Layer):
-    """The Tensorflow implementation of geodesic convolution
+    """The Tensorflow implementation of the geodesic convolution
 
     Paper, that introduced the geodesic convolution:
     > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
