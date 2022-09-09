@@ -5,7 +5,7 @@ import numpy as np
 
 c_extension = Extension(
     "c_extension",
-    ["./preprocessing/c_extension/c_extension.c"],
+    ["./geoconv/preprocessing/c_extension/c_extension.c"],
     include_dirs=[np.get_include()],
     extra_link_args=["-lblas", "-lcblas"]
 )
