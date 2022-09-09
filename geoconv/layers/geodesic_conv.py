@@ -5,7 +5,7 @@ import tensorflow as tf
 
 class ConvGeodesic(Layer):
 
-    def __init__(self, output_dim, amt_kernel, activation="relu", name=None):
+    def __init__(self, output_dim, amt_kernel, activation="relu", name=None, rotation_delta=1):
         if name:
             super().__init__(name=name)
         else:
@@ -22,6 +22,7 @@ class ConvGeodesic(Layer):
 
         # Define convolution attributes
         self.all_rotations = None
+        self.rotation_delta = rotation_delta
         self.amt_kernel = amt_kernel
 
     def get_config(self):
@@ -82,9 +83,12 @@ class ConvGeodesic(Layer):
         interpolation_values = tf.vectorized_map(interpolation_fn, barycentric_coords)
         interpolation_values = tf.expand_dims(interpolation_values, axis=1)
 
-        # Compute all rotations
+        # Compute rotations
         all_rotations_fn = lambda rot: tf.roll(interpolation_values, shift=rot, axis=3)
-        interpolation_values = tf.vectorized_map(all_rotations_fn, tf.range(self.all_rotations))
+        # n_rotations = ceil(self.all_rotations / self.rotation_delta)
+        interpolation_values = tf.vectorized_map(
+            all_rotations_fn, tf.range(start=0, limit=self.all_rotations, delta=self.rotation_delta)
+        )
 
         # Compute convolution
         # Shape kernel: (                            n_kernel, n_radial, n_angular, new_dim, feature_dim)

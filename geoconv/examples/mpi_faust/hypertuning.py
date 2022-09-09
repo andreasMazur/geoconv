@@ -39,21 +39,24 @@ class GeoConvHyperModel(kt.HyperModel):
         signal = ConvGeodesic(
             output_dim=hp.Int(name="output_dim_1", min_value=16, max_value=64, step=1),
             amt_kernel=1,
-            activation="relu"
+            activation="relu",
+            rotation_delta=2
         )([signal, bary_input])
         signal = amp(signal)
 
         signal = ConvGeodesic(
             output_dim=hp.Int(name="output_dim_2", min_value=16, max_value=64, step=1),
             amt_kernel=1,
-            activation="relu"
+            activation="relu",
+            rotation_delta=2
         )([signal, bary_input])
         signal = amp(signal)
 
         signal = ConvGeodesic(
             output_dim=hp.Int(name="output_dim_3", min_value=16, max_value=64, step=1),
             amt_kernel=1,
-            activation="relu"
+            activation="relu",
+            rotation_delta=2
         )([signal, bary_input])
         signal = amp(signal)
 
