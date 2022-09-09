@@ -1,8 +1,8 @@
 from tensorflow.keras import layers
 
-from geoconv.angular_max_pooling import AngularMaxPooling
-from geoconv.examples.mpi_faust.tf_dataset import load_preprocessed_faust, faust_mean_variance
-from geoconv.geodesic_conv import ConvGeodesic
+from layers.angular_max_pooling import AngularMaxPooling
+from layers.examples.mpi_faust.tf_dataset import load_preprocessed_faust, faust_mean_variance
+from layers.geodesic_conv import ConvGeodesic
 
 import keras_tuner as kt
 import tensorflow as tf

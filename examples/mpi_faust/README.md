@@ -13,8 +13,9 @@ work with. We are particularly interested in the PLY-files located in the regist
 /home/user/MPI-FAUST/training/registrations
 ```
 Let's take a look on how a possible preprocessing-script could look like:
+
 ```python
-from geoconv.examples.mpi_faust.preprocess import preprocess
+from layers.examples.mpi_faust.preprocess import preprocess
 
 if __name__ == "__main__":
     path_to_registrations = "/home/user/MPI-FAUST/training/registrations"
@@ -42,7 +43,8 @@ model. For example:
 
 ```python
 from tensorflow.keras.layers import InputLayer, Dense, Normalization
-from geoconv.geodesic_conv import ConvGeodesic
+from layers.geodesic_conv import ConvGeodesic
+
 
 def define_model(amt_nodes, kernel_size, output_dim=6890, lr=.00045):
     signal_input = InputLayer(shape=(amt_nodes, 3))
@@ -73,7 +75,7 @@ Instead of implementing our own hyperparameter search, we make use of the Hyperb
 further details. One can start the hypertuning with a simple script:
 
 ```python
-from geoconv.examples.mpi_faust.hypertuning import faust_hypertuning
+from layers.examples.mpi_faust.hypertuning import faust_hypertuning
 
 if __name__ == "__main__":
     faust_hypertuning(

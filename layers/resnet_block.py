@@ -1,7 +1,7 @@
 from tensorflow.keras import Model
 
-from geoconv.angular_max_pooling import AngularMaxPooling
-from geoconv.geodesic_conv import ConvGeodesic
+from layers.angular_max_pooling import AngularMaxPooling
+from layers.geodesic_conv import ConvGeodesic
 
 import tensorflow as tf
 

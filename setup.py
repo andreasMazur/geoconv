@@ -5,7 +5,7 @@ import numpy as np
 
 c_extension = Extension(
     "c_extension",
-    ["./geoconv/preprocessing/c_extension/c_extension.c"],
+    ["./layers/preprocessing/c_extension/c_extension.c"],
     include_dirs=[np.get_include()],
     extra_link_args=["-lblas", "-lcblas"]
 )
@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     setup(
         author="Andreas Mazur",
-        name="geoconv",
+        name="layers",
         version="1.0.0",
         packages=find_packages(),
         license="GNU General Public License v3.0",

@@ -1,5 +1,5 @@
-from geoconv.preprocessing.barycentric_coords import barycentric_coordinates
-from geoconv.preprocessing.discrete_gpc import discrete_gpc, local_gpc
+from layers.preprocessing.barycentric_coords import barycentric_coordinates
+from layers.preprocessing.discrete_gpc import discrete_gpc, local_gpc
 
 import os
 import tqdm
@@ -9,7 +9,7 @@ import shutil
 import trimesh
 import pyshot
 
-from geoconv.utils.measures import evaluate_kernel_coverage
+from layers.utils.measures import evaluate_kernel_coverage
 
 
 def search_parameters(faust_dir):

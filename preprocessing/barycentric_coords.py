@@ -229,7 +229,7 @@ def barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angular=4, r
     gpc_systems: np.ndarray
         3D-array in which the i-th entry corresponds to the GPC-system centered in vertex i from the given object mesh
         - contains polar coordinates (radial, angular)
-        - just use the output of geoconv.preprocessing.discrete_gpc.discrete_gpc
+        - just use the output of layers.preprocessing.discrete_gpc.discrete_gpc
     n_radial: int
         The amount of radial coordinates of the kernel you wish to use
     n_angular: int

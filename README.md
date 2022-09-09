@@ -12,7 +12,7 @@ meshes [4] and the computation of Barycentric coordinates, are included too.
 2. Clone and install **geoconv**:
      ```bash
      git clone https://github.com/andreasMazur/geoconv.git
-     cd ./geoconv
+     cd ./layers
      pip install -r requirements.txt
      pip install .
      ```
@@ -33,21 +33,21 @@ with Tensorflow.
 
 ```python
 from tensorflow.keras.layers import InputLayer, Dense
-from geoconv.geodesic_conv import ConvGeodesic
+from layers.geodesic_conv import ConvGeodesic
 
 import tensorflow as tf
 
 
 def define_model(signal_shape, barycentric_shape, output_dim):
-    """Define a geodesic convolutional neural network"""
-    
-    signal_input = InputLayer(shape=signal_shape)
-    barycentric = InputLayer(shape=barycentric_shape)
-    signal = ConvGeodesic(output_dim=256, amt_kernel=2, activation="relu")([signal_input, barycentric])
-    logits = Dense(output_dim)(signal)
+     """Define a geodesic convolutional neural network"""
 
-    model = tf.keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
-    return model
+     signal_input = InputLayer(shape=signal_shape)
+     barycentric = InputLayer(shape=barycentric_shape)
+     signal = ConvGeodesic(output_dim=256, amt_kernel=2, activation="relu")([signal_input, barycentric])
+     logits = Dense(output_dim)(signal)
+
+     model = tf.keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
+     return model
 
 # Now train/validate/use it like you would with any other tensorflow model..
 ```

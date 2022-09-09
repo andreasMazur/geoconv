@@ -1,4 +1,4 @@
-from geoconv.utils.misc import get_included_faces
+from layers.utils.misc import get_included_faces
 
 import numpy as np
 
