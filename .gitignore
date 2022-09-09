@@ -4,6 +4,7 @@ __pycache__/
 logs/
 training/
 misc/
+test_scripts/
 sutherland_hodgman/
 
 # Byte-compiled / optimized / DLL files
