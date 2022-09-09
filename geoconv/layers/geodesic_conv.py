@@ -7,7 +7,7 @@ class ConvGeodesic(Layer):
     """The Tensorflow implementation of geodesic convolution
 
     Paper, that introduced the geodesic convolution:
-    > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)<br>
+    > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
     > Jonathan Masci and Davide Boscaini et al.
 
     Attributes
@@ -137,7 +137,7 @@ class ConvGeodesic(Layer):
         """Signal interpolation at kernel vertices
 
         This procedure was suggested in:
-        > [Multi-directional Geodesic Neural Networks via Equivariant Convolution](https://arxiv.org/abs/1810.02303)<br>
+        > [Multi-directional Geodesic Neural Networks via Equivariant Convolution](https://arxiv.org/abs/1810.02303)
         > Adrien Poulenard and Maks Ovsjanikov
 
         Parameters
