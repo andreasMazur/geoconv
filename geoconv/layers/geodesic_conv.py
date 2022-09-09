@@ -4,6 +4,26 @@ import tensorflow as tf
 
 
 class ConvGeodesic(Layer):
+    """The Tensorflow implementation of geodesic convolution
+
+    Paper, that introduced the geodesic convolution:
+    > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)<br>
+    > Jonathan Masci and Davide Boscaini et al.
+
+    Attributes
+    ----------
+    output_dim:
+        The dimensionality of the output feature vectors.
+    amt_kernel:
+        The amount of kernels to apply during one convolution.
+    activation:
+        The activation function to use.
+    rotation_delta:
+        The distance between two rotations. If `n` angular coordinates are given in the data, then the default behavior
+        is to rotate the kernel `n` times, i.e. a shift in every angular coordinate of 1 to the next angular coordinate.
+        If `rotation_delta = 2`, then the shift increases to 2 and the total amount of rotations reduces to
+        ceil(n / rotation_delta). This gives a speed up and saves memory. However, quality of results might worsen.
+    """
 
     def __init__(self, output_dim, amt_kernel, activation="relu", name=None, rotation_delta=1):
         if name:
@@ -11,57 +31,71 @@ class ConvGeodesic(Layer):
         else:
             super().__init__()
 
-        # Define kernel attributes
-        self.kernels = []
-        self.kernel_size = None  # (#radial, #angular)
-        self.bias = None
-
-        # Define output attributes
-        self.output_dim = output_dim
         self.activation = Activation(activation)
-
-        # Define convolution attributes
-        self.all_rotations = None
+        self.output_dim = output_dim
         self.rotation_delta = rotation_delta
         self.amt_kernel = amt_kernel
+
+        # Attributes that depend on the data and are set automatically in build
+        self._kernel_size = None  # (#radial, #angular)
+        self._kernels = None
+        self._bias = None
+        self._all_rotations = None
 
     def get_config(self):
         config = super(ConvGeodesic, self).get_config()
         config.update(
             {
-                "kernel_size": self.kernel_size,
+                "kernel_size": self._kernel_size,
                 "output_dim": self.output_dim,
                 "activation": self.activation,
-                "all_rotations": self.all_rotations,
+                "all_rotations": self._all_rotations,
+                "rotation_delta": self.rotation_delta,
                 "amt_kernel": self.amt_kernel
             }
         )
         return config
 
     def build(self, input_shape):
-        """
+        """Builds the layer by setting kernel and bias attributes
 
+        Parameters
+        ----------
+        input_shape: (tf.TensorShape, tf.TensorShape)
+            The shape of the signal and the shape of the barycentric coordinates.
         """
         signal_shape, barycentric_shape = input_shape
-        self.kernel_size = (barycentric_shape[2], barycentric_shape[3])
-        self.all_rotations = self.kernel_size[1]
-        self.kernels = self.add_weight(
+        self._kernel_size = (barycentric_shape[2], barycentric_shape[3])
+        self._all_rotations = self._kernel_size[1]
+        self._kernels = self.add_weight(
             name="GeoConvKernel",
-            shape=(self.amt_kernel, self.kernel_size[0], self.kernel_size[1], self.output_dim, signal_shape[2]),
+            shape=(self.amt_kernel, self._kernel_size[0], self._kernel_size[1], self.output_dim, signal_shape[2]),
             initializer="glorot_uniform",
             trainable=True
         )
-        self.bias = self.add_weight(
+        self._bias = self.add_weight(
             name="GeoConvBias",
-            shape=(self.kernel_size[0], self.kernel_size[1], self.output_dim),
+            shape=(self._kernel_size[0], self._kernel_size[1], self.output_dim),
             initializer="glorot_uniform",
             trainable=True
         )
 
     @tf.function
     def call(self, inputs):
-        """
+        """Computes geodesic convolutions for multiple given GPC-systems
 
+        Parameters
+        ----------
+        inputs: (tf.Tensor, tf.Tensor)
+            The first tensor represents a batch of signals defined on the manifold. It has size
+            (n_batch, n_vertices, feature_dim). The second tensor represents a batch of barycentric coordinates. It has
+            size (n_batch, n_gpc_systems, n_radial, n_angular, 3, 2).
+
+        Returns
+        -------
+        tf.Tensor
+            The geodesic convolution of the kernel with the signal on the object mesh in every given GPC-system for
+            every rotation. It has size (n_batch, n_rotations, n_gpc_systems, self.output_dim)
         """
 
         signal, b_coordinates = inputs
@@ -74,9 +108,6 @@ class ConvGeodesic(Layer):
 
     @tf.function
     def _geodesic_convolution(self, signal, barycentric_coords):
-        """
-
-        """
 
         # Interpolate signals at kernel vertices
         interpolation_fn = lambda bc: self._interpolate(signal, bc)
@@ -87,15 +118,15 @@ class ConvGeodesic(Layer):
         all_rotations_fn = lambda rot: tf.roll(interpolation_values, shift=rot, axis=3)
         # n_rotations = ceil(self.all_rotations / self.rotation_delta)
         interpolation_values = tf.vectorized_map(
-            all_rotations_fn, tf.range(start=0, limit=self.all_rotations, delta=self.rotation_delta)
+            all_rotations_fn, tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
         )
 
         # Compute convolution
         # Shape kernel: (                            n_kernel, n_radial, n_angular, new_dim, feature_dim)
         # Shape values: (n_rotations, n_gpc_systems,        1, n_radial, n_angular,          feature_dim)
         # Shape result: (n_rotations, n_gpc_systems, n_kernel, n_radial, n_angular,          new_dim    )
-        result = tf.linalg.matvec(self.kernels, interpolation_values)
-        result = result + self.bias
+        result = tf.linalg.matvec(self._kernels, interpolation_values)
+        result = result + self._bias
 
         # Sum over all kernels (2), radial (3) and angular (4) coordinates
         # Shape result: (n_rotations, n_gpc_systems, new_dim)
@@ -103,8 +134,24 @@ class ConvGeodesic(Layer):
 
     @tf.function
     def _interpolate(self, signal, bary_coords):
-        """
+        """Signal interpolation at kernel vertices
 
+        This procedure was suggested in:
+        > [Multi-directional Geodesic Neural Networks via Equivariant Convolution](https://arxiv.org/abs/1810.02303)<br>
+        > Adrien Poulenard and Maks Ovsjanikov
+
+        Parameters
+        ----------
+        signal: tf.Tensor
+            A tensor containing the signal defined on the entire object mesh. It has size (n_vertices, feature_dim).
+        bary_coords: tf.Tensor
+            A tensor containing the barycentric coordinates for one GPC-system. It has size (n_radial, n_angular, 3, 2).
+
+        Returns
+        -------
+        tf.Tensor
+            A tensor containing the interpolation values for all kernel vertices in the given GPC-system. It has size
+            (n_radial, n_angular, feature_dim)
         """
 
         # Reshape for broadcasting convenience
@@ -116,5 +163,5 @@ class ConvGeodesic(Layer):
 
         # Compute interpolation and reshape back to original shape
         interpolations = tf.math.reduce_sum(vertex_signals, axis=1)
-        interpolations = tf.reshape(interpolations, (self.kernel_size[0], self.kernel_size[1], -1))
+        interpolations = tf.reshape(interpolations, (self._kernel_size[0], self._kernel_size[1], -1))
         return interpolations
