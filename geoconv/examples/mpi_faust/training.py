@@ -1,8 +1,8 @@
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Dense, Normalization, Dropout
 
-from layers.angular_max_pooling import AngularMaxPooling
-from layers.geodesic_conv import ConvGeodesic
+from geoconv.layers.angular_max_pooling import AngularMaxPooling
+from geoconv.layers.geodesic_conv import ConvGeodesic
 
 import tensorflow as tf
 
