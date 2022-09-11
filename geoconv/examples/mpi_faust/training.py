@@ -23,7 +23,6 @@ def define_model(signal_shape,
     signal = Normalization(axis=None, mean=dataset_mean, variance=dataset_var)(signal_input)
     signal = Dropout(rate=dropout)(signal)
 
-    signal = Dense(1, activation="relu")(signal)
     signal = ConvGeodesic(output_dim=32, amt_kernel=1, activation="relu", rotation_delta=2)([signal, bary_input])
     signal = amp(signal)
     signal = ConvGeodesic(output_dim=64, amt_kernel=1, activation="relu", rotation_delta=2)([signal, bary_input])
