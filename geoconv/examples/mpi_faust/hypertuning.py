@@ -96,7 +96,7 @@ def faust_hypertuning(path_preprocessed_dataset,
             kernel_size=kernel_size
         ),
         objective="val_sparse_categorical_accuracy",
-        max_epochs=200,
+        max_epochs=300,
         factor=3,
         directory=f"./logs/{run_id}/",
         project_name=f"faust_{run_id}"
