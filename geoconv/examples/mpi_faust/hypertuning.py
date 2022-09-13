@@ -60,7 +60,7 @@ class GeoConvHyperModel(kt.HyperModel):
         # Compile model
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.Adam(
-            learning_rate=hp.Float(name="learning_rate", min_value=0.0001, max_value=0.1, step=0.0002)
+            learning_rate=hp.Float(name="learning_rate", min_value=0.000001, max_value=0.01, step=0.000002)
         )
         model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
