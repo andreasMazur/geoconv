@@ -302,7 +302,7 @@ def initialize_neighborhood(source_point, u, theta, object_mesh, use_c):
     -------
     (np.ndarray, np.ndarray, list, np.ndarray):
         This function returns updated radial coordinates `u` (fst. value), updated angular coordinates `theta` (snd.
-        value), The neighbors of `source_point` (thr. value) and lastly the rotation axis for this GPC-system (vertex+
+        value), The neighbors of `source_point` (thr. value) and lastly the rotation axis for this GPC-system (vertex-
         normal of the center vertex).
     """
 
