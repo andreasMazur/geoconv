@@ -30,33 +30,25 @@ class GeoConvHyperModel(kt.HyperModel):
         amp = AngularMaxPooling()
         signal_input = layers.Input(shape=(self.amt_nodes, self.input_dim), name="Signal")
         bary_input = layers.Input(
-            shape=(self.amt_nodes, self.kernel_size[1], self.kernel_size[0], 3, 2), name="Barycentric"
+            shape=(self.amt_nodes, self.kernel_size[0], self.kernel_size[1], 3, 2), name="Barycentric"
         )
         signal = layers.Normalization(axis=None, mean=self.dataset_mean, variance=self.dataset_var)(signal_input)
         signal = layers.Dropout(rate=hp.Float(name="dropout_rate", min_value=.0, max_value=.3, step=.1))(signal)
 
         signal = layers.Dense(16, activation="relu")(signal)
         signal = ConvGeodesic(
-            output_dim=hp.Int(name="output_dim_1", min_value=16, max_value=64, step=1),
+            output_dim=hp.Int(name="output_dim_1", min_value=90, max_value=113, step=1),
             amt_kernel=1,
             activation="relu",
-            rotation_delta=2
+            rotation_delta=10
         )([signal, bary_input])
         signal = amp(signal)
 
         signal = ConvGeodesic(
-            output_dim=hp.Int(name="output_dim_2", min_value=16, max_value=64, step=1),
+            output_dim=hp.Int(name="output_dim_2", min_value=90, max_value=113, step=1),
             amt_kernel=1,
             activation="relu",
-            rotation_delta=2
-        )([signal, bary_input])
-        signal = amp(signal)
-
-        signal = ConvGeodesic(
-            output_dim=hp.Int(name="output_dim_3", min_value=16, max_value=64, step=1),
-            amt_kernel=1,
-            activation="relu",
-            rotation_delta=2
+            rotation_delta=10
         )([signal, bary_input])
         signal = amp(signal)
 
