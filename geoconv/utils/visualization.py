@@ -4,7 +4,7 @@ import trimesh
 import numpy as np
 
 
-def visualize_gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_mesh):
+def gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_mesh):
     """Visualizes the radial and angular coordinates of a local GPC-system on an object mesh.
 
     This function first shows you the radial coordinates and then the angular coordinates.
@@ -38,7 +38,7 @@ def visualize_gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates
     trimesh.Scene(to_visualize).show()
 
 
-def visualize_gpc_in_coordinate_system(radial_coordinates, angular_coordinates, object_mesh, kernel=None):
+def gpc_in_coordinate_system(radial_coordinates, angular_coordinates, object_mesh, kernel=None):
     """Plots a GPC-system in a polar coordinate system.
 
     Parameters
@@ -85,4 +85,22 @@ def visualize_gpc_in_coordinate_system(radial_coordinates, angular_coordinates, 
     if kernel is not None:
         kernel = kernel.reshape((-1, 2))
         ax.plot(kernel[:, 1], kernel[:, 0], "bo")
+    plt.show()
+
+
+def vertices_in_coordinate_system(radial_coordinates, angular_coordinates):
+    """Plots the vertices of a GPC-system in a polar coordinate system.
+
+    Parameters
+    ----------
+    radial_coordinates: np.ndarray
+        A 1-dimensional array containing the radial coordinates of the GPC-system.
+    angular_coordinates: np.ndarray
+        A 1-dimensional array containing the angular coordinates of the GPC-system.
+    """
+
+    # Plot vertices
+    mask = radial_coordinates != np.inf
+    _, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    ax.plot(angular_coordinates[mask], radial_coordinates[mask], "ro")
     plt.show()

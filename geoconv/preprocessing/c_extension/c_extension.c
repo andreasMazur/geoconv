@@ -122,37 +122,21 @@ void compute_dist_and_dir(double vertex_i[],
             cblas_daxpy(3, -1.0, s, 1, vertex_k, 1);
             cblas_daxpy(3, -1.0, s, 1, vertex_j, 1);
             cblas_daxpy(3, -1.0, s, 1, vertex_i, 1);
-//            double phi_kj = compute_angle_360(vertex_k, vertex_j, rotation_axis);
-//            double phi_ij = compute_angle_360(vertex_i, vertex_j, rotation_axis);
+
             double phi_kj = compute_angle(vertex_k, vertex_j);
             double phi_ij = compute_angle(vertex_i, vertex_j);
-            if (!phi_kj) {
-                double j = u_j + cblas_dnrm2(3, e_j, 1);
-                double k = u_k + cblas_dnrm2(3, e_k, 1);
-                if(j <= k)
-                {
-                    u_ijk = j;
-                    theta_i = theta_j;
-                } else {
-                    u_ijk = k;
-                    theta_i = theta_k;
+            double alpha = phi_ij / phi_kj;
+
+            if (theta_k <= theta_j) {
+                if (theta_j - theta_k >= M_PI) {
+                    theta_k = theta_k + 2 * M_PI;
                 }
             } else {
-                double alpha = phi_ij / phi_kj;
-                theta_i = fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * M_PI);
-                if (theta_j <= theta_k) {
-                    if (theta_k - theta_j >= M_PI && theta_j <= theta_i && theta_i <= theta_k) {
-                        theta_j = theta_j + 2 * M_PI;
-                        theta_i = fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * M_PI);
-                    }
-                }
-                else {
-                    if (theta_j - theta_k >= M_PI && theta_k <= theta_i && theta_i <= theta_j) {
-                        theta_k = theta_k + 2 * M_PI;
-                        theta_i = fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * M_PI);
-                    }
+                if (theta_k - theta_j >= M_PI) {
+                    theta_j = theta_j + 2 * M_PI;
                 }
             }
+            theta_i = fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * M_PI);
         }
     }
     result[0] = u_ijk;

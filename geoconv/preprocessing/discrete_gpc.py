@@ -129,28 +129,19 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
                 blas.daxpy(s, vertex_k, a=-1.0)
                 blas.daxpy(s, vertex_j, a=-1.0)
                 blas.daxpy(s, vertex_i, a=-1.0)
+
                 phi_kj = compute_vector_angle(vertex_k, vertex_j, None)
                 phi_ij = compute_vector_angle(vertex_i, vertex_j, None)
-                if not phi_kj:
-                    j = u_j + blas.dnrm2(e_j)
-                    k = u_k + blas.dnrm2(e_k)
-                    if j <= k:
-                        u_ijk = j
-                        theta_i = theta_j
-                    else:
-                        u_ijk = k
-                        theta_i = theta_k
+                alpha = phi_ij / phi_kj
+
+                # Pay attention to 0-2pi-discontinuity
+                if theta_k <= theta_j:
+                    if theta_j - theta_k >= np.pi:
+                        theta_k = theta_k + 2 * np.pi
                 else:
-                    alpha = phi_ij / phi_kj
-                    theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
-                    if theta_j <= theta_k:
-                        if theta_k - theta_j >= np.pi and theta_j <= theta_i <= theta_k:
-                            theta_j = theta_j + 2 * np.pi
-                            theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
-                    else:
-                        if theta_j - theta_k >= np.pi and theta_k <= theta_i <= theta_j:
-                            theta_k = theta_k + 2 * np.pi
-                            theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
+                    if theta_k - theta_j >= np.pi:
+                        theta_j = theta_j + 2 * np.pi
+                theta_i = np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
 
     return u_ijk, theta_i
 
