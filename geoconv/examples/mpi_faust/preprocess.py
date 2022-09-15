@@ -95,7 +95,6 @@ def preprocess(directory, target_dir, reference_mesh, new_face_count=7_000):
 
     with tqdm.tqdm(total=len(file_list)) as pbar:
         for file_no, file in enumerate(file_list):
-            pbar.set_postfix({"Step": "Sub-sample the original meshes"})
             ############
             # Load mesh
             ############
@@ -104,6 +103,7 @@ def preprocess(directory, target_dir, reference_mesh, new_face_count=7_000):
             ################
             # Simplify mesh
             ################
+            pbar.set_postfix({"Step": "Sub-sample the original meshes"})
             mesh = mesh.simplify_quadratic_decimation(new_face_count)
 
             #######################
