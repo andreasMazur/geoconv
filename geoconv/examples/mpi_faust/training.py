@@ -43,9 +43,6 @@ def train_on_faust(tf_faust_dataset,
                    model=None,
                    run=0):
 
-    # import memory_saving_gradients
-    # tf.__dict__["gradients"] = memory_saving_gradients.gradients_speed
-
     log_dir = f"./logs/fit/{run}/"
     tensorboard_callback = tf.keras.callbacks.TensorBoard(
         log_dir=log_dir, histogram_freq=1, update_freq="epoch", write_steps_per_second=True, profile_batch=(1, 1000)
