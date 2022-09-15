@@ -11,7 +11,7 @@ import trimesh
 import pyshot
 
 
-def search_parameters(faust_dir):
+def search_parameters(faust_dir, new_face_count):
     """Search for good preprocessing parameters
 
     Here, 'good' means that we want to the kernel to cover a large portion
@@ -21,6 +21,8 @@ def search_parameters(faust_dir):
     ----------
     faust_dir: str
         The directory to the registration files of the faust dataset
+    new_face_count: int
+        The amount of faces on which the object meshes will be reduced
 
     Returns
     -------
@@ -34,6 +36,7 @@ def search_parameters(faust_dir):
     file_list.sort()
     file_list = [f for f in file_list if f[-4:] != ".png"]
     object_mesh = trimesh.load_mesh(f"{faust_dir}/{file_list[0]}")
+    object_mesh = object_mesh.simplify_quadratic_decimation(new_face_count)
 
     source_points = np.random.randint(0, object_mesh.vertices.shape[0], size=(70,))
     best_parameters = (None, 0)
@@ -48,11 +51,18 @@ def search_parameters(faust_dir):
                     gpc_system = np.stack([r_all, theta_all], axis=-1)
                     gpc_systems.append(gpc_system)
                 gpc_systems = np.stack(gpc_systems)
-                bary_coords = barycentric_coordinates(object_mesh, gpc_systems, n_radial, n_angular, radius - 0.005)
+                bary_coords = barycentric_coordinates(
+                    object_mesh, gpc_systems, n_radial, n_angular, radius - 0.005, verbose=False
+                )
 
                 avg_kernel_coverage = evaluate_kernel_coverage(object_mesh, gpc_systems, bary_coords, verbose=False)
-                print(f"\n{(radius, n_radial, n_angular)} - Average kernel coverage: {avg_kernel_coverage * 100:.2f}%")
-                if avg_kernel_coverage > best_parameters[1] * 1.02:
+                print(
+                    f"{(radius, n_radial, n_angular)} - Average kernel coverage: {avg_kernel_coverage * 100:.2f}%"
+                    f" - Currently best: ({best_parameters[0]}, {best_parameters[1] * 100:.2f}%)"
+                )
+                # Larger kernel require a lot more memory, therefore they should improve the coverage more than just
+                # a tiny bit.
+                if avg_kernel_coverage > best_parameters[1] + 0.05:
                     best_parameters = ((radius, n_radial, n_angular), avg_kernel_coverage)
 
     print(
@@ -63,7 +73,7 @@ def search_parameters(faust_dir):
     return best_parameters[0]
 
 
-def preprocess(directory, target_dir, reference_mesh):
+def preprocess(directory, target_dir, reference_mesh, new_face_count=7_000):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
@@ -75,11 +85,13 @@ def preprocess(directory, target_dir, reference_mesh):
     # Load reference mesh
     ######################
     reference_mesh = trimesh.load_mesh(reference_mesh)
+    kd_tree = scipy.spatial.KDTree(reference_mesh.vertices)  # For ground-truth computation
 
     #####################################
     # Find good preprocessing parameters
     #####################################
-    radius, n_radial, n_angular = search_parameters(directory)
+    radius, n_radial, n_angular = search_parameters(directory, new_face_count)
+    print(f"CHOSEN KERNEL SIZE: radius = {radius}; n_radial = {n_radial}; n_angular = {n_angular}")
 
     with tqdm.tqdm(total=len(file_list)) as pbar:
         for file_no, file in enumerate(file_list):
@@ -89,30 +101,21 @@ def preprocess(directory, target_dir, reference_mesh):
             ############
             mesh = trimesh.load_mesh(f"{directory}/{file}")
 
-            pbar.set_postfix({"Step": "Ground-truth computation"})
             ################
-            # Shuffle nodes
+            # Simplify mesh
             ################
-            # Otherwise ground-truth matrix is unit-matrix all the time
-            shuffled_node_indices = np.arange(mesh.vertices.shape[0])
-            np.random.shuffle(shuffled_node_indices)
-            object_mesh_vertices = np.copy(mesh.vertices)[shuffled_node_indices]
-            object_mesh_faces = np.copy(mesh.faces)
-            for face in object_mesh_faces:
-                face[0] = np.where(shuffled_node_indices == face[0])[0]
-                face[1] = np.where(shuffled_node_indices == face[1])[0]
-                face[2] = np.where(shuffled_node_indices == face[2])[0]
-            mesh = trimesh.Trimesh(vertices=object_mesh_vertices, faces=object_mesh_faces)
+            mesh = mesh.simplify_quadratic_decimation(new_face_count)
 
-            ##########################
-            # Set ground-truth labels
-            ##########################
+            #######################
+            # Compute ground truth
+            #######################
             label_matrix = np.zeros(
                 shape=(np.array(mesh.vertices).shape[0], np.array(reference_mesh.vertices).shape[0]), dtype=np.int8
             )
-            # For vertex mesh.vertices[i] ground truth is given by shuffled_node_indices[i]
-            label_matrix[(np.arange(label_matrix.shape[0]), shuffled_node_indices)] = 1
-            label_matrix = scipy.sparse.csc_array(label_matrix)
+            for row in range(label_matrix.shape[0]):
+                _, gt = kd_tree.query(mesh.vertices[row])
+                label_matrix[row, gt] = 1
+            label_matrix = np.where(label_matrix)[1].astype(np.int16)
             np.save(f"{target_dir}/GT_{file[:-4]}.npy", label_matrix)
 
             pbar.set_postfix({"Step": "Compute SHOT descriptors"})

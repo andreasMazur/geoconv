@@ -219,7 +219,7 @@ def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
     return barycentric
 
 
-def barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angular=4, radius=0.05):
+def barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angular=4, radius=0.05, verbose=True):
     """Compute the barycentric coordinates for the given GPC-systems
 
     Parameters
@@ -236,6 +236,8 @@ def barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angular=4, r
         The amount of angular coordinates of the kernel you wish to use
     radius: float
         The radius of the kernel of the kernel you wish to use
+    verbose: bool
+        Whether to print progress on terminal
 
     Returns
     -------
@@ -261,9 +263,10 @@ def barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angular=4, r
     # Translate all coordinates into cartesian coordinates such that we can work with KD-trees
     kernel = polar_to_cartesian(kernel.reshape((-1, 2))).reshape((n_radial, n_angular, 2))
     for gpc_system_idx, gpc_system in enumerate(gpc_systems):
-        sys.stdout.write(
-            f"\rCurrently computing Barycentric coordinates for GPC-system centered in vertex {gpc_system_idx}"
-        )
+        if verbose:
+            sys.stdout.write(
+                f"\rCurrently computing Barycentric coordinates for GPC-system centered in vertex {gpc_system_idx}"
+            )
         gpc_system = polar_to_cartesian(gpc_system)
 
         # Determine triangles which are contained within the currently considered local GPC-system
