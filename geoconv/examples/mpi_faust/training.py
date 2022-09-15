@@ -16,8 +16,8 @@ def define_model(signal_shape,
                  dropout=.2):
 
     # Define model
-    signal_input = Input(shape=signal_shape, name="Signal")
-    bary_input = Input(shape=bc_shape, name="Barycentric")
+    signal_input = Input(shape=signal_shape, name="signal")
+    bary_input = Input(shape=bc_shape, name="barycentric")
     amp = AngularMaxPooling()
 
     signal = Normalization(axis=None, mean=dataset_mean, variance=dataset_var)(signal_input)
