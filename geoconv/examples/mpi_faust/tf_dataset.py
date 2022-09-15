@@ -28,10 +28,9 @@ def faust_generator(path_to_zip, val=False):
     for idx in indices:
         shot = tf.cast(dataset[SHOT[idx]], tf.float32)
         bc = tf.cast(dataset[BC[idx]], tf.float32)
-        gt = dataset[GT[idx]][()]
         # Return the indices of the ones for each row
         # (as required by `tf.keras.losses.SparseCategoricalCrossentropy`)
-        gt = tf.cast(gt.nonzero()[1], tf.float32)
+        gt = dataset[GT[idx]]
 
         yield (shot, bc), gt
 
