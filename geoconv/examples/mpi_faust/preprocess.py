@@ -73,7 +73,17 @@ def search_parameters(faust_dir, new_face_count):
     return best_parameters[0]
 
 
-def preprocess(directory, target_dir, reference_mesh, new_face_count=7_000):
+def create_datasets(directory, target_dir, reference_mesh, n_faces_set, n_radial_set, n_angular_set, radius_set):
+    for n_faces in n_faces_set:
+        for n_radial in n_radial_set:
+            for n_angular in n_angular_set:
+                for radius in radius_set:
+                    radius_str = f"{radius}"[2:]  # without everything in front of the comma
+                    target_dir_extended = f"{target_dir}_{n_faces}_{n_radial}_{n_angular}_{radius_str}"
+                    preprocess(directory, target_dir_extended, reference_mesh, n_faces, n_radial, n_angular, radius)
+
+
+def preprocess(directory, target_dir, reference_mesh, n_faces, n_radial, n_angular, radius):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
@@ -86,11 +96,7 @@ def preprocess(directory, target_dir, reference_mesh, new_face_count=7_000):
     ######################
     reference_mesh = trimesh.load_mesh(reference_mesh)
     kd_tree = scipy.spatial.KDTree(reference_mesh.vertices)  # For ground-truth computation
-
-    #####################################
-    # Find good preprocessing parameters
-    #####################################
-    radius, n_radial, n_angular = search_parameters(directory, new_face_count)
+    print(f"CHOSEN AMOUNT OF FACES: {n_faces}")
     print(f"CHOSEN KERNEL SIZE: radius = {radius}; n_radial = {n_radial}; n_angular = {n_angular}")
 
     with tqdm.tqdm(total=len(file_list)) as pbar:
@@ -104,7 +110,7 @@ def preprocess(directory, target_dir, reference_mesh, new_face_count=7_000):
             # Simplify mesh
             ################
             pbar.set_postfix({"Step": "Sub-sample the original meshes"})
-            mesh = mesh.simplify_quadratic_decimation(new_face_count)
+            mesh = mesh.simplify_quadratic_decimation(n_faces)
 
             #######################
             # Compute ground truth
