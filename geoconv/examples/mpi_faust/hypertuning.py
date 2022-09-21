@@ -34,24 +34,29 @@ class GeoConvHyperModel(kt.HyperModel):
         )
         signal = layers.Normalization(axis=None, mean=self.dataset_mean, variance=self.dataset_var)(signal_input)
         signal = layers.Dropout(rate=hp.Float(name="dropout_rate", min_value=.0, max_value=.3, step=.1))(signal)
-
         signal = layers.Dense(16, activation="relu")(signal)
         signal = ConvGeodesic(
-            output_dim=hp.Int(name="output_dim_1", min_value=90, max_value=113, step=1),
-            amt_kernel=1,
+            output_dim=32,
+            amt_kernel=hp.Int(name="amt_kernel_1", min_value=1, max_value=128, step=1),
             activation="relu",
-            rotation_delta=10
+            rotation_delta=hp.Int(name="rotation_delta_1", min_value=1, max_value=self.kernel_size[1], step=1)
         )([signal, bary_input])
         signal = amp(signal)
-
         signal = ConvGeodesic(
-            output_dim=hp.Int(name="output_dim_2", min_value=90, max_value=113, step=1),
-            amt_kernel=1,
+            output_dim=64,
+            amt_kernel=hp.Int(name="amt_kernel_2", min_value=1, max_value=128, step=1),
             activation="relu",
-            rotation_delta=10
+            rotation_delta=hp.Int(name="rotation_delta_2", min_value=1, max_value=self.kernel_size[1], step=1)
         )([signal, bary_input])
         signal = amp(signal)
-
+        signal = ConvGeodesic(
+            output_dim=128,
+            amt_kernel=hp.Int(name="amt_kernel_3", min_value=1, max_value=128, step=1),
+            activation="relu",
+            rotation_delta=hp.Int(name="rotation_delta_3", min_value=1, max_value=self.kernel_size[1], step=1)
+        )([signal, bary_input])
+        signal = amp(signal)
+        signal = layers.Dense(256, activation="relu")(signal)
         logits = layers.Dense(self.amt_target_nodes)(signal)
 
         # Declare model
