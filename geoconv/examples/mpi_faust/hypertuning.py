@@ -37,21 +37,21 @@ class GeoConvHyperModel(kt.HyperModel):
         signal = layers.Dense(16, activation="relu")(signal)
         signal = ConvGeodesic(
             output_dim=32,
-            amt_kernel=hp.Int(name="amt_kernel_1", min_value=1, max_value=128, step=1),
+            amt_kernel=hp.Int(name="amt_kernel_1", min_value=1, max_value=9, step=1),
             activation="relu",
             rotation_delta=hp.Int(name="rotation_delta_1", min_value=1, max_value=self.kernel_size[1], step=1)
         )([signal, bary_input])
         signal = amp(signal)
         signal = ConvGeodesic(
             output_dim=64,
-            amt_kernel=hp.Int(name="amt_kernel_2", min_value=1, max_value=128, step=1),
+            amt_kernel=hp.Int(name="amt_kernel_2", min_value=1, max_value=9, step=1),
             activation="relu",
             rotation_delta=hp.Int(name="rotation_delta_2", min_value=1, max_value=self.kernel_size[1], step=1)
         )([signal, bary_input])
         signal = amp(signal)
         signal = ConvGeodesic(
             output_dim=128,
-            amt_kernel=hp.Int(name="amt_kernel_3", min_value=1, max_value=128, step=1),
+            amt_kernel=hp.Int(name="amt_kernel_3", min_value=1, max_value=9, step=1),
             activation="relu",
             rotation_delta=hp.Int(name="rotation_delta_3", min_value=1, max_value=self.kernel_size[1], step=1)
         )([signal, bary_input])
