@@ -76,7 +76,7 @@ def train_on_faust(tf_faust_dataset,
 
     model.fit(
         tf_faust_dataset.batch(batch_size).shuffle(5, reshuffle_each_iteration=True),
-        epochs=10,
+        epochs=200,
         callbacks=[tensorboard_callback, cp_callback],
         validation_data=tf_faust_dataset_val.batch(batch_size).prefetch(tf.data.AUTOTUNE)
     )
