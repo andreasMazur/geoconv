@@ -12,6 +12,8 @@ def define_model(signal_shape,
                  output_dim,
                  dataset_mean,
                  dataset_var,
+                 amt_kernel=1,
+                 rotation_delta=1,
                  lr=.00045,
                  dropout=.2):
 
@@ -27,15 +29,21 @@ def define_model(signal_shape,
     signal = Dense(16, activation="relu")(signal)
 
     # GC32 + AMP + ReLU
-    signal = ConvGeodesic(output_dim=32, amt_kernel=1, activation="relu", rotation_delta=1)([signal, bary_input])
+    signal = ConvGeodesic(
+        output_dim=32, amt_kernel=amt_kernel, activation="relu", rotation_delta=rotation_delta
+    )([signal, bary_input])
     signal = amp(signal)
 
     # GC64 + AMP + ReLU
-    signal = ConvGeodesic(output_dim=64, amt_kernel=1, activation="relu", rotation_delta=1)([signal, bary_input])
+    signal = ConvGeodesic(
+        output_dim=64, amt_kernel=amt_kernel, activation="relu", rotation_delta=rotation_delta
+    )([signal, bary_input])
     signal = amp(signal)
 
     # 128 + AMP + ReLU
-    signal = ConvGeodesic(output_dim=128, amt_kernel=1, activation="relu", rotation_delta=1)([signal, bary_input])
+    signal = ConvGeodesic(
+        output_dim=128, amt_kernel=amt_kernel, activation="relu", rotation_delta=rotation_delta
+    )([signal, bary_input])
     signal = amp(signal)
 
     # LIN256
