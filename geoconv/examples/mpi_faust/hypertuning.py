@@ -121,7 +121,7 @@ def faust_hypertuning(path_preprocessed_dataset,
     tuner.search(
         x=tf_faust_dataset.batch(batch_size).shuffle(5, reshuffle_each_iteration=True),
         validation_data=tf_faust_dataset_val.batch(batch_size).prefetch(tf.data.AUTOTUNE),
-        epochs=300,
+        epochs=200,
         callbacks=[stop]  # tensorboard
     )
 
