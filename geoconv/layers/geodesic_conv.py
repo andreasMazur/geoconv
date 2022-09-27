@@ -25,7 +25,16 @@ class ConvGeodesic(Layer):
         ceil(n / rotation_delta). This gives a speed up and saves memory. However, quality of results might worsen.
     """
 
-    def __init__(self, output_dim, amt_kernel, activation="relu", name=None, rotation_delta=1):
+    def __init__(self,
+                 output_dim,
+                 amt_kernel,
+                 activation="relu",
+                 name=None,
+                 rotation_delta=1,
+                 kernel_regularizer_inner=None,
+                 kernel_regularizer_outer=None,
+                 bias_regularizer=None,
+                 initializer="glorot_uniform"):
         if name:
             super().__init__(name=name)
         else:
@@ -35,6 +44,10 @@ class ConvGeodesic(Layer):
         self.output_dim = output_dim
         self.rotation_delta = rotation_delta
         self.amt_kernel = amt_kernel
+        self.kernel_regularizer_inner = kernel_regularizer_inner
+        self.kernel_regularizer_outer = kernel_regularizer_outer
+        self.bias_regularizer = bias_regularizer
+        self.initializer = initializer
 
         # Attributes that depend on the data and are set automatically in build
         self._kernel_size = None  # (#radial, #angular)
@@ -52,7 +65,11 @@ class ConvGeodesic(Layer):
                 "activation": self.activation,
                 "all_rotations": self._all_rotations,
                 "rotation_delta": self.rotation_delta,
-                "amt_kernel": self.amt_kernel
+                "amt_kernel": self.amt_kernel,
+                "kernel_regularizer_inner": self.kernel_regularizer_inner,
+                "kernel_regularizer_outer": self.kernel_regularizer_outer,
+                "bias_regularizer": self.bias_regularizer,
+                "initializer": self.initializer
             }
         )
         return config
@@ -72,21 +89,24 @@ class ConvGeodesic(Layer):
         self._inner_kernel = self.add_weight(
             name="geoconv_inner",
             shape=(self.amt_kernel, self._kernel_size[0] * self._kernel_size[1]),
-            initializer="glorot_uniform",
-            trainable=True
+            initializer=self.initializer,
+            trainable=True,
+            regularizer=self.kernel_regularizer_inner
         )
         # Maps output to wished dimension
         self._outer_kernel = self.add_weight(
             name="geoconv_outer",
             shape=(self.amt_kernel, self.output_dim, signal_shape[2]),
-            initializer="glorot_uniform",
-            trainable=True
+            initializer=self.initializer,
+            trainable=True,
+            regularizer=self.kernel_regularizer_outer
         )
         self._bias = self.add_weight(
             name="geoconv_bias",
             shape=(self.amt_kernel, self.output_dim),
-            initializer="glorot_uniform",
-            trainable=True
+            initializer=self.initializer,
+            trainable=True,
+            regularizer=self.bias_regularizer
         )
 
     @tf.function
