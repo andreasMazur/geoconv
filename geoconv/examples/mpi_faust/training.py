@@ -34,8 +34,8 @@ def define_model(signal_shape,
         amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
-        kernel_regularizer_inner=tf.keras.regularizers.L2(l2=0.05),
-        kernel_regularizer_outer=tf.keras.regularizers.L2(l2=0.05)
+        kernel_regularizer_inner=tf.keras.regularizers.L2(l2=0.01),
+        kernel_regularizer_outer=tf.keras.regularizers.L2(l2=0.01)
     )([signal, bary_input])
     signal = amp(signal)
 
@@ -45,8 +45,8 @@ def define_model(signal_shape,
         amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
-        kernel_regularizer_inner=tf.keras.regularizers.L2(l2=0.05),
-        kernel_regularizer_outer=tf.keras.regularizers.L2(l2=0.05)
+        kernel_regularizer_inner=tf.keras.regularizers.L2(l2=0.01),
+        kernel_regularizer_outer=tf.keras.regularizers.L2(l2=0.01)
     )([signal, bary_input])
     signal = amp(signal)
 
@@ -56,8 +56,8 @@ def define_model(signal_shape,
         amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
-        kernel_regularizer_inner=tf.keras.regularizers.L2(l2=0.05),
-        kernel_regularizer_outer=tf.keras.regularizers.L2(l2=0.05)
+        kernel_regularizer_inner=tf.keras.regularizers.L2(l2=0.01),
+        kernel_regularizer_outer=tf.keras.regularizers.L2(l2=0.01)
     )([signal, bary_input])
     signal = amp(signal)
 

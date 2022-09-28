@@ -387,7 +387,7 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
     return u, theta, triangle_cache
 
 
-def discrete_gpc(object_mesh, u_max=.04, eps=0.000001, use_c=False, tqdm_msg=""):
+def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=False, tqdm_msg=""):
     """Computes approximated geodesic polar coordinates for all vertices within an object mesh.
 
     > [Geodesic polar coordinates on polygonal

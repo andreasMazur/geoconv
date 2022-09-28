@@ -1,5 +1,5 @@
 from geoconv.preprocessing.barycentric_coords import barycentric_coordinates
-from geoconv.preprocessing.discrete_gpc import discrete_gpc, local_gpc
+from geoconv.preprocessing.discrete_gpc import compute_gpc_systems, local_gpc
 from geoconv.utils.measures import evaluate_kernel_coverage
 
 import os
@@ -73,17 +73,26 @@ def search_parameters(faust_dir, new_face_count):
     return best_parameters[0]
 
 
-def create_datasets(directory, target_dir, reference_mesh, n_faces_set, n_radial_set, n_angular_set, radius_set):
+def create_datasets(directory,
+                    target_dir,
+                    reference_mesh,
+                    n_faces_set,
+                    n_radial_set,
+                    n_angular_set,
+                    radius_set,
+                    percent=0.12):
     for n_faces in n_faces_set:
         for n_radial in n_radial_set:
             for n_angular in n_angular_set:
                 for radius in radius_set:
                     radius_str = f"{radius}"[2:]  # without everything in front of the comma
                     target_dir_extended = f"{target_dir}_{n_faces}_{n_radial}_{n_angular}_{radius_str}"
-                    preprocess(directory, target_dir_extended, reference_mesh, n_faces, n_radial, n_angular, radius)
+                    preprocess(
+                        directory, target_dir_extended, reference_mesh, n_faces, n_radial, n_angular, radius, percent
+                    )
 
 
-def preprocess(directory, target_dir, reference_mesh, n_faces, n_radial, n_angular, radius):
+def preprocess(directory, target_dir, reference_mesh, n_faces, n_radial, n_angular, radius, percent=0.12):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
@@ -131,11 +140,11 @@ def preprocess(directory, target_dir, reference_mesh, n_faces, n_radial, n_angul
             descriptors = pyshot.get_descriptors(
                 np.array(mesh.vertices),
                 np.array(mesh.faces, dtype=np.int64),
-                radius=100,
-                local_rf_radius=.1,
+                radius=np.sqrt(percent * mesh.area / np.pi),
+                local_rf_radius=np.sqrt(percent * mesh.area / np.pi),
                 min_neighbors=3,
-                n_bins=8,
-                double_volumes_sectors=False,
+                n_bins=16,
+                double_volumes_sectors=True,
                 use_interpolation=True,
                 use_normalization=True,
             ).astype(np.float32)
@@ -145,7 +154,7 @@ def preprocess(directory, target_dir, reference_mesh, n_faces, n_radial, n_angul
             ############################
             # Compute local GPC-systems
             ############################
-            local_gpc_systems = discrete_gpc(
+            local_gpc_systems = compute_gpc_systems(
                 mesh, u_max=radius, eps=.000001, use_c=True, tqdm_msg=f"File {file_no} - Compute local GPC-systems"
             ).astype(np.float64)
 
