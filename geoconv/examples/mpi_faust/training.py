@@ -1,5 +1,5 @@
 from tensorflow.keras import Input
-from tensorflow.keras.layers import Dense, Normalization, Dropout
+from tensorflow.keras.layers import Dense, Normalization, Dropout, Reshape
 
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.geodesic_conv import ConvGeodesic
@@ -26,14 +26,15 @@ def define_model(signal_shape,
     signal = Dropout(rate=dropout)(signal)
 
     # LIN16+ReLU
-    signal = Dense(128, activation="relu")(signal)
+    feature_dim = 64
+    signal = Dense(feature_dim, activation="relu")(signal)
 
     # GC128 + AMP + ReLU
     signal = ConvGeodesic(
         amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
-        kernel_regularizer=tf.keras.regularizers.L2(l2=0.01),
+        kernel_regularizer=tf.keras.regularizers.L2(l2=0.05),
     )([signal, bary_input])
     signal = amp(signal)
 
@@ -42,24 +43,14 @@ def define_model(signal_shape,
         amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
-        kernel_regularizer=tf.keras.regularizers.L2(l2=0.01),
+        kernel_regularizer=tf.keras.regularizers.L2(l2=0.05),
     )([signal, bary_input])
     signal = amp(signal)
 
-    # GC128 + AMP + ReLU
-    signal = ConvGeodesic(
-        amt_kernel=amt_kernel,
-        activation="relu",
-        rotation_delta=rotation_delta,
-        kernel_regularizer=tf.keras.regularizers.L2(l2=0.01),
-    )([signal, bary_input])
-    signal = amp(signal)
-
-    # LIN256
-    signal = Dense(256)(signal)
-
-    # LIN6890
-    logits = Dense(output_dim)(signal)
+    # This is only possible since we use batch size 1 during training
+    signal = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (-1, feature_dim)))(signal)
+    signal = Dense(output_dim)(signal)
+    logits = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (1, -1, t.shape[1])))(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
