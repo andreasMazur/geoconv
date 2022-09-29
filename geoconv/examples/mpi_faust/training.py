@@ -26,11 +26,11 @@ def define_model(signal_shape,
     signal = Dropout(rate=dropout)(signal)
 
     # LIN16+ReLU
-    feature_dim = 64
-    signal = Dense(feature_dim, activation="relu")(signal)
+    signal = Dense(16, activation="relu")(signal)
 
     # GC128 + AMP + ReLU
     signal = ConvGeodesic(
+        output_dim=32,
         amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
@@ -40,6 +40,7 @@ def define_model(signal_shape,
 
     # GC128 + AMP + ReLU
     signal = ConvGeodesic(
+        output_dim=64,
         amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
@@ -48,7 +49,7 @@ def define_model(signal_shape,
     signal = amp(signal)
 
     # This is only possible since we use batch size 1 during training
-    signal = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (-1, feature_dim)))(signal)
+    signal = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (-1, t.shape[2])))(signal)
     signal = Dense(output_dim)(signal)
     logits = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (1, -1, t.shape[1])))(signal)
 
