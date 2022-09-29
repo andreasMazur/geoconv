@@ -93,6 +93,11 @@ def create_datasets(directory,
 
 
 def preprocess(directory, target_dir, reference_mesh, n_faces, n_radial, n_angular, radius, percent=0.12):
+
+    if os.path.exists(f"{target_dir}.zip"):
+        print(f"{target_dir}.zip already exists!")
+        return
+
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
@@ -124,48 +129,52 @@ def preprocess(directory, target_dir, reference_mesh, n_faces, n_radial, n_angul
             #######################
             # Compute ground truth
             #######################
-            label_matrix = np.zeros(
-                shape=(np.array(mesh.vertices).shape[0], np.array(reference_mesh.vertices).shape[0]), dtype=np.int8
-            )
-            for row in range(label_matrix.shape[0]):
-                _, gt = kd_tree.query(mesh.vertices[row])
-                label_matrix[row, gt] = 1
-            label_matrix = np.where(label_matrix)[1].astype(np.int16)
-            np.save(f"{target_dir}/GT_{file[:-4]}.npy", label_matrix)
+            gt_name = f"{target_dir}/SHOT_{file[:-4]}.npy"
+            bc_name = f"{target_dir}/BC_{file[:-4]}.npy"
+            if not os.path.exists(gt_name) or not os.path.exists(bc_name):
+                label_matrix = np.zeros(
+                    shape=(np.array(mesh.vertices).shape[0], np.array(reference_mesh.vertices).shape[0]), dtype=np.int8
+                )
+                for row in range(label_matrix.shape[0]):
+                    _, gt = kd_tree.query(mesh.vertices[row])
+                    label_matrix[row, gt] = 1
+                label_matrix = np.where(label_matrix)[1].astype(np.int16)
+                np.save(f"{target_dir}/GT_{file[:-4]}.npy", label_matrix)
 
-            pbar.set_postfix({"Step": "Compute SHOT descriptors"})
-            ###########################
-            # Compute SHOT descriptors
-            ###########################
-            descriptors = pyshot.get_descriptors(
-                np.array(mesh.vertices),
-                np.array(mesh.faces, dtype=np.int64),
-                radius=np.sqrt(percent * mesh.area / np.pi),
-                local_rf_radius=np.sqrt(percent * mesh.area / np.pi),
-                min_neighbors=3,
-                n_bins=16,
-                double_volumes_sectors=True,
-                use_interpolation=True,
-                use_normalization=True,
-            ).astype(np.float32)
-            np.save(f"{target_dir}/SHOT_{file[:-4]}.npy", descriptors)
+                pbar.set_postfix({"Step": "Compute SHOT descriptors"})
+                ###########################
+                # Compute SHOT descriptors
+                ###########################
+                descriptors = pyshot.get_descriptors(
+                    np.array(mesh.vertices),
+                    np.array(mesh.faces, dtype=np.int64),
+                    radius=np.sqrt(percent * mesh.area / np.pi),
+                    local_rf_radius=np.sqrt(percent * mesh.area / np.pi),
+                    min_neighbors=3,
+                    n_bins=16,
+                    double_volumes_sectors=True,
+                    use_interpolation=True,
+                    use_normalization=True,
+                ).astype(np.float32)
+                np.save(gt_name, descriptors)
 
-            pbar.set_postfix({"Step": "Compute local GPC-systems"})
-            ############################
-            # Compute local GPC-systems
-            ############################
-            local_gpc_systems = compute_gpc_systems(
-                mesh, u_max=radius, eps=.000001, use_c=True, tqdm_msg=f"File {file_no} - Compute local GPC-systems"
-            ).astype(np.float64)
+                pbar.set_postfix({"Step": "Compute local GPC-systems"})
+                if not os.path.exists(bc_name):
+                    ############################
+                    # Compute local GPC-systems
+                    ############################
+                    local_gpc_systems = compute_gpc_systems(
+                        mesh, u_max=radius, eps=.000001, use_c=True, tqdm_msg=f"File {file_no} - Compute local GPC-systems"
+                    ).astype(np.float64)
 
-            pbar.set_postfix({"Step": "Compute Barycentric coordinates"})
-            ##################################
-            # Compute Barycentric coordinates
-            ##################################
-            bary_coords = barycentric_coordinates(
-                mesh, local_gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=radius - 0.005
-            )
-            np.save(f"{target_dir}/BC_{file[:-4]}.npy", bary_coords)
+                    pbar.set_postfix({"Step": "Compute Barycentric coordinates"})
+                    ##################################
+                    # Compute Barycentric coordinates
+                    ##################################
+                    bary_coords = barycentric_coordinates(
+                        mesh, local_gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=radius - 0.005
+                    )
+                    np.save(bc_name, bary_coords)
 
             pbar.update(1)
 
