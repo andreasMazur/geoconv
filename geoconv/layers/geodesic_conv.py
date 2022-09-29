@@ -12,8 +12,6 @@ class ConvGeodesic(Layer):
 
     Attributes
     ----------
-    output_dim:
-        The dimensionality of the output feature vectors.
     amt_kernel:
         The amount of kernels to apply during one convolution.
     activation:
@@ -26,13 +24,11 @@ class ConvGeodesic(Layer):
     """
 
     def __init__(self,
-                 output_dim,
                  amt_kernel,
                  activation="relu",
                  name=None,
                  rotation_delta=1,
-                 kernel_regularizer_inner=None,
-                 kernel_regularizer_outer=None,
+                 kernel_regularizer=None,
                  bias_regularizer=None,
                  initializer="glorot_uniform"):
         if name:
@@ -41,17 +37,17 @@ class ConvGeodesic(Layer):
             super().__init__()
 
         self.activation = Activation(activation)
-        self.output_dim = output_dim
+        # self.output_dim = output_dim
         self.rotation_delta = rotation_delta
         self.amt_kernel = amt_kernel
-        self.kernel_regularizer_inner = kernel_regularizer_inner
-        self.kernel_regularizer_outer = kernel_regularizer_outer
+        self.kernel_regularizer = kernel_regularizer
+        # self.kernel_regularizer_outer = kernel_regularizer_outer
         self.bias_regularizer = bias_regularizer
         self.initializer = initializer
 
         # Attributes that depend on the data and are set automatically in build
         self._kernel_size = None  # (#radial, #angular)
-        self._inner_kernel = None
+        self._kernel = None
         self._outer_kernel = None
         self._bias = None
         self._all_rotations = None
@@ -61,12 +57,12 @@ class ConvGeodesic(Layer):
         config.update(
             {
                 "kernel_size": self._kernel_size,
-                "output_dim": self.output_dim,
+                # "output_dim": self.output_dim,
                 "activation": self.activation,
                 "all_rotations": self._all_rotations,
                 "rotation_delta": self.rotation_delta,
                 "amt_kernel": self.amt_kernel,
-                "kernel_regularizer_inner": self.kernel_regularizer_inner,
+                "kernel_regularizer_inner": self.kernel_regularizer,
                 "kernel_regularizer_outer": self.kernel_regularizer_outer,
                 "bias_regularizer": self.bias_regularizer,
                 "initializer": self.initializer
@@ -86,24 +82,24 @@ class ConvGeodesic(Layer):
         self._kernel_size = (barycentric_shape[2], barycentric_shape[3])
         self._all_rotations = self._kernel_size[1]
         # Weights the contributions of the interpolations
-        self._inner_kernel = self.add_weight(
-            name="geoconv_inner",
+        self._kernel = self.add_weight(
+            name="geoconv_kernel",
             shape=(self.amt_kernel, self._kernel_size[0] * self._kernel_size[1]),
             initializer=self.initializer,
             trainable=True,
-            regularizer=self.kernel_regularizer_inner
+            regularizer=self.kernel_regularizer
         )
         # Maps output to wished dimension
-        self._outer_kernel = self.add_weight(
-            name="geoconv_outer",
-            shape=(self.amt_kernel, self.output_dim, signal_shape[2]),
-            initializer=self.initializer,
-            trainable=True,
-            regularizer=self.kernel_regularizer_outer
-        )
+        # self._outer_kernel = self.add_weight(
+        #     name="geoconv_outer",
+        #     shape=(self.amt_kernel, self.output_dim, signal_shape[2]),
+        #     initializer=self.initializer,
+        #     trainable=True,
+        #     regularizer=self.kernel_regularizer_outer
+        # )
         self._bias = self.add_weight(
             name="geoconv_bias",
-            shape=(self.amt_kernel, self.output_dim),
+            shape=(self.amt_kernel, signal_shape[2]),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.bias_regularizer
@@ -124,7 +120,7 @@ class ConvGeodesic(Layer):
         -------
         tf.Tensor
             The geodesic convolution of the kernel with the signal on the object mesh in every given GPC-system for
-            every rotation. It has size (n_batch, n_rotations, n_gpc_systems, self.output_dim)
+            every rotation. It has size (n_batch, n_rotations, n_gpc_systems, feature_dim)
         """
 
         signal, b_coordinates = inputs
@@ -158,17 +154,18 @@ class ConvGeodesic(Layer):
         # Shape input : (n_rotations, n_gpc_systems,        1, feature_dim, n_radial * n_angular)
         # Shape kernel: (                            n_kernel,              n_radial * n_angular)
         # Shape result: (n_rotations, n_gpc_systems, n_kernel, feature_dim                      )
-        result = tf.linalg.matvec(interpolation_values, self._inner_kernel)
+        result = tf.linalg.matvec(interpolation_values, self._kernel)
+        result = result + self._bias
 
         # Scale to output dimension
         # Shape kernel: (                            n_kernel, output_dim, feature_dim)
         # Shape input : (n_rotations, n_gpc_systems, n_kernel,             feature_dim)
         # Shape result: (n_rotations, n_gpc_systems, n_kernel, output_dim             )
-        result = tf.linalg.matvec(self._outer_kernel, result)
-        result = result + self._bias
+        # result = tf.linalg.matvec(self._outer_kernel, result)
+        # result = result + self._bias
 
         # Sum over all kernels (2)
-        # Shape result: (n_rotations, n_gpc_systems, new_dim)
+        # Shape result: (n_rotations, n_gpc_systems, feature_dim)
         return tf.reduce_sum(result, axis=[2])
 
     @tf.function

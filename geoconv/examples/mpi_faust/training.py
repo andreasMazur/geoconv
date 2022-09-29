@@ -26,38 +26,32 @@ def define_model(signal_shape,
     signal = Dropout(rate=dropout)(signal)
 
     # LIN16+ReLU
-    signal = Dense(16, activation="relu")(signal)
+    signal = Dense(128, activation="relu")(signal)
 
-    # GC32 + AMP + ReLU
+    # GC128 + AMP + ReLU
     signal = ConvGeodesic(
-        output_dim=32,
         amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
-        kernel_regularizer_inner=tf.keras.regularizers.L2(l2=0.01),
-        kernel_regularizer_outer=tf.keras.regularizers.L2(l2=0.01)
+        kernel_regularizer=tf.keras.regularizers.L2(l2=0.01),
     )([signal, bary_input])
     signal = amp(signal)
 
-    # GC64 + AMP + ReLU
+    # GC128 + AMP + ReLU
     signal = ConvGeodesic(
-        output_dim=64,
         amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
-        kernel_regularizer_inner=tf.keras.regularizers.L2(l2=0.01),
-        kernel_regularizer_outer=tf.keras.regularizers.L2(l2=0.01)
+        kernel_regularizer=tf.keras.regularizers.L2(l2=0.01),
     )([signal, bary_input])
     signal = amp(signal)
 
-    # 128 + AMP + ReLU
+    # GC128 + AMP + ReLU
     signal = ConvGeodesic(
-        output_dim=128,
         amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
-        kernel_regularizer_inner=tf.keras.regularizers.L2(l2=0.01),
-        kernel_regularizer_outer=tf.keras.regularizers.L2(l2=0.01)
+        kernel_regularizer=tf.keras.regularizers.L2(l2=0.01),
     )([signal, bary_input])
     signal = amp(signal)
 
