@@ -106,7 +106,7 @@ class ConvGeodesic(Layer):
             regularizer=self.bias_regularizer
         )
 
-    # @tf.function
+    @tf.function
     def call(self, inputs):
         """Computes geodesic convolutions for multiple given GPC-systems
 
