@@ -62,8 +62,8 @@ class ConvGeodesic(Layer):
                 "all_rotations": self._all_rotations,
                 "rotation_delta": self.rotation_delta,
                 "amt_kernel": self.amt_kernel,
-                "kernel_regularizer_inner": self.kernel_regularizer,
-                "kernel_regularizer_outer": self.kernel_regularizer_outer,
+                "kernel_regularizer": self.kernel_regularizer,
+                # "kernel_regularizer_outer": self.kernel_regularizer_outer,
                 "bias_regularizer": self.bias_regularizer,
                 "initializer": self.initializer
             }
