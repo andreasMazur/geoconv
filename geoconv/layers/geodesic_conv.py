@@ -24,6 +24,7 @@ class ConvGeodesic(Layer):
     """
 
     def __init__(self,
+                 output_dim,
                  amt_kernel,
                  activation="relu",
                  name=None,
@@ -37,7 +38,7 @@ class ConvGeodesic(Layer):
             super().__init__()
 
         self.activation = Activation(activation)
-        # self.output_dim = output_dim
+        self.output_dim = output_dim
         self.rotation_delta = rotation_delta
         self.amt_kernel = amt_kernel
         self.kernel_regularizer = kernel_regularizer
@@ -57,7 +58,7 @@ class ConvGeodesic(Layer):
         config.update(
             {
                 "kernel_size": self._kernel_size,
-                # "output_dim": self.output_dim,
+                "output_dim": self.output_dim,
                 "activation": self.activation,
                 "all_rotations": self._all_rotations,
                 "rotation_delta": self.rotation_delta,
@@ -84,7 +85,7 @@ class ConvGeodesic(Layer):
         # Weights the contributions of the interpolations
         self._kernel = self.add_weight(
             name="geoconv_kernel",
-            shape=(self.amt_kernel, self._kernel_size[0] * self._kernel_size[1]),
+            shape=(self._kernel_size[0], self._kernel_size[1], self.amt_kernel, self.output_dim, signal_shape[2]),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.kernel_regularizer
@@ -99,13 +100,13 @@ class ConvGeodesic(Layer):
         # )
         self._bias = self.add_weight(
             name="geoconv_bias",
-            shape=(self.amt_kernel, signal_shape[2]),
+            shape=(self.amt_kernel, self.output_dim),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.bias_regularizer
         )
 
-    @tf.function
+    # @tf.function
     def call(self, inputs):
         """Computes geodesic convolutions for multiple given GPC-systems
 
@@ -132,41 +133,29 @@ class ConvGeodesic(Layer):
         return result_tensor.stack()
 
     @tf.function
-    def _geodesic_convolution(self, signal, barycentric_coords):
+    def _geodesic_convolution(self, mesh_signal, barycentric_coords):
 
         # Interpolate signals at kernel vertices
-        interpolation_fn = lambda bc: self._interpolate(signal, bc)
-        interpolation_values = tf.vectorized_map(interpolation_fn, barycentric_coords)
+        interpolation_fn = lambda bc: self._interpolate(mesh_signal, bc)
+        mesh_signal = tf.vectorized_map(interpolation_fn, barycentric_coords)
 
         # Compute rotations
-        all_rotations_fn = lambda rot: tf.roll(interpolation_values, shift=rot, axis=2)
+        all_rotations_fn = lambda rot: tf.roll(mesh_signal, shift=rot, axis=2)
         # n_rotations = ceil(self.all_rotations / self.rotation_delta)
-        interpolation_values = tf.vectorized_map(
+        mesh_signal = tf.vectorized_map(
             all_rotations_fn, tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
         )
-
-        # Put feature vectors into column matrix
-        iv_shape = tf.shape(interpolation_values)
-        interpolation_values = tf.reshape(interpolation_values, (iv_shape[0], iv_shape[1], 1, -1, iv_shape[4]))
-        interpolation_values = tf.transpose(interpolation_values, perm=[0, 1, 2, 4, 3])
+        mesh_signal = tf.expand_dims(mesh_signal, axis=4)
 
         # Compute convolution
-        # Shape input : (n_rotations, n_gpc_systems,        1, feature_dim, n_radial * n_angular)
-        # Shape kernel: (                            n_kernel,              n_radial * n_angular)
-        # Shape result: (n_rotations, n_gpc_systems, n_kernel, feature_dim                      )
-        result = tf.linalg.matvec(interpolation_values, self._kernel)
-        result = result + self._bias
-
-        # Scale to output dimension
-        # Shape kernel: (                            n_kernel, output_dim, feature_dim)
-        # Shape input : (n_rotations, n_gpc_systems, n_kernel,             feature_dim)
-        # Shape result: (n_rotations, n_gpc_systems, n_kernel, output_dim             )
-        # result = tf.linalg.matvec(self._outer_kernel, result)
-        # result = result + self._bias
+        # Shape kernel: (                            n_radial, n_angular, n_kernel, self.output_dim, input_dim)
+        # Shape input : (n_rotations, n_gpc_systems, n_radial, n_angular,        1,                  input_dim)
+        # Shape result: (n_rotations, n_gpc_systems, n_radial, n_angular, n_kernel, self.output_dim           )
+        mesh_signal = tf.reduce_sum(tf.linalg.matvec(self._kernel, mesh_signal) + self._bias, axis=[2, 3, 4])
 
         # Sum over all kernels (2)
-        # Shape result: (n_rotations, n_gpc_systems, feature_dim)
-        return tf.reduce_sum(result, axis=[2])
+        # Shape result: (n_rotations, n_gpc_systems, self.output_dim)
+        return mesh_signal
 
     @tf.function
     def _interpolate(self, signal, bary_coords):
