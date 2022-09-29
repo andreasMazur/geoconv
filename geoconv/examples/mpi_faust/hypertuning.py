@@ -34,27 +34,60 @@ class GeoConvHyperModel(kt.HyperModel):
         )
         signal = layers.Normalization(axis=None, mean=self.dataset_mean, variance=self.dataset_var)(signal_input)
         signal = layers.Dropout(rate=hp.Float(name="dropout_rate", min_value=.0, max_value=.3, step=.1))(signal)
-        signal = layers.Dense(16, activation="relu")(signal)
-        signal = ConvGeodesic(
-            amt_kernel=hp.Int(name="amt_kernel_1", min_value=1, max_value=9, step=1),
+
+        signal = layers.Dense(
+            hp.Int(name="input_dim", min_value=16, max_value=64, step=1),
             activation="relu",
-            rotation_delta=hp.Int(name="rotation_delta_1", min_value=1, max_value=self.kernel_size[1], step=1)
+            kernel_regularizer=tf.keras.regularizers.L2(
+                l2=hp.Float(name="input_reg", min_value=0.01, max_value=0.05, step=0.01)
+            )
+        )(signal)
+
+        signal = ConvGeodesic(
+            amt_kernel=hp.Int(name="amt_kernel_1", min_value=1, max_value=64, step=1),
+            activation="relu",
+            rotation_delta=1,
+            kernel_regularizer=tf.keras.regularizers.L2(
+                l2=hp.Float(name="gc_1_reg", min_value=0.01, max_value=0.05, step=0.01)
+            )
         )([signal, bary_input])
         signal = amp(signal)
+
         signal = ConvGeodesic(
-            amt_kernel=hp.Int(name="amt_kernel_2", min_value=1, max_value=9, step=1),
+            amt_kernel=hp.Int(name="amt_kernel_2", min_value=1, max_value=64, step=1),
             activation="relu",
-            rotation_delta=hp.Int(name="rotation_delta_2", min_value=1, max_value=self.kernel_size[1], step=1)
+            rotation_delta=1,
+            kernel_regularizer=tf.keras.regularizers.L2(
+                l2=hp.Float(name="gc_2_reg", min_value=0.01, max_value=0.05, step=0.01)
+            )
         )([signal, bary_input])
         signal = amp(signal)
+
         signal = ConvGeodesic(
-            amt_kernel=hp.Int(name="amt_kernel_3", min_value=1, max_value=9, step=1),
+            amt_kernel=hp.Int(name="amt_kernel_3", min_value=1, max_value=64, step=1),
             activation="relu",
-            rotation_delta=hp.Int(name="rotation_delta_3", min_value=1, max_value=self.kernel_size[1], step=1)
+            rotation_delta=1,
+            kernel_regularizer=tf.keras.regularizers.L2(
+                l2=hp.Float(name="gc_3_reg", min_value=0.01, max_value=0.05, step=0.01)
+            )
         )([signal, bary_input])
         signal = amp(signal)
-        signal = layers.Dense(256, activation="relu")(signal)
-        logits = layers.Dense(self.amt_target_nodes)(signal)
+
+        signal = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (-1, t.shape[2])))(signal)
+        signal = layers.Dense(
+            256,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.L2(
+                l2=hp.Float(name="dense_1_reg", min_value=0.01, max_value=0.05, step=0.01)
+            )
+        )(signal)
+        signal = layers.Dense(
+            self.amt_target_nodes,
+            kernel_regularizer=tf.keras.regularizers.L2(
+                l2=hp.Float(name="dense_2_reg", min_value=0.01, max_value=0.05, step=0.01)
+            )
+        )(signal)
+        logits = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (1, -1, t.shape[1])))(signal)
 
         # Declare model
         model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
