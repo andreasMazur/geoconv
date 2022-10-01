@@ -145,18 +145,18 @@ def preprocess(directory, target_dir, reference_mesh, n_faces, n_radial, n_angul
                 ###########################
                 # Compute SHOT descriptors
                 ###########################
-                descriptors = pyshot.get_descriptors(
-                    np.array(mesh.vertices),
-                    np.array(mesh.faces, dtype=np.int64),
-                    radius=np.sqrt(percent * mesh.area / np.pi),
-                    local_rf_radius=np.sqrt(percent * mesh.area / np.pi),
-                    min_neighbors=3,
-                    n_bins=16,
-                    double_volumes_sectors=True,
-                    use_interpolation=True,
-                    use_normalization=True,
-                ).astype(np.float32)
-                np.save(gt_name, descriptors)
+                # descriptors = pyshot.get_descriptors(
+                #     np.array(mesh.vertices),
+                #     np.array(mesh.faces, dtype=np.int64),
+                #     radius=np.sqrt(percent * mesh.area / np.pi),
+                #     local_rf_radius=np.sqrt(percent * mesh.area / np.pi),
+                #     min_neighbors=3,
+                #     n_bins=16,
+                #     double_volumes_sectors=True,
+                #     use_interpolation=True,
+                #     use_normalization=True,
+                # ).astype(np.float32)
+                np.save(gt_name, mesh.vertices)
 
                 pbar.set_postfix({"Step": "Compute local GPC-systems"})
                 if not os.path.exists(bc_name):

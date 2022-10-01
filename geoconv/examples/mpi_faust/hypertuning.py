@@ -35,56 +35,28 @@ class GeoConvHyperModel(kt.HyperModel):
         signal = layers.Normalization(axis=None, mean=self.dataset_mean, variance=self.dataset_var)(signal_input)
         signal = layers.Dropout(rate=hp.Float(name="dropout_rate", min_value=.0, max_value=.3, step=.1))(signal)
 
-        signal = layers.Dense(
-            hp.Int(name="input_dim", min_value=16, max_value=64, step=1),
-            activation="relu",
-            kernel_regularizer=tf.keras.regularizers.L2(
-                l2=hp.Float(name="input_reg", min_value=0.01, max_value=0.05, step=0.01)
-            )
-        )(signal)
+        signal = layers.Dense(16, activation="relu")(signal)
 
-        signal = ConvGeodesic(
-            amt_kernel=hp.Int(name="amt_kernel_1", min_value=1, max_value=64, step=1),
-            activation="relu",
-            rotation_delta=1,
-            kernel_regularizer=tf.keras.regularizers.L2(
-                l2=hp.Float(name="gc_1_reg", min_value=0.01, max_value=0.05, step=0.01)
-            )
-        )([signal, bary_input])
+        signal = ConvGeodesic(output_dim=16, amt_kernel=4, activation="relu", rotation_delta=4)([signal, bary_input])
         signal = amp(signal)
 
-        signal = ConvGeodesic(
-            amt_kernel=hp.Int(name="amt_kernel_2", min_value=1, max_value=64, step=1),
-            activation="relu",
-            rotation_delta=1,
-            kernel_regularizer=tf.keras.regularizers.L2(
-                l2=hp.Float(name="gc_2_reg", min_value=0.01, max_value=0.05, step=0.01)
-            )
-        )([signal, bary_input])
+        signal = ConvGeodesic(output_dim=32, amt_kernel=1, activation="relu", rotation_delta=4)([signal, bary_input])
         signal = amp(signal)
 
-        signal = ConvGeodesic(
-            amt_kernel=hp.Int(name="amt_kernel_3", min_value=1, max_value=64, step=1),
-            activation="relu",
-            rotation_delta=1,
-            kernel_regularizer=tf.keras.regularizers.L2(
-                l2=hp.Float(name="gc_3_reg", min_value=0.01, max_value=0.05, step=0.01)
-            )
-        )([signal, bary_input])
+        signal = ConvGeodesic(output_dim=32, amt_kernel=1, activation="relu", rotation_delta=4)([signal, bary_input])
         signal = amp(signal)
 
         signal = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (-1, t.shape[2])))(signal)
         signal = layers.Dense(
             256,
-            activation="relu",
             kernel_regularizer=tf.keras.regularizers.L2(
-                l2=hp.Float(name="dense_1_reg", min_value=0.01, max_value=0.05, step=0.01)
+                l2=hp.Float(name="dense_1_reg", min_value=0.00, max_value=0.05, step=0.01)
             )
         )(signal)
         signal = layers.Dense(
             self.amt_target_nodes,
             kernel_regularizer=tf.keras.regularizers.L2(
-                l2=hp.Float(name="dense_2_reg", min_value=0.01, max_value=0.05, step=0.01)
+                l2=hp.Float(name="dense_2_reg", min_value=0.00, max_value=0.05, step=0.01)
             )
         )(signal)
         logits = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (1, -1, t.shape[1])))(signal)
@@ -95,7 +67,7 @@ class GeoConvHyperModel(kt.HyperModel):
         # Compile model
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.Adam(
-            learning_rate=hp.Float(name="learning_rate", min_value=0.00001, max_value=0.1, step=0.00002)
+            learning_rate=hp.Float(name="learning_rate", min_value=0.00001, max_value=0.01, step=0.00001)
         )
         model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
@@ -104,10 +76,10 @@ class GeoConvHyperModel(kt.HyperModel):
 
 def faust_hypertuning(path_preprocessed_dataset,
                       run_id,
-                      signal_dim=144,
-                      amt_nodes=6890,
+                      signal_dim=544,
+                      amt_nodes=4502,
                       amt_target_nodes=6890,
-                      kernel_size=(2, 4),
+                      kernel_size=(7, 16),
                       batch_size=1):
 
     # Load dataset
@@ -131,7 +103,7 @@ def faust_hypertuning(path_preprocessed_dataset,
             kernel_size=kernel_size
         ),
         objective="val_sparse_categorical_accuracy",
-        max_epochs=300,
+        max_epochs=200,
         factor=3,
         directory=f"./logs/{run_id}/",
         project_name=f"faust_{run_id}"
