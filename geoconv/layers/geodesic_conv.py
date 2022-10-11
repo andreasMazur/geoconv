@@ -37,7 +37,8 @@ class ConvGeodesic(Layer):
         else:
             super().__init__()
 
-        self.activation = Activation(activation)
+        self.activation_fn = activation
+        self.activation = Activation(self.activation_fn)
         self.output_dim = output_dim
         self.rotation_delta = rotation_delta
         self.amt_kernel = amt_kernel
@@ -59,7 +60,7 @@ class ConvGeodesic(Layer):
             {
                 "kernel_size": self._kernel_size,
                 "output_dim": self.output_dim,
-                "activation": self.activation,
+                "activation_fn": self.activation_fn,
                 "all_rotations": self._all_rotations,
                 "rotation_delta": self.rotation_delta,
                 "amt_kernel": self.amt_kernel,
