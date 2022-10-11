@@ -91,14 +91,6 @@ class ConvGeodesic(Layer):
             trainable=True,
             regularizer=self.kernel_regularizer
         )
-        # Maps output to wished dimension
-        # self._outer_kernel = self.add_weight(
-        #     name="geoconv_outer",
-        #     shape=(self.amt_kernel, self.output_dim, signal_shape[2]),
-        #     initializer=self.initializer,
-        #     trainable=True,
-        #     regularizer=self.kernel_regularizer_outer
-        # )
         self._bias = self.add_weight(
             name="geoconv_bias",
             shape=(self.amt_kernel, self.output_dim),
