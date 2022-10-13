@@ -78,19 +78,17 @@ def search_parameters(faust_dir, new_face_count):
 def create_datasets(directory,
                     target_dir,
                     reference_mesh,
-                    n_faces_set,
                     n_radial_set,
                     n_angular_set,
                     radius_set):
-    for n_faces in n_faces_set:
-        for n_radial in n_radial_set:
-            for n_angular in n_angular_set:
-                for radius in radius_set:
-                    radius_str = f"{radius}"[2:]  # without everything in front of the comma
-                    target_dir_extended = f"{target_dir}_{n_faces}_{n_radial}_{n_angular}_{radius_str}"
-                    preprocess(
-                        directory, target_dir_extended, reference_mesh, n_radial, n_angular, radius
-                    )
+    for n_radial in n_radial_set:
+        for n_angular in n_angular_set:
+            for radius in radius_set:
+                radius_str = f"{radius}"[2:]  # without everything in front of the comma
+                target_dir_extended = f"{target_dir}_{n_radial}_{n_angular}_{radius_str}"
+                preprocess(
+                    directory, target_dir_extended, reference_mesh, n_radial, n_angular, radius
+                )
 
 
 def preprocess(directory, target_dir, reference_mesh, n_radial, n_angular, radius):
