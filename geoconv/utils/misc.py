@@ -7,6 +7,18 @@ import trimesh
 import shutil
 
 
+def shuffle_mesh_vertices(object_mesh):
+    shuffled_node_indices = np.arange(object_mesh.vertices.shape[0])
+    np.random.shuffle(shuffled_node_indices)
+    object_mesh_vertices = np.copy(object_mesh.vertices)[shuffled_node_indices]
+    object_mesh_faces = np.copy(object_mesh.faces)
+    for face in object_mesh_faces:
+        face[0] = np.where(shuffled_node_indices == face[0])[0]
+        face[1] = np.where(shuffled_node_indices == face[1])[0]
+        face[2] = np.where(shuffled_node_indices == face[2])[0]
+    return trimesh.Trimesh(vertices=object_mesh_vertices, faces=object_mesh_faces), shuffled_node_indices
+
+
 def get_included_faces(object_mesh, gpc_system):
     """Retrieves face indices from GPC-system
 

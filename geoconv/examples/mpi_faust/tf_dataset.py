@@ -15,7 +15,7 @@ def faust_generator(path_to_zip, val=False):
 
     dataset = np.load(path_to_zip, allow_pickle=True)
     file_names = dataset.files
-    SHOT = [file_name for file_name in file_names if file_name.startswith("SHOT")]
+    SHOT = [file_name for file_name in file_names if file_name.startswith("COORDS")]
     BC = [file_name for file_name in file_names if file_name.startswith("BC")]
     GT = [file_name for file_name in file_names if file_name.startswith("GT")]
     SHOT.sort(), BC.sort(), GT.sort()

@@ -10,6 +10,8 @@ import shutil
 import trimesh
 import pyshot
 
+from geoconv.utils.misc import shuffle_mesh_vertices
+
 
 def search_parameters(faust_dir, new_face_count):
     """Search for good preprocessing parameters
@@ -79,8 +81,7 @@ def create_datasets(directory,
                     n_faces_set,
                     n_radial_set,
                     n_angular_set,
-                    radius_set,
-                    percent=0.12):
+                    radius_set):
     for n_faces in n_faces_set:
         for n_radial in n_radial_set:
             for n_angular in n_angular_set:
@@ -88,11 +89,11 @@ def create_datasets(directory,
                     radius_str = f"{radius}"[2:]  # without everything in front of the comma
                     target_dir_extended = f"{target_dir}_{n_faces}_{n_radial}_{n_angular}_{radius_str}"
                     preprocess(
-                        directory, target_dir_extended, reference_mesh, n_faces, n_radial, n_angular, radius, percent
+                        directory, target_dir_extended, reference_mesh, n_radial, n_angular, radius
                     )
 
 
-def preprocess(directory, target_dir, reference_mesh, n_faces, n_radial, n_angular, radius, percent=0.12):
+def preprocess(directory, target_dir, reference_mesh, n_radial, n_angular, radius):
 
     if os.path.exists(f"{target_dir}.zip"):
         print(f"{target_dir}.zip already exists!")
@@ -109,54 +110,27 @@ def preprocess(directory, target_dir, reference_mesh, n_faces, n_radial, n_angul
     # Load reference mesh
     ######################
     reference_mesh = trimesh.load_mesh(reference_mesh)
-    kd_tree = scipy.spatial.KDTree(reference_mesh.vertices)  # For ground-truth computation
-    print(f"CHOSEN AMOUNT OF FACES: {n_faces}")
+    ground_truth = reference_mesh.vertices[:, 0].argsort()
+    reference_mesh.vertices = reference_mesh.vertices[ground_truth]
     print(f"CHOSEN KERNEL SIZE: radius = {radius}; n_radial = {n_radial}; n_angular = {n_angular}")
 
     with tqdm.tqdm(total=len(file_list)) as pbar:
         for file_no, file in enumerate(file_list):
-            ############
-            # Load mesh
-            ############
+            # Load query mesh
             mesh = trimesh.load_mesh(f"{directory}/{file}")
 
-            ################
-            # Simplify mesh
-            ################
-            pbar.set_postfix({"Step": "Sub-sample the original meshes"})
-            mesh = mesh.simplify_quadratic_decimation(n_faces)
+            # Shuffle vertices of query mesh (otherwise the ground truth matrix equals unit matrix)
+            mesh, shuffled_node_indices = shuffle_mesh_vertices(mesh)
 
-            #######################
-            # Compute ground truth
-            #######################
-            gt_name = f"{target_dir}/SHOT_{file[:-4]}.npy"
+            coordinates_name = f"{target_dir}/COORDS_{file[:-4]}.npy"
             bc_name = f"{target_dir}/BC_{file[:-4]}.npy"
-            if not os.path.exists(gt_name) or not os.path.exists(bc_name):
-                label_matrix = np.zeros(
-                    shape=(np.array(mesh.vertices).shape[0], np.array(reference_mesh.vertices).shape[0]), dtype=np.int8
-                )
-                for row in range(label_matrix.shape[0]):
-                    _, gt = kd_tree.query(mesh.vertices[row])
-                    label_matrix[row, gt] = 1
-                label_matrix = np.where(label_matrix)[1].astype(np.int16)
-                np.save(f"{target_dir}/GT_{file[:-4]}.npy", label_matrix)
+            gt_name = f"{target_dir}/GT_{file[:-4]}.npy"
+            if not os.path.exists(coordinates_name) or not os.path.exists(bc_name):
+                # Store coordinates
+                np.save(coordinates_name, mesh.vertices)
 
-                pbar.set_postfix({"Step": "Compute SHOT descriptors"})
-                ###########################
-                # Compute SHOT descriptors
-                ###########################
-                # descriptors = pyshot.get_descriptors(
-                #     np.array(mesh.vertices),
-                #     np.array(mesh.faces, dtype=np.int64),
-                #     radius=np.sqrt(percent * mesh.area / np.pi),
-                #     local_rf_radius=np.sqrt(percent * mesh.area / np.pi),
-                #     min_neighbors=3,
-                #     n_bins=16,
-                #     double_volumes_sectors=True,
-                #     use_interpolation=True,
-                #     use_normalization=True,
-                # ).astype(np.float32)
-                np.save(gt_name, mesh.vertices)
+                # Store ground truth
+                np.save(gt_name, shuffled_node_indices.astype(np.int16))
 
                 pbar.set_postfix({"Step": "Compute local GPC-systems"})
                 if not os.path.exists(bc_name):
@@ -164,7 +138,11 @@ def preprocess(directory, target_dir, reference_mesh, n_faces, n_radial, n_angul
                     # Compute local GPC-systems
                     ############################
                     local_gpc_systems = compute_gpc_systems(
-                        mesh, u_max=radius, eps=.000001, use_c=True, tqdm_msg=f"File {file_no} - Compute local GPC-systems"
+                        mesh,
+                        u_max=radius,
+                        eps=.000001,
+                        use_c=True,
+                        tqdm_msg=f"File {file_no} - Compute local GPC-systems"
                     ).astype(np.float64)
 
                     pbar.set_postfix({"Step": "Compute Barycentric coordinates"})

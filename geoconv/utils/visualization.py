@@ -4,6 +4,26 @@ import trimesh
 import numpy as np
 
 
+def draw_correspondences(query_mesh, reference_mesh, correspondences):
+
+    # Assign ground truth colors
+    colors = trimesh.visual.interpolate(np.arange(reference_mesh.vertices.shape[0]), color_map="gist_ncar")
+    pc_t = trimesh.points.PointCloud(reference_mesh.vertices, colors=colors)
+
+    # Color query mesh according to the found correspondences
+    colors_query = pc_t.colors[correspondences]
+    pc_q = trimesh.points.PointCloud(query_mesh.vertices, colors=colors_query)
+
+    # Put target and query mesh side by side
+    pc_q[:, 0] = pc_q[:, 0] + 1
+    for x in [1, 2]:
+        pc_t[:, x] = pc_t[:, x] - pc_t.vertices[:, x].min()
+        pc_q[:, x] = pc_q[:, x] - pc_q.vertices[:, x].min()
+
+    to_visualize = [pc_t, pc_q]
+    trimesh.Scene(to_visualize).show()
+
+
 def gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_mesh):
     """Visualizes the radial and angular coordinates of a local GPC-system on an object mesh.
 
