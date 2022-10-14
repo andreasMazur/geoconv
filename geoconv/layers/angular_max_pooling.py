@@ -11,7 +11,7 @@ class AngularMaxPooling(Layer):
     @tf.function
     def call(self, inputs):
 
-        return tf.map_fn(self._amp, inputs)
+        return tf.vectorized_map(self._amp, inputs)
 
     @tf.function
     def _amp(self, mesh_signal):
