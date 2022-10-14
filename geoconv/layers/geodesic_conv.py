@@ -130,6 +130,16 @@ class ConvGeodesic(Layer):
         interpolation_fn = lambda bc: self._interpolate(mesh_signal, bc)
         mesh_signal = tf.vectorized_map(interpolation_fn, barycentric_coords)
 
+        # Compute rotations: (n_rotations, n_radial, n_angular, input_dim)
+        # n_rotations = ceil(self.all_rotations / self.rotation_delta)
+        all_rotations_fn = lambda rot: tf.roll(mesh_signal, shift=rot, axis=1)
+        mesh_signal = tf.vectorized_map(
+            all_rotations_fn, tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
+        )
+        mesh_signal = tf.transpose(mesh_signal, perm=[1, 0, 2, 3, 4])
+        mesh_signal = tf.expand_dims(mesh_signal, axis=4)
+
+        self._fold(mesh_signal[0])
         mesh_signal = tf.map_fn(self._fold, mesh_signal)
 
         # Sum over all kernels (2)
@@ -138,13 +148,6 @@ class ConvGeodesic(Layer):
 
     @tf.function
     def _fold(self, interpolations):
-        # Compute rotations: (n_rotations, n_radial, n_angular, input_dim)
-        # n_rotations = ceil(self.all_rotations / self.rotation_delta)
-        all_rotations_fn = lambda rot: tf.roll(interpolations, shift=rot, axis=1)
-        interpolations = tf.vectorized_map(
-            all_rotations_fn, tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
-        )
-        interpolations = tf.expand_dims(interpolations, axis=3)
 
         # Compute convolution
         # Shape kernel: (             n_radial, n_angular, n_kernel, self.output_dim, input_dim)
