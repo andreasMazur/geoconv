@@ -64,7 +64,6 @@ def define_model(signal_shape,
 
 def train_on_faust(tf_faust_dataset,
                    tf_faust_dataset_val,
-                   amt_nodes=6890,
                    model=None,
                    run=0):
 
