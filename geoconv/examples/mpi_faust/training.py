@@ -1,6 +1,7 @@
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Dense, Normalization, Dropout, Reshape
 
+from geoconv.examples.mpi_faust.model import PointCorrespondenceGeoCNN
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.geodesic_conv import ConvGeodesic
 
@@ -28,7 +29,7 @@ def define_model(signal_shape,
     signal = Dense(16, activation="relu")(signal)
 
     signal = ConvGeodesic(
-        output_dim=32,
+        output_dim=1,
         amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta
@@ -54,7 +55,7 @@ def define_model(signal_shape,
     signal = Dense(256, kernel_regularizer=tf.keras.regularizers.L2(l2=0.01))(signal)
     logits = Dense(output_dim, kernel_regularizer=tf.keras.regularizers.L2(l2=0.02))(signal)
 
-    model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
+    model = PointCorrespondenceGeoCNN(inputs=[signal_input, bary_input], outputs=[logits])
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     opt = tf.keras.optimizers.Adam(learning_rate=lr)
     model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])

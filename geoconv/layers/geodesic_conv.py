@@ -28,7 +28,7 @@ class ConvGeodesic(Layer):
                  amt_kernel,
                  activation="relu",
                  rotation_delta=1,
-                 splits=2,
+                 splits=1,
                  name=None,
                  kernel_regularizer=None,
                  bias_regularizer=None,
