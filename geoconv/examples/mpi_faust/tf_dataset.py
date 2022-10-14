@@ -1,22 +1,16 @@
-import sys
-
 import numpy as np
 import tensorflow as tf
 
 
-def faust_mean_variance(faust_dataset, amt_nodes):
+def faust_mean_variance(faust_dataset):
     coordinates = []
-    x = 0
-    for elem in faust_dataset.batch(amt_nodes):
-        sys.stdout.write(f"\rLoading triangle mesh {x} / 100 for normalization..")
+    for elem in faust_dataset:
         coordinates.append(elem[0][0])
-        x += 1
     coordinates = tf.stack(coordinates)
-    print("Done!")
     return tf.math.reduce_mean(coordinates), tf.math.reduce_variance(coordinates)
 
 
-def faust_generator(path_to_zip, val=False):
+def faust_generator(path_to_zip, val=False, load_meshes=False):
     """Reads one element of preprocessed FAUST-examples into memory per 'next'-call."""
 
     dataset = np.load(path_to_zip, allow_pickle=True)
@@ -37,15 +31,14 @@ def faust_generator(path_to_zip, val=False):
         # Return the indices of the ones for each row
         # (as required by `tf.keras.losses.SparseCategoricalCrossentropy`)
         gt = dataset[GT[idx]]
-        amt_nodes = tf.shape(coordinates)[0]
-        for node_idx in range(amt_nodes):
-            yield (coordinates[node_idx], bc[node_idx]), gt[node_idx]
+        yield (coordinates, bc), gt
 
 
 def load_preprocessed_faust(path_to_zip,
                             signal_dim,
                             kernel_size=(2, 4),
-                            val=False):
+                            val=False,
+                            load_meshes=False):
     """Returns a 'tf.data.Dataset' of the preprocessed MPI-FAUST examples.
 
     Requires that preprocessing already happened. This function operates directly on the resulting 'zip'-file.
@@ -59,15 +52,14 @@ def load_preprocessed_faust(path_to_zip,
     - A tf.data.Dataset of the preprocessed MPI-FAUST examples.
 
     """
-
     return tf.data.Dataset.from_generator(
         faust_generator,
-        args=(path_to_zip, val),
+        args=(path_to_zip, val, load_meshes),
         output_signature=(
             (
-                tf.TensorSpec(shape=(signal_dim,), dtype=tf.float32),
-                tf.TensorSpec(shape=kernel_size + (3, 2), dtype=tf.float32)
+                tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),
+                tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32)
             ),
-            tf.TensorSpec(shape=(), dtype=tf.float32)
+            tf.TensorSpec(shape=(None,), dtype=tf.float32)
         )
     )
