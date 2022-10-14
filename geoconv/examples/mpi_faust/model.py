@@ -25,3 +25,10 @@ class PointCorrespondenceGeoCNN(Model):
         self.compiled_metrics.update_state(ground_truth, y_pred)
         return {m.name: m.result() for m in self.metrics}
 
+    def test_step(self, data):
+        (signal, barycentric), ground_truth = data
+        y_pred = self([signal, barycentric], training=False)
+        self.compiled_loss(y, y_pred) + tf.math.reduce_sum(self.losses)
+        self.compiled_metrics.update_state(ground_truth, y_pred)
+        return {m.name: m.result() for m in self.metrics}
+
