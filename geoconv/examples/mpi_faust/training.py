@@ -56,8 +56,8 @@ def define_model(signal_shape,
     )([signal, bary_input])
     signal = amp(signal)
 
-    signal = Dense(256, kernel_regularizer=tf.keras.regularizers.L2(l2=0.01))(signal)
-    logits = Dense(output_dim, kernel_regularizer=tf.keras.regularizers.L2(l2=0.02))(signal)
+    signal = Dense(256)(signal)
+    logits = Dense(output_dim)(signal)
 
     model = PointCorrespondenceGeoCNN(inputs=[signal_input, bary_input], outputs=[logits])
     loss = tf.keras.losses.SparseCategoricalCrossentropy(
