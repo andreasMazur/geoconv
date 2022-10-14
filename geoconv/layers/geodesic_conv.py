@@ -139,7 +139,7 @@ class ConvGeodesic(Layer):
         mesh_signal = tf.transpose(mesh_signal, perm=[1, 0, 2, 3, 4])
         mesh_signal = tf.expand_dims(mesh_signal, axis=4)
 
-        mesh_signal = tf.map_fn(self._fold, mesh_signal)
+        mesh_signal = tf.vectorized_map(self._fold, mesh_signal)
 
         # Sum over all kernels (2)
         # Shape result: (n_gpc_systems, n_rotations, self.output_dim)
