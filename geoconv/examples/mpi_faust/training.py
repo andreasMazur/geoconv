@@ -51,11 +51,8 @@ def define_model(signal_shape,
     )([signal, bary_input])
     signal = amp(signal)
 
-    # This is only possible since we use batch size 1 during training
-    signal = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (-1, t.shape[2])))(signal)
     signal = Dense(256, kernel_regularizer=tf.keras.regularizers.L2(l2=0.01))(signal)
-    signal = Dense(output_dim, kernel_regularizer=tf.keras.regularizers.L2(l2=0.02))(signal)
-    logits = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (1, -1, t.shape[1])))(signal)
+    logits = Dense(output_dim, kernel_regularizer=tf.keras.regularizers.L2(l2=0.02))(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
@@ -67,7 +64,7 @@ def define_model(signal_shape,
 
 def train_on_faust(tf_faust_dataset,
                    tf_faust_dataset_val,
-                   batch_size=1,
+                   amt_nodes=6890,
                    model=None,
                    run=0):
 
@@ -80,8 +77,8 @@ def train_on_faust(tf_faust_dataset,
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_freq='epoch', verbose=1)
 
     model.fit(
-        tf_faust_dataset.batch(batch_size).shuffle(5, reshuffle_each_iteration=True),
+        tf_faust_dataset.batch(amt_nodes).prefetch(tf.data.AUTOTUNE),
         epochs=200,
         callbacks=[tensorboard_callback, cp_callback],
-        validation_data=tf_faust_dataset_val.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+        validation_data=tf_faust_dataset_val.batch(amt_nodes).prefetch(tf.data.AUTOTUNE)
     )

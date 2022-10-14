@@ -81,12 +81,12 @@ class ConvGeodesic(Layer):
             The shape of the signal and the shape of the barycentric coordinates.
         """
         signal_shape, barycentric_shape = input_shape
-        self._kernel_size = (barycentric_shape[2], barycentric_shape[3])
+        self._kernel_size = (barycentric_shape[1], barycentric_shape[2])
         self._all_rotations = self._kernel_size[1]
         # Weights the contributions of the interpolations
         self._kernel = self.add_weight(
             name="geoconv_kernel",
-            shape=(self._kernel_size[0], self._kernel_size[1], self.amt_kernel, self.output_dim, signal_shape[2]),
+            shape=(self._kernel_size[0], self._kernel_size[1], self.amt_kernel, self.output_dim, signal_shape[1]),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.kernel_regularizer
@@ -106,9 +106,9 @@ class ConvGeodesic(Layer):
         Parameters
         ----------
         inputs: (tf.Tensor, tf.Tensor)
-            The first tensor represents a batch of signals defined on the manifold. It has size
-            (n_batch, n_vertices, feature_dim). The second tensor represents a batch of barycentric coordinates. It has
-            size (n_batch, n_gpc_systems, n_radial, n_angular, 3, 2).
+            The first tensor represents the signal defined on the manifold. It has size
+            (n_vertices, feature_dim). The second tensor represents the barycentric coordinates. It has
+            size (n_gpc_systems, n_radial, n_angular, 3, 2).
 
         Returns
         -------
@@ -117,16 +117,7 @@ class ConvGeodesic(Layer):
             every rotation. It has size (n_batch, n_rotations, n_gpc_systems, feature_dim)
         """
 
-        signal, b_coordinates = inputs
-        result_tensor = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
-        batch_size = tf.shape(signal)[0]
-        for idx in tf.range(batch_size):
-            new_signal = self._geodesic_convolution(signal[idx], b_coordinates[idx])
-            result_tensor = result_tensor.write(idx, new_signal)
-        return result_tensor.stack()
-
-    @tf.function
-    def _geodesic_convolution(self, mesh_signal, barycentric_coords):
+        mesh_signal, barycentric_coords = inputs
 
         # Interpolate signals at kernel vertices
         interpolation_fn = lambda bc: self._interpolate(mesh_signal, bc)
