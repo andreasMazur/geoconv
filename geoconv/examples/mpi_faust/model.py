@@ -25,6 +25,7 @@ class PointCorrespondenceGeoCNN(Model):
         self.compiled_metrics.update_state(ground_truth, y_pred)
         return {m.name: m.result() for m in self.metrics}
 
+    @tf.function
     def test_step(self, data):
         (signal, barycentric), ground_truth = data
         y_pred = self([signal, barycentric], training=False)
