@@ -52,7 +52,7 @@ def define_model(signal_shape,
     )([signal, bary_input])
     signal = amp(signal)
 
-    # signal = Dense(256, kernel_regularizer=tf.keras.regularizers.L2(l2=0.01))(signal)
+    signal = Dense(256, kernel_regularizer=tf.keras.regularizers.L2(l2=0.01))(signal)
     logits = Dense(output_dim, kernel_regularizer=tf.keras.regularizers.L2(l2=0.02))(signal)
 
     model = PointCorrespondenceGeoCNN(inputs=[signal_input, bary_input], outputs=[logits])
@@ -61,7 +61,7 @@ def define_model(signal_shape,
         reduction=tf.keras.losses.Reduction.NONE
     )
     opt = tf.keras.optimizers.Adam(learning_rate=lr)
-    model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"], run_eagerly=True)
+    model.compile(optimizer=opt, loss=loss, metrics=loss)  # , run_eagerly=True
     model.summary()
     return model
 
