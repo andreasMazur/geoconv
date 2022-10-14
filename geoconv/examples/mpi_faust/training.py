@@ -37,7 +37,7 @@ def define_model(signal_shape,
     signal = amp(signal)
 
     signal = ConvGeodesic(
-        output_dim=64,
+        output_dim=32,
         amt_kernel=1,
         activation="relu",
         rotation_delta=rotation_delta
@@ -45,7 +45,7 @@ def define_model(signal_shape,
     signal = amp(signal)
 
     signal = ConvGeodesic(
-        output_dim=128,
+        output_dim=64,
         amt_kernel=1,
         activation="relu",
         rotation_delta=rotation_delta
@@ -61,7 +61,7 @@ def define_model(signal_shape,
         reduction=tf.keras.losses.Reduction.NONE
     )
     opt = tf.keras.optimizers.Adam(learning_rate=lr)
-    model.compile(optimizer=opt, loss=loss, metrics=loss)  # , run_eagerly=True
+    model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])  # , run_eagerly=True
     model.summary()
     return model
 
