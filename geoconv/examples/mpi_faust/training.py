@@ -16,7 +16,8 @@ def define_model(signal_shape,
                  amt_kernel=1,
                  rotation_delta=1,
                  lr=.00045,
-                 dropout=.2):
+                 dropout=.2,
+                 amt_splits=10):
 
     # Define model
     signal_input = Input(shape=signal_shape, name="signal")
@@ -32,23 +33,26 @@ def define_model(signal_shape,
         output_dim=32,
         amt_kernel=amt_kernel,
         activation="relu",
-        rotation_delta=rotation_delta
-    )([signal, bary_input])
-    signal = amp(signal)
-
-    signal = ConvGeodesic(
-        output_dim=32,
-        amt_kernel=1,
-        activation="relu",
-        rotation_delta=rotation_delta
+        rotation_delta=rotation_delta,
+        splits=amt_splits
     )([signal, bary_input])
     signal = amp(signal)
 
     signal = ConvGeodesic(
         output_dim=64,
-        amt_kernel=1,
+        amt_kernel=amt_kernel,
         activation="relu",
-        rotation_delta=rotation_delta
+        rotation_delta=rotation_delta,
+        splits=amt_splits
+    )([signal, bary_input])
+    signal = amp(signal)
+
+    signal = ConvGeodesic(
+        output_dim=128,
+        amt_kernel=amt_kernel,
+        activation="relu",
+        rotation_delta=rotation_delta,
+        splits=amt_splits
     )([signal, bary_input])
     signal = amp(signal)
 
