@@ -130,7 +130,6 @@ class ConvGeodesic(Layer):
         interpolation_fn = lambda bc: self._interpolate(mesh_signal, bc)
         mesh_signal = tf.vectorized_map(interpolation_fn, barycentric_coords)
 
-        self._fold(mesh_signal[0])
         mesh_signal = tf.vectorized_map(self._fold, mesh_signal)
 
         # Sum over all kernels (2)
