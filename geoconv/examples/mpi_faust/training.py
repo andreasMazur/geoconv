@@ -26,7 +26,7 @@ def define_model(signal_shape,
     signal = Normalization(axis=None, mean=dataset_mean, variance=dataset_var)(signal_input)
     signal = Dropout(rate=dropout)(signal)
 
-    # signal = Dense(16, activation="relu")(signal)
+    signal = Dense(16, activation="relu")(signal)
 
     signal = ConvGeodesic(
         output_dim=32,
@@ -52,7 +52,7 @@ def define_model(signal_shape,
     )([signal, bary_input])
     signal = amp(signal)
 
-    signal = Dense(256, kernel_regularizer=tf.keras.regularizers.L2(l2=0.01))(signal)
+    # signal = Dense(256, kernel_regularizer=tf.keras.regularizers.L2(l2=0.01))(signal)
     logits = Dense(output_dim, kernel_regularizer=tf.keras.regularizers.L2(l2=0.02))(signal)
 
     model = PointCorrespondenceGeoCNN(inputs=[signal_input, bary_input], outputs=[logits])
