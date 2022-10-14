@@ -31,8 +31,7 @@ def define_model(signal_shape,
         output_dim=32,
         amt_kernel=amt_kernel,
         activation="relu",
-        rotation_delta=rotation_delta,
-        kernel_regularizer=tf.keras.regularizers.L2(l2=0.05),
+        rotation_delta=rotation_delta
     )([signal, bary_input])
     signal = amp(signal)
 
@@ -40,8 +39,7 @@ def define_model(signal_shape,
         output_dim=32,
         amt_kernel=1,
         activation="relu",
-        rotation_delta=rotation_delta,
-        kernel_regularizer=tf.keras.regularizers.L2(l2=0.05),
+        rotation_delta=rotation_delta
     )([signal, bary_input])
     signal = amp(signal)
 
@@ -49,15 +47,14 @@ def define_model(signal_shape,
         output_dim=64,
         amt_kernel=1,
         activation="relu",
-        rotation_delta=rotation_delta,
-        kernel_regularizer=tf.keras.regularizers.L2(l2=0.05),
+        rotation_delta=rotation_delta
     )([signal, bary_input])
     signal = amp(signal)
 
     # This is only possible since we use batch size 1 during training
     signal = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (-1, t.shape[2])))(signal)
-    signal = Dense(256)(signal)
-    signal = Dense(output_dim)(signal)
+    signal = Dense(256, kernel_regularizer=tf.keras.regularizers.L2(l2=0.01))(signal)
+    signal = Dense(output_dim, kernel_regularizer=tf.keras.regularizers.L2(l2=0.02))(signal)
     logits = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (1, -1, t.shape[1])))(signal)
 
     model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
