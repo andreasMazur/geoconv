@@ -132,7 +132,6 @@ class ConvGeodesic(Layer):
 
         mesh_signal = tf.vectorized_map(self._fold, mesh_signal)
 
-        # Sum over all kernels (2)
         # Shape result: (n_gpc_systems, n_rotations, self.output_dim)
         return mesh_signal
 
