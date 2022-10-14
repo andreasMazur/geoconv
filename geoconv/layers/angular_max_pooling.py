@@ -10,14 +10,16 @@ class AngularMaxPooling(Layer):
 
     @tf.function
     def call(self, inputs):
-        rotation_norms = tf.norm(inputs, ord="euclidean", axis=-1)
-        winner_rotation = tf.cast(tf.argmax(rotation_norms, axis=1), dtype=tf.int32)
 
-        shape = tf.shape(winner_rotation)
-        batch_size = shape[0]
-        amt_gpc_systems = shape[1]
-        batch_indices = tf.reshape(tf.repeat(tf.range(batch_size), repeats=amt_gpc_systems), (batch_size, -1))
-        gpc_system_indices = tf.repeat(tf.expand_dims(tf.range(amt_gpc_systems), axis=0), repeats=batch_size, axis=0)
-        indices = tf.stack([batch_indices, winner_rotation, gpc_system_indices], axis=-1)
+        test = self._amp(inputs[0])
+        return tf.map_fn(self._amp, inputs)
 
-        return tf.gather_nd(params=inputs, indices=indices)
+    @tf.function
+    def _amp(self, mesh_signal):
+        maximal_response = tf.norm(mesh_signal, ord="euclidean", axis=-1)
+        maximal_response = tf.cast(tf.argmax(maximal_response, axis=1), dtype=tf.int32)
+
+        return tf.gather_nd(
+            indices=tf.stack([tf.range(tf.shape(mesh_signal)[0]), maximal_response], axis=-1),
+            params=mesh_signal
+        )
