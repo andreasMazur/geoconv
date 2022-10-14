@@ -26,7 +26,7 @@ def define_model(signal_shape,
     signal = Normalization(axis=None, mean=dataset_mean, variance=dataset_var)(signal_input)
     signal = Dropout(rate=dropout)(signal)
 
-    signal = Dense(16, activation="relu")(signal)
+    # signal = Dense(16, activation="relu")(signal)
 
     signal = ConvGeodesic(
         output_dim=32,
@@ -61,7 +61,7 @@ def define_model(signal_shape,
         reduction=tf.keras.losses.Reduction.NONE
     )
     opt = tf.keras.optimizers.Adam(learning_rate=lr)
-    model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
+    model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"], run_eagerly=True)
     model.summary()
     return model
 

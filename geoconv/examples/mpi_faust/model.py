@@ -5,12 +5,13 @@ import tensorflow as tf
 
 class PointCorrespondenceGeoCNN(Model):
 
+    # @tf.function
     def train_step(self, data):
         (signal, barycentric), ground_truth = data
 
         with tf.GradientTape(persistent=True) as tape:
             y_pred = self([signal, barycentric], training=True)
-            losses = self.compiled_loss(ground_truth, y_pred) + self.losses  # Add regularization loss
+            losses = self.compiled_loss(ground_truth, y_pred) + tf.math.reduce_sum(self.losses)  # Add regularization loss
             losses_list = []
             for loss in losses:
                 tape.watch(loss)
