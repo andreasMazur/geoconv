@@ -4,14 +4,27 @@ import trimesh
 import numpy as np
 
 
-def draw_correspondences(query_mesh, reference_mesh, correspondences):
+def draw_correspondences(query_mesh, reference_mesh, ground_truth, predictions=None):
+    """Visualizes ground truth and predicted correspondences
+
+    Parameters
+    ----------
+    query_mesh: trimesh.Trimesh
+        The query mesh
+    reference_mesh: trimesh.Trimesh
+        The reference mesh
+    ground_truth: np.ndarray
+        The ground truth correspondences (vertex indices) in a 1D array
+    predictions: np.ndarray
+        The predicted correspondences (vertex indices) in a 1D array
+    """
 
     # Assign ground truth colors
     colors = trimesh.visual.interpolate(np.arange(reference_mesh.vertices.shape[0]), color_map="gist_ncar")
     pc_t = trimesh.points.PointCloud(reference_mesh.vertices, colors=colors)
 
     # Color query mesh according to the found correspondences
-    colors_query = pc_t.colors[correspondences]
+    colors_query = pc_t.colors[ground_truth]
     pc_q = trimesh.points.PointCloud(query_mesh.vertices, colors=colors_query)
 
     # Put target and query mesh side by side
@@ -19,6 +32,10 @@ def draw_correspondences(query_mesh, reference_mesh, correspondences):
     for x in [1, 2]:
         pc_t[:, x] = pc_t[:, x] - pc_t.vertices[:, x].min()
         pc_q[:, x] = pc_q[:, x] - pc_q.vertices[:, x].min()
+
+    # TODO
+    if predictions is not None:
+        pass
 
     to_visualize = [pc_t, pc_q]
     trimesh.Scene(to_visualize).show()
