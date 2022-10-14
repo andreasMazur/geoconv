@@ -27,8 +27,9 @@ class ConvGeodesic(Layer):
                  output_dim,
                  amt_kernel,
                  activation="relu",
-                 name=None,
                  rotation_delta=1,
+                 splits=2,
+                 name=None,
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  initializer="glorot_uniform"):
@@ -45,6 +46,7 @@ class ConvGeodesic(Layer):
         self.kernel_regularizer = kernel_regularizer
         self.bias_regularizer = bias_regularizer
         self.initializer = initializer
+        self.splits = splits
 
         # Attributes that depend on the data and are set automatically in build
         self._kernel_size = None  # (#radial, #angular)
@@ -130,10 +132,15 @@ class ConvGeodesic(Layer):
         interpolation_fn = lambda bc: self._interpolate(mesh_signal, bc)
         mesh_signal = tf.vectorized_map(interpolation_fn, barycentric_coords)
 
-        mesh_signal = tf.vectorized_map(self._fold, mesh_signal)
+        idx = tf.constant(0)
+        new_signal = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
+        for subset in tf.split(mesh_signal, self.splits):
+            new_signal = new_signal.write(idx, tf.vectorized_map(self._fold, subset))
+            idx = idx + tf.constant(1)
+        new_signal = new_signal.concat()
 
         # Shape result: (n_gpc_systems, n_rotations, self.output_dim)
-        return mesh_signal
+        return new_signal
 
     @tf.function
     def _fold(self, interpolations):
