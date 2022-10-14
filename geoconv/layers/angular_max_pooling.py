@@ -11,7 +11,6 @@ class AngularMaxPooling(Layer):
     @tf.function
     def call(self, inputs):
 
-        test = self._amp(inputs[0])
         return tf.map_fn(self._amp, inputs)
 
     @tf.function
