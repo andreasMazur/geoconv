@@ -134,8 +134,8 @@ class ConvGeodesic(Layer):
 
         idx = tf.constant(0)
         new_signal = tf.TensorArray(tf.float32, size=0, dynamic_size=True, clear_after_read=False)
-        for subset in tf.split(mesh_signal, self.splits):
-            new_signal = new_signal.write(idx, tf.vectorized_map(self._fold, subset))
+        for interpolations in tf.split(mesh_signal, self.splits):
+            new_signal = new_signal.write(idx, self._fold(interpolations))
             idx = idx + tf.constant(1)
         new_signal = new_signal.concat()
 
@@ -147,20 +147,20 @@ class ConvGeodesic(Layer):
 
         # Compute rotations: (n_rotations, n_radial, n_angular, input_dim)
         # n_rotations = ceil(self.all_rotations / self.rotation_delta)
-        all_rotations_fn = lambda rot: tf.roll(interpolations, shift=rot, axis=1)
+        all_rotations_fn = lambda rot: tf.roll(interpolations, shift=rot, axis=2)
         interpolations = tf.vectorized_map(
             all_rotations_fn, tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
         )
-        interpolations = tf.expand_dims(interpolations, axis=3)
+        interpolations = tf.expand_dims(interpolations, axis=4)
 
         # Compute convolution
-        # Shape kernel: (             n_radial, n_angular, n_kernel, self.output_dim, input_dim)
-        # Shape input : (n_rotations, n_radial, n_angular,        1,                  input_dim)
-        # Shape result: (n_rotations, n_radial, n_angular, n_kernel, self.output_dim           )
-        interpolations = tf.reduce_sum(tf.linalg.matvec(self._kernel, interpolations) + self._bias, axis=[1, 2, 3])
+        # Shape kernel: (             subset, n_radial, n_angular, n_kernel, self.output_dim, input_dim)
+        # Shape input : (n_rotations, subset, n_radial, n_angular,        1,                  input_dim)
+        # Shape result: (n_rotations, subset, n_radial, n_angular, n_kernel, self.output_dim           )
+        interpolations = tf.reduce_sum(tf.linalg.matvec(self._kernel, interpolations) + self._bias, axis=[2, 3, 4])
 
         # Output dim: (n_rotations, self.output_dim)
-        return interpolations
+        return tf.transpose(interpolations, perm=[1, 0, 2])
 
     @tf.function
     def _interpolate(self, signal, bary_coords):
