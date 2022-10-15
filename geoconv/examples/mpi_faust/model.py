@@ -2,7 +2,7 @@ from tensorflow.keras import Model
 
 import tensorflow as tf
 
-BATCH_SIZE = 3445
+BATCH_SIZE = 65
 
 
 class PointCorrespondenceGeoCNN(Model):
@@ -11,11 +11,12 @@ class PointCorrespondenceGeoCNN(Model):
     def train_step(self, data):
         (signal, barycentric), ground_truth = data
 
-        trainable_vars = self.trainable_variables
-        with tf.GradientTape(persistent=True) as tape:
+        with tf.GradientTape() as tape:
             y_pred = self([signal, barycentric], training=True)
             loss = self.compiled_loss(ground_truth, y_pred)
+            loss = tf.math.reduce_sum(tf.stack(tf.split(loss, BATCH_SIZE)), axis=0)
 
+        trainable_vars = self.trainable_variables
         gradients = tape.gradient(loss, trainable_vars)
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
