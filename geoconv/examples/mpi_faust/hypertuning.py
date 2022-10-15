@@ -1,5 +1,6 @@
 from tensorflow.keras import layers
 
+from geoconv.examples.mpi_faust.model import PointCorrespondenceGeoCNN
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.examples.mpi_faust.tf_dataset import load_preprocessed_faust, faust_mean_variance
 from geoconv.layers.geodesic_conv import ConvGeodesic
@@ -62,7 +63,7 @@ class GeoConvHyperModel(kt.HyperModel):
         logits = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (1, -1, t.shape[1])))(signal)
 
         # Declare model
-        model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
+        model = PointCorrespondenceGeoCNN(inputs=[signal_input, bary_input], outputs=[logits])
 
         # Compile model
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
@@ -84,10 +85,10 @@ def faust_hypertuning(path_preprocessed_dataset,
 
     # Load dataset
     tf_faust_dataset = load_preprocessed_faust(
-        path_preprocessed_dataset, amt_nodes, signal_dim, kernel_size=kernel_size
+        path_preprocessed_dataset, signal_dim, kernel_size=kernel_size
     )
     tf_faust_dataset_val = load_preprocessed_faust(
-        path_preprocessed_dataset, amt_nodes, signal_dim, kernel_size=kernel_size, val=True
+        path_preprocessed_dataset, signal_dim, kernel_size=kernel_size, val=True
     )
     faust_mean, faust_var = faust_mean_variance(tf_faust_dataset)
 
