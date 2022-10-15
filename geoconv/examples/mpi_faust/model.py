@@ -11,14 +11,16 @@ class PointCorrespondenceGeoCNN(Model):
     def train_step(self, data):
         (signal, barycentric), ground_truth = data
 
-        with tf.GradientTape() as tape:
+        with tf.GradientTape(persistent=True) as tape:
             y_pred = self([signal, barycentric], training=True)
             loss = self.compiled_loss(ground_truth, y_pred)
             loss = tf.math.reduce_sum(tf.stack(tf.split(loss, BATCH_SIZE)), axis=1)
 
         trainable_vars = self.trainable_variables
-        gradients = tape.gradient(loss, trainable_vars)
-        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        # gradients = tape.gradient(loss, trainable_vars)
+        gradients = tape.jacobian(loss, trainable_vars, experimental_use_pfor=False)
+        for i in tf.range(BATCH_SIZE):
+            self.optimizer.apply_gradients(zip([g[i] for g in gradients], trainable_vars))
 
         self.compiled_metrics.update_state(ground_truth, y_pred)
         return {m.name: m.result() for m in self.metrics}
