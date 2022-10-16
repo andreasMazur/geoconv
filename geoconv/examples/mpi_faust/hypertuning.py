@@ -59,7 +59,10 @@ class GeoConvHyperModel(kt.HyperModel):
         model = PointCorrespondenceGeoCNN(inputs=[signal_input, bary_input], outputs=[logits])
 
         # Compile model
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        loss = tf.keras.losses.SparseCategoricalCrossentropy(
+            from_logits=True,
+            reduction=tf.keras.losses.Reduction.NONE
+        )
         opt = tf.keras.optimizers.Adam(
             learning_rate=hp.Float(name="learning_rate", min_value=0.00001, max_value=0.001, step=0.00001)
         )
