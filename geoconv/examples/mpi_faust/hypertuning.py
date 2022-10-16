@@ -38,36 +38,24 @@ class GeoConvHyperModel(kt.HyperModel):
 
         signal = layers.Dense(16, activation="relu")(signal)
 
-        amt_kernel = hp.Int("amt_kernel", min_value=1, max_value=4, step=1,)
+        # amt_kernel = hp.Int("amt_kernel", min_value=1, max_value=4, step=1,)
         signal = ConvGeodesic(
-            output_dim=16, amt_kernel=amt_kernel, activation="relu", rotation_delta=4
+            output_dim=16, amt_kernel=4, activation="relu", rotation_delta=2, splits=10
         )([signal, bary_input])
         signal = amp(signal)
 
         signal = ConvGeodesic(
-            output_dim=32, amt_kernel=amt_kernel, activation="relu", rotation_delta=4
+            output_dim=32, amt_kernel=4, activation="relu", rotation_delta=2, splits=10
         )([signal, bary_input])
         signal = amp(signal)
 
         signal = ConvGeodesic(
-            output_dim=32, amt_kernel=amt_kernel, activation="relu", rotation_delta=4
+            output_dim=32, amt_kernel=4, activation="relu", rotation_delta=2, splits=10
         )([signal, bary_input])
         signal = amp(signal)
 
-        signal = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (-1, t.shape[2])))(signal)
-        signal = layers.Dense(
-            256,
-            kernel_regularizer=tf.keras.regularizers.L2(
-                l2=hp.Float(name="dense_1_reg", min_value=0.00, max_value=0.05, step=0.01)
-            )
-        )(signal)
-        signal = layers.Dense(
-            self.amt_target_nodes,
-            kernel_regularizer=tf.keras.regularizers.L2(
-                l2=hp.Float(name="dense_2_reg", min_value=0.00, max_value=0.05, step=0.01)
-            )
-        )(signal)
-        logits = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (1, -1, t.shape[1])))(signal)
+        signal = layers.Dense(256)(signal)
+        logits = layers.Dense(self.amt_target_nodes)(signal)
 
         # Declare model
         model = PointCorrespondenceGeoCNN(inputs=[signal_input, bary_input], outputs=[logits])
