@@ -65,8 +65,8 @@ class GeoConvHyperModel(kt.HyperModel):
         )
         opt = tf.keras.optimizers.Adam(
             learning_rate=hp.Float(name="learning_rate", min_value=0.00001, max_value=0.001, step=0.00001),
-            beta_1=hp.Float(name="beta_2", min_value=0.8, max_value=0.99, step=0.01),
-            beta_2=hp.Float(name="beta_1", min_value=0.998, max_value=0.9999, step=0.0001),
+            beta_1=hp.Float(name="beta_1", min_value=0.8, max_value=0.99, step=0.01),
+            beta_2=hp.Float(name="beta_2", min_value=0.998, max_value=0.9999, step=0.0001),
         )
         model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
