@@ -30,7 +30,7 @@ def define_model(signal_shape,
     signal = Dense(16, activation="relu")(signal)
 
     signal = ConvGeodesic(
-        output_dim=16,
+        output_dim=32,
         amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
@@ -39,8 +39,8 @@ def define_model(signal_shape,
     signal = amp(signal)
 
     signal = ConvGeodesic(
-        output_dim=32,
-        amt_kernel=1,
+        output_dim=64,
+        amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
         splits=amt_splits
@@ -48,8 +48,8 @@ def define_model(signal_shape,
     signal = amp(signal)
 
     signal = ConvGeodesic(
-        output_dim=32,
-        amt_kernel=1,
+        output_dim=128,
+        amt_kernel=amt_kernel,
         activation="relu",
         rotation_delta=rotation_delta,
         splits=amt_splits

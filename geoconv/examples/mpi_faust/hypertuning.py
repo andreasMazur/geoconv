@@ -38,17 +38,17 @@ class GeoConvHyperModel(kt.HyperModel):
 
         # amt_kernel = hp.Int("amt_kernel", min_value=1, max_value=4, step=1,)
         signal = ConvGeodesic(
-            output_dim=16, amt_kernel=4, activation="relu", rotation_delta=2, splits=10
+            output_dim=32, amt_kernel=4, activation="relu", rotation_delta=2, splits=26
         )([signal, bary_input])
         signal = amp(signal)
 
         signal = ConvGeodesic(
-            output_dim=32, amt_kernel=4, activation="relu", rotation_delta=2, splits=10
+            output_dim=64, amt_kernel=4, activation="relu", rotation_delta=2, splits=26
         )([signal, bary_input])
         signal = amp(signal)
 
         signal = ConvGeodesic(
-            output_dim=32, amt_kernel=4, activation="relu", rotation_delta=2, splits=10
+            output_dim=128, amt_kernel=4, activation="relu", rotation_delta=2, splits=26
         )([signal, bary_input])
         signal = amp(signal)
 
