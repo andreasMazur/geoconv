@@ -12,7 +12,7 @@ class PointCorrespondenceGeoCNN(Model):
         (signal, barycentric), ground_truth = data
 
         trainable_vars = self.trainable_variables
-        with tf.GradientTape(persistent=True) as tape:
+        with tf.GradientTape() as tape:
             y_pred = self([signal, barycentric], training=True)
             loss = self.compiled_loss(ground_truth, y_pred)
             loss = tf.math.reduce_mean(tf.stack(tf.split(loss, AMT_BATCHES)), axis=1)
