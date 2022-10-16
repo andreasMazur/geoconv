@@ -15,7 +15,8 @@ class PointCorrespondenceGeoCNN(Model):
         with tf.GradientTape(persistent=True) as tape:
             y_pred = self([signal, barycentric], training=True)
             loss = self.compiled_loss(ground_truth, y_pred)
-            for batch_losses in tf.stack(tf.split(loss, BATCH_SIZE)):
+            loss = tf.math.reduce_mean(tf.stack(tf.split(loss, BATCH_SIZE)), axis=1)
+            for batch_losses in loss:
                 with tape.stop_recording():
                     gradients = tape.gradient(batch_losses, trainable_vars)
                     self.optimizer.apply_gradients(zip(gradients, trainable_vars))
