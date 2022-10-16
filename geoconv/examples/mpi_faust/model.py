@@ -2,7 +2,7 @@ from tensorflow.keras import Model
 
 import tensorflow as tf
 
-AMT_BATCHES = 130
+AMT_BATCHES = 265
 
 
 class PointCorrespondenceGeoCNN(Model):
