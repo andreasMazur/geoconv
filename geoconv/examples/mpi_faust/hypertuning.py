@@ -14,9 +14,9 @@ class GeoConvHyperModel(kt.HyperModel):
     def __init__(self,
                  dataset_mean,
                  dataset_var,
-                 input_dim=144,
+                 input_dim=3,
                  amt_target_nodes=6890,
-                 kernel_size=(2, 4)):
+                 kernel_size=(3, 8)):
         super().__init__()
         self.dataset_mean = dataset_mean
         self.dataset_var = dataset_var
@@ -70,11 +70,9 @@ class GeoConvHyperModel(kt.HyperModel):
 
 def faust_hypertuning(path_preprocessed_dataset,
                       run_id,
-                      signal_dim=544,
-                      amt_nodes=4502,
+                      signal_dim=3,
                       amt_target_nodes=6890,
-                      kernel_size=(7, 16),
-                      batch_size=1):
+                      kernel_size=(3, 8)):
 
     # Load dataset
     tf_faust_dataset = load_preprocessed_faust(
@@ -92,7 +90,6 @@ def faust_hypertuning(path_preprocessed_dataset,
             dataset_mean=faust_mean,
             dataset_var=faust_var,
             input_dim=signal_dim,
-            amt_nodes=amt_nodes,
             amt_target_nodes=amt_target_nodes,
             kernel_size=kernel_size
         ),
@@ -115,8 +112,8 @@ def faust_hypertuning(path_preprocessed_dataset,
 
     # Initiate hyperparameter search
     tuner.search(
-        x=tf_faust_dataset.batch(batch_size).shuffle(5, reshuffle_each_iteration=True),
-        validation_data=tf_faust_dataset_val.batch(batch_size).prefetch(tf.data.AUTOTUNE),
+        x=tf_faust_dataset.prefetch(tf.data.AUTOTUNE),
+        validation_data=tf_faust_dataset_val.prefetch(tf.data.AUTOTUNE),
         epochs=200,
         callbacks=[stop]  # tensorboard
     )
