@@ -15,18 +15,18 @@ def faust_generator(path_to_zip, val=False, load_meshes=False):
 
     dataset = np.load(path_to_zip, allow_pickle=True)
     file_names = dataset.files
-    SHOT = [file_name for file_name in file_names if file_name.startswith("COORDS")]
+    SIGNAL = [file_name for file_name in file_names if file_name.startswith("COORDS")]
     BC = [file_name for file_name in file_names if file_name.startswith("BC")]
     GT = [file_name for file_name in file_names if file_name.startswith("GT")]
-    SHOT.sort(), BC.sort(), GT.sort()
+    SIGNAL.sort(), BC.sort(), GT.sort()
 
     if val:
-        indices = range(90, 100)
+        indices = range(80, 100)
     else:
-        indices = range(90)
+        indices = range(80)
 
     for idx in indices:
-        coordinates = tf.cast(dataset[SHOT[idx]], tf.float32)
+        coordinates = tf.cast(dataset[SIGNAL[idx]], tf.float32)
         bc = tf.cast(dataset[BC[idx]], tf.float32)
         # Return the indices of the ones for each row
         # (as required by `tf.keras.losses.SparseCategoricalCrossentropy`)
