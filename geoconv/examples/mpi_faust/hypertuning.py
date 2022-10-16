@@ -38,13 +38,20 @@ class GeoConvHyperModel(kt.HyperModel):
 
         signal = layers.Dense(16, activation="relu")(signal)
 
-        signal = ConvGeodesic(output_dim=16, amt_kernel=4, activation="relu", rotation_delta=4)([signal, bary_input])
+        amt_kernel = hp.Int("amt_kernel", min_value=1, max_value=4, step=1,)
+        signal = ConvGeodesic(
+            output_dim=16, amt_kernel=amt_kernel, activation="relu", rotation_delta=4
+        )([signal, bary_input])
         signal = amp(signal)
 
-        signal = ConvGeodesic(output_dim=32, amt_kernel=1, activation="relu", rotation_delta=4)([signal, bary_input])
+        signal = ConvGeodesic(
+            output_dim=32, amt_kernel=amt_kernel, activation="relu", rotation_delta=4
+        )([signal, bary_input])
         signal = amp(signal)
 
-        signal = ConvGeodesic(output_dim=32, amt_kernel=1, activation="relu", rotation_delta=4)([signal, bary_input])
+        signal = ConvGeodesic(
+            output_dim=32, amt_kernel=amt_kernel, activation="relu", rotation_delta=4
+        )([signal, bary_input])
         signal = amp(signal)
 
         signal = tf.keras.layers.Lambda(lambda t: tf.reshape(t, (-1, t.shape[2])))(signal)
@@ -68,7 +75,7 @@ class GeoConvHyperModel(kt.HyperModel):
         # Compile model
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.Adam(
-            learning_rate=hp.Float(name="learning_rate", min_value=0.00001, max_value=0.01, step=0.00001)
+            learning_rate=hp.Float(name="learning_rate", min_value=0.00001, max_value=0.001, step=0.00001)
         )
         model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
