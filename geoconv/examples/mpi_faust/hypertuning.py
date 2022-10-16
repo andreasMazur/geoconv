@@ -15,13 +15,11 @@ class GeoConvHyperModel(kt.HyperModel):
                  dataset_mean,
                  dataset_var,
                  input_dim=144,
-                 amt_nodes=6890,
                  amt_target_nodes=6890,
                  kernel_size=(2, 4)):
         super().__init__()
         self.dataset_mean = dataset_mean
         self.dataset_var = dataset_var
-        self.amt_nodes = amt_nodes
         self.amt_target_nodes = amt_target_nodes
         self.kernel_size = kernel_size
         self.input_dim = input_dim
@@ -29,9 +27,9 @@ class GeoConvHyperModel(kt.HyperModel):
     def build(self, hp):
         # Define model
         amp = AngularMaxPooling()
-        signal_input = layers.Input(shape=(self.amt_nodes, self.input_dim), name="Signal")
+        signal_input = layers.Input(shape=(self.input_dim,), name="Signal")
         bary_input = layers.Input(
-            shape=(self.amt_nodes, self.kernel_size[0], self.kernel_size[1], 3, 2), name="Barycentric"
+            shape=(self.kernel_size[0], self.kernel_size[1], 3, 2), name="Barycentric"
         )
         signal = layers.Normalization(axis=None, mean=self.dataset_mean, variance=self.dataset_var)(signal_input)
         signal = layers.Dropout(rate=hp.Float(name="dropout_rate", min_value=.0, max_value=.3, step=.1))(signal)
