@@ -7,17 +7,29 @@ import tensorflow as tf
 
 
 class ResNetBlock(Layer):
-    def __init__(self, amt_kernel, rotation_delta, amt_splits):
+    def __init__(self, input_dim, amt_kernel, rotation_delta, amt_splits):
         super(ResNetBlock, self).__init__()
-        self.to_be_initialized = True
+
         self.amt_kernel = amt_kernel
         self.rotation_delta = rotation_delta
         self.amt_splits = amt_splits
 
-        self.geoconv_1 = None
+        self.geoconv_1 = ConvGeodesic(
+            output_dim=input_dim,
+            amt_kernel=self.amt_kernel,
+            activation="linear",
+            rotation_delta=self.rotation_delta,
+            splits=self.amt_splits
+        )
         self.bn_1 = BatchNormalization()
 
-        self.geoconv_2 = None
+        self.geoconv_2 = ConvGeodesic(
+            output_dim=input_dim,
+            amt_kernel=self.amt_kernel,
+            activation="linear",
+            rotation_delta=self.rotation_delta,
+            splits=self.amt_splits
+        )
         self.bn_2 = BatchNormalization()
 
         self.amp = AngularMaxPooling()
@@ -25,25 +37,10 @@ class ResNetBlock(Layer):
         self.add = Add()
         self.activation = Activation("relu")
 
+    @tf.function
     def call(self, inputs):
         signal_input, barycentric = inputs
-        signal_dim = tf.shape(signal_input)[1]
-        if self.to_be_initialized:
-            self.geoconv_1 = ConvGeodesic(
-                output_dim=signal_dim,
-                amt_kernel=self.amt_kernel,
-                activation="linear",
-                rotation_delta=self.rotation_delta,
-                splits=self.amt_splits
-            )
-            self.geoconv_2 = ConvGeodesic(
-                output_dim=signal_dim,
-                amt_kernel=self.amt_kernel,
-                activation="linear",
-                rotation_delta=self.rotation_delta,
-                splits=self.amt_splits
-            )
-            self.to_be_initialized = False
+
         signal = self.geoconv_1([signal_input, barycentric])
         signal = self.amp(signal)
         signal = self.bn_1(signal)
