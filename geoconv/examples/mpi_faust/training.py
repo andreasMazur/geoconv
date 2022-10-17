@@ -49,7 +49,6 @@ def define_model(signal_shape,
     opt = tf.keras.optimizers.Adam(learning_rate=lr)
     model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])  # , run_eagerly=True
     model.summary()
-    tf.keras.utils.plot_model(model)
     return model
 
 
