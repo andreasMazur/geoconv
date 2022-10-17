@@ -1,5 +1,5 @@
 from tensorflow.keras import Input
-from tensorflow.keras.layers import Dense, Normalization, Dropout, Reshape, BatchNormalization
+from tensorflow.keras.layers import Dense, Normalization, Dropout, Reshape, BatchNormalization, Concatenate
 
 from geoconv.examples.mpi_faust.model import PointCorrespondenceGeoCNN
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
@@ -22,9 +22,10 @@ def define_model(signal_shape,
     bary_input = Input(shape=bc_shape, name="barycentric")
     amp = AngularMaxPooling()
 
-    signal = Normalization(axis=None, mean=dataset_mean, variance=dataset_var)(signal_input)
-    signal = Dropout(rate=dropout)(signal)
+    dropout_signal = Normalization(axis=None, mean=dataset_mean, variance=dataset_var)(signal_input)
+    dropout_signal = Dropout(rate=dropout)(dropout_signal)
 
+    geo_conv_signals = []
     for (dim, amt_kernel, rotation_delta, amt_splits) in parameter_list:
         signal = ConvGeodesic(
             output_dim=dim,
@@ -32,10 +33,12 @@ def define_model(signal_shape,
             activation="relu",
             rotation_delta=rotation_delta,
             splits=amt_splits
-        )([signal, bary_input])
-        signal = amp(signal)
-        signal = BatchNormalization()(signal)
+        )([dropout_signal, bary_input])
+        geo_conv_signals.append(signal)
 
+    signal = Concatenate(axis=1)(geo_conv_signals)
+    signal = amp(signal)
+    signal = BatchNormalization()(signal)
     logits = Dense(target_dim)(signal)
 
     model = PointCorrespondenceGeoCNN(inputs=[signal_input, bary_input], outputs=[logits])
@@ -46,6 +49,7 @@ def define_model(signal_shape,
     opt = tf.keras.optimizers.Adam(learning_rate=lr)
     model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])  # , run_eagerly=True
     model.summary()
+    tf.keras.utils.plot_model(model)
     return model
 
 
