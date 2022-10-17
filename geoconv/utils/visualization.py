@@ -27,6 +27,8 @@ def draw_correspondences(query_mesh, reference_mesh, ground_truth, predictions=N
     colors_query = pc_t.colors[ground_truth]
     pc_q = trimesh.points.PointCloud(query_mesh.vertices, colors=colors_query)
 
+    # pc_t.vertices = pc_t.vertices - pc_t.centroid
+    # pc_q.vertices = pc_q.vertices - pc_q.centroid
     # m = np.concatenate([pc_t.vertices, pc_q.vertices]).mean()
     # v = np.concatenate([pc_t.vertices, pc_q.vertices]).var()
     # pc_t.vertices = (pc_t.vertices - m) / v
