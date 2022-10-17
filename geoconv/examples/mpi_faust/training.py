@@ -1,5 +1,5 @@
 from tensorflow.keras import Input
-from tensorflow.keras.layers import Dense, Normalization, Dropout, Reshape
+from tensorflow.keras.layers import Dense, Normalization, Dropout, Reshape, BatchNormalization
 
 from geoconv.examples.mpi_faust.model import PointCorrespondenceGeoCNN
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
@@ -10,14 +10,12 @@ import tensorflow as tf
 
 def define_model(signal_shape,
                  bc_shape,
-                 output_dim,
+                 target_dim,
                  dataset_mean,
                  dataset_var,
-                 amt_kernel=1,
-                 rotation_delta=1,
+                 parameter_list,
                  lr=.00045,
-                 dropout=.2,
-                 amt_splits=10):
+                 dropout=.2):
 
     # Define model
     signal_input = Input(shape=signal_shape, name="signal")
@@ -27,37 +25,18 @@ def define_model(signal_shape,
     signal = Normalization(axis=None, mean=dataset_mean, variance=dataset_var)(signal_input)
     signal = Dropout(rate=dropout)(signal)
 
-    signal = Dense(16, activation="relu")(signal)
+    for (dim, amt_kernel, rotation_delta, amt_splits) in parameter_list:
+        signal = ConvGeodesic(
+            output_dim=dim,
+            amt_kernel=amt_kernel,
+            activation="relu",
+            rotation_delta=rotation_delta,
+            splits=amt_splits
+        )([signal, bary_input])
+        signal = amp(signal)
+        signal = BatchNormalization()(signal)
 
-    signal = ConvGeodesic(
-        output_dim=32,
-        amt_kernel=amt_kernel,
-        activation="relu",
-        rotation_delta=rotation_delta,
-        splits=amt_splits
-    )([signal, bary_input])
-    signal = amp(signal)
-
-    signal = ConvGeodesic(
-        output_dim=64,
-        amt_kernel=amt_kernel,
-        activation="relu",
-        rotation_delta=rotation_delta,
-        splits=amt_splits
-    )([signal, bary_input])
-    signal = amp(signal)
-
-    signal = ConvGeodesic(
-        output_dim=128,
-        amt_kernel=amt_kernel,
-        activation="relu",
-        rotation_delta=rotation_delta,
-        splits=amt_splits
-    )([signal, bary_input])
-    signal = amp(signal)
-
-    signal = Dense(256)(signal)
-    logits = Dense(output_dim)(signal)
+    logits = Dense(target_dim)(signal)
 
     model = PointCorrespondenceGeoCNN(inputs=[signal_input, bary_input], outputs=[logits])
     loss = tf.keras.losses.SparseCategoricalCrossentropy(
