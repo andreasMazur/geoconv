@@ -18,7 +18,7 @@ class ResNetBlock(Layer):
         self.geoconv_1 = ConvGeodesic(
             output_dim=input_dim,
             amt_kernel=self.amt_kernel,
-            activation="linear",
+            activation="relu",
             rotation_delta=self.rotation_delta,
             splits=self.amt_splits
         )
@@ -27,7 +27,7 @@ class ResNetBlock(Layer):
         self.geoconv_2 = ConvGeodesic(
             output_dim=input_dim,
             amt_kernel=self.amt_kernel,
-            activation="linear",
+            activation="relu",
             rotation_delta=self.rotation_delta,
             splits=self.amt_splits
         )
@@ -45,12 +45,12 @@ class ResNetBlock(Layer):
         signal = self.geoconv_1([signal_input, barycentric])
         signal = self.amp(signal)
         signal = self.bn_1(signal)
-        signal = self.activation(signal)
+        # signal = self.activation(signal)
 
         signal = self.geoconv_2([signal, barycentric])
         signal = self.amp(signal)
         signal = self.bn_2(signal)
-        signal = self.activation(signal)
+        # signal = self.activation(signal)
 
         signal = self.add([signal, signal_input])
         return signal
