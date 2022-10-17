@@ -13,6 +13,7 @@ class ResNetBlock(Layer):
         self.amt_kernel = amt_kernel
         self.rotation_delta = rotation_delta
         self.amt_splits = amt_splits
+        self.input_dim = input_dim
 
         self.geoconv_1 = ConvGeodesic(
             output_dim=input_dim,
@@ -53,3 +54,13 @@ class ResNetBlock(Layer):
 
         signal = self.add([signal, signal_input])
         return signal
+
+    def get_config(self):
+        config = super(ResNetBlock, self).get_config()
+        config.update({
+            "amt_kernel": self.amt_kernel,
+            "rotation_delta": self.rotation_delta,
+            "amt_splits": self.amt_splits,
+            "input_dim": self.input_dim
+        })
+        return config
