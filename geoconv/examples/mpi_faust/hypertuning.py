@@ -25,34 +25,36 @@ class GeoConvHyperModel(kt.HyperModel):
         self.input_dim = input_dim
 
     def build(self, hp):
-        # Define model
+
         amp = AngularMaxPooling()
         signal_input = layers.Input(shape=(self.input_dim,), name="Signal")
         bary_input = layers.Input(
             shape=(self.kernel_size[0], self.kernel_size[1], 3, 2), name="Barycentric"
         )
-        signal = layers.Normalization(axis=None, mean=self.dataset_mean, variance=self.dataset_var)(signal_input)
-        signal = layers.Dropout(rate=hp.Float(name="dropout_rate", min_value=.0, max_value=.3, step=.1))(signal)
+        dropout_signal = layers.Normalization(
+            axis=None, mean=self.dataset_mean, variance=self.dataset_var
+        )(signal_input)
+        dropout_signal = layers.Dropout(
+            rate=hp.Float(name="dropout_rate", min_value=.0, max_value=.1, step=.02)
+        )(dropout_signal)
 
-        signal = layers.Dense(16, activation="relu")(signal)
+        signal_1 = ConvGeodesic(
+            output_dim=128, amt_kernel=2, activation="relu", rotation_delta=1, splits=5
+        )([dropout_signal, bary_input])
+        signal_2 = ConvGeodesic(
+            output_dim=128, amt_kernel=2, activation="relu", rotation_delta=1, splits=5
+        )([dropout_signal, bary_input])
+        signal_3 = ConvGeodesic(
+            output_dim=128, amt_kernel=2, activation="relu", rotation_delta=1, splits=5
+        )([dropout_signal, bary_input])
+        signal_4 = ConvGeodesic(
+            output_dim=128, amt_kernel=2, activation="relu", rotation_delta=1, splits=5
+        )([dropout_signal, bary_input])
 
-        # amt_kernel = hp.Int("amt_kernel", min_value=1, max_value=4, step=1,)
-        signal = ConvGeodesic(
-            output_dim=32, amt_kernel=4, activation="relu", rotation_delta=2, splits=26
-        )([signal, bary_input])
+        signal = layers.Concatenate(axis=1)([signal_1, signal_2, signal_3, signal_4])
         signal = amp(signal)
-
-        signal = ConvGeodesic(
-            output_dim=64, amt_kernel=4, activation="relu", rotation_delta=2, splits=26
-        )([signal, bary_input])
-        signal = amp(signal)
-
-        signal = ConvGeodesic(
-            output_dim=128, amt_kernel=4, activation="relu", rotation_delta=2, splits=26
-        )([signal, bary_input])
-        signal = amp(signal)
-
-        signal = layers.Dense(256)(signal)
+        signal = layers.BatchNormalization()(signal)
+        signal = layers.Dense(8, activation="relu")(signal)
         logits = layers.Dense(self.amt_target_nodes)(signal)
 
         # Declare model
@@ -64,7 +66,7 @@ class GeoConvHyperModel(kt.HyperModel):
             reduction=tf.keras.losses.Reduction.NONE
         )
         opt = tf.keras.optimizers.Adam(
-            learning_rate=hp.Float(name="learning_rate", min_value=0.00001, max_value=0.001, step=0.00001),
+            learning_rate=hp.Float(name="learning_rate", min_value=0.00001, max_value=0.01, step=0.00002),
             beta_1=hp.Float(name="beta_1", min_value=0.8, max_value=0.99, step=0.01),
             beta_2=hp.Float(name="beta_2", min_value=0.998, max_value=0.9999, step=0.0001),
         )

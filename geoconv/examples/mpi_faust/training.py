@@ -39,6 +39,7 @@ def define_model(signal_shape,
     signal = Concatenate(axis=1)(geo_conv_signals)
     signal = amp(signal)
     signal = BatchNormalization()(signal)
+    signal = Dense(8, activation="relu")(signal)
     logits = Dense(target_dim)(signal)
 
     model = PointCorrespondenceGeoCNN(inputs=[signal_input, bary_input], outputs=[logits])
