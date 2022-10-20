@@ -11,3 +11,4 @@ pyglet==1.5.26
 matplotlib==3.5.2
 open3d==0.15.2
 networkx==2.8.6
+pygeodesic==0.1.7

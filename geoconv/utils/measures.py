@@ -1,6 +1,52 @@
+from matplotlib import pyplot as plt
+
 from geoconv.utils.misc import get_included_faces
 
+import pygeodesic.geodesic as geodesic
+import trimesh
 import numpy as np
+
+
+def princeton_benchmark(network, dataset, reference_mesh, file_name):
+    """Plots the accuracy w.r.t. a gradually changing geodesic error
+
+    Princeton benchmark has been introduced in:
+    > [Blended intrinsic maps](https://doi.org/10.1145/2010324.1964974)
+    > Vladimir G. Kim, Yaron Lipman and Thomas Funkhouser
+
+    Parameters
+    ----------
+    network: tf.keras.Model
+        The network to analyse
+    dataset: tf.data.Dataset
+        The dataset on which to evaluate
+    reference_mesh: str
+        A path to the reference mesh
+    file_name: str
+        The file name under which to store the plot and the data (without file format ending!)
+    """
+    # Calculating
+    reference_mesh = trimesh.load_mesh(reference_mesh)
+    geoalg = geodesic.PyGeodesicAlgorithmExact(reference_mesh.vertices, reference_mesh.faces)
+    geodesic_distances = []
+    for ((signal, barycentric), ground_truth) in dataset:
+        classification = np.array(network([signal, barycentric])).argmax(axis=1)
+        for (pred, gt) in np.stack([classification, np.array(ground_truth)], axis=1):
+            geodesic_distances.append(geoalg.geodesicDistance(gt, pred)[0])
+    geodesic_distances = np.array(geodesic_distances)
+    geodesic_distances.sort()
+
+    # Plotting
+    amt_values = geodesic_distances.shape[0]
+    arr = np.array([((i + 1) / amt_values, x) for (i, x) in zip(range(amt_values), geodesic_distances)])
+    plt.plot(arr[:, 1], arr[:, 0])
+    plt.title("Princeton Benchmark")
+    plt.xlabel("geodesic error")
+    plt.ylabel("% correct correspondences")
+    plt.grid()
+    plt.savefig(f"{file_name}.svg")
+    np.save(f"{file_name}.npy", arr)
+    plt.show()
 
 
 def kernel_coverage(object_mesh, gpc_system, bary_coordinates):
