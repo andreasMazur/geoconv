@@ -29,7 +29,10 @@ def princeton_benchmark(network, dataset, reference_mesh, file_name):
     reference_mesh = trimesh.load_mesh(reference_mesh)
     geoalg = geodesic.PyGeodesicAlgorithmExact(reference_mesh.vertices, reference_mesh.faces)
     geodesic_distances = []
+    idx = 0
     for ((signal, barycentric), ground_truth) in dataset:
+        print(f"Currently at mesh {idx}")
+        idx += 1
         classification = np.array(network([signal, barycentric])).argmax(axis=1)
         for (pred, gt) in np.stack([classification, np.array(ground_truth)], axis=1):
             geodesic_distances.append(geoalg.geodesicDistance(gt, pred)[0])
