@@ -4,6 +4,35 @@ import trimesh
 import numpy as np
 
 
+def draw_princeton_benchmark(paths, labels, figure_name):
+    """Visualizes the Princeton benchmark plots
+
+    Parameters
+    ----------
+    paths: list
+        A list of paths to the npy-files
+    labels: list
+        A list of labels in order with the paths
+    figure_name: str
+        The name of the figure
+    """
+    plt.yticks(np.linspace(0., 1., num=11))
+    for idx, path in enumerate(paths):
+        arr = np.load(path)
+        label_name = f"{labels[idx]} -" \
+                     f" Mean Error: {arr[:, 1].mean():.3f} -" \
+                     f" 80% at: {arr[np.argmax(arr[:, 0] >= .8)][1]:.3f}"
+        plt.plot(arr[:, 1], arr[:, 0], label=label_name)
+
+    plt.title("Princeton Benchmark")
+    plt.xlabel("geodesic error")
+    plt.ylabel("% correct correspondences")
+    plt.legend()
+    plt.grid()
+    plt.savefig(f"{figure_name}.svg")
+    plt.show()
+
+
 def draw_correspondences(query_mesh, reference_mesh, ground_truth, predictions=None):
     """Visualizes ground truth and predicted correspondences
 
@@ -70,6 +99,8 @@ def gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_m
     radial_coordinates[radial_coordinates == np.inf] = 0.0
     colors = trimesh.visual.interpolate(radial_coordinates, color_map="Reds")
     colors[center_vertex] = np.array([255, 255, 0, 255])
+    # colors[3445] = np.array([0, 0, 255, 255])
+    # colors[1095] = np.array([255, 0, 0, 255])
     point_cloud = trimesh.points.PointCloud(object_mesh.vertices, colors=colors)
     to_visualize = [object_mesh, point_cloud]
     trimesh.Scene(to_visualize).show()
