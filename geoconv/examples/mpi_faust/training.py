@@ -67,9 +67,11 @@ def train_on_faust(tf_faust_dataset,
     checkpoint_path = f"./training/{run}_cp.ckpt"
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path, save_freq='epoch', verbose=1)
 
+    stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
+
     model.fit(
         tf_faust_dataset.prefetch(tf.data.AUTOTUNE),
         epochs=200,
-        callbacks=[tensorboard_callback, cp_callback],
+        callbacks=[tensorboard_callback, cp_callback, stop],
         validation_data=tf_faust_dataset_val.prefetch(tf.data.AUTOTUNE)
     )
