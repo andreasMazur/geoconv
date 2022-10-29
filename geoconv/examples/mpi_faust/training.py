@@ -42,10 +42,11 @@ def define_model(signal_shape,
     signal = Dense(8, activation="relu")(signal)
     logits = Dense(target_dim)(signal)
 
-    model = PointCorrespondenceGeoCNN(inputs=[signal_input, bary_input], outputs=[logits])
+    # model = PointCorrespondenceGeoCNN(inputs=[signal_input, bary_input], outputs=[logits])
+    model = tf.keras.Model(inputs=[signal_input, bary_input], outputs=[logits])
     loss = tf.keras.losses.SparseCategoricalCrossentropy(
         from_logits=True,
-        reduction=tf.keras.losses.Reduction.NONE
+        # reduction=tf.keras.losses.Reduction.NONE
     )
     opt = tf.keras.optimizers.Adam(learning_rate=lr)
     model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])  # , run_eagerly=True
