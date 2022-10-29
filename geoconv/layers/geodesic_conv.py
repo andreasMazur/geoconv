@@ -131,7 +131,7 @@ class ConvGeodesic(Layer):
         new_signal = new_signal.concat()
 
         # Shape result: (n_gpc_systems, n_rotations, self.output_dim)
-        return new_signal
+        return self.activation(new_signal)
 
     @tf.function
     def _fold(self, interpolations):
