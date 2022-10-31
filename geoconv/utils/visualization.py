@@ -99,8 +99,6 @@ def gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_m
     radial_coordinates[radial_coordinates == np.inf] = 0.0
     colors = trimesh.visual.interpolate(radial_coordinates, color_map="Reds")
     colors[center_vertex] = np.array([255, 255, 0, 255])
-    # colors[3445] = np.array([0, 0, 255, 255])
-    # colors[1095] = np.array([255, 0, 0, 255])
     point_cloud = trimesh.points.PointCloud(object_mesh.vertices, colors=colors)
     to_visualize = [object_mesh, point_cloud]
     trimesh.Scene(to_visualize).show()
