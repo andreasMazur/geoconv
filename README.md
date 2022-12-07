@@ -16,7 +16,7 @@ This repository is still in development and might contain bugs.
 2. Clone and install **geoconv**:
      ```bash
      git clone https://github.com/andreasMazur/geoconv.git
-     cd ./layers
+     cd ./geoconv
      pip install -r requirements.txt
      pip install .
      ```
