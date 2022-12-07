@@ -7,6 +7,22 @@ import tensorflow as tf
 
 
 class ResNetBlock(Layer):
+    """A ResNet-block of geodesic convolutions
+
+    Careful: This class is experimental!
+
+    Attributes
+    ----------
+    input_dim:
+        The input dimension of the signal.
+    amt_kernel:
+        The amount of kernels to use in both geodesic convolutions.
+    rotation_delta:
+        The rotation delta for both geodesic convolutions.
+    amt_splits:
+        The amount of splits for both geodesic convolutions.
+    """
+
     def __init__(self, input_dim, amt_kernel, rotation_delta, amt_splits):
         super(ResNetBlock, self).__init__()
 

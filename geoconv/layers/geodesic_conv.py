@@ -4,7 +4,7 @@ import tensorflow as tf
 
 
 class ConvGeodesic(Layer):
-    """The Tensorflow implementation of the geodesic convolution
+    """The implementation of the geodesic convolution
 
     Paper, that introduced the geodesic convolution:
     > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
@@ -12,6 +12,8 @@ class ConvGeodesic(Layer):
 
     Attributes
     ----------
+    output_dim:
+        The dimensionality of the output vectors.
     amt_kernel:
         The amount of kernels to apply during one convolution.
     activation:
@@ -21,6 +23,10 @@ class ConvGeodesic(Layer):
         is to rotate the kernel `n` times, i.e. a shift in every angular coordinate of 1 to the next angular coordinate.
         If `rotation_delta = 2`, then the shift increases to 2 and the total amount of rotations reduces to
         ceil(n / rotation_delta). This gives a speed up and saves memory. However, quality of results might worsen.
+    splits:
+        The 'splits'-parameter determines into how many chunks the mesh signal is split. Each chunk will be folded
+        iteratively to save memory. That is, less splits allow a faster convolution. More splits allow reduced memory
+        usage. Careful: 'splits' has to divide the amount of vertices in the input mesh.
     """
 
     def __init__(self,
