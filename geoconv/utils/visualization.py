@@ -34,7 +34,7 @@ def draw_princeton_benchmark(paths, labels, figure_name):
 
 
 def draw_correspondences(query_mesh, reference_mesh, ground_truth, predictions=None):
-    """Visualizes ground truth and predicted correspondences
+    """TODO: Visualizes ground truth and predicted correspondences
 
     Parameters
     ----------

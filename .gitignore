@@ -6,6 +6,7 @@ training/
 misc/
 test_scripts/
 sutherland_hodgman/
+geoconv/examples/mpi_faust/mesh_signatures
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
