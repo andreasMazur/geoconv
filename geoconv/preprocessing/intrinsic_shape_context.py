@@ -44,7 +44,7 @@ def init_surface_bins(object_mesh, y, n_rays=10):
 def unfolding_procedure():
     """Propagate a path through multiple adjacent triangles across a triangle mesh
 
-    Paper, that introduced intrinsic shape context descriptors:
+    Paper, that introduced the computation of geodesic paths on manifolds:
     > [Computing Geodesic Paths on Manifolds](https://www.pnas.org/doi/abs/10.1073/pnas.95.15.8431)
     > Ron Kimmel and James A. Sethian
 
