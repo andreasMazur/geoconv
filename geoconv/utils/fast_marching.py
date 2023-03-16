@@ -12,8 +12,31 @@ STATUS_NARROW = "narrow"
 STATUS_FAR = "far"
 
 
+def get_4_neighborhood(idx):
+    """Calculates the 4-neighborhood of the node referred to by 'idx'
+
+    Parameters
+    ----------
+    idx: (int, int)
+        The center node around which to calculate the 4 neighborhood.
+
+    Returns
+    -------
+    list:
+        A list containing all valid neighbors of the node referred to by 'idx'
+    """
+
+    neighbors = [(idx[0] - 1, idx[1]),
+                 (idx[0] + 1, idx[1]),
+                 (idx[0], idx[1] - 1),
+                 (idx[0], idx[1] + 1)]
+
+    # Valid grid indices are greater than zero
+    return [n for n in neighbors if n[0] >= 0 and n[1] >= 0]
+
+
 def determine_next_node(G):
-    """Determines the node with smallest arrival time in the narrow band.
+    """Determines the node with the smallest arrival time in the narrow band.
 
     Parameters
     ----------
@@ -23,10 +46,16 @@ def determine_next_node(G):
     Returns
     -------
     (int, int):
-        The index of the node with the smallest arrival time in the narrow band
+        The index of the node with the smallest arrival time in the narrowband
     """
-    # TODO
-    return 0, 0
+
+    narrow_band = list({k: v for k, v in nx.get_node_attributes(G, KEY_STATUS).items() if v == STATUS_NARROW}.keys())
+    closest_node = narrow_band[0]
+    for idx in narrow_band[1:]:
+        if G.nodes[idx][KEY_ARRIVAL_TIME] < G.nodes[closest_node][KEY_ARRIVAL_TIME]:
+            closest_node = idx
+
+    return closest_node
 
 
 def fast_marching(grid_size=5, wave_speed=1, start_node=(1, 1), grid_spacing=1):
@@ -70,75 +99,39 @@ def fast_marching(grid_size=5, wave_speed=1, start_node=(1, 1), grid_spacing=1):
     G.nodes[start_node][KEY_STATUS] = STATUS_NARROW
     G.nodes[start_node][KEY_ARRIVAL_TIME] = 0.
 
-    while True:  # TODO: termination condition
+    grid_attributes = nx.get_node_attributes(G, KEY_STATUS).values()
+    while STATUS_FAR in grid_attributes or STATUS_NARROW in grid_attributes:
         closest_node_idx = determine_next_node(G)
         G.nodes[closest_node_idx][KEY_STATUS] = STATUS_ALIVE
 
-        for neighbor_key in [(closest_node_idx[0] - 1, closest_node_idx[1]),
-                             (closest_node_idx[0] + 1, closest_node_idx[1]),
-                             (closest_node_idx[0], closest_node_idx[1] - 1),
-                             (closest_node_idx[0], closest_node_idx[1] + 1)]:
-            if neighbor_key[0] >= 0 and neighbor_key[1] >= 0:
-                if G.nodes[neighbor_key][KEY_STATUS] != STATUS_ALIVE:
-                    G.nodes[neighbor_key][KEY_STATUS] = STATUS_NARROW
+        ########################################################
+        # Recompute arrival times for neighbors of closest node  TODO: Debug
+        ########################################################
+        for selected in get_4_neighborhood(closest_node_idx):
+            selected_neighbors = get_4_neighborhood(selected)
+            for neighbor_of_selected in selected_neighbors:
+                if G.nodes[neighbor_of_selected][KEY_STATUS] == STATUS_FAR:
+                    G.nodes[neighbor_of_selected][KEY_STATUS] = STATUS_NARROW
 
-                    ##########################
-                    # Recompute arrival times - TODO: Simplify
-                    ##########################
-                    t_ij = G.nodes[neighbor_key][KEY_ARRIVAL_TIME]
-                    mx = (neighbor_key[0] - 1, neighbor_key[1])  # TODO: Check whether node does not exceed boundaries
-                    d_mx = (t_ij - G.nodes[mx][KEY_ARRIVAL_TIME]) / grid_spacing
-                    px = (neighbor_key[0] + 1, neighbor_key[1])
-                    d_px = (t_ij - G.nodes[px][KEY_ARRIVAL_TIME]) / grid_spacing
-                    my = (neighbor_key[0], neighbor_key[1] - 1)
-                    d_my = (t_ij - G.nodes[my][KEY_ARRIVAL_TIME]) / grid_spacing
-                    py = (neighbor_key[0], neighbor_key[1] + 1)
-                    d_py = (t_ij - G.nodes[py][KEY_ARRIVAL_TIME]) / grid_spacing
+            # Determine values to solve quadratic equation
+            x_neighbors = [t for t in selected_neighbors if t[0] == selected[0]]
+            a = G.nodes[x_neighbors[0]][KEY_ARRIVAL_TIME]
+            for n in x_neighbors:
+                a = G.nodes[n][KEY_ARRIVAL_TIME] if a > G.nodes[n][KEY_ARRIVAL_TIME] else a
+            y_neighbors = [t for t in selected_neighbors if t[1] == selected[1]]
+            b = G.nodes[y_neighbors[0]][KEY_ARRIVAL_TIME]
+            for n in y_neighbors:
+                b = G.nodes[n][KEY_ARRIVAL_TIME] if a > G.nodes[n][KEY_ARRIVAL_TIME] else b
 
-                    # TODO: Simplify case matching
-                    d_x, d_y, f = max(d_mx, -d_px, 0), max(d_my, -d_py, 0), 1 / G.nodes[neighbor_key][KEY_VELOCITY]
-                    if d_x > 0 and d_y > 0:
-                        if d_mx >= -d_px:
-                            b = G.nodes[mx][KEY_ARRIVAL_TIME]
-                        else:
-                            b = G.nodes[px][KEY_ARRIVAL_TIME]
-                        if d_my >= -d_py:
-                            d = G.nodes[my][KEY_ARRIVAL_TIME]
-                        else:
-                            d = G.nodes[py][KEY_ARRIVAL_TIME]
-                        G.nodes[neighbor_key][KEY_ARRIVAL_TIME] = max(
-                            ((b + d) / 2) + np.sqrt(((-b - d) / 2) ** 2 - (b ** 2 + d ** 2 - (G.nodes[neighbor_key][KEY_VELOCITY] * grid_spacing) ** 2) / 2),
-                            ((b + d) / 2) - np.sqrt(((-b - d) / 2) ** 2 - (b ** 2 + d ** 2 - (G.nodes[neighbor_key][KEY_VELOCITY] * grid_spacing) ** 2) / 2)
-                        )
-                    elif d_x > 0:
-                        if d_mx >= -d_px:
-                            b = G.nodes[mx][KEY_ARRIVAL_TIME]
-                        else:
-                            b = G.nodes[px][KEY_ARRIVAL_TIME]
-                        G.nodes[neighbor_key][KEY_ARRIVAL_TIME] = max(
-                            b + np.sqrt(b ** 2 - (b ** 2 - (G.nodes[neighbor_key][KEY_VELOCITY] * grid_spacing) ** 2)),
-                            b - np.sqrt(b ** 2 - (b ** 2 - (G.nodes[neighbor_key][KEY_VELOCITY] * grid_spacing) ** 2))
-                        )
-                    elif d_y > 0:
-                        if d_my >= -d_py:
-                            d = G.nodes[my][KEY_ARRIVAL_TIME]
-                        else:
-                            d = G.nodes[py][KEY_ARRIVAL_TIME]
-                        G.nodes[neighbor_key][KEY_ARRIVAL_TIME] = max(
-                            d + np.sqrt(d ** 2 - (d ** 2 - (G.nodes[neighbor_key][KEY_VELOCITY] * grid_spacing) ** 2)),
-                            d - np.sqrt(d ** 2 - (d ** 2 - (G.nodes[neighbor_key][KEY_VELOCITY] * grid_spacing) ** 2))
-                        )
-                    else:  # a and b <= 0
-                        G.nodes[neighbor_key][KEY_ARRIVAL_TIME] = (1 / G.nodes[neighbor_key][KEY_VELOCITY]) + min(
-                            min(G.nodes[mx][KEY_ARRIVAL_TIME], G.nodes[px][KEY_ARRIVAL_TIME]),
-                            min(G.nodes[my][KEY_ARRIVAL_TIME], G.nodes[py][KEY_ARRIVAL_TIME])
-                        )
+            # We assume that we have at least one neighbor with arrival time < np.inf
+            if np.inf in [a, b]:
+                G.nodes[selected][KEY_ARRIVAL_TIME] = wave_speed + min(a, b)
+            else:
+                G.nodes[selected][KEY_ARRIVAL_TIME] = (a + b) / 2 + np.sqrt(
+                    (-a - b) ** 2 - (a ** 2 + b ** 2 - (wave_speed * grid_spacing) ** 2) / 2
+                )
 
-    pos = dict(G.nodes)
-    for key in pos.keys():
-        pos[key] = key
-    nx.draw(G, pos, labels=nx.get_node_attributes(G, "status"), node_size=3000, node_color="white", edgecolors="black")
-    plt.show()
+        grid_attributes = nx.get_node_attributes(G, KEY_STATUS).values()
 
 
 if __name__ == "__main__":
