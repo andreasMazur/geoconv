@@ -52,10 +52,7 @@ def determine_next_node(G):
     """
 
     narrow_band = list({k: v for k, v in nx.get_node_attributes(G, KEY_STATUS).items() if v == STATUS_NARROW}.keys())
-    try:
-        closest_node = narrow_band[0]
-    except IndexError:
-        print()
+    closest_node = narrow_band[0]
     for idx in narrow_band[1:]:
         if G.nodes[idx][KEY_ARRIVAL_TIME] < G.nodes[closest_node][KEY_ARRIVAL_TIME]:
             closest_node = idx
@@ -95,7 +92,7 @@ def fast_marching(grid_size=5, wave_speed=1, start_node=(1, 1), grid_spacing=1):
     for key in list(G.nodes):
         G.nodes[key][KEY_STATUS] = STATUS_FAR
         G.nodes[key][KEY_ARRIVAL_TIME] = np.inf
-        G.nodes[key][KEY_VELOCITY] = wave_speed
+        G.nodes[key][KEY_VELOCITY] = 1 / wave_speed
 
     # Init start node
     G.nodes[start_node][KEY_STATUS] = STATUS_NARROW
@@ -127,20 +124,20 @@ def fast_marching(grid_size=5, wave_speed=1, start_node=(1, 1), grid_spacing=1):
 
                 # We assume that we have at least one neighbor with arrival time < np.inf
                 if np.inf in [a, b]:
-                    G.nodes[selected][KEY_ARRIVAL_TIME] = wave_speed + min(a, b)
+                    G.nodes[selected][KEY_ARRIVAL_TIME] = 1 / wave_speed + min(a, b)
                 else:
                     G.nodes[selected][KEY_ARRIVAL_TIME] = (a + b) / 2 + np.sqrt(
-                        ((-a - b) / 2) ** 2 - (a ** 2 + b ** 2 - (wave_speed * grid_spacing) ** 2) / 2
+                        ((-a - b) / 2) ** 2 - (a ** 2 + b ** 2 - (1 / wave_speed * grid_spacing) ** 2) / 2
                     )
 
         #########################################
-        # pos = dict(G.nodes)
-        # labels = {k: f"{v:.3f}" for k, v in nx.get_node_attributes(G, KEY_ARRIVAL_TIME).items()}
-        # for key in pos.keys():
-        #     pos[key] = key
-        # nx.draw(G, pos, labels=labels, node_size=3000, node_color="white",
-        #         edgecolors="black")
-        # plt.show()
+        pos = dict(G.nodes)
+        labels = {k: f"{v:.3f}" for k, v in nx.get_node_attributes(G, KEY_ARRIVAL_TIME).items()}
+        for key in pos.keys():
+            pos[key] = key
+        nx.draw(G, pos, labels=labels, node_size=3000, node_color="white",
+                edgecolors="black")
+        plt.show()
         #########################################
         grid_attributes = nx.get_node_attributes(G, KEY_STATUS).values()
 
