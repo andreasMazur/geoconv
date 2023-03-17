@@ -105,9 +105,9 @@ def fast_marching(grid_size=5, wave_speed=1, start_node=(1, 1), grid_spacing=1, 
         closest_node_idx = determine_next_node(G)
         G.nodes[closest_node_idx][KEY_STATUS] = STATUS_ALIVE
 
-        ########################################################
-        # Recompute arrival times for neighbors of closest node
-        ########################################################
+        ##########################################
+        # Recompute arrival time for closest node
+        ##########################################
         for selected in get_4_neighborhood(closest_node_idx, grid_size):
             if G.nodes[selected][KEY_STATUS] == STATUS_FAR:
                 G.nodes[selected][KEY_STATUS] = STATUS_NARROW
