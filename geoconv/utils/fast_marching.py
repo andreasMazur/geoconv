@@ -130,14 +130,15 @@ def fast_marching(grid_size=5, wave_speed=1, start_node=(1, 1), grid_spacing=1):
                     G.nodes[selected][KEY_ARRIVAL_TIME] = wave_speed + min(a, b)
                 else:
                     G.nodes[selected][KEY_ARRIVAL_TIME] = (a + b) / 2 + np.sqrt(
-                        (-a - b) ** 2 - (a ** 2 + b ** 2 - (wave_speed * grid_spacing) ** 2) / 2
+                        ((-a - b) / 2) ** 2 - (a ** 2 + b ** 2 - (wave_speed * grid_spacing) ** 2) / 2
                     )
 
         #########################################
         # pos = dict(G.nodes)
+        # labels = {k: f"{v:.3f}" for k, v in nx.get_node_attributes(G, KEY_ARRIVAL_TIME).items()}
         # for key in pos.keys():
         #     pos[key] = key
-        # nx.draw(G, pos, labels=nx.get_node_attributes(G, KEY_ARRIVAL_TIME), node_size=3000, node_color="white",
+        # nx.draw(G, pos, labels=labels, node_size=3000, node_color="white",
         #         edgecolors="black")
         # plt.show()
         #########################################
