@@ -60,7 +60,7 @@ def determine_next_node(G):
     return closest_node
 
 
-def fast_marching(grid_size=5, wave_speed=1, start_node=(1, 1), grid_spacing=1):
+def fast_marching(grid_size=5, wave_speed=1, start_node=(1, 1), grid_spacing=1, verbose=True):
     """Fast marching algorithm on orthogonal grids.
 
     Paper, that introduced the fast marching level set method:
@@ -83,6 +83,8 @@ def fast_marching(grid_size=5, wave_speed=1, start_node=(1, 1), grid_spacing=1):
         The index of the start node
     grid_spacing: float
         The x- and y- spacing between the nodes of the grid
+    verbose: bool
+        Whether to plot grid changes
     """
     G = nx.grid_2d_graph(grid_size, grid_size)
 
@@ -130,15 +132,16 @@ def fast_marching(grid_size=5, wave_speed=1, start_node=(1, 1), grid_spacing=1):
                         ((-a - b) / 2) ** 2 - (a ** 2 + b ** 2 - (1 / wave_speed * grid_spacing) ** 2) / 2
                     )
 
-        #########################################
-        pos = dict(G.nodes)
-        labels = {k: f"{v:.3f}" for k, v in nx.get_node_attributes(G, KEY_ARRIVAL_TIME).items()}
-        for key in pos.keys():
-            pos[key] = key
-        nx.draw(G, pos, labels=labels, node_size=3000, node_color="white",
-                edgecolors="black")
-        plt.show()
-        #########################################
+        if verbose:
+            pos = dict(G.nodes)
+            # Plot arrival times
+            labels = {k: f"{v:.3f}" for k, v in nx.get_node_attributes(G, KEY_ARRIVAL_TIME).items()}
+            for key in pos.keys():
+                pos[key] = key
+            nx.draw(G, pos, labels=labels, node_size=3000, node_color="white",
+                    edgecolors="black")
+            plt.show()
+
         grid_attributes = nx.get_node_attributes(G, KEY_STATUS).values()
 
 
