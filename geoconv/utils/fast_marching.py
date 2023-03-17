@@ -115,14 +115,17 @@ def fast_marching(grid_size=5, wave_speed=1, start_node=(1, 1), grid_spacing=1, 
             # Determine values to solve quadratic equation
             if G.nodes[selected][KEY_STATUS] != STATUS_ALIVE:
                 selected_neighbors = get_4_neighborhood(selected, grid_size)
+
                 x_neighbors = [t for t in selected_neighbors if t[0] == selected[0]]
-                a = G.nodes[x_neighbors[0]][KEY_ARRIVAL_TIME]
-                for n in x_neighbors[1:]:
-                    a = G.nodes[n][KEY_ARRIVAL_TIME] if a > G.nodes[n][KEY_ARRIVAL_TIME] else a
+                a = np.inf
+                for n in x_neighbors:
+                    if G.nodes[n][KEY_STATUS] == STATUS_ALIVE:
+                        a = G.nodes[n][KEY_ARRIVAL_TIME] if a > G.nodes[n][KEY_ARRIVAL_TIME] else a
                 y_neighbors = [t for t in selected_neighbors if t[1] == selected[1]]
-                b = G.nodes[y_neighbors[0]][KEY_ARRIVAL_TIME]
-                for n in y_neighbors[1:]:
-                    b = G.nodes[n][KEY_ARRIVAL_TIME] if b > G.nodes[n][KEY_ARRIVAL_TIME] else b
+                b = np.inf
+                for n in y_neighbors:
+                    if G.nodes[n][KEY_STATUS] == STATUS_ALIVE:
+                        b = G.nodes[n][KEY_ARRIVAL_TIME] if b > G.nodes[n][KEY_ARRIVAL_TIME] else b
 
                 # We assume that we have at least one neighbor with arrival time < np.inf
                 if np.inf in [a, b]:
