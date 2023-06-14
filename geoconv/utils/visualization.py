@@ -1,6 +1,5 @@
-from geoconv.preprocessing.barycentric_coords import determine_gpc_triangles
+from geoconv.preprocessing.barycentric_coords import determine_gpc_triangles, get_points_from_polygons, polar_to_cart
 from geoconv.preprocessing.discrete_gpc import local_gpc
-from geoconv.utils.misc import polar_to_cart
 
 from matplotlib.collections import PolyCollection
 from matplotlib import pyplot as plt
@@ -166,7 +165,7 @@ def gpc_in_coordinate_system(radial_coordinates, angular_coordinates, object_mes
     plt.show()
 
 
-def draw_gpc_triangles(object_mesh, center_vertex, u_max=.04, alpha=.4, edge_color="red", use_c=True):
+def draw_gpc_triangles(object_mesh, center_vertex, u_max=.04, kernel=None, alpha=.4, edge_color="red", use_c=True):
     """Draws the triangles of a local GPC-system.
 
     Parameters
@@ -177,6 +176,9 @@ def draw_gpc_triangles(object_mesh, center_vertex, u_max=.04, alpha=.4, edge_col
         The center vertex of the GPC-system which shall be visualized.
     u_max: float
         The max-radius of the GPC-system
+    kernel: np.ndarray
+        A 3D-array that describes kernel vertices in cartesian coordinates. If 'None' is passed
+        no kernel vertices will be visualized.
     alpha: float
         The opacity of the polygons
     edge_color: str
@@ -198,6 +200,14 @@ def draw_gpc_triangles(object_mesh, center_vertex, u_max=.04, alpha=.4, edge_col
     ax.set_ylim([contained_gpc_triangles.min(), contained_gpc_triangles.max()])
     polygons = PolyCollection(contained_gpc_triangles, alpha=alpha, edgecolors=edge_color)
     ax.add_collection(polygons)
+
+    points = get_points_from_polygons(contained_gpc_triangles)
+    ax.scatter(points[:, 0], points[:, 1], color="red")
+
+    if kernel is not None:
+        for radial_idx in range(kernel.shape[0]):
+            ax.scatter(kernel[radial_idx, :, 0], kernel[radial_idx, :, 1], color="green")
+
     plt.show()
 
 

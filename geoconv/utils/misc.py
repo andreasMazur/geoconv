@@ -17,25 +17,6 @@ def shuffle_mesh_vertices(object_mesh):
     return trimesh.Trimesh(vertices=object_mesh_vertices, faces=object_mesh_faces), shuffled_node_indices
 
 
-def polar_to_cart(angle, scale=1.):
-    """Returns x and y for a given angle.
-
-    Parameters
-    ----------
-    angle: float
-        The angular coordinate
-    scale: float
-        The radial coordinate
-
-    Returns
-    -------
-    (float, float):
-        The x-coordinate and y-coordinate
-
-    """
-    return scale * np.cos(angle), scale * np.sin(angle)
-
-
 def exp_map(radial_c, angular_c, center_vertex, mesh):
     """Maps a point located in the tangent plane of a mesh vertex onto the mesh surface
 

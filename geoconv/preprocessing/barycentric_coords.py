@@ -4,6 +4,42 @@ import sys
 import warnings
 
 
+def polar_to_cart(angle, scale=1.):
+    """Returns x and y for a given angle.
+
+    Parameters
+    ----------
+    angle: float
+        The angular coordinate
+    scale: float
+        The radial coordinate
+
+    Returns
+    -------
+    (float, float):
+        The x-coordinate and y-coordinate
+
+    """
+    return scale * np.cos(angle), scale * np.sin(angle)
+
+
+def get_points_from_polygons(polygons):
+    """Returns all corner-points of the given polygons.
+
+    Parameters
+    ----------
+    polygons: np.ndarray
+        A 3D-array Arr[n, m, d], containing 'n' polygons with 'm' points of dimensionality 'd'.
+
+    Returns
+    -------
+    np.ndarray:
+        A 2D-array Arr[x, d], containing 'x' unique points with dimensionality 'd'.
+    """
+
+    return np.unique(polygons.reshape((-1, polygons.shape[2])), axis=0)
+
+
 def create_kernel_matrix(n_radial, n_angular, radius):
     """Creates a kernel matrix with radius `radius` and `n_radial` radial- and `n_angular` angular coordinates.
 
@@ -122,8 +158,53 @@ def determine_gpc_triangles(object_mesh, local_gpc_system):
     return valid_gpc_triangles, valid_gpc_faces
 
 
+def find_triangle(vertex, gpc_triangles, gpc_faces):
+    """Finds the triangle in which the given vertex fell into and returns the b.-coordinates
+
+    Parameters
+    ----------
+    vertex: np.ndarray
+        The vertex for which the triangle is searched for in cartesian coordinates.
+    gpc_triangles: np.ndarray
+        The triangles of the GPC-system given in cartesian coordinates.
+    gpc_faces: np.ndarray
+        The associated indices for the vertices in 'gpc_triangles'
+
+    Returns
+    -------
+    (np.ndarray, np.ndarray)
+        The first returned array contains the barycentric coordinates. The second returned array contains the indices
+        of the vertices to which the barycentric coordinates belong. In case of 'vertex' not falling into any triangle,
+        two zero arrays are returned. I.e. there will be no feature taken into consideration for this kernel vertex.
+    """
+
+    all_gpc_nodes = get_points_from_polygons(gpc_triangles)
+    kd_tree = sp.spatial.KDTree(all_gpc_nodes)
+
+    for k in range(1, all_gpc_nodes.shape[0]):
+        # Get triangles of nearest neighbor
+        if k == 1:
+            nearest_neighbor_idx = kd_tree.query(vertex, k=k)[1]
+        else:
+            nearest_neighbor_idx = kd_tree.query(vertex, k=k)[1][k - 1]
+        nearest_neighbor = all_gpc_nodes[nearest_neighbor_idx]
+
+        tri_indices = np.unique(np.where(gpc_triangles == nearest_neighbor)[0])
+        nearest_neighbor_triangles = gpc_triangles[tri_indices]
+        nearest_neighbor_faces = gpc_faces[tri_indices]
+
+        # Check for each triangle whether the query vertex fell into it
+        for tri_idx in range(nearest_neighbor_triangles.shape[0]):
+            b_coordinates, lies_within = compute_barycentric(vertex, nearest_neighbor_triangles[tri_idx])
+            if lies_within:
+                return b_coordinates, nearest_neighbor_faces[tri_idx]
+
+    # If vertex falls in no triangle: No feature vector is given
+    return np.array([0., 0., 0.]), np.array([0, 0, 0])
+
+
 def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
-    """Find suiting Barycentric coordinates for kernel-vertices among all triangles of a GPC-system
+    """Computes the barycentric coordinates for all kernel vertices.
 
     In order to compute the barycentric coordinates for kernel vertices we do the following:
 
@@ -161,60 +242,25 @@ def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
         Note that the radial- and angular dimension have been switched! This allows the geodesic convolution to benefit
         in efficiency from tensorflow broadcasting.
     """
-    # Find closest point to query vertex in considered GPC-system
-    all_gpc_nodes = np.unique(gpc_triangles.reshape((-1, 2)), axis=0)
-    gpc_kd_tree = sp.spatial.KDTree(all_gpc_nodes)
 
     # Find Barycentric coordinates iteratively for every kernel vertex
     n_radial = kernel.shape[0]
     n_angular = kernel.shape[1]
-    barycentric = np.zeros((n_radial, n_angular, 3, 2))
+    b_coordinates = np.zeros((n_radial, n_angular, 3, 2))
+
+    # Convert coordinates from polar to cartesian
+    for tri_idx in range(gpc_triangles.shape[0]):
+        for point_idx in range(gpc_triangles.shape[1]):
+            rho, theta = gpc_triangles[tri_idx, point_idx]
+            gpc_triangles[tri_idx, point_idx] = polar_to_cart(theta, scale=rho)
+
     for i in range(n_radial):
         for j in range(n_angular):
-            query_vertex = kernel[i, j]
-            nth_closest_vertex = 1
-            is_within = False
+            bc, face = find_triangle(kernel[i, j], gpc_triangles, gpc_faces)
+            b_coordinates[i, j, :, 0] = face
+            b_coordinates[i, j, :, 1] = bc
 
-            while not is_within:
-                # Find n-th closest node among GPC-system vertices
-                _, closest_node_idx = gpc_kd_tree.query(query_vertex, k=nth_closest_vertex)
-                if nth_closest_vertex > 1:
-                    closest_node_idx = closest_node_idx[nth_closest_vertex - 1]
-                closest_node = all_gpc_nodes[closest_node_idx]
-
-                # Find triangles of the closest node and compute Barycentric coordinates for them
-                considered_triangle_indices = np.unique(np.where(gpc_triangles == closest_node)[0])
-                for triangle_idx in considered_triangle_indices:
-                    face = gpc_faces[triangle_idx]
-                    barycentric_coords, is_within = compute_barycentric(query_vertex, gpc_triangles[triangle_idx])
-                    if is_within:
-                        # Store Barycentric coordinates and respective node indices
-                        for idx in range(3):
-                            barycentric[i, j, idx, 0] = face[idx]
-                            barycentric[i, j, idx, 1] = barycentric_coords[idx]
-                        break
-
-                if not is_within:
-                    # Look for triangles of the next closest point
-                    nth_closest_vertex += 1
-
-                # Fallback: If there is no triangle containing the kernel vertex then use the closest vertex as
-                #           approximation
-                if nth_closest_vertex >= all_gpc_nodes.shape[0] and not is_within:
-                    # Get closest node
-                    _, closest_node_idx = gpc_kd_tree.query(query_vertex)
-                    closest_node = all_gpc_nodes[closest_node_idx]
-
-                    # Get id of closest node
-                    node_id = np.argwhere(gpc_triangles == closest_node)[0]
-                    node_id = gpc_faces[node_id[0], node_id[1]]
-
-                    # Give closest node weight 1. (interpolation value equals signal at that vertex)
-                    barycentric[i, j, 0, 0] = node_id
-                    barycentric[i, j, 0, 1] = 1.
-                    break
-
-    return barycentric
+    return b_coordinates
 
 
 def barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angular=4, radius=0.05, verbose=True):
