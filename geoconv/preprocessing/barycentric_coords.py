@@ -227,7 +227,7 @@ def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
           angular coordinate
     gpc_triangles: np.ndarray
         A 3D-array containing the triangles of the considered GPC-system
-        - gpc_triangles[i] contains i-th triangle depicted in cartesian coordinates
+        - gpc_triangles[i] contains i-th triangle depicted in geodesic polar coordinates
     gpc_faces: np.ndarray
         A 2D-array containing the triangles of the considered GPC-system
         - gpc_faces[i] contains i-th triangle depicted in vertex indices
