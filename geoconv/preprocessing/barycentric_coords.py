@@ -104,7 +104,7 @@ def determine_gpc_triangles(object_mesh, local_gpc_system):
     object_mesh: trimesh.Trimesh
         The object mesh
     local_gpc_system: np.ndarray
-        2D-array containing the cartesian coordinates for each vertex in the local GPC-system
+        2D-array containing the geodesic polar coordinates for each vertex in the local GPC-system
 
     Returns
     -------
@@ -115,9 +115,7 @@ def determine_gpc_triangles(object_mesh, local_gpc_system):
 
     # Filter triangles such that only those remain that are entirely described by local GPC-system
     local_triangles = local_gpc_system[object_mesh.faces]
-    valid_triangle_indices = list(
-        set(range(local_triangles.shape[0])) - set(np.where(local_triangles == np.inf)[0])
-    )
+    valid_triangle_indices = list(set(range(local_triangles.shape[0])) - set(np.where(local_triangles == np.inf)[0]))
     valid_gpc_triangles = local_triangles[valid_triangle_indices]
     valid_gpc_faces = np.array(object_mesh.faces[valid_triangle_indices])
 
@@ -144,8 +142,8 @@ def barycentric_coordinates_kernel(kernel, gpc_triangles, gpc_faces):
     ----------
     kernel: np.ndarray
         A 3D-array containing the kernel-vertices described in cartesian coordinates
-        - kernel[i, j] contains cartesian kernel coordinates for kernel vertex referenced by i-th radial and j-angular
-          coordinate
+        - kernel[i, j] contains cartesian kernel coordinates for kernel vertex referenced by i-th radial and j-th
+          angular coordinate
     gpc_triangles: np.ndarray
         A 3D-array containing the triangles of the considered GPC-system
         - gpc_triangles[i] contains i-th triangle depicted in cartesian coordinates

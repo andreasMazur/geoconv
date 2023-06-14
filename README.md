@@ -13,6 +13,9 @@ This repository is still in development and might contain bugs.
 
 ## Installation
 1. Install **[BLAS](https://netlib.org/blas/#_reference_blas_version_3_10_0)** and **[CBLAS](https://netlib.org/blas/#_cblas)**
+     ```bash
+     sudo apt install libatlas-base-dev
+     ```
 2. Clone and install **geoconv**:
      ```bash
      git clone https://github.com/andreasMazur/geoconv.git

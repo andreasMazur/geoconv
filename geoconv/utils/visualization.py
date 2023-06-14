@@ -1,3 +1,8 @@
+from geoconv.preprocessing.barycentric_coords import determine_gpc_triangles
+from geoconv.preprocessing.discrete_gpc import local_gpc
+from geoconv.utils.misc import polar_to_cart
+
+from matplotlib.collections import PolyCollection
 from matplotlib import pyplot as plt
 
 import trimesh
@@ -158,6 +163,41 @@ def gpc_in_coordinate_system(radial_coordinates, angular_coordinates, object_mes
     if kernel is not None:
         kernel = kernel.reshape((-1, 2))
         ax.plot(kernel[:, 1], kernel[:, 0], "bo")
+    plt.show()
+
+
+def draw_gpc_triangles(object_mesh, center_vertex, u_max=.04, alpha=.4, edge_color="red", use_c=True):
+    """Draws the triangles of a local GPC-system.
+
+    Parameters
+    ----------
+    object_mesh: trimesh.Trimesh
+        The object mesh on which to compute the GPC-system.
+    center_vertex: int
+        The center vertex of the GPC-system which shall be visualized.
+    u_max: float
+        The max-radius of the GPC-system
+    alpha: float
+        The opacity of the polygons
+    edge_color: str
+        The color for the triangle edges
+    use_c: bool
+        Whether to use the C-extension to compute the GPC-system.
+    """
+    radial, angular, _ = local_gpc(center_vertex, u_max=u_max, object_mesh=object_mesh, use_c=use_c)
+    contained_gpc_triangles, _ = determine_gpc_triangles(
+        object_mesh, np.stack([radial, angular], axis=1)
+    )
+    for tri_idx in range(contained_gpc_triangles.shape[0]):
+        for point_idx in range(contained_gpc_triangles.shape[1]):
+            rho, theta = contained_gpc_triangles[tri_idx, point_idx]
+            contained_gpc_triangles[tri_idx, point_idx] = polar_to_cart(theta, scale=rho)
+
+    fig, ax = plt.subplots()
+    ax.set_xlim([contained_gpc_triangles.min(), contained_gpc_triangles.max()])
+    ax.set_ylim([contained_gpc_triangles.min(), contained_gpc_triangles.max()])
+    polygons = PolyCollection(contained_gpc_triangles, alpha=alpha, edgecolors=edge_color)
+    ax.add_collection(polygons)
     plt.show()
 
 

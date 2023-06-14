@@ -1,10 +1,8 @@
+from geoconv.preprocessing.barycentric_coords import determine_gpc_triangles, barycentric_coordinates_kernel
+from geoconv.preprocessing.discrete_gpc import compute_gpc_systems
+
 import numpy as np
-import pyshot
-import zipfile
-import os
-import tqdm
 import trimesh
-import shutil
 
 
 def shuffle_mesh_vertices(object_mesh):
@@ -17,6 +15,56 @@ def shuffle_mesh_vertices(object_mesh):
         face[1] = np.where(shuffled_node_indices == face[1])[0]
         face[2] = np.where(shuffled_node_indices == face[2])[0]
     return trimesh.Trimesh(vertices=object_mesh_vertices, faces=object_mesh_faces), shuffled_node_indices
+
+
+def polar_to_cart(angle, scale=1.):
+    """Returns x and y for a given angle.
+
+    Parameters
+    ----------
+    angle: float
+        The angular coordinate
+    scale: float
+        The radial coordinate
+
+    Returns
+    -------
+    (float, float):
+        The x-coordinate and y-coordinate
+
+    """
+    return scale * np.cos(angle), scale * np.sin(angle)
+
+
+def exp_map(radial_c, angular_c, center_vertex, mesh):
+    """Maps a point located in the tangent plane of a mesh vertex onto the mesh surface
+
+    Parameters
+    ----------
+    radial_c: float
+        The radial coordinate of the point to map onto the surface
+    angular_c: float
+        The angular coordinate of the point to map onto the surface
+    center_vertex: int
+        The index for the mesh vertex in which we consider the tangent plane
+    mesh: trimesh.Trimesh
+        The triangle mesh
+
+    Returns
+    -------
+    np.ndarray:
+        An array that contains the 3D cartesian coordinates for the mapped point
+
+    """
+    gpc_system = compute_gpc_systems(mesh)[center_vertex]
+    contained_gpc_triangles, contained_gpc_faces = determine_gpc_triangles(mesh, gpc_system)
+
+    x, y = polar_to_cart(angular_c, scale=radial_c)
+    bary_coord = barycentric_coordinates_kernel(np.array([[[x, y]]]), contained_gpc_triangles, contained_gpc_faces)
+
+    mesh_vertices = np.asarray(mesh.vertices[bary_coord[0, 0, :3, 0].astype(np.int16)])
+
+    return mesh_vertices @ bary_coord[:, :, :, 1][0, 0]
 
 
 def get_included_faces(object_mesh, gpc_system):
@@ -48,34 +96,3 @@ def get_included_faces(object_mesh, gpc_system):
             included_face_ids.append(face_id)
 
     return included_face_ids
-
-
-def exchange_shot(directory, zip_path, percent=0.12, n_bins=16):
-    """Exchanges the SHOT vectors in a given dataset with new ones"""
-
-    target_dir = f"{zip_path[:-4]}_updated"
-    with zipfile.ZipFile(zip_path, "r") as zip_file:
-        zip_file.extractall(target_dir)
-
-    file_list = os.listdir(directory)
-    file_list.sort()
-    file_list = [f for f in file_list if f[-4:] != ".png"]
-
-    for file in tqdm.tqdm(file_list):
-        object_mesh = trimesh.load_mesh(f"{directory}/{file}")
-
-        descriptors = pyshot.get_descriptors(
-            np.array(object_mesh.vertices),
-            np.array(object_mesh.faces, dtype=np.int64),
-            radius=np.sqrt(percent * object_mesh.area / np.pi),
-            local_rf_radius=np.sqrt(percent * object_mesh.area / np.pi),
-            min_neighbors=3,
-            n_bins=n_bins,
-            double_volumes_sectors=True,
-            use_interpolation=True,
-            use_normalization=True,
-        ).astype(np.float32)
-        np.save(f"{target_dir}/SHOT_{file[:-4]}.npy", descriptors)
-
-    shutil.make_archive(target_dir, "zip", target_dir)
-    shutil.rmtree(target_dir)

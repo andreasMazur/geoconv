@@ -339,14 +339,15 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
         A flag whether to use the c-extension
     eps: float
         An epsilon
-    triangle_cache: [dict, None]
+    triangle_cache: dict
         A cache storing the faces of a given edge
 
     Returns
     -------
     (np.ndarray, np.ndarray, dict)
         An array `u` of radial coordinates from the source point to other points in the object mesh. An array `theta` of
-        angular coordinates of neighbors from `source_point` in its window. The face cache as a dictionary.
+        angular coordinates of neighbors from `source_point` in its window. The possibly updated triangle cache, which
+        associates seen triangles to edges, is also returned as a dictionary.
     """
 
     # Initialization
