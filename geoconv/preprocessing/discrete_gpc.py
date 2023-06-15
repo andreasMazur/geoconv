@@ -358,6 +358,10 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
     )
     u[source_point] = .0
 
+    check_array = np.array([x for x in u if not np.isinf(x)])
+    if check_array.max() > u_max:
+        raise RuntimeError(f"Choose 'u_max' to be bigger then {check_array.max()}.")
+
     candidates = []  # heap containing vertices sorted by distance u[i]
     for neighbor in source_point_neighbors:
         candidates.append((u[neighbor], neighbor))
@@ -378,8 +382,6 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
             )
 
             if new_u_i < np.inf and u[i] / new_u_i > 1 + eps:
-                # also adding new_u_i which are > u_max, however
-                # their neighbors are not further explored
                 u[i] = new_u_i
                 theta[i] = new_theta_i
                 if new_u_i < u_max:

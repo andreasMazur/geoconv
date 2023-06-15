@@ -7,8 +7,8 @@ tqdm==4.64.0
 trimesh==3.12.6
 Cython==0.29.30
 Pillow==9.3.0
-pyglet==1.5.26
+pyglet==1.5.27
 matplotlib==3.5.2
-open3d==0.15.2
+open3d==0.17.0
 networkx==2.8.6
 pygeodesic==0.1.7
