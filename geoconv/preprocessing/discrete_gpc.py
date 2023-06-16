@@ -4,6 +4,7 @@ from tqdm import tqdm
 import numpy as np
 import c_extension
 import heapq
+import warnings
 
 
 def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis):
@@ -360,7 +361,11 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
 
     check_array = np.array([x for x in u if not np.isinf(x)])
     if check_array.max() > u_max:
-        raise RuntimeError(f"Choose 'u_max' to be bigger then {check_array.max()}.")
+        warnings.warn(
+            f"You chose a 'u_max' to be smaller then {check_array.max()}, which has been seen as an initialization"
+            f" length for a GPC-system. It cannot be ensured anymore that the radial lengths will be smaller than"
+            f" 'u_max'.", RuntimeWarning
+        )
 
     candidates = []  # heap containing vertices sorted by distance u[i]
     for neighbor in source_point_neighbors:
@@ -381,11 +386,13 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
                 i, j, u, theta, triangle_cache, object_mesh, use_c, rotation_axis
             )
 
-            if new_u_i < np.inf and u[i] / new_u_i > 1 + eps:
+            # In difference to the original pseudocode, we add 'new_u_i < u_max' to this IF-query
+            # to ensure that the radial coordinates do not exceed 'u_max'.
+            if new_u_i < np.inf and u[i] / new_u_i > 1 + eps and new_u_i < u_max:
                 u[i] = new_u_i
                 theta[i] = new_theta_i
-                if new_u_i < u_max:
-                    heapq.heappush(candidates, (new_u_i, i))
+                # if new_u_i < u_max:
+                heapq.heappush(candidates, (new_u_i, i))
 
     return u, theta, triangle_cache
 
@@ -419,20 +426,18 @@ def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_m
         `initialize_neighborhood` for how the reference direction is selected).
     """
 
-    u, theta, triangle_cache = [], [], dict()
+    gpc_systems = []
     if tqdm_msg:
         for vertex_idx in tqdm(range(object_mesh.vertices.shape[0]), position=0, postfix=tqdm_msg):
             u_v, theta_v, triangle_cache = local_gpc(
-                vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache
+                vertex_idx, u_max, object_mesh, use_c, eps
             )
-            u.append(u_v)
-            theta.append(theta_v)
+            gpc_systems.append(np.stack([u_v, theta_v], axis=1))
     else:
         for vertex_idx in range(object_mesh.vertices.shape[0]):
             u_v, theta_v, triangle_cache = local_gpc(
-                vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache
+                vertex_idx, u_max, object_mesh, use_c, eps
             )
-            u.append(u_v)
-            theta.append(theta_v)
+            gpc_systems.append(np.stack([u_v, theta_v], axis=1))
 
-    return np.stack([u, theta], axis=-1)
+    return np.stack(gpc_systems)

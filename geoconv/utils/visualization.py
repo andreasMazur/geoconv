@@ -1,11 +1,38 @@
-from geoconv.preprocessing.barycentric_coords import determine_gpc_triangles, get_points_from_polygons, polar_to_cart
+from geoconv.preprocessing.barycentric_coordinates import get_points_from_polygons, polar_to_cart, determine_gpc_triangles
 from geoconv.preprocessing.discrete_gpc import local_gpc
 
-from matplotlib.collections import PolyCollection
 from matplotlib import pyplot as plt
+from matplotlib.collections import PolyCollection
+from matplotlib.patches import Polygon
 
 import trimesh
 import numpy as np
+
+
+def draw_triangles(triangles, points=None):
+    """Draws a single triangle and optionally a point in 2D space.
+
+    Parameters
+    ----------
+    triangles: np.ndarray
+        The triangles in cartesian coordinates
+    points: np.ndarray
+        Points that can optionally also be visualized
+    """
+    fig, ax = plt.subplots(1, 1)
+    for tri in triangles:
+        polygon = Polygon(tri, alpha=.4, edgecolor="red")
+        ax.add_patch(polygon)
+
+    if points is not None:
+        for point in points:
+            ax.scatter(point[0], point[1])
+
+    if points is None:
+        ax.set_xlim(triangles[:, :, 0].min(), triangles[:, :, 0].max())
+        ax.set_ylim(triangles[:, :, 1].min(), triangles[:, :, 1].max())
+
+    plt.show()
 
 
 def draw_princeton_benchmark(paths, labels, figure_name):
@@ -165,7 +192,15 @@ def gpc_in_coordinate_system(radial_coordinates, angular_coordinates, object_mes
     plt.show()
 
 
-def draw_gpc_triangles(object_mesh, center_vertex, u_max=.04, kernel=None, alpha=.4, edge_color="red", use_c=True):
+def draw_gpc_triangles(object_mesh,
+                       center_vertex,
+                       u_max=.04,
+                       kernel_matrix=None,
+                       alpha=.4,
+                       edge_color="red",
+                       scatter_color="green",
+                       use_c=True,
+                       plot=True):
     """Draws the triangles of a local GPC-system.
 
     Parameters
@@ -176,19 +211,24 @@ def draw_gpc_triangles(object_mesh, center_vertex, u_max=.04, kernel=None, alpha
         The center vertex of the GPC-system which shall be visualized.
     u_max: float
         The max-radius of the GPC-system
-    kernel: np.ndarray
+    kernel_matrix: np.ndarray
         A 3D-array that describes kernel vertices in cartesian coordinates. If 'None' is passed
         no kernel vertices will be visualized.
     alpha: float
         The opacity of the polygons
     edge_color: str
         The color for the triangle edges
+    scatter_color: str
+        The color for the kernel vertices (in case a kernel is given)
     use_c: bool
         Whether to use the C-extension to compute the GPC-system.
+    plot: bool
+        Whether to immediately plot
     """
     radial, angular, _ = local_gpc(center_vertex, u_max=u_max, object_mesh=object_mesh, use_c=use_c)
+    gpc_system = np.stack([radial, angular], axis=1)
     contained_gpc_triangles, _ = determine_gpc_triangles(
-        object_mesh, np.stack([radial, angular], axis=1)
+        object_mesh, gpc_system
     )
     for tri_idx in range(contained_gpc_triangles.shape[0]):
         for point_idx in range(contained_gpc_triangles.shape[1]):
@@ -204,11 +244,14 @@ def draw_gpc_triangles(object_mesh, center_vertex, u_max=.04, kernel=None, alpha
     points = get_points_from_polygons(contained_gpc_triangles)
     ax.scatter(points[:, 0], points[:, 1], color="red")
 
-    if kernel is not None:
-        for radial_idx in range(kernel.shape[0]):
-            ax.scatter(kernel[radial_idx, :, 0], kernel[radial_idx, :, 1], color="green")
+    if kernel_matrix is not None:
+        for radial_idx in range(kernel_matrix.shape[0]):
+            ax.scatter(kernel_matrix[radial_idx, :, 0], kernel_matrix[radial_idx, :, 1], color=scatter_color)
 
-    plt.show()
+    if plot:
+        plt.show()
+
+    return gpc_system
 
 
 def vertices_in_coordinate_system(radial_coordinates, angular_coordinates):

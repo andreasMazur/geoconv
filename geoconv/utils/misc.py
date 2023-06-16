@@ -1,8 +1,42 @@
-from geoconv.preprocessing.barycentric_coords import determine_gpc_triangles, barycentric_coordinates_kernel
+from geoconv.preprocessing.barycentric_coords_OLD import determine_gpc_triangles, barycentric_coordinates_kernel, \
+    polar_to_cart
 from geoconv.preprocessing.discrete_gpc import compute_gpc_systems
 
 import numpy as np
 import trimesh
+
+
+def reconstruct_kernel(gpc_system, b_coordinates):
+    """Reconstructs the kernel vertices with barycentric coordinates
+
+    Parameters
+    ----------
+    gpc_system: np.ndarray
+        A 2D-array that describes a GPC-system. I.e. 'gpc_system[i]' contains the
+        geodesic polar coordinates (radial, angle) for the i-th vertex of the underlying
+        object mesh.
+    b_coordinates: np.ndarray
+        Contains the barycentric coordinates from which the kernel shall be reconstructed.
+        The format follows the output format of 'barycentric_coordinates_kernel'.
+    Returns
+    -------
+    np.ndarray:
+        Cartesian kernel coordinates in the same format as returned by 'create_kernel_matrix'.
+
+    """
+
+    reconstructed_kernel = np.zeros((b_coordinates.shape[0], b_coordinates.shape[1], 2))
+    for rc in range(b_coordinates.shape[0]):
+        for ac in range(b_coordinates.shape[1]):
+            # Get vertices
+            vertex_indices = b_coordinates[rc, ac, :, 0].astype(np.int16)
+            vertices = [(gpc_system[vertex_indices[idx], 0], gpc_system[vertex_indices[idx], 1]) for idx in range(3)]
+            vertices = np.array([polar_to_cart(y, x) for x, y in vertices])
+
+            # Interpolate vertices
+            weights = b_coordinates[rc, ac, :, 1]
+            reconstructed_kernel[rc, ac] = vertices.T @ weights
+    return reconstructed_kernel
 
 
 def shuffle_mesh_vertices(object_mesh):
