@@ -12,7 +12,7 @@ meshes [4] and the computation of Barycentric coordinates, are included too.
 This repository is still in development and might contain bugs.
 
 ## Installation
-1. Install **[BLAS](https://netlib.org/blas/#_reference_blas_version_3_10_0)** and **[CBLAS](https://netlib.org/blas/#_cblas)**
+1. Install **[BLAS](https://netlib.org/blas/#_reference_blas_version_3_10_0)** and **[CBLAS](https://netlib.org/blas/#_cblas)**:
      ```bash
      sudo apt install libatlas-base-dev
      ```
