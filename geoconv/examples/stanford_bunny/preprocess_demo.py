@@ -113,7 +113,7 @@ def preprocess(recompute_gpc=False, recompute_bc=False):
             title="GPC-system in 2D with kernel vertices"
         )
 
-        # With barycentric coordinates and kernel vertices reconstructed kernel vertices
+        # With barycentric coordinates and reconstructed kernel vertices
         draw_gpc_triangles(
             bunny,
             gpc_system_idx,
