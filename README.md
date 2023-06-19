@@ -25,10 +25,10 @@ This repository is still in development and might contain bugs.
      ```
 ### Hint:
 
-If you do not use this library for preprocessing your data you can safely remove the ``ext_modules``-argument within
-``setup.py`` and forget about installing **BLAS** and **CBLAS**. More so, even if you use this library for preprocessing
-you can remove this argument. Just set the ``use_c``-flag in the respective preprocessing-function to ``false`` and you
-are not required to install **BLAS** and **CBLAS**. However, preprocessing will take longer then.
+In case you cannot install **BLAS** or **CBLAS** you have the option to remove the ``ext_modules``-argument within
+``setup.py``. This will prohibit you from taking advantage of the c-extension module that accelerates GPC-system
+computation. This, in turn, implies that you have to set the ``use_c``-flag in the respective functions to ``False`` such that
+the Python-alternative implementation is used.
 
 ## Usage
 
@@ -72,13 +72,14 @@ the vertices).
 ``geoconv.preprocessing.barycentric_coords.barycentric_coordinates``.
 
 For the latter: **geoconv** supplies you with the necessary preprocessing functions:
-1. Use ``geoconv.preprocessing.discrete_gpc.discrete_gpc`` on your triangle meshes (which are stored in a format that is
-supported by **[Trimesh](https://trimsh.org/index.html)**, e.g. 'ply') to compute discrete local geodesic polar coordinate
+1. Use ``compute_gpc_systems`` on your triangle meshes (which are stored in a format that is
+supported by **[Trimesh](https://trimsh.org/index.html)**, e.g. 'ply') to compute local geodesic polar coordinate
 systems with the algorithm suggested by [4].
-2. Use the GPC-systems and ``geoconv.preprocessing.barycentric_coords.barycentric_coordinates`` to compute the
-Barycentric coordinates in the required format. The result can without further effort directly be fed into the layer.
+2. Use those GPC-systems and ``compute_barycentric_coordinates`` to compute the barycentric coordinates for the kernel 
+vertices. The result can without further effort directly be fed into the layer.
 
-An example preprocessing-pipeline is given in ``geoconv.datasets.mpi_faust.preprocess``.
+For a more thorough explanation please take a look on the demo file ``preprocess_demo`` in the examples
+folder.
 
 ## Cite
 
