@@ -139,7 +139,7 @@ if __name__ == "__main__":
     # Path to the stanford bunny
     PATH_TO_STANFORD_BUNNY = "bun_zipper.ply"
 
-    # Kernel configuration
+    # Kernel configuration (set 'recompute_bc' to 'True' if you change these!)
     N_RADIAL = 4
     N_ANGULAR = 4
 
