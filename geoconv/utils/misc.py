@@ -18,7 +18,6 @@ def reconstruct_kernel(gpc_system, b_coordinates):
         object mesh.
     b_coordinates: np.ndarray
         Contains the barycentric coordinates from which the kernel shall be reconstructed.
-        The format follows the output format of 'barycentric_coordinates_kernel'.
     Returns
     -------
     np.ndarray:

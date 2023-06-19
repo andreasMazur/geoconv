@@ -32,7 +32,6 @@ def load_bunny(target_triangles_amount=6000):
     """
 
     b = o3d.io.read_triangle_mesh(PATH_TO_STANFORD_BUNNY)
-    b.compute_vertex_normals()
     b = b.simplify_quadric_decimation(target_number_of_triangles=target_triangles_amount)
     b = trimesh.Trimesh(vertices=b.vertices, faces=b.triangles)
 
@@ -135,4 +134,4 @@ if __name__ == "__main__":
     N_ANGULAR = 4
 
     # Start preprocess
-    preprocess()
+    preprocess(recompute_gpc=True, recompute_bc=True)
