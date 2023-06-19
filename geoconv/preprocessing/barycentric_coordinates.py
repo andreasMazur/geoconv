@@ -1,4 +1,5 @@
-import sys
+from tqdm import tqdm
+
 import numpy as np
 
 
@@ -214,23 +215,34 @@ def compute_barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angu
     n_gpc_systems = gpc_systems.shape[0]
     barycentric_coordinates = np.zeros((n_gpc_systems, n_radial, n_angular, 3, 2))
 
-    for gpc_system_idx in range(n_gpc_systems):
-        if verbose:
-            sys.stdout.write(
-                f"\rCurrently computing Barycentric coordinates for GPC-system centered in vertex {gpc_system_idx}"
-            )
-        gpc_triangles, gpc_triangles_node_indices = prep_interpolation(gpc_systems[gpc_system_idx], object_mesh)
+    if verbose:
+        for gpc_system_idx in tqdm(range(n_gpc_systems), postfix=f"Computing barycentric coordinates"):
+            gpc_triangles, gpc_triangles_node_indices = prep_interpolation(gpc_systems[gpc_system_idx], object_mesh)
 
-        for radial_coordinate in range(n_radial):
-            for angular_coordinate in range(n_angular):
+            for radial_coordinate in range(n_radial):
+                for angular_coordinate in range(n_angular):
 
-                bc, indices = interpolation(
-                    kernel_matrix[radial_coordinate, angular_coordinate],
-                    gpc_triangles,
-                    gpc_triangles_node_indices
-                )
+                    bc, indices = interpolation(
+                        kernel_matrix[radial_coordinate, angular_coordinate],
+                        gpc_triangles,
+                        gpc_triangles_node_indices
+                    )
 
-                barycentric_coordinates[gpc_system_idx, radial_coordinate, angular_coordinate, :, 0] = indices
-                barycentric_coordinates[gpc_system_idx, radial_coordinate, angular_coordinate, :, 1] = bc
+                    barycentric_coordinates[gpc_system_idx, radial_coordinate, angular_coordinate, :, 0] = indices
+                    barycentric_coordinates[gpc_system_idx, radial_coordinate, angular_coordinate, :, 1] = bc
+    else:
+        for gpc_system_idx in range(n_gpc_systems):
+            gpc_triangles, gpc_triangles_node_indices = prep_interpolation(gpc_systems[gpc_system_idx], object_mesh)
+
+            for radial_coordinate in range(n_radial):
+                for angular_coordinate in range(n_angular):
+                    bc, indices = interpolation(
+                        kernel_matrix[radial_coordinate, angular_coordinate],
+                        gpc_triangles,
+                        gpc_triangles_node_indices
+                    )
+
+                    barycentric_coordinates[gpc_system_idx, radial_coordinate, angular_coordinate, :, 0] = indices
+                    barycentric_coordinates[gpc_system_idx, radial_coordinate, angular_coordinate, :, 1] = bc
 
     return barycentric_coordinates

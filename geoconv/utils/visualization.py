@@ -1,4 +1,4 @@
-from geoconv.preprocessing.barycentric_coordinates import get_points_from_polygons, polar_to_cart, determine_gpc_triangles
+from geoconv.preprocessing.barycentric_coordinates import polar_to_cart, determine_gpc_triangles
 from geoconv.preprocessing.discrete_gpc import local_gpc
 
 from matplotlib import pyplot as plt
@@ -7,6 +7,8 @@ from matplotlib.patches import Polygon
 
 import trimesh
 import numpy as np
+
+from geoconv.utils.misc import get_points_from_polygons
 
 
 def draw_triangles(triangles, points=None):
@@ -64,50 +66,6 @@ def draw_princeton_benchmark(paths, labels, figure_name):
     plt.show()
 
 
-def draw_correspondences(query_mesh, reference_mesh, ground_truth, predictions=None):
-    """TODO: Visualizes ground truth and predicted correspondences
-
-    Parameters
-    ----------
-    query_mesh: trimesh.Trimesh
-        The query mesh
-    reference_mesh: trimesh.Trimesh
-        The reference mesh
-    ground_truth: np.ndarray
-        The ground truth correspondences (vertex indices) in a 1D array
-    predictions: np.ndarray
-        The predicted correspondences (vertex indices) in a 1D array
-    """
-
-    # Assign ground truth colors
-    colors = trimesh.visual.interpolate(np.arange(reference_mesh.vertices.shape[0]), color_map="gist_ncar")
-    pc_t = trimesh.points.PointCloud(reference_mesh.vertices, colors=colors)
-
-    # Color query mesh according to the found correspondences
-    colors_query = pc_t.colors[ground_truth]
-    pc_q = trimesh.points.PointCloud(query_mesh.vertices, colors=colors_query)
-
-    # pc_t.vertices = pc_t.vertices - pc_t.centroid
-    # pc_q.vertices = pc_q.vertices - pc_q.centroid
-    # m = np.concatenate([pc_t.vertices, pc_q.vertices]).mean()
-    # v = np.concatenate([pc_t.vertices, pc_q.vertices]).var()
-    # pc_t.vertices = (pc_t.vertices - m) / v
-    # pc_q.vertices = (pc_q.vertices - m) / v
-
-    # Put target and query mesh side by side
-    pc_q[:, 0] = pc_q[:, 0] + 1
-    for x in [1, 2]:
-        pc_t[:, x] = pc_t[:, x] - pc_t.vertices[:, x].min()
-        pc_q[:, x] = pc_q[:, x] - pc_q.vertices[:, x].min()
-
-    # TODO
-    if predictions is not None:
-        pass
-
-    to_visualize = [pc_t, pc_q]
-    trimesh.Scene(to_visualize).show()
-
-
 def gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_mesh):
     """Visualizes the radial and angular coordinates of a local GPC-system on an object mesh.
 
@@ -130,15 +88,15 @@ def gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_m
     radial_coordinates[radial_coordinates == np.inf] = 0.0
     colors = trimesh.visual.interpolate(radial_coordinates, color_map="Reds")
     colors[center_vertex] = np.array([255, 255, 0, 255])
-    point_cloud = trimesh.points.PointCloud(object_mesh.vertices, colors=colors)
-    to_visualize = [object_mesh, point_cloud]
+    point_cloud_1 = trimesh.points.PointCloud(object_mesh.vertices, colors=colors)
+    to_visualize = [object_mesh, point_cloud_1]
     trimesh.Scene(to_visualize).show()
 
     # Visualize angular coordinates
     colors = trimesh.visual.interpolate(angular_coordinates, color_map="YlGn")
     colors[center_vertex] = np.array([255, 255, 0, 255])
-    point_cloud = trimesh.points.PointCloud(object_mesh.vertices, colors=colors)
-    to_visualize = [object_mesh, point_cloud]
+    point_cloud_2 = trimesh.points.PointCloud(object_mesh.vertices, colors=colors)
+    to_visualize.append(point_cloud_2)
     trimesh.Scene(to_visualize).show()
 
 
@@ -200,7 +158,8 @@ def draw_gpc_triangles(object_mesh,
                        edge_color="red",
                        scatter_color="green",
                        use_c=True,
-                       plot=True):
+                       plot=True,
+                       title=""):
     """Draws the triangles of a local GPC-system.
 
     Parameters
@@ -224,6 +183,8 @@ def draw_gpc_triangles(object_mesh,
         Whether to use the C-extension to compute the GPC-system.
     plot: bool
         Whether to immediately plot
+    title: str
+        The title of the plot
     """
     radial, angular, _ = local_gpc(center_vertex, u_max=u_max, object_mesh=object_mesh, use_c=use_c)
     gpc_system = np.stack([radial, angular], axis=1)
@@ -236,6 +197,7 @@ def draw_gpc_triangles(object_mesh,
             contained_gpc_triangles[tri_idx, point_idx] = polar_to_cart(theta, scale=rho)
 
     fig, ax = plt.subplots()
+    ax.set_title(title)
     ax.set_xlim([contained_gpc_triangles.min(), contained_gpc_triangles.max()])
     ax.set_ylim([contained_gpc_triangles.min(), contained_gpc_triangles.max()])
     polygons = PolyCollection(contained_gpc_triangles, alpha=alpha, edgecolors=edge_color)
