@@ -1,9 +1,11 @@
-from geoconv.preprocessing.barycentric_coordinates import create_kernel_matrix, polar_to_cart, compute_barycentric_coordinates
+from geoconv.preprocessing.barycentric_coordinates import create_kernel_matrix, polar_to_cart, \
+    compute_barycentric_coordinates, determine_gpc_triangles
 from geoconv.preprocessing.discrete_gpc import compute_gpc_systems
-from geoconv.utils.visualization import draw_gpc_triangles, gpc_on_mesh
+from geoconv.utils.visualization import draw_gpc_triangles, gpc_on_mesh, draw_triangles
 from geoconv.utils.misc import reconstruct_kernel, find_smallest_radius
 
 from pathlib import Path
+from tqdm import tqdm
 
 import open3d as o3d
 import trimesh
@@ -74,7 +76,18 @@ def preprocess(recompute_gpc=False, recompute_bc=False):
     else:
         bc = np.load(bunny_path_bc)
 
-    # Visualization of the GPC-systems and the barycentric coordinates.
+    ####################################################################
+    # Visualization of the GPC-systems and the barycentric coordinates
+    ####################################################################
+
+    # Translate GPC-systems into cartesian coordinates (for visualization purposes).
+    gpc_systems_cart = gpc_systems.copy()
+    for gpc_system_idx in tqdm(range(gpc_systems_cart.shape[0]), postfix="Translating GPC-coordinates into cartesian"):
+        for point_idx in range(gpc_systems_cart.shape[1]):
+            gpc_systems_cart[gpc_system_idx, point_idx] = polar_to_cart(
+                gpc_systems_cart[gpc_system_idx, point_idx, 1], scale=gpc_systems_cart[gpc_system_idx, point_idx, 0]
+            )
+
     for gpc_system_idx in range(bc.shape[0]):
         # Original kernel
         kernel_matrix = create_kernel_matrix(n_radial=N_RADIAL, n_angular=N_ANGULAR, radius=kernel_radius)
@@ -113,14 +126,11 @@ def preprocess(recompute_gpc=False, recompute_bc=False):
             title="GPC-system in 2D with kernel vertices"
         )
 
-        # With barycentric coordinates and reconstructed kernel vertices
-        draw_gpc_triangles(
-            bunny,
-            gpc_system_idx,
-            u_max=u_max,
-            kernel_matrix=rk,
-            scatter_color="blue",
-            title="GPC-system in 2D with reconstructed kernel vertices"
+        # Draw triangles with stored GPC-coordinates and place reconstructed kernel vertices with the help of the
+        # computed barycentric coordinates
+        triangles, _ = determine_gpc_triangles(bunny, gpc_systems_cart[gpc_system_idx])
+        draw_triangles(
+            triangles, points=rk.reshape((-1, 2)), title="Reconstructed GPC-system and kernel vertices"
         )
 
 
@@ -134,4 +144,4 @@ if __name__ == "__main__":
     N_ANGULAR = 4
 
     # Start preprocess
-    preprocess(recompute_gpc=True, recompute_bc=True)
+    preprocess(recompute_gpc=False, recompute_bc=False)

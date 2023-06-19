@@ -151,7 +151,7 @@ class ConvGeodesic(Layer):
         interpolations = tf.expand_dims(interpolations, axis=4)
 
         # Compute convolution
-        # Shape kernel: (             subset, n_radial, n_angular, n_kernel, self.output_dim, input_dim)
+        # Shape kernel: (                     n_radial, n_angular, n_kernel, self.output_dim, input_dim)
         # Shape input : (n_rotations, subset, n_radial, n_angular,        1,                  input_dim)
         # Shape result: (n_rotations, subset, n_radial, n_angular, n_kernel, self.output_dim           )
         interpolations = tf.reduce_sum(tf.linalg.matvec(self._kernel, interpolations) + self._bias, axis=[2, 3, 4])

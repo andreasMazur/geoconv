@@ -11,7 +11,7 @@ import numpy as np
 from geoconv.utils.misc import get_points_from_polygons
 
 
-def draw_triangles(triangles, points=None):
+def draw_triangles(triangles, points=None, point_color="blue", title=""):
     """Draws a single triangle and optionally a point in 2D space.
 
     Parameters
@@ -20,15 +20,20 @@ def draw_triangles(triangles, points=None):
         The triangles in cartesian coordinates
     points: np.ndarray
         Points that can optionally also be visualized
+    point_color: str
+        The point color
+    title: str
+        The title of the plot
     """
     fig, ax = plt.subplots(1, 1)
+    ax.set_title(title)
     for tri in triangles:
         polygon = Polygon(tri, alpha=.4, edgecolor="red")
         ax.add_patch(polygon)
 
     if points is not None:
         for point in points:
-            ax.scatter(point[0], point[1])
+            ax.scatter(point[0], point[1], color=point_color)
 
     if points is None:
         ax.set_xlim(triangles[:, :, 0].min(), triangles[:, :, 0].max())
