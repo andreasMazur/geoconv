@@ -1,3 +1,4 @@
+from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.barycentric_coordinates import create_kernel_matrix, polar_to_cart
 from geoconv.preprocessing.discrete_gpc import compute_gpc_systems
 from geoconv.utils.visualization import draw_gpc_triangles, gpc_on_mesh
@@ -8,8 +9,6 @@ from pathlib import Path
 import open3d as o3d
 import trimesh
 import numpy as np
-
-from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 
 
 def load_bunny(target_triangles_amount=6000):
