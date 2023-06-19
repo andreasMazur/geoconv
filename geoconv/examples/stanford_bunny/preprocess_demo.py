@@ -1,5 +1,4 @@
-from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
-from geoconv.preprocessing.barycentric_coordinates import create_kernel_matrix, polar_to_cart
+from geoconv.preprocessing.barycentric_coordinates import create_kernel_matrix, polar_to_cart, compute_barycentric_coordinates
 from geoconv.preprocessing.discrete_gpc import compute_gpc_systems
 from geoconv.utils.visualization import draw_gpc_triangles, gpc_on_mesh
 from geoconv.utils.misc import reconstruct_kernel, find_smallest_radius
