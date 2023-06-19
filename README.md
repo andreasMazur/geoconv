@@ -69,7 +69,7 @@ As visible in the minimal example above, the geodesic convolutional layer expect
 1. The signal defined on the mesh vertices (can be anything from descriptors like SHOT [5] to simple 3D-coordinates of
 the vertices).
 2. Barycentric coordinates for signal interpolation in the format specified by
-``geoconv.preprocessing.barycentric_coords.barycentric_coordinates``.
+``compute_barycentric_coordinates``.
 
 For the latter: **geoconv** supplies you with the necessary preprocessing functions:
 1. Use ``compute_gpc_systems`` on your triangle meshes (which are stored in a format that is
