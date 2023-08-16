@@ -8,10 +8,11 @@ test_scripts/
 sutherland_hodgman/
 
 # Examples
-geoconv/examples/mpi_faust/mesh_signatures
 geoconv/examples/stanford_bunny/bun_zipper.ply
-geoconv/examples/stanford_bunny/bunny_gpc_systems_gpc.npy
-geoconv/examples/stanford_bunny/bunny_gpc_systems_bc.npy
+geoconv/examples/stanford_bunny/bunny_gpc_systems.npy
+geoconv/examples/stanford_bunny/bunny_barycentric_coordinates.npy
+geoconv/examples/mpi_faust/data
+geoconv/examples/mpi_faust/data/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -11,13 +11,14 @@ def determine_gpc_triangles(object_mesh, gpc_system):
     object_mesh: trimesh.Trimesh
         The object mesh
     gpc_system: np.ndarray
-        2D-array containing the geodesic polar coordinates for each vertex in the local GPC-system
+        2D-array containing the coordinates for each vertex in the local GPC-system
 
     Returns
     -------
     (np.ndarray, np.ndarray):
         Two arrays. The first 3D-array contains all triangles that are entirely contained in the GPC-system. The second
-        2D-array contains the same triangles described in node-indices.
+        2D-array contains the same triangles described in node-indices. Depending on whether the GPC-system has geodesic
+        polar- or cartesian coordinates, the triangles will have geodesic polar- or cartesian coordinates.
     """
     triangles = gpc_system[object_mesh.faces]
     indices = []

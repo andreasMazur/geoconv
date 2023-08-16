@@ -9,7 +9,7 @@ meshes [4] and the computation of Barycentric coordinates, are included too.
 
 ## Note
 
-This repository is still in development and might contain bugs.\
+This repository is still in development, is incomplete and might contain bugs. 
 It was tested using **Python 3.10.11**.
 
 ## Installation
@@ -24,6 +24,23 @@ It was tested using **Python 3.10.11**.
      pip install -r requirements.txt
      pip install .
      ```
+   
+3. If one wishes to use a GPU (compare https://www.tensorflow.org/install/pip):
+   ```bash
+   conda install -c conda-forge cudatoolkit=11.8.0
+   python3 -m pip install nvidia-cudnn-cu11==8.6.0.163
+   mkdir -p $CONDA_PREFIX/etc/conda/activate.d
+   echo 'CUDNN_PATH=$(dirname $(python -c "import nvidia.cudnn;print(nvidia.cudnn.__file__)"))' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+   echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/:$CUDNN_PATH/lib' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+   source $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+   ```
+4. In case `libdevice` cannot be found:
+    ```bash
+    echo 'export XLA_FLAGS=--xla_gpu_cuda_data_dir=$(dirname $(find / -type d -name nvvm 2>/dev/null))' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+    echo 'export TF_FORCE_GPU_ALLOW_GROWTH=true' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+    source $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+    ```
+
 ### Hint:
 
 In case you cannot install **BLAS** or **CBLAS** you have the option to remove the ``ext_modules``-argument within
@@ -41,25 +58,25 @@ with Tensorflow.
 
 ```python
 from tensorflow.keras.layers import InputLayer, Dense
-from geoconv.layers.geodesic_conv import ConvGeodesic
+from geoconv.layers.conv_intrinsic import ConvGeodesic
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
 
 import tensorflow as tf
 
 
 def define_model(signal_shape, barycentric_shape, output_dim):
-     """Define a geodesic convolutional neural network"""
+    """Define a geodesic convolutional neural network"""
 
-     signal_input = InputLayer(shape=signal_shape)
-     barycentric = InputLayer(shape=barycentric_shape)
-     signal = ConvGeodesic(
-          output_dim=64, amt_kernel=2, activation="relu", rotation_delta=2
-     )([signal_input, barycentric])
-     signal = AngularMaxPooling()(signal)
-     logits = Dense(output_dim)(signal)
+    signal_input = InputLayer(shape=signal_shape)
+    barycentric = InputLayer(shape=barycentric_shape)
+    signal = ConvGeodesic(
+        output_dim=64, amt_kernel=2, activation="relu", rotation_delta=2
+    )([signal_input, barycentric])
+    signal = AngularMaxPooling()(signal)
+    logits = Dense(output_dim)(signal)
 
-     model = tf.keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
-     return model
+    model = tf.keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
+    return model
 
 # Now train/validate/use it like you would with any other tensorflow model..
 ```

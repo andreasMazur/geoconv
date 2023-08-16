@@ -1,5 +1,6 @@
-from geoconv.preprocessing.barycentric_coordinates import polar_to_cart, determine_gpc_triangles
+from geoconv.preprocessing.barycentric_coordinates import polar_to_cart, determine_gpc_triangles, create_kernel_matrix
 from geoconv.preprocessing.discrete_gpc import local_gpc
+from geoconv.utils.misc import get_points_from_polygons
 
 from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection
@@ -7,43 +8,123 @@ from matplotlib.patches import Polygon
 
 import trimesh
 import numpy as np
+import matplotlib.cm as cm
 
-from geoconv.utils.misc import get_points_from_polygons
 
-
-def draw_triangles(triangles, points=None, point_color="blue", title=""):
-    """Draws a single triangle and optionally a point in 2D space.
+def draw_interpolation_coefficients(icnn_layer, indices):
+    """Wrapper method for 'draw_interpolation_coefficients_single_idx'
 
     Parameters
     ----------
-    triangles: np.ndarray
-        The triangles in cartesian coordinates
-    points: np.ndarray
-        Points that can optionally also be visualized
-    point_color: str
-        The point color
-    title: str
-        The title of the plot
+    icnn_layer: geoconv.layers.conv_intrinsic.ConvIntrinsic
+        The for which the interpolation coefficients shall be visualized
+    indices: List[int]
+        A list of index-tuple for accessing kernel vertices. I.e. indices[x] = (a, b) with K[a, b] = (rho, theta).
     """
-    fig, ax = plt.subplots(1, 1)
-    ax.set_title(title)
-    for tri in triangles:
-        polygon = Polygon(tri, alpha=.4, edgecolor="red")
-        ax.add_patch(polygon)
-
-    if points is not None:
-        for point in points:
-            ax.scatter(point[0], point[1], color=point_color)
-
-    if points is None:
-        ax.set_xlim(triangles[:, :, 0].min(), triangles[:, :, 0].max())
-        ax.set_ylim(triangles[:, :, 1].min(), triangles[:, :, 1].max())
-
+    fig = plt.figure()
+    rows = len(indices)
+    ax_idx = 0
+    for r_idx, a_idx in indices:
+        ax_idx += 1
+        axis_ic = fig.add_subplot(rows, 2, ax_idx)
+        ax_idx += 1
+        axis_kv = fig.add_subplot(rows, 2, ax_idx, projection="polar")
+        draw_interpolation_coefficients_single_idx(icnn_layer, r_idx, a_idx, fig, axis_ic, axis_kv)
+    fig.tight_layout()
     plt.show()
+
+
+def draw_interpolation_coefficients_single_idx(icnn_layer, radial_idx, angular_idx, fig, axis_ic, axis_kv):
+    """Visualizes the interpolation coefficients of the patch operator at a specific kernel vertex
+
+    Parameters
+    ----------
+    icnn_layer: geoconv.layers.conv_intrinsic.ConvIntrinsic
+        The for which the interpolation coefficients shall be visualized
+    radial_idx: int
+        The index of the radial coordinate from the kernel vertex for which we visualize the interpolation coefficients
+    angular_idx: int
+        The index of the angular coordinate from the kernel vertex for which we visualize the interpolation coefficients
+    fig:
+        The figure in which to plot the axes
+    axis_ic:
+        The axis on which to plot the interpolation coefficients matrix
+    axis_kv:
+        The axis on which to plot the weighted kernel vertices
+    """
+
+    # Get interpolation coefficients of the given layer: I[a, b] \in R^{n_radial * n_angular}
+    weights = icnn_layer._interpolation_coefficients[radial_idx, angular_idx].numpy()
+    kernel_size = icnn_layer._kernel_size
+    kernel_matrix = icnn_layer._kernel_vertices.numpy()
+
+    # Reshape vector into matrix: (n_radial * n_angular,) -> (n_radial, n_angular)
+    # See 'ConvIntrinsic._configure_patch_operator()' for why it is stored as a vector.
+    weights = weights.reshape(kernel_size)
+
+    # Visualize interpolation coefficient matrix
+    pos = axis_ic.matshow(weights, cmap="rainbow")
+    fig.colorbar(pos, ax=axis_ic, fraction=0.046, pad=0.04)
+    axis_ic.set_title(
+        f"Interpolation Coefficients for: "
+        f"({kernel_matrix[radial_idx, angular_idx, 0]:.3f}, {kernel_matrix[radial_idx, angular_idx, 1]:.3f})"
+    )
+    kernel_matrix = kernel_matrix.reshape((-1, 2))
+
+    # TODO: For some reason, matplotlib only shows all labels from list[1:] and forgets about list[0]
+    axis_ic.set_ylabel("Radial coordinate")
+    axis_ic.set_yticklabels(["0"] + [f"{x:.3f}" for x in np.unique(kernel_matrix[:, 0])])
+
+    axis_ic.set_xlabel("Angular coordinate (in radian)")
+    axis_ic.set_xticklabels(["0"] + [f"{x:.3f}" for x in np.unique(kernel_matrix[:, 1])])
+
+    # Visualize interpolation coefficients at kernel vertices
+    axis_kv.scatter(kernel_matrix[:, 1], kernel_matrix[:, 0], c=cm.rainbow(weights.flatten()), s=150, edgecolor="black")
+    axis_kv.set_title("Weights at Interpolation Points")
+    axis_kv.grid(True)
+    axis_kv.set_axisbelow(True)
+
+
+def draw_correspondences(query_mesh, prediction, reference_mesh, color_map="Reds"):
+    """Draw point correspondences between a query- and a reference mesh
+
+    The point correspondence problem can be defined as labeling all vertices of a query
+    mesh with the indices of the corresponding points in a reference mesh. See:
+
+    > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
+    > Jonathan Masci and Davide Boscaini et al.
+
+    Parameters
+    ----------
+    query_mesh: trimesh.Trimesh
+        The mesh that contains the vertices, which you want to label
+    prediction: np.ndarray
+        The predicted labels for the vertices in the query mesh
+    reference_mesh: trimesh.Trimesh
+        The reference mesh
+    color_map: str
+        The used color map. Checkout 'matplotlib' for available color maps.
+    """
+    shift_dim = 0
+    query_mesh.visual.vertex_colors = [100, 100, 100, 100]
+    reference_mesh.visual.vertex_colors = [100, 100, 100, 100]
+
+    ref_colors = trimesh.visual.interpolate(reference_mesh.vertices[:, shift_dim], color_map=color_map)
+    reference_mesh_pc = trimesh.PointCloud(vertices=reference_mesh.vertices, colors=ref_colors)
+
+    pred_colors = ref_colors[prediction]
+    query_mesh.vertices[:, shift_dim] -= np.abs(
+        query_mesh.vertices[:, shift_dim].min() - query_mesh.vertices[:, shift_dim].max()
+    )
+    query_mesh_pc = trimesh.PointCloud(vertices=query_mesh.vertices, colors=pred_colors)
+
+    trimesh.Scene([query_mesh, query_mesh_pc, reference_mesh, reference_mesh_pc]).show()
 
 
 def draw_princeton_benchmark(paths, labels, figure_name):
     """Visualizes the Princeton benchmark plots
+
+    First, conduct the princeton benchmark. See 'geoconv.utils.princeton_benchmark'.
 
     Parameters
     ----------
@@ -71,7 +152,7 @@ def draw_princeton_benchmark(paths, labels, figure_name):
     plt.show()
 
 
-def gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_mesh):
+def draw_gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_mesh):
     """Visualizes the radial and angular coordinates of a local GPC-system on an object mesh.
 
     This function first shows you the radial coordinates and then the angular coordinates.
@@ -87,6 +168,9 @@ def gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_m
     object_mesh: trimesh.Trimesh
         The object mesh.
     """
+    radial_coordinates = radial_coordinates.copy()
+    angular_coordinates = angular_coordinates.copy()
+
     object_mesh.visual.vertex_colors = [100, 100, 100, 100]
 
     # Visualize radial coordinates
@@ -105,54 +189,38 @@ def gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_m
     trimesh.Scene(to_visualize).show()
 
 
-def gpc_in_coordinate_system(radial_coordinates, angular_coordinates, object_mesh, kernel=None):
-    """Plots a GPC-system in a polar coordinate system.
+def draw_triangles(triangles, points=None, point_color="blue", title="", plot=True):
+    """Draws a single triangle and optionally a point in 2D space.
 
     Parameters
     ----------
-    radial_coordinates: np.ndarray
-        A 1-dimensional array containing the radial coordinates of the GPC-system.
-    angular_coordinates: np.ndarray
-        A 1-dimensional array containing the angular coordinates of the GPC-system.
-    object_mesh: trimesh.Trimesh
-        The object mesh.
-    kernel: np.ndarray
-        A kernel matrix K with K[i, j] containing polar coordinates (radial, angular) of point (i. j)
+    triangles: np.ndarray
+        The triangles in cartesian coordinates
+    points: np.ndarray
+        Points that can optionally also be visualized (in cartesian coordinates)
+    point_color: str
+        The point color
+    title: str
+        The title of the plot
+    plot: bool
+        Whether to plot the image immediately
     """
+    fig, ax = plt.subplots(1, 1)
+    ax.set_title(title)
+    for tri in triangles:
+        polygon = Polygon(tri, alpha=.4, edgecolor="red")
+        ax.add_patch(polygon)
 
-    _, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+    if points is not None:
+        for point in points:
+            ax.scatter(point[0], point[1], color=point_color)
 
-    # Determine coordinates to plot
-    mask = radial_coordinates != np.inf
+    if points is None:
+        ax.set_xlim(triangles[:, :, 0].min(), triangles[:, :, 0].max())
+        ax.set_ylim(triangles[:, :, 1].min(), triangles[:, :, 1].max())
 
-    plotted_faces_ = []
-    included_vertex_ids = np.where(mask)[0]
-    for vertex in included_vertex_ids:
-        # Get triangles in polar coordinate representation
-        face_ids_of_vertex = np.where(object_mesh.faces == vertex)[0]
-        vertex_faces_ = object_mesh.faces[face_ids_of_vertex]
-        for face_id, face in zip(face_ids_of_vertex, vertex_faces_):
-            if face_id in plotted_faces_:
-                continue
-            face_r = radial_coordinates[face]
-            face_theta = angular_coordinates[face]
-
-            # "Close" triangles
-            face_r = np.concatenate([face_r, [face_r[0]]])
-            face_theta = np.concatenate([face_theta, [face_theta[0]]])
-
-            # Exclude triangles which are not entirely contained within GPC system
-            if np.any(radial_coordinates[face] == np.inf) or np.any(angular_coordinates[face] == -1.):
-                continue
-
-            # Plot and remember
-            ax.plot(face_theta, face_r)
-            plotted_faces_.append(face_id)
-
-    if kernel is not None:
-        kernel = kernel.reshape((-1, 2))
-        ax.plot(kernel[:, 1], kernel[:, 0], "bo")
-    plt.show()
+    if plot:
+        plt.show()
 
 
 def draw_gpc_triangles(object_mesh,
@@ -193,9 +261,7 @@ def draw_gpc_triangles(object_mesh,
     """
     radial, angular, _ = local_gpc(center_vertex, u_max=u_max, object_mesh=object_mesh, use_c=use_c)
     gpc_system = np.stack([radial, angular], axis=1)
-    contained_gpc_triangles, _ = determine_gpc_triangles(
-        object_mesh, gpc_system
-    )
+    contained_gpc_triangles, _ = determine_gpc_triangles(object_mesh, gpc_system)
     for tri_idx in range(contained_gpc_triangles.shape[0]):
         for point_idx in range(contained_gpc_triangles.shape[1]):
             rho, theta = contained_gpc_triangles[tri_idx, point_idx]
@@ -221,7 +287,7 @@ def draw_gpc_triangles(object_mesh,
     return gpc_system
 
 
-def vertices_in_coordinate_system(radial_coordinates, angular_coordinates):
+def draw_vertices_in_coordinate_system(radial_coordinates, angular_coordinates):
     """Plots the vertices of a GPC-system in a polar coordinate system.
 
     Parameters

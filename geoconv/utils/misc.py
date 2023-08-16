@@ -3,8 +3,65 @@ from geoconv.preprocessing.discrete_gpc import initialize_neighborhood
 
 from tqdm import tqdm
 
+import pygeodesic.geodesic as geodesic
 import numpy as np
 import trimesh
+
+
+def normalize_mesh(mesh):
+    """Center mesh and scale x, y and z dimension with '1/geodesic diameter'.
+
+    Parameters
+    ----------
+    mesh: trimesh.Trimesh
+        The triangle mesh, that shall be normalized
+
+    Returns
+    -------
+    trimesh.Trimesh:
+        The normalized mesh
+    """
+    # Center mesh
+    for dim in range(3):
+        mesh.vertices[:, dim] = mesh.vertices[:, dim] - mesh.vertices[:, dim].mean()
+
+    # Determine geodesic distances
+    n_vertices = mesh.vertices.shape[0]
+    distance_matrix = np.zeros((n_vertices, n_vertices))
+    geoalg = geodesic.PyGeodesicAlgorithmExact(mesh.vertices, mesh.faces)
+    for sp in tqdm(range(n_vertices), postfix=f"Normalizing mesh.."):
+        distances, _ = geoalg.geodesicDistances([sp], None)
+        distance_matrix[sp] = distances
+
+    # Scale mesh
+    geodesic_diameter = distance_matrix.max()
+    for dim in range(3):
+        mesh.vertices[:, dim] = mesh.vertices[:, dim] * (1 / geodesic_diameter)
+    print(f"-> Normalized with geodesic diameter: {geodesic_diameter}")
+
+    return mesh
+
+
+def gpc_systems_into_cart(gpc_systems):
+    """Translates the geodesic polar coordinates of given GPC-systems into cartesian
+
+    Parameters
+    ----------
+    gpc_systems: np.ndarray
+        A 3D-array containing all GPC-systems which shall be translated
+
+    Returns
+    -------
+    np.ndarray:
+        The same GPC-systems but in cartesian coordinates
+    """
+    gpc_systems_cart = np.copy(gpc_systems)
+    for gpc_system_idx in tqdm(range(gpc_systems_cart.shape[0]), postfix="Translating GPC-coordinates into cartesian"):
+        for vertex_idx in range(gpc_systems_cart.shape[1]):
+            gpc_systems_cart[gpc_system_idx, vertex_idx] = polar_to_cart(
+                gpc_systems_cart[gpc_system_idx, vertex_idx, 1], gpc_systems_cart[gpc_system_idx, vertex_idx, 0]
+            )
+    return gpc_systems_cart
 
 
 def reconstruct_kernel(gpc_system, b_coordinates):
@@ -39,47 +96,45 @@ def reconstruct_kernel(gpc_system, b_coordinates):
     return reconstructed_kernel
 
 
-def shuffle_mesh_vertices(object_mesh):
-    shuffled_node_indices = np.arange(object_mesh.vertices.shape[0])
-    np.random.shuffle(shuffled_node_indices)
-    object_mesh_vertices = np.copy(object_mesh.vertices)[shuffled_node_indices]
-    object_mesh_faces = np.copy(object_mesh.faces)
-    for face in object_mesh_faces:
-        face[0] = np.where(shuffled_node_indices == face[0])[0]
-        face[1] = np.where(shuffled_node_indices == face[1])[0]
-        face[2] = np.where(shuffled_node_indices == face[2])[0]
-    return trimesh.Trimesh(vertices=object_mesh_vertices, faces=object_mesh_faces), shuffled_node_indices
+def shuffle_mesh_vertices(mesh, given_shuffle=None):
+    """Shuffles the vertices of the mesh
 
+    Parameters
+    ----------
+    mesh: trimesh.Trimesh
+        The mesh from which you want to shuffle the vertices
+    given_shuffle: np.ndarray
+        A given shuffle of the vertices
 
-# def exp_map(radial_c, angular_c, center_vertex, mesh):
-#     """TODO: Maps a point located in the tangent plane of a mesh vertex onto the mesh surface
-#
-#     Parameters
-#     ----------
-#     radial_c: float
-#         The radial coordinate of the point to map onto the surface
-#     angular_c: float
-#         The angular coordinate of the point to map onto the surface
-#     center_vertex: int
-#         The index for the mesh vertex in which we consider the tangent plane
-#     mesh: trimesh.Trimesh
-#         The triangle mesh
-#
-#     Returns
-#     -------
-#     np.ndarray:
-#         An array that contains the 3D cartesian coordinates for the mapped point
-#
-#     """
-#     gpc_system = compute_gpc_systems(mesh)[center_vertex]
-#     contained_gpc_triangles, contained_gpc_faces = determine_gpc_triangles(mesh, gpc_system)
-#
-#     x, y = polar_to_cart(angular_c, scale=radial_c)
-#     # bary_coord = barycentric_coordinates_kernel(np.array([[[x, y]]]), contained_gpc_triangles, contained_gpc_faces)
-#
-#     mesh_vertices = np.asarray(mesh.vertices[bary_coord[0, 0, :3, 0].astype(np.int16)])
-#
-#     return mesh_vertices @ bary_coord[:, :, :, 1][0, 0]
+    Returns
+    -------
+    (trimesh.Trimesh, np.ndarray, np.ndarray)
+        The same mesh but with a different vertices order. Additionally, two arrays are returned. Both contain vertex
+        indices. Given a vertex index 'idx', it holds that:
+
+        mesh.vertices[idx] == shuffled_mesh.vertices[shuffle_map[idx]] == mesh.vertices[ground_truth[shuffle_map[idx]]]
+    """
+    ground_truth = np.arange(mesh.vertices.shape[0])
+    if given_shuffle is None:
+        np.random.shuffle(ground_truth)
+    else:
+        ground_truth = np.copy(given_shuffle)
+    mesh_vertices = np.copy(mesh.vertices)[ground_truth]
+
+    shuffle_map = []
+    for vertex_idx in range(mesh.vertices.shape[0]):
+        shuffle_map.append(np.where(ground_truth == vertex_idx)[0])
+    shuffle_map = np.array(shuffle_map).flatten()
+
+    mesh_faces = np.copy(mesh.faces)
+    for face_idx in range(mesh.faces.shape[0]):
+        mesh_faces[face_idx, 0] = shuffle_map[mesh.faces[face_idx, 0]]
+        mesh_faces[face_idx, 1] = shuffle_map[mesh.faces[face_idx, 1]]
+        mesh_faces[face_idx, 2] = shuffle_map[mesh.faces[face_idx, 2]]
+
+    shuffled_mesh = trimesh.Trimesh(vertices=mesh_vertices, faces=mesh_faces)
+
+    return shuffled_mesh, shuffle_map, ground_truth
 
 
 def get_included_faces(object_mesh, gpc_system):
@@ -130,7 +185,7 @@ def get_points_from_polygons(polygons):
 
 
 def find_smallest_radius(object_mesh, use_c=True):
-    """Finds the largest euclidean distance from center vertex to a one-hop neighbor in a triangle mesh
+    """Finds the largest Euclidean distance from center vertex to a one-hop neighbor in a triangle mesh
 
     The initialization of the algorithm that computes the GPC-systems cannot
     ensure that the radial coordinates of the center-vertex's one-hop neighbors

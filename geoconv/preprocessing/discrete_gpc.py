@@ -186,19 +186,18 @@ def compute_distance_and_angle(vertex_i, vertex_j, u, theta, face_cache, object_
         face_cache = dict()
 
     # Caching considered triangles to save time
-    if vertex_i + vertex_j in face_cache.keys():
-        considered_faces = face_cache[vertex_i + vertex_j]
+    sorted_edge = (vertex_i if vertex_i < vertex_j else vertex_j, vertex_j if vertex_j > vertex_i else vertex_i)
+    if sorted_edge in face_cache.keys():
+        considered_faces = face_cache[sorted_edge]
     else:
-        # Determine both triangles of edge [vertex_i, vertex_j] and cache those
-        sorted_vectors = [vertex_i, vertex_j]
-        sorted_vectors.sort()
-        edge_indices = np.where(np.logical_and(
-            object_mesh.edges_sorted[:, 0] == sorted_vectors[0],
-            object_mesh.edges_sorted[:, 1] == sorted_vectors[1]
-        ))[0]
+        # Determine both triangles of 'sorted_edge' and cache those
+        edge_indices = object_mesh.edges_sorted == sorted_edge
+        edge_indices = np.where(np.logical_and(edge_indices[:, 0], edge_indices[:, 1]))
+
         face_indices = object_mesh.edges_face[edge_indices]
         considered_faces = object_mesh.faces[face_indices]
-        face_cache[vertex_i + vertex_j] = considered_faces
+
+        face_cache[sorted_edge] = considered_faces
 
     updates = []
     for triangle in considered_faces:
@@ -363,8 +362,7 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
     if check_array.max() > u_max:
         warnings.warn(
             f"You chose a 'u_max' to be smaller then {check_array.max()}, which has been seen as an initialization"
-            f" length for a GPC-system. It cannot be ensured anymore that the radial lengths will be smaller than"
-            f" 'u_max'.", RuntimeWarning
+            f" length for a GPC-system. Current GPC-system will only contain initialization vertices.", RuntimeWarning
         )
 
     candidates = []  # heap containing vertices sorted by distance u[i]
@@ -372,7 +370,6 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
         candidates.append((u[neighbor], neighbor))
     heapq.heapify(candidates)
 
-    # Iteration
     while candidates:
         # as we work with a min-heap the shortest distance is stored in root
         j_dist, j = heapq.heappop(candidates)
@@ -427,16 +424,17 @@ def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_m
     """
 
     gpc_systems = []
+    triangle_cache = dict()
     if tqdm_msg:
         for vertex_idx in tqdm(range(object_mesh.vertices.shape[0]), position=0, postfix=tqdm_msg):
             u_v, theta_v, triangle_cache = local_gpc(
-                vertex_idx, u_max, object_mesh, use_c, eps
+                vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache
             )
             gpc_systems.append(np.stack([u_v, theta_v], axis=1))
     else:
         for vertex_idx in range(object_mesh.vertices.shape[0]):
             u_v, theta_v, triangle_cache = local_gpc(
-                vertex_idx, u_max, object_mesh, use_c, eps
+                vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache
             )
             gpc_systems.append(np.stack([u_v, theta_v], axis=1))
 

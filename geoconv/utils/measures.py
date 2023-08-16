@@ -1,13 +1,14 @@
-from matplotlib import pyplot as plt
+from geoconv.utils.misc import get_included_faces, normalize_mesh
 
-from geoconv.utils.misc import get_included_faces
+from matplotlib import pyplot as plt
 
 import pygeodesic.geodesic as geodesic
 import trimesh
 import numpy as np
+import sys
 
 
-def princeton_benchmark(network, dataset, reference_mesh, file_name):
+def princeton_benchmark(imcnn, test_dataset, ref_mesh_path, file_name):
     """Plots the accuracy w.r.t. a gradually changing geodesic error
 
     Princeton benchmark has been introduced in:
@@ -16,32 +17,36 @@ def princeton_benchmark(network, dataset, reference_mesh, file_name):
 
     Parameters
     ----------
-    network: tf.keras.Model
-        The network to analyse
-    dataset: tf.data.Dataset
-        The dataset on which to evaluate
-    reference_mesh: str
+    imcnn: tf.keras.Model
+        The Intrinsic Mesh CNN
+    test_dataset: tf.data.Dataset
+        The test dataset on which to evaluate the Intrinsic Mesh CNN
+    ref_mesh_path: str
         A path to the reference mesh
     file_name: str
         The file name under which to store the plot and the data (without file format ending!)
     """
-    # Calculating
-    reference_mesh = trimesh.load_mesh(reference_mesh)
+    reference_mesh = trimesh.load_mesh(ref_mesh_path)
+    reference_mesh = normalize_mesh(reference_mesh)
     geoalg = geodesic.PyGeodesicAlgorithmExact(reference_mesh.vertices, reference_mesh.faces)
-    geodesic_distances = []
-    idx = 0
-    for ((signal, barycentric), ground_truth) in dataset:
-        print(f"Currently at mesh {idx}")
-        idx += 1
-        classification = np.array(network([signal, barycentric])).argmax(axis=1)
-        for (pred, gt) in np.stack([classification, np.array(ground_truth)], axis=1):
-            geodesic_distances.append(geoalg.geodesicDistance(gt, pred)[0])
-    geodesic_distances = np.array(geodesic_distances)
-    geodesic_distances.sort()
 
+    geodesic_errors, mesh_idx = [], -1
+    for ((signal, barycentric), ground_truth) in test_dataset:
+        mesh_idx += 1
+        prediction = imcnn([signal, barycentric]).numpy().argmax(axis=1)
+        pred_idx = -1
+        for gt, pred in np.stack([ground_truth, prediction], axis=1):
+            pred_idx += 1
+            sys.stdout.write(f"\rCurrently at mesh {mesh_idx} - Prediction {pred_idx}")
+            geodesic_errors.append(geoalg.geodesicDistance(pred, gt)[0])
+    geodesic_errors = np.array(geodesic_errors)
+    geodesic_errors.sort()
+
+    ###########
     # Plotting
-    amt_values = geodesic_distances.shape[0]
-    arr = np.array([((i + 1) / amt_values, x) for (i, x) in zip(range(amt_values), geodesic_distances)])
+    ###########
+    amt_values = geodesic_errors.shape[0]
+    arr = np.array([((i + 1) / amt_values, x) for (i, x) in zip(range(amt_values), geodesic_errors)])
     plt.plot(arr[:, 1], arr[:, 0])
     plt.title("Princeton Benchmark")
     plt.xlabel("geodesic error")

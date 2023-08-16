@@ -1,9 +1,9 @@
-from tensorflow.keras.layers import Layer
+from tensorflow import keras
 
 import tensorflow as tf
 
 
-class AngularMaxPooling(Layer):
+class AngularMaxPooling(keras.layers.Layer):
     """The implementation of the geodesic convolution
 
     Paper, that introduced angular max-pooling:
