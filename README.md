@@ -57,23 +57,24 @@ with Tensorflow.
 ### Define a GCNN with geoconv:
 
 ```python
-from tensorflow.keras.layers import InputLayer, Dense
-from geoconv.layers.conv_intrinsic import ConvGeodesic
+from geoconv.layers.conv_geodesic import ConvGeodesic
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
-
+from tensorflow import keras
 import tensorflow as tf
 
 
 def define_model(signal_shape, barycentric_shape, output_dim):
     """Define a geodesic convolutional neural network"""
 
-    signal_input = InputLayer(shape=signal_shape)
-    barycentric = InputLayer(shape=barycentric_shape)
+    signal_input = keras.layers.InputLayer(shape=signal_shape)
+    barycentric = keras.layers.InputLayer(shape=barycentric_shape)
     signal = ConvGeodesic(
-        output_dim=64, amt_kernel=2, activation="relu", rotation_delta=2
+         output_dim=32,
+         amt_kernel=2,
+         kernel_radius=0.028
     )([signal_input, barycentric])
     signal = AngularMaxPooling()(signal)
-    logits = Dense(output_dim)(signal)
+    logits = keras.layers.Dense(output_dim)(signal)
 
     model = tf.keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
     return model
