@@ -9,8 +9,7 @@ meshes [4] and the computation of Barycentric coordinates, are included too.
 
 ## Note
 
-This repository is still in development, is incomplete and might contain bugs. 
-It was tested using **Python 3.10.11**.
+This repository is still in development. It was tested using **Python 3.10.11**.
 
 ## Installation
 1. Install **[BLAS](https://netlib.org/blas/#_reference_blas_version_3_10_0)** and **[CBLAS](https://netlib.org/blas/#_cblas)**:
