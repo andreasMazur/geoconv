@@ -2,7 +2,7 @@ from geoconv.preprocessing.barycentric_coordinates import create_kernel_matrix, 
     compute_barycentric_coordinates, determine_gpc_triangles
 from geoconv.preprocessing.discrete_gpc import compute_gpc_systems
 from geoconv.utils.visualization import draw_gpc_triangles, draw_gpc_on_mesh, draw_triangles
-from geoconv.utils.misc import reconstruct_kernel, find_smallest_radius, gpc_systems_into_cart, normalize_mesh
+from geoconv.utils.misc import reconstruct_kernel, find_largest_one_hop_dist, gpc_systems_into_cart, normalize_mesh
 
 from pathlib import Path
 
@@ -76,7 +76,7 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
 
     # Find the smallest distance from a center vertex in the bunny mesh to one of its one-hop neighbors.
     bunny = normalize_mesh(bunny)
-    u_max = find_smallest_radius(bunny)
+    u_max = find_largest_one_hop_dist(bunny)
 
     # Set the maximal radial distance for the GPC-systems
     u_max = u_max + u_max * .1

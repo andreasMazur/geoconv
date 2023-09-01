@@ -184,7 +184,7 @@ def get_points_from_polygons(polygons):
     return np.unique(polygons.reshape((-1, 2)), axis=0)
 
 
-def find_smallest_radius(object_mesh, use_c=True):
+def find_largest_one_hop_dist(object_mesh, use_c=True):
     """Finds the largest Euclidean distance from center vertex to a one-hop neighbor in a triangle mesh
 
     The initialization of the algorithm that computes the GPC-systems cannot

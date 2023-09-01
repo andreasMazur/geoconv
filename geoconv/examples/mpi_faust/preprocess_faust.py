@@ -1,6 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.discrete_gpc import compute_gpc_systems
-from geoconv.utils.misc import shuffle_mesh_vertices, normalize_mesh, find_smallest_radius
+from geoconv.utils.misc import shuffle_mesh_vertices, normalize_mesh, find_largest_one_hop_dist
 
 from pathlib import Path
 
@@ -76,7 +76,7 @@ def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=Tr
             reg_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
             print(f"Found temp-files:\n{normalized_v_name}\n{normalized_f_name}\nSkipping to next normalization..")
 
-        new_candidate = find_smallest_radius(reg_mesh)
+        new_candidate = find_largest_one_hop_dist(reg_mesh)
         gpc_radius = new_candidate if new_candidate > gpc_radius else gpc_radius
     gpc_radius = gpc_radius + gpc_radius * .1
     kernel_radius = gpc_radius * 0.75
@@ -111,7 +111,7 @@ def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=Tr
             # Store mesh signal (here we simply use the 3D-coordinates)
             #############################################################
             if shot:
-                radius = find_smallest_radius(reg_mesh) * 2.5
+                radius = find_largest_one_hop_dist(reg_mesh) * 2.5
                 shot_descrs = pyshot.get_descriptors(
                     reg_mesh.vertices,
                     reg_mesh.faces,
