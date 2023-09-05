@@ -59,9 +59,8 @@ def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=Tr
         os.makedirs(temp_dir)
 
     # Check whether geodesic diameters have already been computed
-    geodesic_diameters_name = f"{target_dir}/geodesic_diameters.npy"
-    if Path(geodesic_diameters_name).is_file():
-        geodesic_diameters = np.load(geodesic_diameters_name)
+    if Path(geodesic_diameters_path).is_file():
+        geodesic_diameters = np.load(geodesic_diameters_path)
     else:
         geodesic_diameters = np.full(len(paths_reg_meshes), -1.)
 
@@ -98,7 +97,8 @@ def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=Tr
     print(f"GPC-system radius: {gpc_radius:.3f} | Kernel radius: {kernel_radius:.3f}")
 
     # Save computed geodesic diameters
-    if not Path(geodesic_diameters_name).is_file():
+    if not Path(geodesic_diameters_path).is_file():
+        geodesic_diameters_name = f"{target_dir}/geodesic_diameters.npy"
         np.save(geodesic_diameters_name, geodesic_diameters)
 
     # Log GPC-system radius and kernel radius
