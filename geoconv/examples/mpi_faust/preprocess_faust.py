@@ -9,6 +9,7 @@ import os
 import trimesh
 import numpy as np
 import shutil
+import json
 
 
 def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=True):
@@ -81,6 +82,11 @@ def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=Tr
     gpc_radius = gpc_radius + gpc_radius * .1
     kernel_radius = gpc_radius * 0.75
     print(f"GPC-system radius: {gpc_radius:.3f} | Kernel radius: {kernel_radius:.3f}")
+
+    # Log GPC-system radius and kernel radius
+    properties_file = open(f"{target_dir}/gpc_kernel_properties.json", "w")
+    json.dump({"gpc_system_radius": gpc_radius, "kernel_radius": kernel_radius}, properties_file, indent=4)
+    properties_file.close()
 
     for file_idx in range(len(paths_reg_meshes)):
         # Define file names
