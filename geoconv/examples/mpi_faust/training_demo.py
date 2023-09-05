@@ -78,8 +78,9 @@ def training_demo(preprocess_target_dir,
         )
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
-        if kernel_radius <= .0:
-            raise RuntimeError("Please select a valid kernel radius >0.")
+
+    if kernel_radius <= .0:
+        raise RuntimeError("Please select a valid kernel radius >0.")
 
     ######################################
     # Hyperparameter tuning and training
