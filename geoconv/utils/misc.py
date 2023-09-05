@@ -8,13 +8,15 @@ import numpy as np
 import trimesh
 
 
-def normalize_mesh(mesh):
+def normalize_mesh(mesh, geodesic_diameter=None):
     """Center mesh and scale x, y and z dimension with '1/geodesic diameter'.
 
     Parameters
     ----------
     mesh: trimesh.Trimesh
         The triangle mesh, that shall be normalized
+    geodesic_diameter: float
+        The geodesic diameter. If not provided, this function will compute the geodesic diameter.
 
     Returns
     -------
@@ -25,16 +27,17 @@ def normalize_mesh(mesh):
     for dim in range(3):
         mesh.vertices[:, dim] = mesh.vertices[:, dim] - mesh.vertices[:, dim].mean()
 
-    # Determine geodesic distances
-    n_vertices = mesh.vertices.shape[0]
-    distance_matrix = np.zeros((n_vertices, n_vertices))
-    geoalg = geodesic.PyGeodesicAlgorithmExact(mesh.vertices, mesh.faces)
-    for sp in tqdm(range(n_vertices), postfix=f"Normalizing mesh.."):
-        distances, _ = geoalg.geodesicDistances([sp], None)
-        distance_matrix[sp] = distances
+    # Determine geodesic diameter
+    if geodesic_diameter is None:
+        n_vertices = mesh.vertices.shape[0]
+        distance_matrix = np.zeros((n_vertices, n_vertices))
+        geoalg = geodesic.PyGeodesicAlgorithmExact(mesh.vertices, mesh.faces)
+        for sp in tqdm(range(n_vertices), postfix=f"Normalizing mesh.."):
+            distances, _ = geoalg.geodesicDistances([sp], None)
+            distance_matrix[sp] = distances
+        geodesic_diameter = distance_matrix.max()
 
     # Scale mesh
-    geodesic_diameter = distance_matrix.max()
     for dim in range(3):
         mesh.vertices[:, dim] = mesh.vertices[:, dim] * (1 / geodesic_diameter)
     print(f"-> Normalized with geodesic diameter: {geodesic_diameter}")
