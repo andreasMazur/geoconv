@@ -12,3 +12,4 @@ matplotlib==3.5.2
 open3d==0.17.0
 networkx==2.8.6
 pygeodesic==0.1.7
+protobuf<=3.20.*
