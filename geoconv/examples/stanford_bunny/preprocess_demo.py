@@ -75,7 +75,7 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     bunny = load_bunny(path_to_stanford_bunny)
 
     # Find the smallest distance from a center vertex in the bunny mesh to one of its one-hop neighbors.
-    bunny = normalize_mesh(bunny)
+    bunny, _ = normalize_mesh(bunny)
     u_max = find_largest_one_hop_dist(bunny)
 
     # Set the maximal radial distance for the GPC-systems

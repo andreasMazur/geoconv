@@ -27,7 +27,7 @@ def princeton_benchmark(imcnn, test_dataset, ref_mesh_path, file_name):
         The file name under which to store the plot and the data (without file format ending!)
     """
     reference_mesh = trimesh.load_mesh(ref_mesh_path)
-    reference_mesh = normalize_mesh(reference_mesh)
+    reference_mesh, _ = normalize_mesh(reference_mesh)
     geoalg = geodesic.PyGeodesicAlgorithmExact(reference_mesh.vertices, reference_mesh.faces)
 
     geodesic_errors, mesh_idx = [], -1

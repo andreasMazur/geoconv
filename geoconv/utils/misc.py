@@ -18,8 +18,8 @@ def normalize_mesh(mesh):
 
     Returns
     -------
-    trimesh.Trimesh:
-        The normalized mesh
+    (trimesh.Trimesh, float):
+        The normalized mesh and the geodesic diameter, with which the mesh was normalized
     """
     # Center mesh
     for dim in range(3):
@@ -39,7 +39,7 @@ def normalize_mesh(mesh):
         mesh.vertices[:, dim] = mesh.vertices[:, dim] * (1 / geodesic_diameter)
     print(f"-> Normalized with geodesic diameter: {geodesic_diameter}")
 
-    return mesh
+    return mesh, geodesic_diameter
 
 
 def gpc_systems_into_cart(gpc_systems):
