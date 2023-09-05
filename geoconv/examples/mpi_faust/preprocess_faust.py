@@ -107,11 +107,11 @@ def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=Tr
             and Path(gt_name).is_file()
             and Path(signal_name).is_file()
         ):
-            ########################################################################################
-            # Shuffle vertices of query mesh (otherwise the ground truth matrix equals unit matrix)
-            ########################################################################################
-            reg_mesh, _, ground_truth = shuffle_mesh_vertices(reg_mesh)
-            np.save(gt_name, ground_truth)
+            ##################################
+            # Shuffle vertices of query mesh
+            ##################################
+            # reg_mesh, _, ground_truth = shuffle_mesh_vertices(reg_mesh)
+            np.save(gt_name, np.eye(vertices.shape[0]))
 
             #############################################################
             # Store mesh signal (here we simply use the 3D-coordinates)
