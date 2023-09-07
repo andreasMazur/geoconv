@@ -18,7 +18,8 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
                  amt_splits,
                  amt_gradient_splits,
                  kernel_radius,
-                 rotation_delta):
+                 rotation_delta,
+                 batch_normalization=True):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
@@ -28,6 +29,7 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
         self.amt_splits = amt_splits
         self.amt_gradient_splits = amt_gradient_splits
         self.rotation_delta = rotation_delta
+        self.batch_normalization = batch_normalization
 
     def build(self, hp):
         keras.backend.clear_session()
@@ -47,6 +49,8 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
             name="gc_0"
         )([signal_input, bc_input])
         signal = amp(signal)
+        if self.batch_normalization:
+            signal = keras.layers.BatchNormalization(axis=-1)(signal)
         for idx in range(1, self.amt_convolutions):
             signal = ConvGeodesic(
                 output_dim=128,
@@ -58,6 +62,8 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
                 name=f"gc_{idx}"
             )([signal, bc_input])
             signal = amp(signal)
+            if self.batch_normalization:
+                signal = keras.layers.BatchNormalization(axis=-1)(signal)
 
         output = keras.layers.Dense(self.amt_target_nodes)(signal)
 
