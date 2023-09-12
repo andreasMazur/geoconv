@@ -8,7 +8,14 @@ import numpy as np
 import sys
 
 
-def princeton_benchmark(imcnn, test_dataset, ref_mesh_path, file_name):
+def princeton_benchmark(imcnn,
+                        test_dataset,
+                        ref_mesh_path,
+                        file_name,
+                        normalize=True,
+                        plot_title="Princeton Benchmark",
+                        curve_label=None,
+                        plot=False):
     """Plots the accuracy w.r.t. a gradually changing geodesic error
 
     Princeton benchmark has been introduced in:
@@ -25,9 +32,18 @@ def princeton_benchmark(imcnn, test_dataset, ref_mesh_path, file_name):
         A path to the reference mesh
     file_name: str
         The file name under which to store the plot and the data (without file format ending!)
+    normalize: bool
+        Whether to normalize the reference mesh
+    plot_title: str
+        The title of the plot
+    curve_label: str
+        The name displayed in the plot legend
+    plot: bool
+        Whether to plot immediately.
     """
     reference_mesh = trimesh.load_mesh(ref_mesh_path)
-    reference_mesh, _ = normalize_mesh(reference_mesh)
+    if normalize:
+        reference_mesh, _ = normalize_mesh(reference_mesh)
     geoalg = geodesic.PyGeodesicAlgorithmExact(reference_mesh.vertices, reference_mesh.faces)
 
     geodesic_errors, mesh_idx = [], -1
@@ -39,22 +55,37 @@ def princeton_benchmark(imcnn, test_dataset, ref_mesh_path, file_name):
             pred_idx += 1
             sys.stdout.write(f"\rCurrently at mesh {mesh_idx} - Prediction {pred_idx}")
             geodesic_errors.append(geoalg.geodesicDistance(pred, gt)[0])
+
+    ##########################
+    # Sorting geodesic errors
+    ##########################
     geodesic_errors = np.array(geodesic_errors)
     geodesic_errors.sort()
+    amt_values = geodesic_errors.shape[0]
+    arr = np.array([((i + 1) / amt_values, x) for (i, x) in zip(range(amt_values), geodesic_errors)])
+    np.save(f"{file_name}.npy", arr)
+
+    ###############################################################
+    # One y-value per x-value: Take highest percentage per x-value
+    ###############################################################
+    unique_x_values = np.unique(arr[:, 1])
+    unique_values = []
+    for unique_x in unique_x_values:
+        unique_values.append(arr[np.where(arr[:, 1] == unique_x)[0][-1]])
+    unique_values = np.array(unique_values)
 
     ###########
     # Plotting
     ###########
-    amt_values = geodesic_errors.shape[0]
-    arr = np.array([((i + 1) / amt_values, x) for (i, x) in zip(range(amt_values), geodesic_errors)])
-    plt.plot(arr[:, 1], arr[:, 0])
-    plt.title("Princeton Benchmark")
+    plt.plot(unique_values[:, 1], unique_values[:, 0], label=curve_label)
+    plt.title(plot_title)
     plt.xlabel("geodesic error")
     plt.ylabel("% correct correspondences")
-    plt.grid()
-    plt.savefig(f"{file_name}.svg")
-    np.save(f"{file_name}.npy", arr)
-    plt.show()
+    if plot:
+        plt.grid()
+        plt.legend()
+        plt.savefig(f"{file_name}.svg")
+        plt.show()
 
 
 def kernel_coverage(object_mesh, gpc_system, bary_coordinates):
