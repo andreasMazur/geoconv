@@ -15,7 +15,7 @@ def princeton_benchmark(imcnn,
                         normalize=True,
                         plot_title="Princeton Benchmark",
                         curve_label=None,
-                        plot=False):
+                        plot=True):
     """Plots the accuracy w.r.t. a gradually changing geodesic error
 
     Princeton benchmark has been introduced in:
