@@ -1,3 +1,4 @@
+from geoconv.examples.mpi_faust.faust_data_set import get_file_number
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.discrete_gpc import compute_gpc_systems
 from geoconv.utils.misc import shuffle_mesh_vertices, normalize_mesh, find_largest_one_hop_dist
@@ -50,7 +51,7 @@ def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=Tr
     # Load mesh-paths
     ##################
     paths_reg_meshes = os.listdir(registration_path)
-    paths_reg_meshes.sort()
+    paths_reg_meshes.sort(key=get_file_number)
     paths_reg_meshes = [f for f in paths_reg_meshes if f[-4:] != ".png"]
 
     # Create temp dir for normalized meshes
