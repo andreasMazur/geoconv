@@ -121,37 +121,6 @@ def draw_correspondences(query_mesh, prediction, reference_mesh, color_map="Reds
     trimesh.Scene([query_mesh, query_mesh_pc, reference_mesh, reference_mesh_pc]).show()
 
 
-def draw_princeton_benchmark(paths, labels, figure_name):
-    """Visualizes the Princeton benchmark plots
-
-    First, conduct the princeton benchmark. See 'geoconv.utils.princeton_benchmark'.
-
-    Parameters
-    ----------
-    paths: list
-        A list of paths to the npy-files
-    labels: list
-        A list of labels in order with the paths
-    figure_name: str
-        The name of the figure
-    """
-    plt.yticks(np.linspace(0., 1., num=11))
-    for idx, path in enumerate(paths):
-        arr = np.load(path)
-        label_name = f"{labels[idx]} -" \
-                     f" Mean Error: {arr[:, 1].mean():.3f} -" \
-                     f" 80% at: {arr[np.argmax(arr[:, 0] >= .8)][1]:.3f}"
-        plt.plot(arr[:, 1], arr[:, 0], label=label_name)
-
-    plt.title("Princeton Benchmark")
-    plt.xlabel("geodesic error")
-    plt.ylabel("% correct correspondences")
-    plt.legend()
-    plt.grid()
-    plt.savefig(f"{figure_name}.svg")
-    plt.show()
-
-
 def draw_gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_mesh):
     """Visualizes the radial and angular coordinates of a local GPC-system on an object mesh.
 
