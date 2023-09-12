@@ -3,6 +3,25 @@ import tensorflow as tf
 import os
 
 
+def get_file_number(file_name):
+    """Extracts the file number contained in the file name
+
+    Parameters
+    ----------
+    file_name: str
+        The file name
+
+    Returns
+    -------
+    int:
+        The file number contained in the file name
+    """
+    for elem in file_name.split("_"):
+        if elem.isdigit():
+            return int(elem)
+    raise RuntimeError(f"Filename '{file_name}' has no digit.")
+
+
 def faust_generator(path_to_zip, set_type=0):
     """Reads one element of preprocessed FAUST-examples into memory per 'next'-call.
 
@@ -31,7 +50,7 @@ def faust_generator(path_to_zip, set_type=0):
     SIGNAL = [file_name for file_name in file_names if file_name.startswith("SIGNAL")]
     BC = [file_name for file_name in file_names if file_name.startswith("BC")]
     GT = [file_name for file_name in file_names if file_name.startswith("GT")]
-    SIGNAL.sort(), BC.sort(), GT.sort()
+    SIGNAL.sort(key=get_file_number), BC.sort(key=get_file_number), GT.sort(key=get_file_number)
 
     if set_type == 0:
         indices = range(70)
