@@ -30,14 +30,14 @@ def normal_pdf(mean_rho, mean_theta, var_rho, var_theta, rho, theta):
     float:
         The weight for the interpolation point (rho, theta)
     """
-    # norm_coefficient = 1 / np.sqrt((2 * np.pi) ** 2 * var_rho * var_theta)
+    norm_coefficient = 1 / np.sqrt((2 * np.pi) ** 2 * var_rho * var_theta)
     max_angle = np.maximum(mean_theta, theta)
     min_angle = np.minimum(mean_theta, theta)
     delta_angle = angle_distance(max_angle, min_angle)
     vec = np.array([rho - mean_rho, delta_angle])
     mat = np.array([[1 / var_rho, 0], [0, 1 / var_theta]])
     exp = np.exp(-(1 / 2) * vec.T @ mat @ vec)
-    return exp
+    return norm_coefficient * exp
 
 
 class ConvGeodesic(ConvIntrinsic):

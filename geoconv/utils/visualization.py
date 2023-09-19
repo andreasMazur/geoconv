@@ -1,3 +1,5 @@
+from geoconv.utils.measures import princeton_benchmark
+
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart, determine_gpc_triangles, create_kernel_matrix
 from geoconv.preprocessing.discrete_gpc import local_gpc
 from geoconv.utils.misc import get_points_from_polygons
@@ -9,6 +11,40 @@ from matplotlib.patches import Polygon
 import trimesh
 import numpy as np
 import matplotlib.cm as cm
+
+
+def draw_multiple_princeton_benchmarks(save_name, **kwargs):
+    """Draws the Princeton benchmarks all given numpy files.
+
+    Parameters
+    ----------
+    save_name: str
+        The name of the file in which the result plot will be saved.
+    kwargs: str
+        The keys will be displayed as a title. The values are the paths to the numpy files and the line-style.
+    """
+
+    for name, (path, line_style) in kwargs.items():
+        # Load values from princeton benchmark
+        pb_values = np.load(path)
+
+        # Filter values
+        unique_x_values = np.unique(pb_values[:, 1])
+        unique_values = []
+        for unique_x in unique_x_values:
+            unique_values.append(pb_values[np.where(pb_values[:, 1] == unique_x)[0][-1]])
+        unique_values = np.array(unique_values)
+
+        # Plot values
+        plt.plot(unique_values[:, 1], unique_values[:, 0], linestyle=line_style, label=name)
+        plt.title(f"Princeton Benchmarks")
+        plt.xlabel("geodesic error")
+        plt.ylabel("% correct correspondences")
+
+    plt.grid()
+    plt.legend()
+    plt.savefig(f"{save_name}.svg")
+    plt.show()
 
 
 def draw_interpolation_coefficients(icnn_layer, indices):
