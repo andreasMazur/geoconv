@@ -13,7 +13,7 @@ import shutil
 import json
 
 
-def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=True, geodesic_diameters_path=None):
+def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=True, geodesic_diameters_path=""):
     """Preprocesses the FAUST-data set
 
     The FAUST-data set has to be downloaded from: https://faust-leaderboard.is.tuebingen.mpg.de/
