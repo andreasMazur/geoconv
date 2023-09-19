@@ -16,7 +16,8 @@ def get_file_number(file_name):
     int:
         The file number contained in the file name
     """
-    for elem in file_name.split("_"):
+    # file_name.split(".")[0] -> Without file ending
+    for elem in file_name.split(".")[0].split("_"):
         if elem.isdigit():
             return int(elem)
     raise RuntimeError(f"Filename '{file_name}' has no digit.")
