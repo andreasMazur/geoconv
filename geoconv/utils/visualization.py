@@ -21,10 +21,11 @@ def draw_multiple_princeton_benchmarks(save_name, **kwargs):
     save_name: str
         The name of the file in which the result plot will be saved.
     kwargs: str
-        The keys will be displayed as a title. The values are the paths to the numpy files and the line-style.
+        The keys will be displayed as a title. The values are the paths to the numpy files, the line-style
+        and the color.
     """
 
-    for name, (path, line_style) in kwargs.items():
+    for name, (path, line_style, color) in kwargs.items():
         # Load values from princeton benchmark
         pb_values = np.load(path)
 
@@ -36,10 +37,10 @@ def draw_multiple_princeton_benchmarks(save_name, **kwargs):
         unique_values = np.array(unique_values)
 
         # Plot values
-        plt.plot(unique_values[:, 1], unique_values[:, 0], linestyle=line_style, label=name)
-        plt.title(f"Princeton Benchmarks")
+        plt.plot(unique_values[:, 1], unique_values[:, 0], linestyle=line_style, label=name, c=color)
+        # plt.title(f"Princeton Benchmarks")
         plt.xlabel("geodesic error")
-        plt.ylabel("% correct correspondences")
+        plt.ylabel("\% correct correspondences")
 
     plt.grid()
     plt.legend()
