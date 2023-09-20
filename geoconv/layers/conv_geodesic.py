@@ -1,6 +1,7 @@
 from geoconv.layers.conv_intrinsic import ConvIntrinsic
 
 import numpy as np
+import scipy as sp
 
 
 def angle_distance(theta_max, theta_min):
@@ -61,4 +62,7 @@ class ConvGeodesic(ConvIntrinsic):
                         interpolation_coefficients[mean_rho_idx, mean_theta_idx, rho_idx, theta_idx] = normal_pdf(
                             mean_rho, mean_theta, var_rho, var_theta, rho, theta
                         )
+                interpolation_coefficients[mean_rho_idx, mean_theta_idx] = sp.special.softmax(
+                    interpolation_coefficients[mean_rho_idx, mean_theta_idx]
+                )
         return interpolation_coefficients
