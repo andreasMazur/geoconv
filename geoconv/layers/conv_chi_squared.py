@@ -2,6 +2,7 @@ from geoconv.layers.conv_intrinsic import ConvIntrinsic
 from geoconv.layers.conv_geodesic import angle_distance
 
 import numpy as np
+import scipy as sp
 
 
 def gamma_func(dof):
@@ -87,4 +88,7 @@ class ConvChiSquared(ConvIntrinsic):
                         interpolation_coefficients[mean_rho_idx, mean_theta_idx, rho_idx, theta_idx] = chi_squared_pdf(
                             mean_rho, mean_theta, rho, theta, self.dof
                         )
+                interpolation_coefficients[mean_rho_idx, mean_theta_idx] = sp.special.softmax(
+                    interpolation_coefficients[mean_rho_idx, mean_theta_idx]
+                )
         return interpolation_coefficients

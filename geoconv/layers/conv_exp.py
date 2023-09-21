@@ -2,6 +2,7 @@ from geoconv.layers.conv_intrinsic import ConvIntrinsic
 from geoconv.layers.conv_geodesic import angle_distance
 
 import numpy as np
+import scipy as sp
 
 
 def exp_pdf(mean_rho, mean_theta, rho, theta, exp_lambda):
@@ -55,4 +56,7 @@ class ConvExp(ConvIntrinsic):
                         interpolation_coefficients[mean_rho_idx, mean_theta_idx, rho_idx, theta_idx] = exp_pdf(
                             mean_rho, mean_theta, rho, theta, self.exp_lambda
                         )
+                interpolation_coefficients[mean_rho_idx, mean_theta_idx] = sp.special.softmax(
+                    interpolation_coefficients[mean_rho_idx, mean_theta_idx]
+                )
         return interpolation_coefficients
