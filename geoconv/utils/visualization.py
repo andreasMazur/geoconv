@@ -1,16 +1,17 @@
-from geoconv.utils.measures import princeton_benchmark
-
-from geoconv.preprocessing.barycentric_coordinates import polar_to_cart, determine_gpc_triangles, create_kernel_matrix
+from geoconv.preprocessing.barycentric_coordinates import polar_to_cart, determine_gpc_triangles
 from geoconv.preprocessing.discrete_gpc import local_gpc
 from geoconv.utils.misc import get_points_from_polygons
 
 from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection
 from matplotlib.patches import Polygon
+from PIL import Image
 
+import matplotlib
 import trimesh
 import numpy as np
 import matplotlib.cm as cm
+import io
 
 
 def draw_multiple_princeton_benchmarks(save_name, **kwargs):
@@ -122,7 +123,7 @@ def draw_interpolation_coefficients_single_idx(icnn_layer, radial_idx, angular_i
     axis_kv.set_axisbelow(True)
 
 
-def draw_correspondences(query_mesh, prediction, reference_mesh, color_map="Reds"):
+def draw_correspondences(query_mesh, prediction, reference_mesh, color_map="Reds", save_image=True):
     """Draw point correspondences between a query- and a reference mesh
 
     The point correspondence problem can be defined as labeling all vertices of a query
@@ -141,6 +142,8 @@ def draw_correspondences(query_mesh, prediction, reference_mesh, color_map="Reds
         The reference mesh
     color_map: str
         The used color map. Checkout 'matplotlib' for available color maps.
+    save_image: bool
+        Whether to save the image
     """
     shift_dim = 0
     query_mesh.visual.vertex_colors = [100, 100, 100, 100]
@@ -155,7 +158,12 @@ def draw_correspondences(query_mesh, prediction, reference_mesh, color_map="Reds
     )
     query_mesh_pc = trimesh.PointCloud(vertices=query_mesh.vertices, colors=pred_colors)
 
-    trimesh.Scene([query_mesh, query_mesh_pc, reference_mesh, reference_mesh_pc]).show()
+    scene = trimesh.Scene([query_mesh, query_mesh_pc, reference_mesh, reference_mesh_pc])
+    scene.show()
+    if save_image:
+        image_bytes = scene.save_image(resolution=(1080, 1080))
+        image_array = np.array(Image.open(io.BytesIO(image_bytes)))
+        matplotlib.image.imsave("./correspondence.png", image_array)
 
 
 def draw_gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_mesh):
