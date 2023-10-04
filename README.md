@@ -65,12 +65,12 @@ This repository is still in development. It was tested using **Python 3.10.11**.
 
 In case you cannot install **BLAS** or **CBLAS** you have the option to remove the ``ext_modules``-argument within
 ``setup.py``. This will prohibit you from taking advantage of the c-extension module that accelerates GPC-system
-computation. This, in turn, implies that you have to set the ``use_c``-flag in the respective functions to ``False`` such that
-the Python-alternative implementation is used.
+computation (required during pre-processing mesh files). This, in turn, implies that you have to set the ``use_c``-flag
+in the respective functions to ``False`` such that the Python-alternative implementation is used.
 
-## Usage
+## Minimal Example
 
-In order to make the usage as simple as possible, we implement the geodesic convolution as a Tensorflow-layer.
+In order to make the usage as simple as possible, we implement the intrinsic surface convolution as a Tensorflow-layer.
 Thus, it can be used as any other default Tensorflow layer, making it easy to the users who are familiar 
 with Tensorflow.
 
@@ -104,7 +104,8 @@ def define_model(signal_shape, barycentric_shape, output_dim):
 
 ### Inputs and preprocessing
 
-As visible in the minimal example above, the geodesic convolutional layer expects two inputs:
+As visible in the minimal example above, the intrinsic surface convolutional layer (here geodesic convolution) expects
+two inputs:
 1. The signal defined on the mesh vertices (can be anything from descriptors like SHOT [5] to simple 3D-coordinates of
 the vertices).
 2. Barycentric coordinates for signal interpolation in the format specified by
@@ -117,8 +118,7 @@ systems with the algorithm suggested by [4].
 2. Use those GPC-systems and ``compute_barycentric_coordinates`` to compute the barycentric coordinates for the kernel 
 vertices. The result can without further effort directly be fed into the layer.
 
-For a more thorough explanation please take a look on the demo file ``preprocess_demo`` in the examples
-folder.
+**For more thorough explanations on how GeoConv operates check out the `examples`-folder!**
 
 ## Cite
 
