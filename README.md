@@ -1,11 +1,32 @@
 # GeoConv
 
-**Geo**desic **conv**olutional neural networks belong to the category of intrinsic mesh CNNs [1].
-They operate directly on object surfaces, therefore expanding the application of convolutions
-to non-Euclidean data. The **GeoConv** library delivers an implementation of the **geodesic convolution** [2] 
-while taking into account suggestions for implementation details which were given in [3].
-Additionally, all required preprocessing functions, like computing geodesic polar coordinates on triangulated object
-meshes [4] and the computation of Barycentric coordinates, are included too.
+## Let's bend planes to curved surfaces.
+
+Intrinsic mesh CNNs [1] operate directly on object surfaces, therefore expanding the application of convolutions to
+non-Euclidean data.
+
+**GeoConv** is a library that provides end-to-end tools for deep learning on surfaces.
+That is, whether it is pre-processing your mesh files into a format that can be fed into neural networks, or the
+implementation of the **intrinsic surface convolutions** [1] themselves, GeoConv has you covered.
+
+## Background
+
+**Geo**desic **conv**olutional neural networks [2] belong to the category of Intrinsic mesh CNNs. While they portray the
+first approach, they are not the only approach to convolution on  surfaces. This library implements a **general
+parametric framework** for intrinsic surface convolutions, following the formal description of [3].
+That is, while GeoConv provides a theoretically substantiated and elaborated class for the
+fundamental intrinsic surface convolution (`ConvIntrinsic`), you can easily define new ones by subclassing it. This
+alleviates you from thinking about the nitty-gritty details of every single aspect which you have to consider when you
+want to calculate intrinsic surface convolutions and allows you to focus on your ideas, that you actually want to
+realize.
+
+Since `ConvIntrinsic` is a Tensorflow layer, you benefit from all the advantages that Tensorflow offers such as a being
+able to quickly write a training pipeline by configuring and calling Tensorflow's `fit`-function, exporting computations
+onto GPUs or TPUs, saving your models in standardized formats and more.
+
+Furthermore, as the topic of pre-processing mesh data can be a bit obscure, GeoConv provides you additionally with
+visualization and benchmark tools to check and verify your layer configuration, your pre-processing results and your
+trained models.
 
 ## Note
 
@@ -112,8 +133,8 @@ in the right panel.
 [2]: Masci, Jonathan, et al. "Geodesic convolutional neural networks on riemannian manifolds." Proceedings of the IEEE
      international conference on computer vision workshops. 2015.
 
-[3]: Poulenard, Adrien, and Maks Ovsjanikov. "Multi-directional geodesic neural networks via equivariant convolution."
-     ACM Transactions on Graphics (TOG) 37.6 (2018): 1-14.
+[3]: Monti, Federico, et al. "Geometric deep learning on graphs and manifolds using mixture model cnns." Proceedings
+     of the IEEE conference on computer vision and pattern recognition. 2017.
 
 [4]: Melvær, Eivind Lyche, and Martin Reimers. "Geodesic polar coordinates on polygonal meshes." Computer Graphics 
      Forum. Vol. 31. No. 8. Oxford, UK: Blackwell Publishing Ltd, 2012.
