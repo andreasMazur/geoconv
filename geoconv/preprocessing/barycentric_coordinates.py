@@ -112,7 +112,7 @@ def interpolation(query_point, gpc_triangles, gpc_triangles_node_indices):
         The first returned array contains the barycentric coordinates. The second returned array contains the
         indices of the vertices to which the barycentric coordinates belong. In case of 'vertex' not falling into
         any triangle, two zero arrays are returned. I.e. there will be no feature taken into consideration for this
-        kernel vertex.
+        template vertex.
     """
     for idx, triangle in enumerate(gpc_triangles):
         b_coordinates, lies_within = compute_barycentric(query_point, triangle)
@@ -140,8 +140,8 @@ def polar_to_cart(angle, scale=1.):
     return scale * np.cos(angle), scale * np.sin(angle)
 
 
-def create_kernel_matrix(n_radial, n_angular, radius, in_cart=False):
-    """Creates a kernel matrix with radius `radius` and `n_radial` radial- and `n_angular` angular coordinates.
+def create_template_matrix(n_radial, n_angular, radius, in_cart=False):
+    """Creates a template matrix with radius `radius` and `n_radial` radial- and `n_angular` angular coordinates.
 
     Parameters
     ----------
@@ -150,14 +150,14 @@ def create_kernel_matrix(n_radial, n_angular, radius, in_cart=False):
     n_angular: int
         The amount of angular coordinates
     radius: float
-        The radius of the kernel
+        The radius of the template
     in_cart: bool
-        If True, then the kernel matrix contains cartesian coordinates
+        If True, then the template matrix contains cartesian coordinates
 
     Returns
     -------
     np.ndarray
-        A kernel matrix K with K[i, j] containing polar coordinates (radial, angular) of point (i. j)
+        A template matrix K with K[i, j] containing polar coordinates (radial, angular) of point (i. j)
     """
 
     coordinates = np.zeros((n_radial, n_angular, 2))
@@ -188,30 +188,30 @@ def compute_barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angu
         - contains polar coordinates (radial, angular)
         - just use the output of layers.preprocessing.discrete_gpc.discrete_gpc
     n_radial: int
-        The amount of radial coordinates of the kernel you wish to use
+        The amount of radial coordinates of the template you wish to use
     n_angular: int
-        The amount of angular coordinates of the kernel you wish to use
+        The amount of angular coordinates of the template you wish to use
     radius: float
-        The radius of the kernel of the kernel you wish to use
+        The radius of the template of the template you wish to use
     verbose: bool
         Whether to print progress on terminal
 
     Returns
     -------
-    A 5D-array containing the Barycentric coordinates for each kernel vertex and each GPC-system. It has the following
+    A 5D-array containing the Barycentric coordinates for each template vertex and each GPC-system. It has the following
     structure:
         B[a, b, c, d, e]:
             - a: References GPC-system centered in vertex `a` of object mesh `object_mesh`
-            - b: References the b-th radial coordinate of the kernel
-            - c: References the c-th angular coordinate of the kernel
-            - B[a, b, c, :, 0]: Returns the **indices** of the nodes that construct the triangle containing the kernel
+            - b: References the b-th radial coordinate of the template
+            - c: References the c-th angular coordinate of the template
+            - B[a, b, c, :, 0]: Returns the **indices** of the nodes that construct the triangle containing the template
                                 vertex (b, c) in GPC-system centered in node `a`
             - B[a, b, c, :, 1]: Returns the **Barycentric coordinates** of the nodes that construct the triangle
-                                containing the kernel vertex (b, c) in GPC-system centered in node `a`
+                                containing the template vertex (b, c) in GPC-system centered in node `a`
     """
 
-    # Define kernel vertices at which interpolation values will be needed
-    kernel_matrix = create_kernel_matrix(n_radial=n_radial, n_angular=n_angular, radius=radius, in_cart=True)
+    # Define template vertices at which interpolation values will be needed
+    template_matrix = create_template_matrix(n_radial=n_radial, n_angular=n_angular, radius=radius, in_cart=True)
 
     n_gpc_systems = gpc_systems.shape[0]
     barycentric_coordinates = np.zeros((n_gpc_systems, n_radial, n_angular, 3, 2))
@@ -224,7 +224,7 @@ def compute_barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angu
                 for angular_coordinate in range(n_angular):
 
                     bc, indices = interpolation(
-                        kernel_matrix[radial_coordinate, angular_coordinate],
+                        template_matrix[radial_coordinate, angular_coordinate],
                         gpc_triangles,
                         gpc_triangles_node_indices
                     )
@@ -238,7 +238,7 @@ def compute_barycentric_coordinates(object_mesh, gpc_systems, n_radial=2, n_angu
             for radial_coordinate in range(n_radial):
                 for angular_coordinate in range(n_angular):
                     bc, indices = interpolation(
-                        kernel_matrix[radial_coordinate, angular_coordinate],
+                        template_matrix[radial_coordinate, angular_coordinate],
                         gpc_triangles,
                         gpc_triangles_node_indices
                     )

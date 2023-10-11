@@ -67,8 +67,8 @@ def gpc_systems_into_cart(gpc_systems):
     return gpc_systems_cart
 
 
-def reconstruct_kernel(gpc_system, b_coordinates):
-    """Reconstructs the kernel vertices with barycentric coordinates
+def reconstruct_template(gpc_system, b_coordinates):
+    """Reconstructs the template vertices with barycentric coordinates
 
     Parameters
     ----------
@@ -77,15 +77,15 @@ def reconstruct_kernel(gpc_system, b_coordinates):
         geodesic polar coordinates (radial, angle) for the i-th vertex of the underlying
         object mesh.
     b_coordinates: np.ndarray
-        Contains the barycentric coordinates from which the kernel shall be reconstructed.
+        Contains the barycentric coordinates from which the template shall be reconstructed.
     Returns
     -------
     np.ndarray:
-        Cartesian kernel coordinates in the same format as returned by 'create_kernel_matrix'.
+        Cartesian template coordinates in the same format as returned by 'create_template_matrix'.
 
     """
 
-    reconstructed_kernel = np.zeros((b_coordinates.shape[0], b_coordinates.shape[1], 2))
+    reconstructed_template = np.zeros((b_coordinates.shape[0], b_coordinates.shape[1], 2))
     for rc in range(b_coordinates.shape[0]):
         for ac in range(b_coordinates.shape[1]):
             # Get vertices
@@ -95,8 +95,8 @@ def reconstruct_kernel(gpc_system, b_coordinates):
 
             # Interpolate vertices
             weights = b_coordinates[rc, ac, :, 1]
-            reconstructed_kernel[rc, ac] = vertices.T @ weights
-    return reconstructed_kernel
+            reconstructed_template[rc, ac] = vertices.T @ weights
+    return reconstructed_template
 
 
 def shuffle_mesh_vertices(mesh, given_shuffle=None):
@@ -204,7 +204,7 @@ def find_largest_one_hop_dist(object_mesh, use_c=True):
     """
     largest_radial_c = .0
     for source_point in tqdm(
-        range(object_mesh.vertices.shape[0]), postfix="Checking for largest initial radial distances"
+        range(object_mesh.vertices.shape[0]), postfix="Determining largest one-hop neighborhood distance.."
     ):
         u = np.full((object_mesh.vertices.shape[0],), np.inf)
         theta = np.full((object_mesh.vertices.shape[0],), -1.0)

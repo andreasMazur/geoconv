@@ -57,7 +57,7 @@ def draw_interpolation_coefficients(icnn_layer, indices):
     icnn_layer: geoconv.layers.conv_intrinsic.ConvIntrinsic
         The for which the interpolation coefficients shall be visualized
     indices: List[int]
-        A list of index-tuple for accessing kernel vertices. I.e. indices[x] = (a, b) with K[a, b] = (rho, theta).
+        A list of index-tuple for accessing template vertices. I.e. indices[x] = (a, b) with K[a, b] = (rho, theta).
     """
     fig = plt.figure()
     rows = len(indices)
@@ -73,51 +73,55 @@ def draw_interpolation_coefficients(icnn_layer, indices):
 
 
 def draw_interpolation_coefficients_single_idx(icnn_layer, radial_idx, angular_idx, fig, axis_ic, axis_kv):
-    """Visualizes the interpolation coefficients of the patch operator at a specific kernel vertex
+    """Visualizes the interpolation coefficients of the patch operator at a specific template vertex
 
     Parameters
     ----------
     icnn_layer: geoconv.layers.conv_intrinsic.ConvIntrinsic
         The for which the interpolation coefficients shall be visualized
     radial_idx: int
-        The index of the radial coordinate from the kernel vertex for which we visualize the interpolation coefficients
+        The index of the radial coordinate from the template vertex for which we visualize the interpolation
+        coefficients
     angular_idx: int
-        The index of the angular coordinate from the kernel vertex for which we visualize the interpolation coefficients
+        The index of the angular coordinate from the template vertex for which we visualize the interpolation
+        coefficients
     fig:
         The figure in which to plot the axes
     axis_ic:
         The axis on which to plot the interpolation coefficients matrix
     axis_kv:
-        The axis on which to plot the weighted kernel vertices
+        The axis on which to plot the weighted template vertices
     """
 
     # Get interpolation coefficients of the given layer: I[a, b] \in R^{n_radial * n_angular}
     weights = icnn_layer._interpolation_coefficients[radial_idx, angular_idx].numpy()
-    kernel_size = icnn_layer._kernel_size
-    kernel_matrix = icnn_layer._kernel_vertices.numpy()
+    template_size = icnn_layer._kernel_size
+    template_matrix = icnn_layer._kernel_vertices.numpy()
 
     # Reshape vector into matrix: (n_radial * n_angular,) -> (n_radial, n_angular)
     # See 'ConvIntrinsic._configure_patch_operator()' for why it is stored as a vector.
-    weights = weights.reshape(kernel_size)
+    weights = weights.reshape(template_size)
 
     # Visualize interpolation coefficient matrix
     pos = axis_ic.matshow(weights, cmap="rainbow")
     fig.colorbar(pos, ax=axis_ic, fraction=0.046, pad=0.04)
     axis_ic.set_title(
         f"Interpolation Coefficients for: "
-        f"({kernel_matrix[radial_idx, angular_idx, 0]:.3f}, {kernel_matrix[radial_idx, angular_idx, 1]:.3f})"
+        f"({template_matrix[radial_idx, angular_idx, 0]:.3f}, {template_matrix[radial_idx, angular_idx, 1]:.3f})"
     )
-    kernel_matrix = kernel_matrix.reshape((-1, 2))
+    template_matrix = template_matrix.reshape((-1, 2))
 
     # TODO: For some reason, matplotlib only shows all labels from list[1:] and forgets about list[0]
     axis_ic.set_ylabel("Radial coordinate")
-    axis_ic.set_yticklabels(["0"] + [f"{x:.3f}" for x in np.unique(kernel_matrix[:, 0])])
+    axis_ic.set_yticklabels(["0"] + [f"{x:.3f}" for x in np.unique(template_matrix[:, 0])])
 
     axis_ic.set_xlabel("Angular coordinate (in radian)")
-    axis_ic.set_xticklabels(["0"] + [f"{x:.3f}" for x in np.unique(kernel_matrix[:, 1])])
+    axis_ic.set_xticklabels(["0"] + [f"{x:.3f}" for x in np.unique(template_matrix[:, 1])])
 
-    # Visualize interpolation coefficients at kernel vertices
-    axis_kv.scatter(kernel_matrix[:, 1], kernel_matrix[:, 0], c=cm.rainbow(weights.flatten()), s=150, edgecolor="black")
+    # Visualize interpolation coefficients at template vertices
+    axis_kv.scatter(
+        template_matrix[:, 1], template_matrix[:, 0], c=cm.rainbow(weights.flatten()), s=150, edgecolor="black"
+    )
     axis_kv.set_title("Weights at Interpolation Points")
     axis_kv.grid(True)
     axis_kv.set_axisbelow(True)
@@ -166,7 +170,14 @@ def draw_correspondences(query_mesh, prediction, reference_mesh, color_map="Reds
         matplotlib.image.imsave("./correspondence.png", image_array)
 
 
-def draw_gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, object_mesh):
+def draw_gpc_on_mesh(center_vertex,
+                     radial_coordinates,
+                     angular_coordinates,
+                     object_mesh,
+                     save_name="",
+                     angles=(0., 0., 0.),
+                     distance=1.,
+                     center=(0., 0., 0.)):
     """Visualizes the radial and angular coordinates of a local GPC-system on an object mesh.
 
     This function first shows you the radial coordinates and then the angular coordinates.
@@ -181,11 +192,19 @@ def draw_gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, obj
         A 1-dimensional array containing the angular coordinates of the GPC-system.
     object_mesh: trimesh.Trimesh
         The object mesh.
+    save_name: str
+        The name of the image. If none is given, the image will not be saved.
+    angles: tuple
+        A 3-tuple that describes the camera angle in radians.
+    distance: float
+        A float that describes the camera distance.
+    center: tuple
+        A 3-tuple that describes the camera center.
     """
     radial_coordinates = radial_coordinates.copy()
     angular_coordinates = angular_coordinates.copy()
 
-    object_mesh.visual.vertex_colors = [100, 100, 100, 100]
+    object_mesh.visual.vertex_colors = [90, 90, 90, 200]
 
     # Visualize radial coordinates
     radial_coordinates[radial_coordinates == np.inf] = 0.0
@@ -193,14 +212,26 @@ def draw_gpc_on_mesh(center_vertex, radial_coordinates, angular_coordinates, obj
     colors[center_vertex] = np.array([255, 255, 0, 255])
     point_cloud_1 = trimesh.points.PointCloud(object_mesh.vertices, colors=colors)
     to_visualize = [object_mesh, point_cloud_1]
-    trimesh.Scene(to_visualize).show()
+    scene = trimesh.Scene(to_visualize)
+    scene.set_camera(angles=angles, distance=distance, center=center)
+    scene.show()
+    if save_name:
+        image_bytes = scene.save_image(resolution=(3840, 3840))
+        image_array = np.array(Image.open(io.BytesIO(image_bytes)))
+        matplotlib.image.imsave(f"{save_name}_radial_coords.png", image_array)
 
     # Visualize angular coordinates
     colors = trimesh.visual.interpolate(angular_coordinates, color_map="YlGn")
     colors[center_vertex] = np.array([255, 255, 0, 255])
     point_cloud_2 = trimesh.points.PointCloud(object_mesh.vertices, colors=colors)
     to_visualize.append(point_cloud_2)
-    trimesh.Scene(to_visualize).show()
+    scene = trimesh.Scene(to_visualize)
+    scene.set_camera(angles=angles, distance=distance, center=center)
+    scene.show()
+    if save_name:
+        image_bytes = scene.save_image(resolution=(3840, 3840))
+        image_array = np.array(Image.open(io.BytesIO(image_bytes)))
+        matplotlib.image.imsave(f"{save_name}_angular_coords.png", image_array)
 
 
 def draw_triangles(triangles, points=None, point_color="blue", title="", plot=True):
@@ -240,13 +271,15 @@ def draw_triangles(triangles, points=None, point_color="blue", title="", plot=Tr
 def draw_gpc_triangles(object_mesh,
                        center_vertex,
                        u_max=.04,
-                       kernel_matrix=None,
+                       template_matrix=None,
+                       print_scatter=False,
                        alpha=.4,
                        edge_color="red",
                        scatter_color="green",
                        use_c=True,
                        plot=True,
-                       title=""):
+                       title="",
+                       save_name=""):
     """Draws the triangles of a local GPC-system.
 
     Parameters
@@ -257,21 +290,25 @@ def draw_gpc_triangles(object_mesh,
         The center vertex of the GPC-system which shall be visualized.
     u_max: float
         The max-radius of the GPC-system
-    kernel_matrix: np.ndarray
-        A 3D-array that describes kernel vertices in cartesian coordinates. If 'None' is passed
-        no kernel vertices will be visualized.
+    template_matrix: np.ndarray
+        A 3D-array that describes template vertices in cartesian coordinates. If 'None' is passed
+        no template vertices will be visualized.
+    print_scatter: bool
+        Whether to print dots at the triangle vertices.
     alpha: float
         The opacity of the polygons
     edge_color: str
         The color for the triangle edges
     scatter_color: str
-        The color for the kernel vertices (in case a kernel is given)
+        The color for the template vertices (in case a template is given)
     use_c: bool
         Whether to use the C-extension to compute the GPC-system.
     plot: bool
         Whether to immediately plot
     title: str
         The title of the plot
+    save_name: str
+        The name of the image. If none is given, the image will not be saved.
     """
     radial, angular, _ = local_gpc(center_vertex, u_max=u_max, object_mesh=object_mesh, use_c=use_c)
     gpc_system = np.stack([radial, angular], axis=1)
@@ -288,16 +325,21 @@ def draw_gpc_triangles(object_mesh,
     polygons = PolyCollection(contained_gpc_triangles, alpha=alpha, edgecolors=edge_color)
     ax.add_collection(polygons)
 
-    points = get_points_from_polygons(contained_gpc_triangles)
-    ax.scatter(points[:, 0], points[:, 1], color="red")
+    if print_scatter:
+        points = get_points_from_polygons(contained_gpc_triangles)
+        ax.scatter(points[:, 0], points[:, 1], color="red")
 
-    if kernel_matrix is not None:
-        for radial_idx in range(kernel_matrix.shape[0]):
-            ax.scatter(kernel_matrix[radial_idx, :, 0], kernel_matrix[radial_idx, :, 1], color=scatter_color)
+    if template_matrix is not None:
+        for radial_idx in range(template_matrix.shape[0]):
+            ax.scatter(template_matrix[radial_idx, :, 0], template_matrix[radial_idx, :, 1], color=scatter_color)
+
+    if save_name:
+        plt.savefig(save_name)
 
     if plot:
         plt.show()
 
+    plt.close(fig)
     return gpc_system
 
 

@@ -1,8 +1,8 @@
-from geoconv.preprocessing.barycentric_coordinates import create_kernel_matrix, polar_to_cart, \
+from geoconv.preprocessing.barycentric_coordinates import create_template_matrix, polar_to_cart, \
     compute_barycentric_coordinates, determine_gpc_triangles
 from geoconv.preprocessing.discrete_gpc import compute_gpc_systems
 from geoconv.utils.visualization import draw_gpc_triangles, draw_gpc_on_mesh, draw_triangles
-from geoconv.utils.misc import reconstruct_kernel, find_largest_one_hop_dist, gpc_systems_into_cart, normalize_mesh
+from geoconv.utils.misc import reconstruct_template, find_largest_one_hop_dist, gpc_systems_into_cart, normalize_mesh
 
 from pathlib import Path
 
@@ -61,9 +61,9 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     path_to_stanford_bunny: str
         The path to the 'bun_zipper.ply'-file containing the stanford bunny.
     n_radial: int
-        The amount of radial coordinates for the kernel in your geodesic convolution.
+        The amount of radial coordinates for the template in your geodesic convolution.
     n_angular: int
-        The amount of angular coordinates for the kernel in your geodesic convolution.
+        The amount of angular coordinates for the template in your geodesic convolution.
     recompute_gpc: bool
         Force the function to recompute the GPC-systems even if they were computed and stored before.
     recompute_bc: bool
@@ -90,16 +90,16 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     else:
         gpc_systems = np.load(bunny_path_gpc)
 
-    # Select the kernel radius to be 3/4-th of the GPC-systems max-radius to increase the likelihood of
-    # the kernel vertices to fall into the GPC-system and not exceed its bounds.
-    kernel_radius = u_max * 0.75
-    print(f"GPC-system max.-radius: {u_max} | Kernel max.-radius: {kernel_radius}")
+    # Select the template radius to be 3/4-th of the GPC-systems max-radius to increase the likelihood of
+    # the template vertices to fall into the GPC-system and not exceed its bounds.
+    template_radius = u_max * 0.75
+    print(f"GPC-system max.-radius: {u_max} | Template max.-radius: {template_radius}")
 
-    # Compute the barycentric coordinates for the kernel in the computed GPC-systems.
+    # Compute the barycentric coordinates for the template in the computed GPC-systems.
     bunny_path_bc = f"{path}/bunny_barycentric_coordinates.npy"
     if not Path(bunny_path_bc).is_file() or recompute_bc:
         bc = compute_barycentric_coordinates(
-            bunny, gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=kernel_radius, verbose=True
+            bunny, gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius, verbose=True
         )
         np.save(bunny_path_bc, bc)
     else:
@@ -112,15 +112,15 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     # Translate GPC-systems into cartesian coordinates (for visualization purposes).
     gpc_systems_cart = gpc_systems_into_cart(gpc_systems)
 
-    for gpc_system_idx in range(bc.shape[0]):
-        # Original kernel
-        kernel_matrix = create_kernel_matrix(n_radial=n_radial, n_angular=n_angular, radius=kernel_radius)
-        for rc in range(kernel_matrix.shape[0]):
-            for ac in range(kernel_matrix.shape[1]):
-                kernel_matrix[rc, ac] = polar_to_cart(kernel_matrix[rc, ac, 1], kernel_matrix[rc, ac, 0])
+    for gpc_system_idx in range(0, bc.shape[0], 100):
+        # Original template
+        template_matrix = create_template_matrix(n_radial=n_radial, n_angular=n_angular, radius=template_radius)
+        for rc in range(template_matrix.shape[0]):
+            for ac in range(template_matrix.shape[1]):
+                template_matrix[rc, ac] = polar_to_cart(template_matrix[rc, ac, 1], template_matrix[rc, ac, 0])
 
-        # Kernel depicted via barycentric coordinates
-        rk = reconstruct_kernel(gpc_systems[gpc_system_idx], bc[gpc_system_idx])
+        # Template depicted via barycentric coordinates
+        reconstructed_template = reconstruct_template(gpc_systems[gpc_system_idx], bc[gpc_system_idx])
 
         for radial_coordinate in range(bc.shape[1]):
             for angular_coordinate in range(bc.shape[2]):
@@ -128,7 +128,7 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
                     f"Location: {(gpc_system_idx, radial_coordinate, angular_coordinate)}: "
                     f"Vertices: {bc[gpc_system_idx, radial_coordinate, angular_coordinate, :, 0]} "
                     f"B.c: {bc[gpc_system_idx, radial_coordinate, angular_coordinate, :, 1]} "
-                    f"-> Caused: {rk[radial_coordinate, angular_coordinate]}"
+                    f"-> Caused: {reconstructed_template[radial_coordinate, angular_coordinate]}"
                 )
         print("==========================================================================")
 
@@ -140,19 +140,24 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
             bunny
         )
 
-        # Original/Set kernel vertices
+        # Original/Set template vertices
         draw_gpc_triangles(
             bunny,
             gpc_system_idx,
             u_max=u_max,
-            kernel_matrix=kernel_matrix,
+            template_matrix=template_matrix,
+            print_scatter=False,
             plot=False,
-            title="GPC-system in 2D with kernel vertices"
+            title="GPC-system",
+            save_name="gpc_system.svg"
         )
 
-        # Draw triangles with stored GPC-coordinates and place reconstructed kernel vertices with the help of the
+        # Draw triangles with stored GPC-coordinates and place reconstructed template vertices with the help of the
         # computed barycentric coordinates
         triangles, _ = determine_gpc_triangles(bunny, gpc_systems_cart[gpc_system_idx])
         draw_triangles(
-            triangles, points=rk.reshape((-1, 2)), title="Reconstructed GPC-system and kernel vertices"
+            triangles,
+            points=reconstructed_template.reshape((-1, 2)),
+            title="\"Template Vertices in Patch\"",
+            plot=True
         )

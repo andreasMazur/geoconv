@@ -6,6 +6,7 @@ training/
 misc/
 test_scripts/
 sutherland_hodgman/
+geoconv/examples/stanford_bunny/gpc_images/
 
 # Examples
 geoconv/examples/stanford_bunny/bun_zipper.ply

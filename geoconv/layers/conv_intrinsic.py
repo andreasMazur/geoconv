@@ -1,4 +1,4 @@
-from geoconv.preprocessing.barycentric_coordinates import create_kernel_matrix
+from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
 
 from tensorflow import keras
 from abc import ABC, abstractmethod
@@ -102,7 +102,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self._kernel_size = (barycentric_shape[1], barycentric_shape[2])
         self._all_rotations = self._kernel_size[1]
         self._kernel_vertices = tf.constant(
-            create_kernel_matrix(self._kernel_size[0], self._kernel_size[1], radius=self.kernel_radius)
+            create_template_matrix(self._kernel_size[0], self._kernel_size[1], radius=self.kernel_radius)
         )
         self._feature_dim = signal_shape[-1]
 
