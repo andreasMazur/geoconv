@@ -276,6 +276,7 @@ def draw_gpc_triangles(object_mesh,
                        alpha=.4,
                        edge_color="red",
                        scatter_color="green",
+                       highlight_triangle=-1,
                        use_c=True,
                        plot=True,
                        title="",
@@ -301,6 +302,8 @@ def draw_gpc_triangles(object_mesh,
         The color for the triangle edges
     scatter_color: str
         The color for the template vertices (in case a template is given)
+    highlight_triangle: int
+        The index of a triangle, which shall be highlighted
     use_c: bool
         Whether to use the C-extension to compute the GPC-system.
     plot: bool
@@ -310,6 +313,8 @@ def draw_gpc_triangles(object_mesh,
     save_name: str
         The name of the image. If none is given, the image will not be saved.
     """
+
+    # Print triangles
     radial, angular, _ = local_gpc(center_vertex, u_max=u_max, object_mesh=object_mesh, use_c=use_c)
     gpc_system = np.stack([radial, angular], axis=1)
     contained_gpc_triangles, _ = determine_gpc_triangles(object_mesh, gpc_system)
@@ -325,13 +330,31 @@ def draw_gpc_triangles(object_mesh,
     polygons = PolyCollection(contained_gpc_triangles, alpha=alpha, edgecolors=edge_color)
     ax.add_collection(polygons)
 
+    # Print scatter
     if print_scatter:
         points = get_points_from_polygons(contained_gpc_triangles)
         ax.scatter(points[:, 0], points[:, 1], color="red")
 
+    # Print template
     if template_matrix is not None:
         for radial_idx in range(template_matrix.shape[0]):
             ax.scatter(template_matrix[radial_idx, :, 0], template_matrix[radial_idx, :, 1], color=scatter_color)
+
+    # Highlight triangle
+    if highlight_triangle > -1:
+        ax.add_patch(
+            Polygon(contained_gpc_triangles[highlight_triangle], linewidth=3., fill=False, edgecolor="purple")
+        )
+        ax.scatter(
+            contained_gpc_triangles[highlight_triangle][:, 0],
+            contained_gpc_triangles[highlight_triangle][:, 1],
+            s=90.,
+            color="purple"
+        )
+        for idx, annotation in enumerate(["a", "b", "c"]):
+            x = contained_gpc_triangles[highlight_triangle][idx, 0]
+            y = contained_gpc_triangles[highlight_triangle][idx, 1]
+            ax.annotate(annotation, (x, y), fontsize=15)
 
     if save_name:
         plt.savefig(save_name)
