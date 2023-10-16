@@ -1,7 +1,8 @@
 # Example script for a pre-processing, hyperparameter tuning and training pipeline
 
 Be aware that the demo script can compute for a while. We strongly recommend to run the script as a compute job
-on a GPU-cluster.
+on a GPU-cluster. For a quick insight into intermediate pre-processing results, pls take a look into the Stanford-bunny
+example.
 
 You can call the demo, by writing a script that calls `training_demo`. E.g:
 ```python
@@ -25,5 +26,4 @@ if __name__ == "__main__":
         geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
         precomputed_gpc_radius=0.036993286759038686
     )
-
 ```
