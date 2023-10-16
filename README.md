@@ -37,33 +37,15 @@ This repository is still in development. It was tested using **Python 3.10.11**.
      ```bash
      sudo apt install libatlas-base-dev
      ```
-2. Clone and install **geoconv**:
+2. Install **geoconv**:
      ```bash
+     conda create -n geoconv python=3.10.*
+     conda activate geoconv
      git clone https://github.com/andreasMazur/geoconv.git
      cd ./geoconv
      pip install -r requirements.txt
      pip install .
      ```
-<details>
-  <summary>When including a GPU:</summary>
-  
-3. Make Tensorflow use the GPU (compare https://www.tensorflow.org/install/pip):
-     ```bash
-     conda install -c conda-forge cudatoolkit=11.8.0
-     python3 -m pip install nvidia-cudnn-cu11==8.6.0.163
-     mkdir -p $CONDA_PREFIX/etc/conda/activate.d
-     echo 'CUDNN_PATH=$(dirname $(python -c "import nvidia.cudnn;print(nvidia.cudnn.__file__)"))' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
-     echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/:$CUDNN_PATH/lib' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
-     source $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
-     ```
-4. Troubleshooting in case `libdevice` cannot be found:
-     ```bash
-     echo 'export XLA_FLAGS=--xla_gpu_cuda_data_dir=$(dirname $(find / -type d -name nvvm 2>/dev/null))' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
-     echo 'export TF_FORCE_GPU_ALLOW_GROWTH=true' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
-     source $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
-     ```
-  
-</details>
 
 ### Hint:
 
