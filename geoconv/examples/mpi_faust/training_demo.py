@@ -26,7 +26,8 @@ def training_demo(preprocess_target_dir,
                   tuner_variant="hyperband",
                   kernel_radius=-1.,
                   compute_shot=True,
-                  signal_dim=544):
+                  signal_dim=544,
+                  geodesic_diameters_path=""):
     """Executes preprocessing, hyperparameter-search and training on MPI-FAUST data set.
 
     Parameters
@@ -62,6 +63,8 @@ def training_demo(preprocess_target_dir,
         Whether to compute SHOT-descriptors during preprocessing as the mesh signal
     signal_dim: int
         The dimensionality of the mesh signal
+    geodesic_diameters_path: str
+        The path to pre-computed geodesic diameters for the FAUST-registration meshes.
     """
 
     ######################
@@ -74,7 +77,8 @@ def training_demo(preprocess_target_dir,
             n_angular=n_angular,
             target_dir=preprocess_target_dir,
             registration_path=registration_path,
-            shot=compute_shot
+            shot=compute_shot,
+            geodesic_diameters_path=geodesic_diameters_path
         )
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")

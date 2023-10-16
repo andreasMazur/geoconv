@@ -62,6 +62,7 @@ def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=Tr
     # Check whether geodesic diameters have already been computed
     if Path(geodesic_diameters_path).is_file():
         geodesic_diameters = np.load(geodesic_diameters_path)
+        print(f"\n\nLoaded geodesic diameters from: '{geodesic_diameters_path}'\n\n")
     else:
         geodesic_diameters = np.full(len(paths_reg_meshes), -1.)
 

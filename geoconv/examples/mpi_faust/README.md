@@ -1,1 +1,28 @@
-# Whoops. That's a TODO for now.
+# Example script for a pre-processing, hyperparameter tuning and training pipeline
+
+Be aware that the demo script can compute for a while. We strongly recommend to run the script as a compute job
+on a GPU-cluster.
+
+You can call the demo, by writing a script that calls `training_demo`. E.g:
+```python
+from geoconv.examples.mpi_faust.training_demo import training_demo
+
+if __name__ == "__main__":
+    training_demo(
+        preprocess_target_dir="./test_training_demo",
+        registration_path="/home/user/geoconv/geoconv/examples/mpi_faust/data/MPI-FAUST/training/registrations",
+        log_dir="./logs_training_demo",
+        reference_mesh_path="/home/user/geoconv/geoconv/examples/mpi_faust/data/MPI-FAUST/training/registrations/tr_reg_000.ply",
+        amt_convolutions=2,
+        imcnn_variant="geodesic",
+        tuner_variant="hyperband",
+        kernel_radius=0.028,
+        amt_splits=10,
+        n_radial=4,
+        n_angular=5,
+        compute_shot=True,  # Make sure you have installed: https://github.com/uhlmanngroup/pyshot
+        signal_dim=544,  # Set it to 3 if `compute_shot=False`
+        geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy"
+    )
+
+```
