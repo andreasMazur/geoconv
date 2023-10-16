@@ -9,11 +9,12 @@ You can call the demo, by writing a script that calls `training_demo`. E.g:
 from geoconv.examples.mpi_faust.training_demo import training_demo
 
 if __name__ == "__main__":
+    rp = "/home/user/geoconv/geoconv/examples/mpi_faust/data/MPI-FAUST/training/registrations"
     training_demo(
         preprocess_target_dir="./test_training_demo",
-        registration_path="/home/user/geoconv/geoconv/examples/mpi_faust/data/MPI-FAUST/training/registrations",
+        registration_path=rp,
         log_dir="./logs_training_demo",
-        reference_mesh_path="/home/user/geoconv/geoconv/examples/mpi_faust/data/MPI-FAUST/training/registrations/tr_reg_000.ply",
+        reference_mesh_path=f"{rp}/tr_reg_000.ply",
         amt_convolutions=2,
         imcnn_variant="geodesic",
         tuner_variant="hyperband",
