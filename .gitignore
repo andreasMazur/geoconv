@@ -7,7 +7,6 @@ misc/
 test_scripts/
 sutherland_hodgman/
 geoconv/examples/stanford_bunny/gpc_images/
-geoconv/examples/stanford_bunny/preprocess_tutorial/tutorial_barycentric_coordinates.ipynb
 
 # Examples
 geoconv/examples/stanford_bunny/bun_zipper.ply

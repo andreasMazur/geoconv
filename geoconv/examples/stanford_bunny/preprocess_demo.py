@@ -147,7 +147,7 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
             u_max=u_max,
             template_matrix=template_matrix,
             print_scatter=False,
-            plot=False,
+            plot=True,
             title="GPC-system",
             save_name="gpc_system.svg"
         )
