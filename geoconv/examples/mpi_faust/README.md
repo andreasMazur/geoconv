@@ -18,7 +18,6 @@ if __name__ == "__main__":
         amt_convolutions=2,
         imcnn_variant="geodesic",
         tuner_variant="hyperband",
-        kernel_radius=0.028,
         amt_splits=10,
         n_radial=4,
         n_angular=5,
