@@ -27,7 +27,8 @@ def training_demo(preprocess_target_dir,
                   kernel_radius=-1.,
                   compute_shot=True,
                   signal_dim=544,
-                  geodesic_diameters_path=""):
+                  geodesic_diameters_path="",
+                  precomputed_gpc_radius=-1):
     """Executes preprocessing, hyperparameter-search and training on MPI-FAUST data set.
 
     Parameters
@@ -58,13 +59,15 @@ def training_demo(preprocess_target_dir,
     tuner_variant: str
         A string from ["hyperband", "bayesian"], which tells which hyperparameter optimization technique shall be used.
     kernel_radius: float
-        The kernel radius to use, if preprocessing already happened and thus can be skipped
+        The kernel radius to use, if preprocessing already happened this can be skipped
     compute_shot: bool
         Whether to compute SHOT-descriptors during preprocessing as the mesh signal
     signal_dim: int
         The dimensionality of the mesh signal
     geodesic_diameters_path: str
         The path to pre-computed geodesic diameters for the FAUST-registration meshes.
+    precomputed_gpc_radius: float
+        The GPC-system radius to use for GPC-system computation. If not provided, the script will calculate it.
     """
 
     ######################
@@ -78,7 +81,8 @@ def training_demo(preprocess_target_dir,
             target_dir=preprocess_target_dir,
             registration_path=registration_path,
             shot=compute_shot,
-            geodesic_diameters_path=geodesic_diameters_path
+            geodesic_diameters_path=geodesic_diameters_path,
+            precomputed_gpc_radius=precomputed_gpc_radius
         )
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")

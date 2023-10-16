@@ -13,7 +13,13 @@ import shutil
 import json
 
 
-def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=True, geodesic_diameters_path=""):
+def preprocess_faust(n_radial,
+                     n_angular,
+                     target_dir,
+                     registration_path,
+                     shot=True,
+                     geodesic_diameters_path="",
+                     precomputed_gpc_radius=-1.):
     """Preprocesses the FAUST-data set
 
     The FAUST-data set has to be downloaded from: https://faust-leaderboard.is.tuebingen.mpg.de/
@@ -38,6 +44,8 @@ def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=Tr
         Whether to compute SHOT-descriptors as mesh signal
     geodesic_diameters_path: str
         Path, which points to *.npy file, that contains the geodesic diameters for all the meshes in the dataset.
+    precomputed_gpc_radius: float
+        The GPC-system radius to use for GPC-system computation. If not provided, the script will calculate it.
 
     Returns
     -------
@@ -92,9 +100,13 @@ def preprocess_faust(n_radial, n_angular, target_dir, registration_path, shot=Tr
             reg_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
             print(f"Found temp-files:\n{normalized_v_name}\n{normalized_f_name}\nSkipping to next normalization..")
 
-        new_candidate = find_largest_one_hop_dist(reg_mesh)
-        gpc_radius = new_candidate if new_candidate > gpc_radius else gpc_radius
-    gpc_radius = gpc_radius + gpc_radius * .1
+        if precomputed_gpc_radius == -1.:
+            new_candidate = find_largest_one_hop_dist(reg_mesh)
+            gpc_radius = new_candidate if new_candidate > gpc_radius else gpc_radius
+    if precomputed_gpc_radius > 0:
+        gpc_radius = precomputed_gpc_radius
+    else:
+        gpc_radius = gpc_radius + gpc_radius * .1
     kernel_radius = gpc_radius * 0.75
     print(f"GPC-system radius: {gpc_radius:.3f} | Kernel radius: {kernel_radius:.3f}")
 
