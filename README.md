@@ -44,6 +44,7 @@ This repository is still in development. It was tested using **Python 3.10.11**.
      git clone https://github.com/andreasMazur/geoconv.git
      cd ./geoconv
      pip install -r requirements.txt
+     pip install protobuf==3.20.*
      pip install .
      ```
 
