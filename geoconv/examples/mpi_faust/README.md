@@ -27,3 +27,13 @@ if __name__ == "__main__":
         precomputed_gpc_radius=0.036993286759038686
     )
 ```
+
+## Installing pyshot
+
+If you want `training_demo` to compute SHOT-descriptors, you need to install `pyshot` into your environment from:
+https://github.com/uhlmanngroup/pyshot
+
+This repository raises additional dependencies, which you can install with the following command:
+```bash
+    sudo apt install libflann-dev libeigen3-dev lz4
+```
