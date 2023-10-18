@@ -177,7 +177,7 @@ def preprocess_faust(n_radial,
                 tqdm_msg=f"File {file_idx} - Compute local GPC-systems"
             )
 
-            # GPC-system do no necessarily need to be saved since IMCNNs only expect a signal and barycentric
+            # GPC-system do not necessarily need to be saved since IMCNNs only expect a signal and barycentric
             # coordinates. However, they might be useful later. E.g. you only want to compute other barycentric
             # coordinates for a different template in the same GPC-systems.
             if save_gpc_systems:
