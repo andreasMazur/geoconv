@@ -28,7 +28,8 @@ def training_demo(preprocess_target_dir,
                   compute_shot=True,
                   signal_dim=544,
                   geodesic_diameters_path="",
-                  precomputed_gpc_radius=-1):
+                  precomputed_gpc_radius=-1,
+                  save_gpc_systems=True):
     """Executes preprocessing, hyperparameter-search and training on MPI-FAUST data set.
 
     Parameters
@@ -68,6 +69,8 @@ def training_demo(preprocess_target_dir,
         The path to pre-computed geodesic diameters for the FAUST-registration meshes.
     precomputed_gpc_radius: float
         The GPC-system radius to use for GPC-system computation. If not provided, the script will calculate it.
+    save_gpc_systems: bool
+        Whether to save the GPC-systems.
     """
 
     ######################
@@ -82,7 +85,8 @@ def training_demo(preprocess_target_dir,
             registration_path=registration_path,
             shot=compute_shot,
             geodesic_diameters_path=geodesic_diameters_path,
-            precomputed_gpc_radius=precomputed_gpc_radius
+            precomputed_gpc_radius=precomputed_gpc_radius,
+            save_gpc_systems=save_gpc_systems
         )
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
