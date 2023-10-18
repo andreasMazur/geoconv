@@ -24,7 +24,8 @@ if __name__ == "__main__":
         compute_shot=True,  # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
         signal_dim=544,  # Set it to 3 if `compute_shot=False`
         geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
-        precomputed_gpc_radius=0.036993286759038686
+        precomputed_gpc_radius=0.036993286759038686,
+        save_gpc_systems=True  # Set this to 'False' in case you don't have enough free memory
     )
 ```
 
