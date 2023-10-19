@@ -49,7 +49,7 @@ def draw_multiple_princeton_benchmarks(save_name, **kwargs):
     plt.show()
 
 
-def draw_interpolation_coefficients(icnn_layer, indices):
+def draw_prior(icnn_layer, indices):
     """Wrapper method for 'draw_interpolation_coefficients_single_idx'
 
     Parameters
@@ -59,7 +59,7 @@ def draw_interpolation_coefficients(icnn_layer, indices):
     indices: List[int]
         A list of index-tuple for accessing template vertices. I.e. indices[x] = (a, b) with K[a, b] = (rho, theta).
     """
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10, 5))
     rows = len(indices)
     ax_idx = 0
     for r_idx, a_idx in indices:
@@ -105,10 +105,7 @@ def draw_interpolation_coefficients_single_idx(icnn_layer, radial_idx, angular_i
     # Visualize interpolation coefficient matrix
     pos = axis_ic.matshow(weights, cmap="rainbow")
     fig.colorbar(pos, ax=axis_ic, fraction=0.046, pad=0.04)
-    axis_ic.set_title(
-        f"Interpolation Coefficients for: "
-        f"({template_matrix[radial_idx, angular_idx, 0]:.3f}, {template_matrix[radial_idx, angular_idx, 1]:.3f})"
-    )
+    axis_ic.set_title(f"Prior as Matrix")
     template_matrix = template_matrix.reshape((-1, 2))
 
     # TODO: For some reason, matplotlib only shows all labels from list[1:] and forgets about list[0]
@@ -122,7 +119,7 @@ def draw_interpolation_coefficients_single_idx(icnn_layer, radial_idx, angular_i
     axis_kv.scatter(
         template_matrix[:, 1], template_matrix[:, 0], c=cm.rainbow(weights.flatten()), s=150, edgecolor="black"
     )
-    axis_kv.set_title("Weights at Interpolation Points")
+    axis_kv.set_title("Prior on Template Vertices")
     axis_kv.grid(True)
     axis_kv.set_axisbelow(True)
 
