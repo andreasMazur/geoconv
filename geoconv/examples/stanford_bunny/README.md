@@ -6,7 +6,7 @@ pip install jupyter
 ```
 Install environment into jupyter notebook
 ```bash
-python -m ipykernel install --user --name=geoconv_gpu
+python -m ipykernel install --user --name=geoconv
 ```
 Start jupyter notebook
 ```bash
