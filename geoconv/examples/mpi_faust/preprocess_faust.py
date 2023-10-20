@@ -145,8 +145,8 @@ def preprocess_faust(n_radial,
             ##################################
             # Shuffle vertices of query mesh
             ##################################
-            # reg_mesh, _, ground_truth = shuffle_mesh_vertices(reg_mesh)
-            np.save(gt_name, np.eye(vertices.shape[0]))
+            reg_mesh, _, ground_truth = shuffle_mesh_vertices(reg_mesh)
+            np.save(gt_name, ground_truth)
 
             #############################################################
             # Store mesh signal (here we simply use the 3D-coordinates)
