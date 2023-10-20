@@ -204,7 +204,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
 
     @tf.function
     def _fold(self, interpolations):
-        """Folds the weighted interpolations with the trained kernel
+        """Folds kernel vertex signal with the kernel weights
 
         Parameters
         ----------
@@ -252,30 +252,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         return tf.transpose(new_signal, perm=[1, 0, 2])
 
     def _configure_patch_operator(self):
-        """Defines all necessary interpolation coefficient matrices for the patch operator.
-
-        The discrete patch-operator is defined as:
-
-            [D(x)f](rho, theta) = sum_{rho', theta'} w(rho, theta, rho', theta') * f(x, rho', theta')
-
-        Given a kernel with 'n_radial' radial coordinates and 'n_angular' angular coordinates.
-        This function calculates the interpolation coefficients tensor 'I' of size
-
-            [n_radial, n_angular, n_radial * n_angular]
-
-        with
-
-            I[a, b, c * d + d] = w(rho_a, theta_b, rho_c, theta_d)
-
-        The flattened last dimension plus storing the feature values 'f(x, rho', theta')' as column vectors in a
-        matrix F_x:
-
-            F_x = [f(x, rho_0, theta_0), f(x, rho_0, theta_1), ..., f(x, rho_{n_radial}, theta_{n_angular})]
-
-        then allows us to rephrase '[D(x)f](rho, theta)' as a matrix-vector product:
-
-            [D(x)f](rho_a, theta_b) = F_x @ I[a, b]
-        """
+        """Defines all necessary interpolation coefficient matrices for the patch operator."""
 
         self._interpolation_coefficients = tf.cast(
             self.define_interpolation_coefficients(self._kernel_vertices.numpy()), tf.float32

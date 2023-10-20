@@ -2,6 +2,7 @@ from geoconv.examples.mpi_faust.hypermodels.dirac_hm import DiracHyperModel
 from geoconv.examples.mpi_faust.hypermodels.geodesic_hm import GeodesicHyperModel
 from geoconv.examples.mpi_faust.hypermodels.original_hm import OriginalHyperModel
 from geoconv.examples.mpi_faust.hypermodels.geodesic_res_hm import GeoResHyperModel
+from geoconv.examples.mpi_faust.hypermodels.dirac_lite_hm import DiracLiteHyperModel
 from geoconv.examples.mpi_faust.faust_data_set import load_preprocessed_faust
 from geoconv.examples.mpi_faust.preprocess_faust import preprocess_faust
 from geoconv.utils.measures import princeton_benchmark
@@ -56,7 +57,8 @@ def training_demo(preprocess_target_dir,
     rotation_delta: int
         The rotation delta for the IMCNN
     imcnn_variant: str
-        A string from ["dirac", "geodesic", "original", "geores"], which tells which type of IMCNN shall be used.
+        A string from ["dirac", "dirac_lite", "geodesic", "original", "geores"], which tells which type of IMCNN shall
+        be used.
     tuner_variant: str
         A string from ["hyperband", "bayesian"], which tells which hyperparameter optimization technique shall be used.
     kernel_radius: float
@@ -119,6 +121,17 @@ def training_demo(preprocess_target_dir,
         )
     elif imcnn_variant == "dirac":
         imcnn = DiracHyperModel(
+            SIGNAL_DIM,
+            KERNEL_SIZE,
+            N_TARGET_NODES,
+            amt_convolutions,
+            amt_splits,
+            amt_gradient_splits,
+            kernel_radius,
+            rotation_delta
+        )
+    elif imcnn_variant == "dirac_lite":
+        imcnn = DiracLiteHyperModel(
             SIGNAL_DIM,
             KERNEL_SIZE,
             N_TARGET_NODES,
