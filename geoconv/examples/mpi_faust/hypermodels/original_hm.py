@@ -1,5 +1,5 @@
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
-from geoconv.layers.conv_geodesic import ConvGeodesic
+from geoconv.layers.original.conv_geodesic import ConvGeodesic
 from geoconv.models.intrinsic_model import ImCNN
 
 from tensorflow import keras

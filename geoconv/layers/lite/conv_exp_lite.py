@@ -1,44 +1,11 @@
-from geoconv.layers.conv_intrinsic import ConvIntrinsic
-from geoconv.layers.conv_geodesic import angle_distance
+from geoconv.layers.lite.conv_intrinsic_lite import ConvIntrinsicLite
+from geoconv.layers.original.conv_exp import exp_pdf
 
 import numpy as np
 import scipy as sp
 
 
-def exp_pdf(mean_rho, mean_theta, rho, theta, exp_lambda):
-    """Exponential probability distribution for geodesic polar coordinates
-
-    Parameters
-    ----------
-    mean_rho: float
-        Mean radial distance of the normal
-    mean_theta: float
-        Mean angle for the Gaussian
-    rho: float
-        Radial coordinate of the interpolation point that shall be weighted
-    theta: float
-        Angular coordinate of the interpolation point that shall be weighted
-    exp_lambda: float
-        The lambda parameter for the exponential probability density function
-
-    Returns
-    -------
-    float:
-        The weight for the interpolation point (rho, theta)
-    """
-
-    # Compute delta theta
-    max_angle = np.maximum(mean_theta, theta)
-    min_angle = np.minimum(mean_theta, theta)
-    delta_angle = angle_distance(max_angle, min_angle)
-
-    # Compute delta rho
-    delta_rho = np.abs(rho - mean_rho)
-
-    return exp_lambda ** 2 * np.exp(-exp_lambda * (delta_rho + delta_angle))
-
-
-class ConvExp(ConvIntrinsic):
+class ConvExp(ConvIntrinsicLite):
     """Exponential vertex weighting"""
     def __init__(self, *args, exp_lambda=1, **kwargs):
         super().__init__(*args, **kwargs)
