@@ -8,11 +8,7 @@ import numpy as np
 
 
 class ConvIntrinsic(ABC, keras.layers.Layer):
-    """A metaclass for geodesic convolutions on Riemannian manifolds.
-
-    Paper, that introduced the geodesic convolution:
-    > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
-    > Jonathan Masci and Davide Boscaini et al.
+    """A metaclass for intrinsic surface convolutions on Riemannian manifolds.
 
     Attributes
     ----------
