@@ -4,7 +4,7 @@ import tensorflow as tf
 
 
 class AngularMaxPooling(keras.layers.Layer):
-    """The implementation of the geodesic convolution
+    """The implementation for angular max-pooling
 
     Paper, that introduced angular max-pooling:
     > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
