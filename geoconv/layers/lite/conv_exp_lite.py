@@ -5,7 +5,7 @@ import numpy as np
 import scipy as sp
 
 
-class ConvExp(ConvIntrinsicLite):
+class ConvExpLite(ConvIntrinsicLite):
     """Exponential vertex weighting"""
     def __init__(self, *args, exp_lambda=1, **kwargs):
         super().__init__(*args, **kwargs)

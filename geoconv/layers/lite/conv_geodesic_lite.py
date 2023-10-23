@@ -5,7 +5,7 @@ import numpy as np
 import scipy as sp
 
 
-class ConvGeodesic(ConvIntrinsicLite):
+class ConvGeodesicLite(ConvIntrinsicLite):
     """The geodesic convolutional layer
 
     Paper, that introduced the geodesic convolution:

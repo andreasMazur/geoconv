@@ -5,7 +5,7 @@ import numpy as np
 import scipy as sp
 
 
-class ConvStudentT(ConvIntrinsicLite):
+class ConvStudentTLite(ConvIntrinsicLite):
     """Student-t vertex weighting"""
     def __init__(self, *args, dof=2, **kwargs):
         super().__init__(*args, **kwargs)

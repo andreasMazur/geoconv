@@ -5,7 +5,7 @@ import numpy as np
 import scipy as sp
 
 
-class ConvChiSquared(ConvIntrinsicLite):
+class ConvChiSquaredLite(ConvIntrinsicLite):
     """Chi-squared vertex weighting"""
     def __init__(self, *args, dof=2, **kwargs):
         super().__init__(*args, **kwargs)
