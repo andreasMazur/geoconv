@@ -19,7 +19,7 @@ if __name__ == "__main__":
         amt_convolutions=1,
         imcnn_variant="dirac_lite",
         tuner_variant="hyperband",
-        amt_splits=10,
+        amt_splits=5,
         n_radial=5,
         n_angular=8,
         compute_shot=True,  # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
