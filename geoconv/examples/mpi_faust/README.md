@@ -27,7 +27,7 @@ if __name__ == "__main__":
         geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
         precomputed_gpc_radius=R,
         kernel_radius=R * 0.75,
-        save_gpc_systems=True  # Set this to 'False' in case you don't have enough free memory
+        save_gpc_systems=False  # Set this to 'True' in case you want to inspect GPC-systems
     )
 ```
 
