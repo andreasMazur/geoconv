@@ -19,7 +19,8 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
                  amt_gradient_splits,
                  kernel_radius,
                  rotation_delta,
-                 batch_normalization=True):
+                 batch_normalization=True,
+                 output_dim=128):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
@@ -30,6 +31,7 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
         self.amt_gradient_splits = amt_gradient_splits
         self.rotation_delta = rotation_delta
         self.batch_normalization = batch_normalization
+        self.output_dim = output_dim
 
     def build(self, hp):
         keras.backend.clear_session()
@@ -40,7 +42,7 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
         amp = AngularMaxPooling()
 
         signal = ConvGeodesic(
-            output_dim=128,
+            output_dim=self.output_dim,
             amt_kernel=1,
             rotation_delta=self.rotation_delta,
             kernel_radius=self.kernel_radius,
@@ -53,7 +55,7 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
             signal = keras.layers.BatchNormalization(axis=-1)(signal)
         for idx in range(1, self.amt_convolutions):
             signal = ConvGeodesic(
-                output_dim=128,
+                output_dim=self.output_dim,
                 amt_kernel=1,
                 rotation_delta=self.rotation_delta,
                 kernel_radius=self.kernel_radius,

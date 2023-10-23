@@ -30,7 +30,8 @@ def training_demo(preprocess_target_dir,
                   signal_dim=544,
                   geodesic_diameters_path="",
                   precomputed_gpc_radius=-1,
-                  save_gpc_systems=True):
+                  save_gpc_systems=True,
+                  imcnn_output_dim=128):
     """Executes preprocessing, hyperparameter-search and training on MPI-FAUST data set.
 
     Parameters
@@ -73,6 +74,8 @@ def training_demo(preprocess_target_dir,
         The GPC-system radius to use for GPC-system computation. If not provided, the script will calculate it.
     save_gpc_systems: bool
         Whether to save the GPC-systems.
+    imcnn_output_dim: int
+        The dimensionality of the output from the IMCNN-layers
     """
 
     ######################
@@ -117,7 +120,8 @@ def training_demo(preprocess_target_dir,
             amt_splits,
             amt_gradient_splits,
             kernel_radius,
-            rotation_delta
+            rotation_delta,
+            output_dim=imcnn_output_dim
         )
     elif imcnn_variant == "dirac":
         imcnn = DiracHyperModel(
@@ -128,7 +132,8 @@ def training_demo(preprocess_target_dir,
             amt_splits,
             amt_gradient_splits,
             kernel_radius,
-            rotation_delta
+            rotation_delta,
+            output_dim=imcnn_output_dim
         )
     elif imcnn_variant == "dirac_lite":
         imcnn = DiracLiteHyperModel(
@@ -139,7 +144,8 @@ def training_demo(preprocess_target_dir,
             amt_splits,
             amt_gradient_splits,
             kernel_radius,
-            rotation_delta
+            rotation_delta,
+            output_dim=imcnn_output_dim
         )
     elif imcnn_variant == "original":
         imcnn = OriginalHyperModel(
@@ -154,7 +160,8 @@ def training_demo(preprocess_target_dir,
             amt_splits,
             amt_gradient_splits,
             kernel_radius,
-            rotation_delta
+            rotation_delta,
+            output_dim=imcnn_output_dim
         )
     else:
         raise RuntimeError("Choose a valid 'imcnn_variant'!")
