@@ -1,5 +1,5 @@
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
-from geoconv.layers.original.conv_geodesic import ConvGeodesic
+from geoconv.layers.lite.conv_geodesic_lite import ConvGeodesicLite
 from geoconv.models.intrinsic_model import ImCNN
 
 from tensorflow import keras
@@ -8,7 +8,7 @@ import keras_tuner
 import gc
 
 
-class GeodesicHyperModel(keras_tuner.HyperModel):
+class GeoResLiteHyperModel(keras_tuner.HyperModel):
 
     def __init__(self,
                  signal_dim,
@@ -19,7 +19,6 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
                  amt_gradient_splits,
                  kernel_radius,
                  rotation_delta,
-                 batch_normalization=True,
                  output_dim=128):
         super().__init__()
         self.signal_dim = signal_dim
@@ -30,7 +29,6 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
         self.amt_splits = amt_splits
         self.amt_gradient_splits = amt_gradient_splits
         self.rotation_delta = rotation_delta
-        self.batch_normalization = batch_normalization
         self.output_dim = output_dim
 
     def build(self, hp):
@@ -41,7 +39,7 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
         bc_input = keras.layers.Input(shape=(self.kernel_size[0], self.kernel_size[1], 3, 2), name="bc")
         amp = AngularMaxPooling()
 
-        signal = ConvGeodesic(
+        signal_in = ConvGeodesicLite(
             output_dim=self.output_dim,
             amt_kernel=1,
             rotation_delta=self.rotation_delta,
@@ -50,24 +48,34 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
             splits=self.amt_splits,
             name="gc_0"
         )([signal_input, bc_input])
-        signal = amp(signal)
-        if self.batch_normalization:
-            signal = keras.layers.BatchNormalization(axis=-1)(signal)
+        signal_in = amp(signal_in)
         for idx in range(1, self.amt_convolutions):
-            signal = ConvGeodesic(
+            signal_1 = ConvGeodesicLite(
                 output_dim=self.output_dim,
                 amt_kernel=1,
                 rotation_delta=self.rotation_delta,
                 kernel_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,
-                name=f"gc_{idx}"
-            )([signal, bc_input])
-            signal = amp(signal)
-            if self.batch_normalization:
-                signal = keras.layers.BatchNormalization(axis=-1)(signal)
+                name=f"gc_{idx}_1"
+            )([signal_in, bc_input])
+            signal_1 = amp(signal_1)
 
-        output = keras.layers.Dense(self.amt_target_nodes)(signal)
+            signal_2 = ConvGeodesicLite(
+                output_dim=128,
+                amt_kernel=1,
+                rotation_delta=self.rotation_delta,
+                kernel_radius=self.kernel_radius,
+                activation="relu",
+                splits=self.amt_splits,
+                name=f"gc_{idx}_2"
+            )([signal_1, bc_input])
+            signal_2 = amp(signal_2)
+
+            signal_in = keras.layers.Add()([signal_1, signal_2])
+            signal_in = keras.layers.ReLU()(signal_in)
+
+        output = keras.layers.Dense(self.amt_target_nodes)(signal_in)
 
         model = ImCNN(
             splits=self.amt_gradient_splits,
@@ -75,7 +83,7 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
             outputs=[output]
         )
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        opt = keras.optimizers.Adam(learning_rate=hp.Float("lr", min_value=1e-4, max_value=1e-2))
+        opt = keras.optimizers.Adam(learning_rate=hp.Float("lr", min_value=1e-5, max_value=1e-1))
         model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
         return model
