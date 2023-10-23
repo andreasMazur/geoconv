@@ -16,12 +16,12 @@ if __name__ == "__main__":
         registration_path=rp,
         log_dir="./logs_training_demo",
         reference_mesh_path=f"{rp}/tr_reg_000.ply",
-        amt_convolutions=2,
-        imcnn_variant="geodesic",
+        amt_convolutions=1,
+        imcnn_variant="dirac_lite",
         tuner_variant="hyperband",
         amt_splits=10,
-        n_radial=4,
-        n_angular=5,
+        n_radial=5,
+        n_angular=8,
         compute_shot=True,  # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
         signal_dim=544,  # Set it to 3 if `compute_shot=False`
         geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
