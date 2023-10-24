@@ -18,11 +18,6 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         The amount of kernels to apply during one convolution.
     activation_fn:
         The activation function to use.
-    rotation_delta:
-        The distance between two rotations. If `n` angular coordinates are given in the data, then the default behavior
-        is to rotate the kernel `n` times, i.e. a shift in every angular coordinate of 1 to the next angular coordinate.
-        If `rotation_delta = 2`, then the shift increases to 2 and the total amount of rotations reduces to
-        ceil(n / rotation_delta). This gives a speed-up and saves memory. However, quality of results might worsen.
     splits:
         The 'splits'-parameter determines into how many chunks the mesh signal is split. Each chunk will be folded
         iteratively to save memory. That is, fewer splits allow a faster convolution. More splits allow reduced memory
@@ -35,7 +30,6 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
                  amt_kernel,
                  kernel_radius,
                  activation="relu",
-                 rotation_delta=1,
                  splits=1,
                  name=None,
                  kernel_regularizer=None,
@@ -48,7 +42,6 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
 
         self.activation_fn = activation
         self.output_dim = output_dim
-        self.rotation_delta = rotation_delta
         self.amt_kernel = amt_kernel
         self.kernel_radius = kernel_radius
         self.kernel_regularizer = kernel_regularizer
@@ -59,7 +52,6 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         # Attributes that depend on the data and are set automatically in build
         self._activation = keras.layers.Activation(self.activation_fn)
         self._bias = None
-        self._all_rotations = None
         self._kernel_size = None  # (#radial, #angular)
         self._kernel_vertices = None
         self._kernel_weights = None
@@ -74,7 +66,6 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
                 "amt_kernel": self.amt_kernel,
                 "kernel_radius": self.kernel_radius,
                 "activation_fn": self.activation_fn,
-                "rotation_delta": self.rotation_delta,
                 "splits": self.splits,
                 "name": self.name,
                 "kernel_regularizer": self.kernel_regularizer,
@@ -96,7 +87,7 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
 
         # Configure kernel
         self._kernel_size = (barycentric_shape[1], barycentric_shape[2])
-        self._all_rotations = self._kernel_size[1]
+
         self._kernel_vertices = tf.constant(
             create_template_matrix(self._kernel_size[0], self._kernel_size[1], radius=self.kernel_radius)
         )
@@ -135,8 +126,8 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         Returns
         -------
         tf.Tensor
-            The geodesic convolution of the kernel with the signal on the object mesh in every given GPC-system for
-            every rotation. It has size (n_batch, n_rotations, n_vertices, feature_dim)
+            The geodesic convolution of the kernel with the signal on the object mesh in every given GPC-system.
+            It has size (n_batch, n_vertices, feature_dim)
         """
         mesh_signal, bary_coordinates = inputs
         mesh_signal = self._patch_operator(mesh_signal, bary_coordinates)
@@ -156,7 +147,7 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
             idx = idx + tf.constant(1)
         new_signal = new_signal.concat()
 
-        # Shape result: (n_vertices, n_rotations, self.output_dim)
+        # Shape result: (n_vertices, self.output_dim)
         return new_signal
 
     @tf.function
@@ -217,51 +208,31 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         Returns
         -------
         tf.Tensor:
-            The new mesh signal after the convolution. Shape: (subset, n_rotations, self.output_dim)
+            The new mesh signal after the convolution. Shape: (subset, self.output_dim)
         """
-        idx = tf.constant(0)
-        all_rotations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
-        size = tf.shape(all_rotations)[0]
-        new_signal = tf.TensorArray(
-            tf.float32,
-            size=size,
-            dynamic_size=False,
-            clear_after_read=True,
-            tensor_array_name="inner_ta",
-            name="rotation_ta"
-        )
-        # Iterate over rotations to economize memory usage
-        for rot in all_rotations:
-            # Rotate
-            # (subset, n_radial, n_angular, input_dim)
-            rotated_interpolations = tf.roll(interpolations, shift=rot, axis=2)
-            # (subset, n_radial * n_angular, input_dim)
-            rotated_interpolations = tf.reshape(
-                rotated_interpolations, (-1, self._kernel_size[0] * self._kernel_size[1], self._feature_dim)
-            )
-            # (subset, input_dim, n_radial * n_angular)
-            rotated_interpolations = tf.transpose(rotated_interpolations, perm=[0, 2, 1])
-            # (subset, 1, input_dim, n_radial * n_angular)
-            rotated_interpolations = tf.expand_dims(rotated_interpolations, axis=1)
-            # Matrix x Signal
-            # Shape kernel : (        n_kernel, self.output_dim,            input_dim)
-            # Shape input  : (subset,        1,       input_dim, n_radial * n_angular)
-            # Shape result : (subset, n_kernel, self.output_dim, n_radial * n_angular)
-            rotated_interpolations = self._kernel_weights @ rotated_interpolations
-            # Sum over all (new) kernel vertex signals and add bias as well as activation
-            # (subset, n_kernel, self.output_dim)
-            rotated_interpolations = self._activation(tf.reduce_sum(rotated_interpolations, axis=-1) + self._bias)
-            # Sum over kernel
-            # (subset, self.output_dim)
-            rotated_interpolations = tf.reduce_sum(rotated_interpolations, axis=1)
-            # Output dim: (subset, self.output_dim)
-            new_signal = new_signal.write(idx, rotated_interpolations)
-            idx = idx + tf.constant(1)
 
-        # New signal: (n_rotations, subset, self.output_dim)
-        new_signal = new_signal.stack()
-        # New signal: (subset, n_rotations, self.output_dim)
-        return tf.transpose(new_signal, perm=[1, 0, 2])
+        # (subset, n_radial * n_angular, input_dim)
+        interpolations = tf.reshape(
+            interpolations, (-1, self._kernel_size[0] * self._kernel_size[1], self._feature_dim)
+        )
+        # (subset, input_dim, n_radial * n_angular)
+        interpolations = tf.transpose(interpolations, perm=[0, 2, 1])
+        # (subset, 1, input_dim, n_radial * n_angular)
+        interpolations = tf.expand_dims(interpolations, axis=1)
+        # Matrix x Signal
+        # Shape kernel : (        n_kernel, self.output_dim,            input_dim)
+        # Shape input  : (subset,        1,       input_dim, n_radial * n_angular)
+        # Shape result : (subset, n_kernel, self.output_dim, n_radial * n_angular)
+        interpolations = self._kernel_weights @ interpolations
+        # Sum over all (new) kernel vertex signals, add bias and apply activation function
+        # (subset, n_kernel, self.output_dim)
+        interpolations = self._activation(tf.reduce_sum(interpolations, axis=-1) + self._bias)
+        # Sum over kernel
+        # (subset, self.output_dim)
+        interpolations = tf.reduce_sum(interpolations, axis=1)
+
+        # New signal: (subset, self.output_dim)
+        return interpolations
 
     def _configure_patch_operator(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
