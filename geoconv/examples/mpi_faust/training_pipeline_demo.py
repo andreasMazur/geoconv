@@ -16,81 +16,82 @@ import keras_tuner
 import tensorflow as tf
 
 
-def training_pipeline_demo(preprocess_target_dir,
-                           registration_path,
-                           log_dir,
-                           reference_mesh_path,
+def training_pipeline_demo(reference_mesh_path,
+                           signal_dim,
+                           preprocessed_data,
                            n_radial=4,
                            n_angular=5,
+                           registration_path="",
+                           compute_shot=True,
+                           geodesic_diameters_path="",
+                           precomputed_gpc_radius=0.037,
+                           save_gpc_systems=True,
+                           template_radius=0.028,
+                           logging_dir="./imcnn_training_logs",
+                           output_dim=128,
+                           splits=10,
                            amt_convolutions=1,
-                           amt_splits=1,
-                           amt_gradient_splits=10,
                            rotation_delta=1,
                            imcnn_variant="geodesic",
-                           tuner_variant="hyperband",
-                           kernel_radius=-1.,
-                           compute_shot=True,
-                           signal_dim=544,
-                           geodesic_diameters_path="",
-                           precomputed_gpc_radius=-1,
-                           save_gpc_systems=True,
-                           imcnn_output_dim=128):
+                           tuner_variant="hyperband"):
     """Executes preprocessing, hyperparameter-search and training on MPI-FAUST data set.
 
     Parameters
     ----------
-    preprocess_target_dir: str
-        The path where you want to store the preprocessing results.
-    registration_path: str
-        The path of the training-registration files in the FAUST data set.
-    log_dir: str
-        The path where the hyperparameter search and tensorboard can store logging files.
     reference_mesh_path: str
         The path to the reference mesh file.
-    n_radial: int
-        The amount of radial coordinates for the kernel in your geodesic convolution.
-    n_angular: int
-        The amount of angular coordinates for the kernel in your geodesic convolution.
-    amt_convolutions: int
-        The amount of geodesic convolutional layers in the geodesic CNN.
-    amt_splits: int
-        The amount of splits for the geodesic convolutional layers in the geodesic CNN.
-    amt_gradient_splits: int
-        Only relevant if "geores" is chosen as 'imcnn_variant'. Tells how the vertex-amount shall be divided when the
-        loss is computed. Eventually determines the amount of gradients which will be propagated per mesh.
-    rotation_delta: int
-        The rotation delta for the IMCNN
-    imcnn_variant: str
-        A string from ["dirac", "geodesic", "original", "geores"], which tells which type of IMCNN shall be used.
-        You can train the corresponding lite-version by adding a "_lite" to the name passed for 'imcnn_variant'.
-        E.g. "dirac_lite".
-    tuner_variant: str
-        A string from ["hyperband", "bayesian"], which tells which hyperparameter optimization technique shall be used.
-    kernel_radius: float
-        The kernel radius to use, if preprocessing already happened this can be skipped
-    compute_shot: bool
-        Whether to compute SHOT-descriptors during preprocessing as the mesh signal
     signal_dim: int
         The dimensionality of the mesh signal
+    preprocessed_data: str
+        The path to the pre-processed data. If you have not pre-processed your data so far and saved it under the given
+        path, this script will execute pre-processing for you.
+        pre-processing for you.
+    n_radial: int
+        [REQUIRED FOR PRE-PROCESSING] The amount of radial coordinates for the template.
+    n_angular: int
+        [REQUIRED FOR PRE-PROCESSING] The amount of angular coordinates for the template.
+    registration_path: str
+        [REQUIRED FOR PRE-PROCESSING] The path of the training-registration files in the FAUST data set.
+    compute_shot: bool
+        [REQUIRED FOR PRE-PROCESSING] Whether to compute SHOT-descriptors during preprocessing as the mesh signal
     geodesic_diameters_path: str
-        The path to pre-computed geodesic diameters for the FAUST-registration meshes.
+        [REQUIRED FOR PRE-PROCESSING] The path to pre-computed geodesic diameters for the FAUST-registration meshes.
     precomputed_gpc_radius: float
-        The GPC-system radius to use for GPC-system computation. If not provided, the script will calculate it.
+        [REQUIRED FOR PRE-PROCESSING] The GPC-system radius to use for GPC-system computation. If not provided, the
+        script will calculate it.
     save_gpc_systems: bool
-        Whether to save the GPC-systems.
-    imcnn_output_dim: int
-        The dimensionality of the output from the IMCNN-layers
+        [REQUIRED FOR PRE-PROCESSING] Whether to save the GPC-systems.
+    amt_convolutions:
+        [IMCNN CONFIGURATION] The amount of geodesic convolutional layers for the IMCNN.
+    rotation_delta:
+        [IMCNN CONFIGURATION] The rotation delta for the IMCNN.
+    imcnn_variant:
+        [IMCNN CONFIGURATION] A string from ["dirac", "geodesic", "original", "geores"], which tells which type of IMCNN
+        shall be used. You can train the corresponding lite-version by adding a "_lite" to the name passed for
+        'imcnn_variant'. E.g. "dirac_lite".
+    tuner_variant:
+        [HYPERPARAMETER TUNING CONFIGURATION] A string from ["hyperband", "bayesian"], which tells which hyperparameter
+         optimization technique shall be used.
+    template_radius: float
+        [OPTIONAL] The template radius of the ISC-layer (the one used during preprocessing, defaults to radius for FAUST
+        data set).
+    logging_dir: str
+        [OPTIONAL] The path to the folder where logs will be stored
+    output_dim: int
+        [OPTIONAL] The dimensionality of the output of the ISC-layer
+    splits: int
+        [OPTIONAL] The amount of splits over which the ISC-layer should iterate
     """
 
     ######################
     # Preprocessing part
     ######################
-    preprocess_zip = f"{preprocess_target_dir}.zip"
+    preprocess_zip = f"{preprocessed_data}.zip"
     if not Path(preprocess_zip).is_file():
-        kernel_radius = preprocess_faust(
+        template_radius = preprocess_faust(
             n_radial=n_radial,
             n_angular=n_angular,
-            target_dir=preprocess_target_dir,
+            target_dir=preprocessed_data,
             registration_path=registration_path,
             shot=compute_shot,
             geodesic_diameters_path=geodesic_diameters_path,
@@ -100,7 +101,7 @@ def training_pipeline_demo(preprocess_target_dir,
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
 
-    if kernel_radius <= .0:
+    if template_radius <= .0:
         raise RuntimeError("Please select a valid kernel radius >0.")
 
     ######################################
@@ -121,11 +122,11 @@ def training_pipeline_demo(preprocess_target_dir,
             KERNEL_SIZE,
             N_TARGET_NODES,
             amt_convolutions,
-            amt_splits,
-            amt_gradient_splits,
-            kernel_radius,
+            splits,
+            splits,
+            template_radius,
             rotation_delta,
-            output_dim=imcnn_output_dim
+            output_dim=output_dim
         )
     elif imcnn_variant == "geodesic_lite":
         imcnn = GeodesicLiteHyperModel(
@@ -133,10 +134,10 @@ def training_pipeline_demo(preprocess_target_dir,
             KERNEL_SIZE,
             N_TARGET_NODES,
             amt_convolutions,
-            amt_splits,
-            amt_gradient_splits,
-            kernel_radius,
-            output_dim=imcnn_output_dim
+            splits,
+            splits,
+            template_radius,
+            output_dim=output_dim
         )
     elif imcnn_variant == "dirac":
         imcnn = DiracHyperModel(
@@ -144,11 +145,11 @@ def training_pipeline_demo(preprocess_target_dir,
             KERNEL_SIZE,
             N_TARGET_NODES,
             amt_convolutions,
-            amt_splits,
-            amt_gradient_splits,
-            kernel_radius,
+            splits,
+            splits,
+            template_radius,
             rotation_delta,
-            output_dim=imcnn_output_dim
+            output_dim=output_dim
         )
     elif imcnn_variant == "dirac_lite":
         imcnn = DiracLiteHyperModel(
@@ -156,18 +157,18 @@ def training_pipeline_demo(preprocess_target_dir,
             KERNEL_SIZE,
             N_TARGET_NODES,
             amt_convolutions,
-            amt_splits,
-            amt_gradient_splits,
-            kernel_radius,
-            output_dim=imcnn_output_dim
+            splits,
+            splits,
+            template_radius,
+            output_dim=output_dim
         )
     elif imcnn_variant == "original":
         imcnn = OriginalHyperModel(
-            SIGNAL_DIM, KERNEL_SIZE, amt_splits, amt_gradient_splits, kernel_radius, rotation_delta
+            SIGNAL_DIM, KERNEL_SIZE, splits, splits, template_radius, rotation_delta
         )
     elif imcnn_variant == "original_lite":
         imcnn = OriginalLiteHyperModel(
-            SIGNAL_DIM, KERNEL_SIZE, amt_splits, amt_gradient_splits, kernel_radius
+            SIGNAL_DIM, KERNEL_SIZE, splits, splits, template_radius
         )
     elif imcnn_variant == "geores":
         imcnn = GeoResHyperModel(
@@ -175,11 +176,11 @@ def training_pipeline_demo(preprocess_target_dir,
             KERNEL_SIZE,
             N_TARGET_NODES,
             amt_convolutions,
-            amt_splits,
-            amt_gradient_splits,
-            kernel_radius,
+            splits,
+            splits,
+            template_radius,
             rotation_delta,
-            output_dim=imcnn_output_dim
+            output_dim=output_dim
         )
     elif imcnn_variant == "geores_lite":
         imcnn = GeoResLiteHyperModel(
@@ -187,10 +188,10 @@ def training_pipeline_demo(preprocess_target_dir,
             KERNEL_SIZE,
             N_TARGET_NODES,
             amt_convolutions,
-            amt_splits,
-            amt_gradient_splits,
-            kernel_radius,
-            output_dim=imcnn_output_dim
+            splits,
+            splits,
+            template_radius,
+            output_dim=output_dim
         )
     else:
         raise RuntimeError("Choose a valid 'imcnn_variant'!")
@@ -200,7 +201,7 @@ def training_pipeline_demo(preprocess_target_dir,
             hypermodel=imcnn,
             objective="val_loss",
             max_epochs=200,
-            directory=f"{log_dir}/keras_tuner",
+            directory=f"{logging_dir}/keras_tuner",
             project_name=f"faust_example",
             seed=42
         )
@@ -209,7 +210,7 @@ def training_pipeline_demo(preprocess_target_dir,
             hypermodel=imcnn,
             objective="val_loss",
             max_trials=1000,
-            directory=f"{log_dir}/keras_tuner",
+            directory=f"{logging_dir}/keras_tuner",
             project_name=f"faust_example",
             seed=42
         )
@@ -219,7 +220,7 @@ def training_pipeline_demo(preprocess_target_dir,
     # Define callbacks
     stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=5)
     tb = tf.keras.callbacks.TensorBoard(
-        log_dir=f"{log_dir}/tensorboard",
+        log_dir=f"{logging_dir}/tensorboard",
         histogram_freq=1,
         write_graph=False,
         write_steps_per_second=True,
@@ -239,7 +240,7 @@ def training_pipeline_demo(preprocess_target_dir,
     best_model = tuner.get_best_models(num_models=1)[0]
     best_model.build(input_shape=[(SIGNAL_DIM,), (KERNEL_SIZE[0], KERNEL_SIZE[1], 3, 2)])
     print(best_model.summary())
-    best_model.save(f"{log_dir}/best_model")
+    best_model.save(f"{logging_dir}/best_model")
 
     # Evaluate best model with Princeton benchmark
     test_dataset = load_preprocessed_faust(preprocess_zip, signal_dim=SIGNAL_DIM, kernel_size=KERNEL_SIZE, set_type=2)
@@ -247,5 +248,5 @@ def training_pipeline_demo(preprocess_target_dir,
         imcnn=best_model,
         test_dataset=test_dataset,
         ref_mesh_path=reference_mesh_path,
-        file_name=f"{log_dir}/best_model_benchmark"
+        file_name=f"{logging_dir}/best_model_benchmark"
     )
