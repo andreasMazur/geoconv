@@ -1,4 +1,4 @@
-## How to: Pre-processing triangle meshes with GeoConv.
+## Why and how to prepare triangle meshes using GeoConv.
 
 If you want to run the tutorial, you need to install jupyter notebook:
 ```bash
