@@ -5,14 +5,15 @@ on a GPU-cluster. For a quick insight into intermediate pre-processing results, 
 Stanford-bunny example.
 
 You can call the demo, by writing a script that calls `training_demo`. E.g:
+
 ```python
-from geoconv.examples.mpi_faust.training_demo import training_demo
+from geoconv.examples.mpi_faust.training_pipeline_demo import training_pipeline_demo
 
 if __name__ == "__main__":
     rp = "/home/user/geoconv/geoconv/examples/mpi_faust/data/MPI-FAUST/training/registrations"
     R = 0.036993286759038686
-    training_demo(
-        preprocess_target_dir="./test_training_demo",
+    training_pipeline_demo(
+        preprocess_target_dir="./preprocessed_data",
         registration_path=rp,
         log_dir="./logs_training_demo",
         reference_mesh_path=f"{rp}/tr_reg_000.ply",
@@ -22,12 +23,38 @@ if __name__ == "__main__":
         amt_splits=5,
         n_radial=5,
         n_angular=8,
-        compute_shot=True,  # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
+        compute_shot=True, # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
         signal_dim=544,  # Set it to 3 if `compute_shot=False`
         geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
         precomputed_gpc_radius=R,
         kernel_radius=R * 0.75,
         save_gpc_systems=False  # Set this to 'True' in case you want to inspect GPC-systems
+    )
+```
+
+In case you want to skip hyperparameter tuning and train only one model, you can execute:
+```python
+from geoconv.examples.mpi_faust.train_one_imcnn import train_model
+
+if __name__ == "__main__":
+    rp = "/home/user/geoconv/geoconv/examples/mpi_faust/data/MPI-FAUST/training/registrations"
+    R = 0.036993286759038686
+    train_model(
+        reference_mesh_path=f"{rp}/tr_reg_000.ply",
+        signal_dim=544,  # Set it to 3 if `compute_shot=False`
+        preprocessed_data="./preprocessed_data",
+        n_radial=5,
+        n_angular=8,
+        registration_path=rp,
+        compute_shot=True,  # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
+        geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
+        precomputed_gpc_radius=0.037,
+        save_gpc_systems=False,  # Set this to 'True' in case you want to inspect GPC-systems
+        template_radius=0.028,
+        logging_dir="./imcnn_training_logs",
+        output_dim=128,
+        amt_templates=1,
+        splits=10
     )
 ```
 

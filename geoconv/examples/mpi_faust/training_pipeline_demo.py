@@ -16,25 +16,25 @@ import keras_tuner
 import tensorflow as tf
 
 
-def training_demo(preprocess_target_dir,
-                  registration_path,
-                  log_dir,
-                  reference_mesh_path,
-                  n_radial=4,
-                  n_angular=5,
-                  amt_convolutions=1,
-                  amt_splits=1,
-                  amt_gradient_splits=10,
-                  rotation_delta=1,
-                  imcnn_variant="geodesic",
-                  tuner_variant="hyperband",
-                  kernel_radius=-1.,
-                  compute_shot=True,
-                  signal_dim=544,
-                  geodesic_diameters_path="",
-                  precomputed_gpc_radius=-1,
-                  save_gpc_systems=True,
-                  imcnn_output_dim=128):
+def training_pipeline_demo(preprocess_target_dir,
+                           registration_path,
+                           log_dir,
+                           reference_mesh_path,
+                           n_radial=4,
+                           n_angular=5,
+                           amt_convolutions=1,
+                           amt_splits=1,
+                           amt_gradient_splits=10,
+                           rotation_delta=1,
+                           imcnn_variant="geodesic",
+                           tuner_variant="hyperband",
+                           kernel_radius=-1.,
+                           compute_shot=True,
+                           signal_dim=544,
+                           geodesic_diameters_path="",
+                           precomputed_gpc_radius=-1,
+                           save_gpc_systems=True,
+                           imcnn_output_dim=128):
     """Executes preprocessing, hyperparameter-search and training on MPI-FAUST data set.
 
     Parameters
