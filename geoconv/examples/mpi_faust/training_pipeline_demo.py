@@ -19,8 +19,8 @@ import tensorflow as tf
 def training_pipeline_demo(reference_mesh_path,
                            signal_dim,
                            preprocessed_data,
-                           n_radial=4,
-                           n_angular=5,
+                           n_radial=5,
+                           n_angular=8,
                            registration_path="",
                            compute_shot=True,
                            geodesic_diameters_path="",
@@ -61,17 +61,6 @@ def training_pipeline_demo(reference_mesh_path,
         script will calculate it.
     save_gpc_systems: bool
         [REQUIRED FOR PRE-PROCESSING] Whether to save the GPC-systems.
-    amt_convolutions:
-        [IMCNN CONFIGURATION] The amount of geodesic convolutional layers for the IMCNN.
-    rotation_delta:
-        [IMCNN CONFIGURATION] The rotation delta for the IMCNN.
-    imcnn_variant:
-        [IMCNN CONFIGURATION] A string from ["dirac", "geodesic", "original", "geores"], which tells which type of IMCNN
-        shall be used. You can train the corresponding lite-version by adding a "_lite" to the name passed for
-        'imcnn_variant'. E.g. "dirac_lite".
-    tuner_variant:
-        [HYPERPARAMETER TUNING CONFIGURATION] A string from ["hyperband", "bayesian"], which tells which hyperparameter
-         optimization technique shall be used.
     template_radius: float
         [OPTIONAL] The template radius of the ISC-layer (the one used during preprocessing, defaults to radius for FAUST
         data set).
@@ -81,6 +70,17 @@ def training_pipeline_demo(reference_mesh_path,
         [OPTIONAL] The dimensionality of the output of the ISC-layer
     splits: int
         [OPTIONAL] The amount of splits over which the ISC-layer should iterate
+    amt_convolutions: int
+        [IMCNN CONFIGURATION] The amount of geodesic convolutional layers for the IMCNN.
+    rotation_delta: int
+        [IMCNN CONFIGURATION] The rotation delta for the IMCNN.
+    imcnn_variant: str
+        [IMCNN CONFIGURATION] A string from ["dirac", "geodesic", "original", "geores"], which tells which type of IMCNN
+        shall be used. You can train the corresponding lite-version by adding a "_lite" to the name passed for
+        'imcnn_variant'. E.g. "dirac_lite".
+    tuner_variant: str
+        [HYPERPARAMETER TUNING CONFIGURATION] A string from ["hyperband", "bayesian"], which tells which hyperparameter
+         optimization technique shall be used.
     """
 
     ######################

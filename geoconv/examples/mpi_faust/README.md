@@ -13,23 +13,24 @@ if __name__ == "__main__":
     rp = "/home/user/geoconv/geoconv/examples/mpi_faust/data/MPI-FAUST/training/registrations"
     R = 0.036993286759038686
     training_pipeline_demo(
-        preprocessed_data="./preprocessed_data",
-        registration_path=rp,
-        logging_dir="./logs_training_demo",
         reference_mesh_path=f"{rp}/tr_reg_000.ply",
-        amt_convolutions=1,
-        imcnn_variant="dirac_lite",
-        tuner_variant="hyperband",
-        splits=5,
+        signal_dim=544,  # Set it to 3 if `compute_shot=False`
+        preprocessed_data="./preprocessed_data",
         n_radial=5,
         n_angular=8,
-        compute_shot=True,
-        # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
-        signal_dim=544,  # Set it to 3 if `compute_shot=False`
+        registration_path=rp,
+        compute_shot=True,  # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
         geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
-        precomputed_gpc_radius=R,
-        template_radius=R * 0.75,
-        save_gpc_systems=False  # Set this to 'True' in case you want to inspect GPC-systems
+        precomputed_gpc_radius=0.037,
+        save_gpc_systems=False,  # Set this to 'True' in case you want to inspect GPC-systems
+        template_radius=0.028,
+        logging_dir="./imcnn_training_logs",
+        output_dim=128,
+        splits=10,
+        amt_convolutions=1,
+        rotation_delta=1,
+        imcnn_variant="dirac_lite",
+        tuner_variant="hyperband"
     )
 ```
 
