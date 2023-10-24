@@ -33,9 +33,9 @@ class OriginalHyperModel(keras_tuner.HyperModel):
         name_1 = "GC32AMPReLU"
         signal = ConvGeodesic(
             output_dim=32,
-            amt_kernel=hp.Int("gc_0_amt_kernel", 1, 3),
+            amt_template=hp.Int("gc_0_amt_kernel", 1, 3),
             rotation_delta=self.rotation_delta,
-            kernel_radius=self.kernel_radius,
+            template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
             name=name_1
@@ -45,9 +45,9 @@ class OriginalHyperModel(keras_tuner.HyperModel):
         name_2 = "GC64AMPReLU"
         signal = ConvGeodesic(
             output_dim=64,
-            amt_kernel=hp.Int("gc_1_amt_kernel", 1, 3),
+            amt_template=hp.Int("gc_1_amt_kernel", 1, 3),
             rotation_delta=self.rotation_delta,
-            kernel_radius=self.kernel_radius,
+            template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
             name=name_2
@@ -57,9 +57,9 @@ class OriginalHyperModel(keras_tuner.HyperModel):
         name_3 = "GC128AMPReLU"
         signal = ConvGeodesic(
             output_dim=128,
-            amt_kernel=hp.Int("gc_2_amt_kernel", 1, 3),
+            amt_template=hp.Int("gc_2_amt_kernel", 1, 3),
             rotation_delta=self.rotation_delta,
-            kernel_radius=self.kernel_radius,
+            template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
             name=name_3

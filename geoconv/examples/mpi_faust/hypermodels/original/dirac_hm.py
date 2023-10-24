@@ -43,9 +43,9 @@ class DiracHyperModel(keras_tuner.HyperModel):
 
         signal = ConvDirac(
             output_dim=self.output_dim,
-            amt_kernel=1,
+            amt_template=1,
             rotation_delta=self.rotation_delta,
-            kernel_radius=self.kernel_radius,
+            template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
             name="gc_0"
@@ -56,9 +56,9 @@ class DiracHyperModel(keras_tuner.HyperModel):
         for idx in range(1, self.amt_convolutions):
             signal = ConvDirac(
                 output_dim=self.output_dim,
-                amt_kernel=1,
+                amt_template=1,
                 rotation_delta=self.rotation_delta,
-                kernel_radius=self.kernel_radius,
+                template_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,
                 name=f"gc_{idx}"

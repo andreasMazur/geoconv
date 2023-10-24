@@ -43,9 +43,9 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
 
         signal = ConvGeodesicLite(
             output_dim=self.output_dim,
-            amt_kernel=1,
+            amt_templates=1,
             rotation_delta=self.rotation_delta,
-            kernel_radius=self.kernel_radius,
+            template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
             name="gc_0"
@@ -56,9 +56,9 @@ class GeodesicHyperModel(keras_tuner.HyperModel):
         for idx in range(1, self.amt_convolutions):
             signal = ConvGeodesicLite(
                 output_dim=self.output_dim,
-                amt_kernel=1,
+                amt_templates=1,
                 rotation_delta=self.rotation_delta,
-                kernel_radius=self.kernel_radius,
+                template_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,
                 name=f"gc_{idx}"

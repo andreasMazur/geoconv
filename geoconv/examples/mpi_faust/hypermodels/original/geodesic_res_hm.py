@@ -41,9 +41,9 @@ class GeoResHyperModel(keras_tuner.HyperModel):
 
         signal_in = ConvGeodesic(
             output_dim=self.output_dim,
-            amt_kernel=1,
+            amt_template=1,
             rotation_delta=self.rotation_delta,
-            kernel_radius=self.kernel_radius,
+            template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
             name="gc_0"
@@ -52,9 +52,9 @@ class GeoResHyperModel(keras_tuner.HyperModel):
         for idx in range(1, self.amt_convolutions):
             signal_1 = ConvGeodesic(
                 output_dim=self.output_dim,
-                amt_kernel=1,
+                amt_template=1,
                 rotation_delta=self.rotation_delta,
-                kernel_radius=self.kernel_radius,
+                template_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,
                 name=f"gc_{idx}_1"
@@ -63,9 +63,9 @@ class GeoResHyperModel(keras_tuner.HyperModel):
 
             signal_2 = ConvGeodesic(
                 output_dim=128,
-                amt_kernel=1,
+                amt_template=1,
                 rotation_delta=self.rotation_delta,
-                kernel_radius=self.kernel_radius,
+                template_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,
                 name=f"gc_{idx}_2"

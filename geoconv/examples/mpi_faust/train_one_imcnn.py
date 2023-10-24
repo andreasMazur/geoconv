@@ -42,8 +42,8 @@ def define_model(input_dim,
 
     signal = ConvDiracLite(
         output_dim=output_dim,
-        amt_kernel=amt_templates,
-        kernel_radius=template_radius,
+        amt_templates=amt_templates,
+        template_radius=template_radius,
         activation="relu",
         name="ISC_layer",
         splits=splits,

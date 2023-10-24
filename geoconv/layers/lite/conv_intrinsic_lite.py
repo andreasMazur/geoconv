@@ -12,29 +12,32 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
 
     Attributes
     ----------
-    output_dim:
+    output_dim: int
         The dimensionality of the output vectors.
-    amt_kernel:
-        The amount of kernels to apply during one convolution.
-    activation_fn:
+    amt_templates: int
+        The amount of templates to apply during one convolution.
+    activation_fn: str
         The activation function to use.
-    splits:
+    splits: int
         The 'splits'-parameter determines into how many chunks the mesh signal is split. Each chunk will be folded
         iteratively to save memory. That is, fewer splits allow a faster convolution. More splits allow reduced memory
         usage. Careful: 'splits' has to divide the amount of vertices in the input mesh. Also, using many splits might
         cause larger memory fragmentation.
+    include_prior: bool
+        Determines whether to include prior. If 'False', computation is faster.
     """
 
     def __init__(self,
                  output_dim,
-                 amt_kernel,
-                 kernel_radius,
+                 amt_templates,
+                 template_radius,
                  activation="relu",
                  splits=1,
                  name=None,
-                 kernel_regularizer=None,
+                 template_regularizer=None,
                  bias_regularizer=None,
-                 initializer="glorot_uniform"):
+                 initializer="glorot_uniform",
+                 include_prior=True):
         if name:
             super().__init__(name=name)
         else:
@@ -42,19 +45,20 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
 
         self.activation_fn = activation
         self.output_dim = output_dim
-        self.amt_kernel = amt_kernel
-        self.kernel_radius = kernel_radius
-        self.kernel_regularizer = kernel_regularizer
+        self.amt_templates = amt_templates
+        self.template_radius = template_radius
+        self.template_regularizer = template_regularizer
         self.bias_regularizer = bias_regularizer
         self.initializer = initializer
         self.splits = splits
+        self.include_prior = include_prior
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = keras.layers.Activation(self.activation_fn)
         self._bias = None
-        self._kernel_size = None  # (#radial, #angular)
-        self._kernel_vertices = None
-        self._kernel_weights = None
+        self._template_size = None  # (#radial, #angular)
+        self._template_vertices = None
+        self._template_weights = None
         self._interpolation_coefficients = None
         self._feature_dim = None
 
@@ -63,20 +67,21 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         config.update(
             {
                 "output_dim": self.output_dim,
-                "amt_kernel": self.amt_kernel,
-                "kernel_radius": self.kernel_radius,
+                "amt_templates": self.amt_templates,
+                "template_radius": self.template_radius,
                 "activation_fn": self.activation_fn,
                 "splits": self.splits,
                 "name": self.name,
-                "kernel_regularizer": self.kernel_regularizer,
+                "template_regularizer": self.template_regularizer,
                 "bias_regularizer": self.bias_regularizer,
-                "initializer": self.initializer
+                "initializer": self.initializer,
+                "include_prior": self.include_prior
             }
         )
         return config
 
     def build(self, input_shape):
-        """Builds the layer by setting kernel and bias attributes
+        """Builds the layer by setting template and bias attributes
 
         Parameters
         ----------
@@ -85,25 +90,25 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         """
         signal_shape, barycentric_shape = input_shape
 
-        # Configure kernel
-        self._kernel_size = (barycentric_shape[1], barycentric_shape[2])
+        # Configure template
+        self._template_size = (barycentric_shape[1], barycentric_shape[2])
 
-        self._kernel_vertices = tf.constant(
-            create_template_matrix(self._kernel_size[0], self._kernel_size[1], radius=self.kernel_radius)
+        self._template_vertices = tf.constant(
+            create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius)
         )
         self._feature_dim = signal_shape[-1]
 
         # Configure trainable weights
-        self._kernel_weights = self.add_weight(
-            name="conv_intrinsic_kernel",
-            shape=(self.amt_kernel, self.output_dim, signal_shape[1]),
+        self._template_weights = self.add_weight(
+            name="conv_intrinsic_template",
+            shape=(self.amt_templates, self.output_dim, signal_shape[1]),
             initializer=self.initializer,
             trainable=True,
-            regularizer=self.kernel_regularizer
+            regularizer=self.template_regularizer
         )
         self._bias = self.add_weight(
             name="conv_intrinsic_bias",
-            shape=(self.amt_kernel, self.output_dim),
+            shape=(self.amt_templates, self.output_dim),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.bias_regularizer
@@ -126,7 +131,7 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         Returns
         -------
         tf.Tensor
-            The geodesic convolution of the kernel with the signal on the object mesh in every given GPC-system.
+            The geodesic convolution of the template with the signal on the object mesh in every given GPC-system.
             It has size (n_batch, n_vertices, feature_dim)
         """
         mesh_signal, bary_coordinates = inputs
@@ -157,32 +162,34 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         Parameters
         ----------
         mesh_signal: tf.Tensor
-            The signal values at the kernel vertices
+            The signal values at the template vertices
         barycentric_coordinates: tf.Tensor
-            The barycentric coordinates for the kernel vertices
+            The barycentric coordinates for the template vertices
 
         Returns
         -------
         tf.Tensor:
-            Interpolation values for the kernel vertices
+            Interpolation values for the template vertices
         """
-        ##########################################
-        # Signal-interpolation at kernel vertices
-        ##########################################
+        ############################################
+        # Signal-interpolation at template vertices
+        ############################################
         mesh_signal = tf.reshape(
             tf.gather(mesh_signal, tf.reshape(tf.cast(barycentric_coordinates[:, :, :, :, 0], tf.int32), (-1,))),
-            (-1, self._kernel_size[0], self._kernel_size[1], 3, self._feature_dim)
+            (-1, self._template_size[0], self._template_size[1], 3, self._feature_dim)
         )
-        # (n_vertices, n_radial, n_angular, input_dim)
+        # (subset, n_radial, n_angular, input_dim)
         mesh_signal = tf.math.reduce_sum(
             tf.expand_dims(barycentric_coordinates[:, :, :, :, 1], axis=-1) * mesh_signal, axis=-2
         )
+        if not self.include_prior:
+            return mesh_signal
 
         ##################
         # Including prior
         ##################
         # (subset, n_radial * n_angular, input_dim)
-        mesh_signal = tf.reshape(mesh_signal, (-1, self._kernel_size[0] * self._kernel_size[1], self._feature_dim))
+        mesh_signal = tf.reshape(mesh_signal, (-1, self._template_size[0] * self._template_size[1], self._feature_dim))
 
         # (subset, input_dim, n_radial * n_angular)
         mesh_signal = tf.transpose(mesh_signal, perm=[0, 2, 1])
@@ -197,12 +204,12 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
 
     @tf.function
     def _fold(self, interpolations):
-        """Folds kernel vertex signal with the kernel weights
+        """Folds template vertex signal with the template weights
 
         Parameters
         ----------
         interpolations: tf.Tensor
-            The according to a given weighting function weighted interpolations at the kernel vertices.
+            The according to a given weighting function weighted interpolations at the template vertices.
             Shape: (subset, n_radial, n_angular, input_dim)
 
         Returns
@@ -213,21 +220,21 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
 
         # (subset, n_radial * n_angular, input_dim)
         interpolations = tf.reshape(
-            interpolations, (-1, self._kernel_size[0] * self._kernel_size[1], self._feature_dim)
+            interpolations, (-1, self._template_size[0] * self._template_size[1], self._feature_dim)
         )
         # (subset, input_dim, n_radial * n_angular)
         interpolations = tf.transpose(interpolations, perm=[0, 2, 1])
         # (subset, 1, input_dim, n_radial * n_angular)
         interpolations = tf.expand_dims(interpolations, axis=1)
         # Matrix x Signal
-        # Shape kernel : (        n_kernel, self.output_dim,            input_dim)
-        # Shape input  : (subset,        1,       input_dim, n_radial * n_angular)
-        # Shape result : (subset, n_kernel, self.output_dim, n_radial * n_angular)
-        interpolations = self._kernel_weights @ interpolations
-        # Sum over all (new) kernel vertex signals, add bias and apply activation function
-        # (subset, n_kernel, self.output_dim)
+        # Shape template : (        n_template, self.output_dim,            input_dim)
+        # Shape input  :   (subset,        1,         input_dim, n_radial * n_angular)
+        # Shape result :   (subset, n_template, self.output_dim, n_radial * n_angular)
+        interpolations = self._template_weights @ interpolations
+        # Sum over all (new) template vertex signals, add bias and apply activation function
+        # (subset, n_template, self.output_dim)
         interpolations = self._activation(tf.reduce_sum(interpolations, axis=-1) + self._bias)
-        # Sum over kernel
+        # Sum over template
         # (subset, self.output_dim)
         interpolations = tf.reduce_sum(interpolations, axis=1)
 
@@ -238,21 +245,21 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
 
         self._interpolation_coefficients = tf.cast(
-            self.define_interpolation_coefficients(self._kernel_vertices.numpy()), tf.float32
+            self.define_interpolation_coefficients(self._template_vertices.numpy()), tf.float32
         )
         self._interpolation_coefficients = tf.reshape(
             self._interpolation_coefficients,
-            (self._kernel_size[0], self._kernel_size[1], self._kernel_size[0] * self._kernel_size[1])
+            (self._template_size[0], self._template_size[1], self._template_size[0] * self._template_size[1])
         )
 
     @abstractmethod
-    def define_interpolation_coefficients(self, kernel_matrix):
-        """Defines the interpolation coefficients for each kernel vertex.
+    def define_interpolation_coefficients(self, template_matrix):
+        """Defines the interpolation coefficients for each template vertex.
 
         Parameters
         ----------
-        kernel_matrix: np.ndarray
-            An array of size [n_radial, n_angular, 2], which contains the positions of the kernel vertices in cartesian
+        template_matrix: np.ndarray
+            An array of size [n_radial, n_angular, 2], which contains the positions of the template vertices in cartesian
             coordinates.
 
         Returns

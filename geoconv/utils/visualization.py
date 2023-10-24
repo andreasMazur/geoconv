@@ -95,8 +95,8 @@ def draw_interpolation_coefficients_single_idx(icnn_layer, radial_idx, angular_i
 
     # Get interpolation coefficients of the given layer: I[a, b] \in R^{n_radial * n_angular}
     weights = icnn_layer._interpolation_coefficients[radial_idx, angular_idx].numpy()
-    template_size = icnn_layer._kernel_size
-    template_matrix = icnn_layer._kernel_vertices.numpy()
+    template_size = icnn_layer._template_size
+    template_matrix = icnn_layer._template_vertices.numpy()
 
     # Reshape vector into matrix: (n_radial * n_angular,) -> (n_radial, n_angular)
     # See 'ConvIntrinsic._configure_patch_operator()' for why it is stored as a vector.
