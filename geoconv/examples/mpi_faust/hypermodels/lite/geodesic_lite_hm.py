@@ -1,4 +1,3 @@
-from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.original.conv_geodesic import ConvGeodesic
 from geoconv.models.intrinsic_model import ImCNN
 
@@ -37,7 +36,6 @@ class GeodesicLiteHyperModel(keras_tuner.HyperModel):
 
         signal_input = keras.layers.Input(shape=self.signal_dim, name="signal")
         bc_input = keras.layers.Input(shape=(self.kernel_size[0], self.kernel_size[1], 3, 2), name="bc")
-        amp = AngularMaxPooling()
 
         signal = ConvGeodesic(
             output_dim=self.output_dim,
@@ -47,7 +45,7 @@ class GeodesicLiteHyperModel(keras_tuner.HyperModel):
             splits=self.amt_splits,
             name="gc_0"
         )([signal_input, bc_input])
-        signal = amp(signal)
+
         if self.batch_normalization:
             signal = keras.layers.BatchNormalization(axis=-1)(signal)
         for idx in range(1, self.amt_convolutions):
@@ -59,7 +57,7 @@ class GeodesicLiteHyperModel(keras_tuner.HyperModel):
                 splits=self.amt_splits,
                 name=f"gc_{idx}"
             )([signal, bc_input])
-            signal = amp(signal)
+
             if self.batch_normalization:
                 signal = keras.layers.BatchNormalization(axis=-1)(signal)
 

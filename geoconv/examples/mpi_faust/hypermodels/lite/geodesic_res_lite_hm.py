@@ -1,4 +1,3 @@
-from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.lite.conv_geodesic_lite import ConvGeodesicLite
 from geoconv.models.intrinsic_model import ImCNN
 
@@ -35,7 +34,6 @@ class GeoResLiteHyperModel(keras_tuner.HyperModel):
 
         signal_input = keras.layers.Input(shape=self.signal_dim, name="signal")
         bc_input = keras.layers.Input(shape=(self.kernel_size[0], self.kernel_size[1], 3, 2), name="bc")
-        amp = AngularMaxPooling()
 
         signal_in = ConvGeodesicLite(
             output_dim=self.output_dim,
@@ -45,7 +43,7 @@ class GeoResLiteHyperModel(keras_tuner.HyperModel):
             splits=self.amt_splits,
             name="gc_0"
         )([signal_input, bc_input])
-        signal_in = amp(signal_in)
+
         for idx in range(1, self.amt_convolutions):
             signal_1 = ConvGeodesicLite(
                 output_dim=self.output_dim,
@@ -55,7 +53,6 @@ class GeoResLiteHyperModel(keras_tuner.HyperModel):
                 splits=self.amt_splits,
                 name=f"gc_{idx}_1"
             )([signal_in, bc_input])
-            signal_1 = amp(signal_1)
 
             signal_2 = ConvGeodesicLite(
                 output_dim=128,
@@ -65,7 +62,6 @@ class GeoResLiteHyperModel(keras_tuner.HyperModel):
                 splits=self.amt_splits,
                 name=f"gc_{idx}_2"
             )([signal_1, bc_input])
-            signal_2 = amp(signal_2)
 
             signal_in = keras.layers.Add()([signal_1, signal_2])
             signal_in = keras.layers.ReLU()(signal_in)
