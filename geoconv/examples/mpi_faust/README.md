@@ -16,6 +16,7 @@ if __name__ == "__main__":
         reference_mesh_path=f"{rp}/tr_reg_000.ply",
         signal_dim=544,  # Set it to 3 if `compute_shot=False`
         preprocessed_data="./preprocessed_data",
+        ### PRE-PROCESSING ###
         n_radial=5,
         n_angular=8,
         registration_path=rp,
@@ -23,10 +24,12 @@ if __name__ == "__main__":
         geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
         precomputed_gpc_radius=0.037,
         save_gpc_systems=False,  # Set this to 'True' in case you want to inspect GPC-systems
-        template_radius=0.028,
+        ### GENERAL ###
+        template_radius=0.028,  # Should be smaller than 'precomputed_gpc_radius'
         logging_dir="./imcnn_training_logs",
         output_dim=128,
         splits=10,
+        ### HYPERMODEL CONFIGURATION ###
         amt_convolutions=1,
         rotation_delta=1,
         imcnn_variant="dirac_lite",
@@ -45,6 +48,7 @@ if __name__ == "__main__":
         reference_mesh_path=f"{rp}/tr_reg_000.ply",
         signal_dim=544,  # Set it to 3 if `compute_shot=False`
         preprocessed_data="./preprocessed_data",
+        ### PRE-PROCESSING ###
         n_radial=5,
         n_angular=8,
         registration_path=rp,
@@ -52,7 +56,8 @@ if __name__ == "__main__":
         geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
         precomputed_gpc_radius=0.037,
         save_gpc_systems=False,  # Set this to 'True' in case you want to inspect GPC-systems
-        template_radius=0.028,
+        ### GENERAL ###
+        template_radius=0.028,  # Should be smaller than 'precomputed_gpc_radius'
         logging_dir="./imcnn_training_logs",
         output_dim=128,
         amt_templates=1,
