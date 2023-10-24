@@ -136,7 +136,6 @@ def training_demo(preprocess_target_dir,
             amt_splits,
             amt_gradient_splits,
             kernel_radius,
-            rotation_delta,
             output_dim=imcnn_output_dim
         )
     elif imcnn_variant == "dirac":
@@ -160,7 +159,6 @@ def training_demo(preprocess_target_dir,
             amt_splits,
             amt_gradient_splits,
             kernel_radius,
-            rotation_delta,
             output_dim=imcnn_output_dim
         )
     elif imcnn_variant == "original":
@@ -169,7 +167,7 @@ def training_demo(preprocess_target_dir,
         )
     elif imcnn_variant == "original_lite":
         imcnn = OriginalLiteHyperModel(
-            SIGNAL_DIM, KERNEL_SIZE, amt_splits, amt_gradient_splits, kernel_radius, rotation_delta
+            SIGNAL_DIM, KERNEL_SIZE, amt_splits, amt_gradient_splits, kernel_radius
         )
     elif imcnn_variant == "geores":
         imcnn = GeoResHyperModel(
@@ -192,7 +190,6 @@ def training_demo(preprocess_target_dir,
             amt_splits,
             amt_gradient_splits,
             kernel_radius,
-            rotation_delta,
             output_dim=imcnn_output_dim
         )
     else:

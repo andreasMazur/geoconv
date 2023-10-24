@@ -18,7 +18,6 @@ class GeodesicLiteHyperModel(keras_tuner.HyperModel):
                  amt_splits,
                  amt_gradient_splits,
                  kernel_radius,
-                 rotation_delta,
                  batch_normalization=True,
                  output_dim=128):
         super().__init__()
@@ -29,7 +28,6 @@ class GeodesicLiteHyperModel(keras_tuner.HyperModel):
         self.amt_convolutions = amt_convolutions
         self.amt_splits = amt_splits
         self.amt_gradient_splits = amt_gradient_splits
-        self.rotation_delta = rotation_delta
         self.batch_normalization = batch_normalization
         self.output_dim = output_dim
 
@@ -44,7 +42,6 @@ class GeodesicLiteHyperModel(keras_tuner.HyperModel):
         signal = ConvGeodesic(
             output_dim=self.output_dim,
             amt_kernel=1,
-            rotation_delta=self.rotation_delta,
             kernel_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
@@ -57,7 +54,6 @@ class GeodesicLiteHyperModel(keras_tuner.HyperModel):
             signal = ConvGeodesic(
                 output_dim=self.output_dim,
                 amt_kernel=1,
-                rotation_delta=self.rotation_delta,
                 kernel_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,

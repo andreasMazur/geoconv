@@ -10,14 +10,13 @@ import gc
 
 class OriginalLiteHyperModel(keras_tuner.HyperModel):
 
-    def __init__(self, signal_dim, kernel_size, amt_splits, amt_gradient_splits, kernel_radius, rotation_delta):
+    def __init__(self, signal_dim, kernel_size, amt_splits, amt_gradient_splits, kernel_radius):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
         self.kernel_radius = kernel_radius
         self.amt_splits = amt_splits
         self.amt_gradient_splits = amt_gradient_splits
-        self.rotation_delta = rotation_delta
 
     def build(self, hp):
         keras.backend.clear_session()
@@ -34,7 +33,6 @@ class OriginalLiteHyperModel(keras_tuner.HyperModel):
         signal = ConvGeodesicLite(
             output_dim=32,
             amt_kernel=hp.Int("gc_0_amt_kernel", 1, 3),
-            rotation_delta=self.rotation_delta,
             kernel_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
@@ -46,7 +44,6 @@ class OriginalLiteHyperModel(keras_tuner.HyperModel):
         signal = ConvGeodesicLite(
             output_dim=64,
             amt_kernel=hp.Int("gc_1_amt_kernel", 1, 3),
-            rotation_delta=self.rotation_delta,
             kernel_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
@@ -58,7 +55,6 @@ class OriginalLiteHyperModel(keras_tuner.HyperModel):
         signal = ConvGeodesicLite(
             output_dim=128,
             amt_kernel=hp.Int("gc_2_amt_kernel", 1, 3),
-            rotation_delta=self.rotation_delta,
             kernel_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
