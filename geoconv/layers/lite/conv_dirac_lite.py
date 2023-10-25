@@ -4,12 +4,8 @@ import numpy as np
 
 
 class ConvDiracLite(ConvIntrinsicLite):
-    """No interpolation weighting
+    """No interpolation weighting"""
 
-    This procedure was suggested in:
-    > [Multi-directional Geodesic Neural Networks via Equivariant Convolution](https://arxiv.org/abs/1810.02303)
-    > Adrien Poulenard and Maks Ovsjanikov
-    """
     def __init__(self, *args, **kwargs):
         kwargs["include_prior"] = False  # Interpolation coefficients not required for Dirac prior
         super().__init__(*args, **kwargs)
