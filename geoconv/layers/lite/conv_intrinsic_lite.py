@@ -10,6 +10,10 @@ import numpy as np
 class ConvIntrinsicLite(ABC, keras.layers.Layer):
     """A metaclass for intrinsic surface convolutions on Riemannian manifolds with smaller weight tensors.
 
+    In difference to the original intrinsic surface convolution, this convolution does not pay attention to the relative
+    orientation between template and extracted patch. This allows to use smaller weight tensors. Additionally, the
+    rotation operation is not necessary anymore. This reduces computation time and memory usage.
+
     Attributes
     ----------
     output_dim: int
