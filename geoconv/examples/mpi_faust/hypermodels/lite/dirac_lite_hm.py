@@ -1,5 +1,4 @@
-from geoconv.layers.angular_max_pooling import AngularMaxPooling
-from geoconv.layers.conv_dirac import ConvDirac
+from geoconv.layers.lite.conv_dirac_lite import ConvDiracLite
 from geoconv.models.intrinsic_model import ImCNN
 
 from tensorflow import keras
@@ -8,7 +7,7 @@ import keras_tuner
 import gc
 
 
-class DiracHyperModel(keras_tuner.HyperModel):
+class DiracLiteHyperModel(keras_tuner.HyperModel):
 
     def __init__(self,
                  signal_dim,
@@ -18,8 +17,8 @@ class DiracHyperModel(keras_tuner.HyperModel):
                  amt_splits,
                  amt_gradient_splits,
                  kernel_radius,
-                 rotation_delta,
-                 batch_normalization=True):
+                 batch_normalization=True,
+                 output_dim=128):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
@@ -28,8 +27,8 @@ class DiracHyperModel(keras_tuner.HyperModel):
         self.amt_convolutions = amt_convolutions
         self.amt_splits = amt_splits
         self.amt_gradient_splits = amt_gradient_splits
-        self.rotation_delta = rotation_delta
         self.batch_normalization = batch_normalization
+        self.output_dim = output_dim
 
     def build(self, hp):
         keras.backend.clear_session()
@@ -37,31 +36,28 @@ class DiracHyperModel(keras_tuner.HyperModel):
 
         signal_input = keras.layers.Input(shape=self.signal_dim, name="signal")
         bc_input = keras.layers.Input(shape=(self.kernel_size[0], self.kernel_size[1], 3, 2), name="bc")
-        amp = AngularMaxPooling()
 
-        signal = ConvDirac(
-            output_dim=128,
-            amt_kernel=1,
-            rotation_delta=self.rotation_delta,
-            kernel_radius=self.kernel_radius,
+        signal = ConvDiracLite(
+            output_dim=self.output_dim,
+            amt_templates=1,
+            template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
             name="gc_0"
         )([signal_input, bc_input])
-        signal = amp(signal)
+
         if self.batch_normalization:
             signal = keras.layers.BatchNormalization(axis=-1)(signal)
         for idx in range(1, self.amt_convolutions):
-            signal = ConvDirac(
-                output_dim=128,
-                amt_kernel=1,
-                rotation_delta=self.rotation_delta,
-                kernel_radius=self.kernel_radius,
+            signal = ConvDiracLite(
+                output_dim=self.output_dim,
+                amt_templates=1,
+                template_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,
                 name=f"gc_{idx}"
             )([signal, bc_input])
-            signal = amp(signal)
+
             if self.batch_normalization:
                 signal = keras.layers.BatchNormalization(axis=-1)(signal)
 

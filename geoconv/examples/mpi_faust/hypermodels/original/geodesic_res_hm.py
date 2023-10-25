@@ -1,5 +1,5 @@
-from geoconv.layers.angular_max_pooling import AngularMaxPooling
-from geoconv.layers.conv_geodesic import ConvGeodesic
+from geoconv.layers.original.angular_max_pooling import AngularMaxPooling
+from geoconv.layers.original.conv_geodesic import ConvGeodesic
 from geoconv.models.intrinsic_model import ImCNN
 
 from tensorflow import keras
@@ -18,7 +18,8 @@ class GeoResHyperModel(keras_tuner.HyperModel):
                  amt_splits,
                  amt_gradient_splits,
                  kernel_radius,
-                 rotation_delta):
+                 rotation_delta,
+                 output_dim=128):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
@@ -28,6 +29,7 @@ class GeoResHyperModel(keras_tuner.HyperModel):
         self.amt_splits = amt_splits
         self.amt_gradient_splits = amt_gradient_splits
         self.rotation_delta = rotation_delta
+        self.output_dim = output_dim
 
     def build(self, hp):
         keras.backend.clear_session()
@@ -38,10 +40,10 @@ class GeoResHyperModel(keras_tuner.HyperModel):
         amp = AngularMaxPooling()
 
         signal_in = ConvGeodesic(
-            output_dim=128,
-            amt_kernel=1,
+            output_dim=self.output_dim,
+            amt_template=1,
             rotation_delta=self.rotation_delta,
-            kernel_radius=self.kernel_radius,
+            template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
             name="gc_0"
@@ -49,10 +51,10 @@ class GeoResHyperModel(keras_tuner.HyperModel):
         signal_in = amp(signal_in)
         for idx in range(1, self.amt_convolutions):
             signal_1 = ConvGeodesic(
-                output_dim=128,
-                amt_kernel=1,
+                output_dim=self.output_dim,
+                amt_template=1,
                 rotation_delta=self.rotation_delta,
-                kernel_radius=self.kernel_radius,
+                template_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,
                 name=f"gc_{idx}_1"
@@ -61,9 +63,9 @@ class GeoResHyperModel(keras_tuner.HyperModel):
 
             signal_2 = ConvGeodesic(
                 output_dim=128,
-                amt_kernel=1,
+                amt_template=1,
                 rotation_delta=self.rotation_delta,
-                kernel_radius=self.kernel_radius,
+                template_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,
                 name=f"gc_{idx}_2"

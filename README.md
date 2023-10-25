@@ -64,8 +64,8 @@ with Tensorflow.
 ### Define a GCNN with geoconv:
 
 ```python
-from geoconv.layers.conv_geodesic import ConvGeodesic
-from geoconv.layers.angular_max_pooling import AngularMaxPooling
+from geoconv.layers.original.conv_geodesic import ConvGeodesic
+from geoconv.layers.original.angular_max_pooling import AngularMaxPooling
 from tensorflow import keras
 import tensorflow as tf
 
@@ -76,9 +76,9 @@ def define_model(signal_shape, barycentric_shape, output_dim):
     signal_input = keras.layers.InputLayer(shape=signal_shape)
     barycentric = keras.layers.InputLayer(shape=barycentric_shape)
     signal = ConvGeodesic(
-         output_dim=32,
-         amt_kernel=2,
-         kernel_radius=0.028
+        output_dim=32,
+        amt_template=2,
+        template_radius=0.028
     )([signal_input, barycentric])
     signal = AngularMaxPooling()(signal)
     logits = keras.layers.Dense(output_dim)(signal)
