@@ -83,8 +83,9 @@ def train_model(reference_mesh_path,
         The dimensionality of the mesh signal
     preprocessed_data: str
         The path to the pre-processed data. If you have not pre-processed your data so far and saved it under the given
-        path, this script will execute pre-processing for you.
-        pre-processing for you.
+        path, this script will execute pre-processing for you. For this to work, you need to pass the arguments which
+        are annotated with '[REQUIRED FOR PRE-PROCESSING]'. If pre-processing is not required, you can ignore those
+        arguments.
     n_radial: int
         [REQUIRED FOR PRE-PROCESSING] The amount of radial coordinates for the template.
     n_angular: int
