@@ -33,10 +33,10 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         Determines whether to include prior. If 'False', computation is faster.
     variant: str
         A string from ["original", "radial", "angular", "lite"]. Determines which weights will be defined:
-        - "original": Define a different weight matrix for each template vertex
-        - "radial": Define a weight matrix per radial coordinate
-        - "angular": Define a weight matrix per angular coordinate
-        - "lite": Define one weight matrix for all template vertices
+        - "original": Define a different weight matrix for each template vertex [requires subsequent AMP]
+        - "radial": Define a weight matrix per radial coordinate [requires subsequent AMP]
+        - "angular": Define a weight matrix per angular coordinate [requires subsequent AMP]
+        - "lite": Define one weight matrix for all template vertices [does not require subsequent AMP]
         Less weights mean less memory usage and faster computation. The "lite"-variant does not pay attention to the
         relative orientation between template and extracted patch and radial distances. This reduces computation time
         and memory usage significantly.
