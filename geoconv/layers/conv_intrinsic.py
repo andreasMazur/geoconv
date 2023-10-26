@@ -7,12 +7,8 @@ import tensorflow as tf
 import numpy as np
 
 
-class ConvIntrinsicLite(ABC, keras.layers.Layer):
-    """A metaclass for intrinsic surface convolutions on Riemannian manifolds with smaller weight tensors.
-
-    In difference to the original intrinsic surface convolution, this convolution does not pay attention to the relative
-    orientation between template and extracted patch. This allows to use smaller weight tensors. Additionally, the
-    rotation operation is not necessary anymore. This reduces computation time and memory usage.
+class ConvIntrinsic(ABC, keras.layers.Layer):
+    """A metaclass for intrinsic surface convolutions on Riemannian manifolds.
 
     Attributes
     ----------
@@ -22,6 +18,12 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         The amount of templates to apply during one convolution.
     activation_fn: str
         The activation function to use.
+    rotation_delta: int
+        The distance between two rotations. If `n` angular coordinates are given in the data, then the default behavior
+        is to rotate the template `n` times, i.e. a shift in every angular coordinate of 1 to the next angular
+        coordinate.
+        If `rotation_delta = 2`, then the shift increases to 2 and the total amount of rotations reduces to
+        ceil(n / rotation_delta). This gives a speed-up and saves memory. However, quality of results might worsen.
     splits: int
         The 'splits'-parameter determines into how many chunks the mesh signal is split. Each chunk will be folded
         iteratively to save memory. That is, fewer splits allow a faster convolution. More splits allow reduced memory
@@ -29,6 +31,15 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         cause larger memory fragmentation.
     include_prior: bool
         Determines whether to include prior. If 'False', computation is faster.
+    variant: str
+        A string from ["original", "radial", "angular", "lite"]. Determines which weights will be defined:
+        - "original": Define a different weight matrix for each template vertex
+        - "radial": Define a weight matrix per radial coordinate
+        - "angular": Define a weight matrix per angular coordinate
+        - "lite": Define one weight matrix for all template vertices
+        Less weights mean less memory usage and faster computation. The "lite"-variant does not pay attention to the
+        relative orientation between template and extracted patch and radial distances. This reduces computation time
+        and memory usage significantly.
     """
 
     def __init__(self,
@@ -36,12 +47,14 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
                  amt_templates,
                  template_radius,
                  activation="relu",
+                 rotation_delta=1,
                  splits=1,
                  name=None,
                  template_regularizer=None,
                  bias_regularizer=None,
                  initializer="glorot_uniform",
-                 include_prior=True):
+                 include_prior=True,
+                 variant="original"):
         if name:
             super().__init__(name=name)
         else:
@@ -49,6 +62,7 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
 
         self.activation_fn = activation
         self.output_dim = output_dim
+        self.rotation_delta = rotation_delta
         self.amt_templates = amt_templates
         self.template_radius = template_radius
         self.template_regularizer = template_regularizer
@@ -56,10 +70,12 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         self.initializer = initializer
         self.splits = splits
         self.include_prior = include_prior
+        self.variant = variant
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = keras.layers.Activation(self.activation_fn)
         self._bias = None
+        self._all_rotations = None
         self._template_size = None  # (#radial, #angular)
         self._template_vertices = None
         self._template_weights = None
@@ -67,19 +83,21 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         self._feature_dim = None
 
     def get_config(self):
-        config = super(ConvIntrinsicLite, self).get_config()
+        config = super(ConvIntrinsic, self).get_config()
         config.update(
             {
                 "output_dim": self.output_dim,
-                "amt_templates": self.amt_templates,
+                "amt_template": self.amt_templates,
                 "template_radius": self.template_radius,
                 "activation_fn": self.activation_fn,
+                "rotation_delta": self.rotation_delta,
                 "splits": self.splits,
                 "name": self.name,
                 "template_regularizer": self.template_regularizer,
                 "bias_regularizer": self.bias_regularizer,
                 "initializer": self.initializer,
-                "include_prior": self.include_prior
+                "include_prior": self.include_prior,
+                "variant": self.variant
             }
         )
         return config
@@ -96,20 +114,54 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
 
         # Configure template
         self._template_size = (barycentric_shape[1], barycentric_shape[2])
-
+        self._all_rotations = self._template_size[1]
         self._template_vertices = tf.constant(
             create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius)
         )
         self._feature_dim = signal_shape[-1]
 
         # Configure trainable weights
-        self._template_weights = self.add_weight(
-            name="conv_intrinsic_template",
-            shape=(self.amt_templates, self.output_dim, signal_shape[1]),
-            initializer=self.initializer,
-            trainable=True,
-            regularizer=self.template_regularizer
-        )
+        if self.variant == "original":
+            # Define a different weight matrix for each template vertex
+            self._template_weights = self.add_weight(
+                name="conv_intrinsic_template",
+                shape=(
+                    self._template_size[0], self._template_size[1], self.amt_templates, self.output_dim, signal_shape[1]
+                ),
+                initializer=self.initializer,
+                trainable=True,
+                regularizer=self.template_regularizer
+            )
+        elif self.variant == "radial":
+            # Define a weight matrix per radial coordinate
+            self._template_weights = self.add_weight(
+                name="conv_intrinsic_template",
+                shape=(self._template_size[0], 1, self.amt_templates, self.output_dim, signal_shape[1]),
+                initializer=self.initializer,
+                trainable=True,
+                regularizer=self.template_regularizer
+            )
+        elif self.variant == "angular":
+            # Define a weight matrix per angular coordinate
+            self._template_weights = self.add_weight(
+                name="conv_intrinsic_template",
+                shape=(self._template_size[1], self.amt_templates, self.output_dim, signal_shape[1]),
+                initializer=self.initializer,
+                trainable=True,
+                regularizer=self.template_regularizer
+            )
+        elif self.variant == "lite":
+            # Define one weight matrix for all template vertices
+            self._template_weights = self.add_weight(
+                name="conv_intrinsic_template",
+                shape=(self.amt_templates, self.output_dim, signal_shape[1]),
+                initializer=self.initializer,
+                trainable=True,
+                regularizer=self.template_regularizer
+            )
+        else:
+            raise RuntimeError("Choose a valid ISC variant from: ['original', 'radial', 'angular', 'lite']")
+
         self._bias = self.add_weight(
             name="conv_intrinsic_bias",
             shape=(self.amt_templates, self.output_dim),
@@ -150,13 +202,18 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
             tensor_array_name="outer_ta",
             name="call_ta"
         )
-        for interpolations in tf.split(mesh_signal, self.splits):
-            # Compute convolution
-            new_signal = new_signal.write(idx, self._fold(interpolations))
-            idx = idx + tf.constant(1)
+        if self.variant in ["original", "radial", "angular"]:
+            for interpolations in tf.split(mesh_signal, self.splits):
+                new_signal = new_signal.write(idx, self._fold(interpolations))
+                idx = idx + tf.constant(1)
+        elif self.variant == "lite":
+            for interpolations in tf.split(mesh_signal, self.splits):
+                new_signal = new_signal.write(idx, self._fold_fast(interpolations))
+                idx = idx + tf.constant(1)
+        else:
+            raise RuntimeError("Choose a valid ISC variant from: ['original', 'radial', 'angular', 'lite']")
         new_signal = new_signal.concat()
 
-        # Shape result: (n_vertices, self.output_dim)
         return new_signal
 
     @tf.function
@@ -219,6 +276,55 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         Returns
         -------
         tf.Tensor:
+            The new mesh signal after the convolution. Shape: (subset, n_rotations, self.output_dim)
+        """
+        idx = tf.constant(0)
+        all_rotations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
+        size = tf.shape(all_rotations)[0]
+        new_signal = tf.TensorArray(
+            tf.float32,
+            size=size,
+            dynamic_size=False,
+            clear_after_read=True,
+            tensor_array_name="inner_ta",
+            name="rotation_ta"
+        )
+        # Iterate over rotations to economize memory usage
+        for rot in all_rotations:
+            # Compute rotation: (subset, n_radial, n_angular, input_dim)
+            rotated_interpolations = tf.roll(interpolations, shift=rot, axis=2)
+            # Fit dims for matvec: (subset, n_radial, n_angular, 1, input_dim)
+            rotated_interpolations = tf.expand_dims(rotated_interpolations, axis=3)
+            # Shape template        : (        [n_radial], n_angular|1, n_template, self.output_dim, input_dim)
+            # Shape input           : (subset,   n_radial,   n_angular,          1,                  input_dim)
+            # After 'matvec + bias' : (subset,   n_radial,   n_angular, n_template, self.output_dim           )
+            # After 'reduce_sum'    : (subset,                          n_template, self.output_dim           )
+            rotated_interpolations = tf.reduce_sum(
+                tf.linalg.matvec(self._template_weights, rotated_interpolations) + self._bias, axis=[1, 2]
+            )
+            # Apply activation and sum over template: (subset, self.output_dim)
+            rotated_interpolations = tf.reduce_sum(self._activation(rotated_interpolations), axis=[1])
+            # Output dim: (subset, self.output_dim)
+            new_signal = new_signal.write(idx, rotated_interpolations)
+            idx = idx + tf.constant(1)
+        # New signal: (n_rotations, subset, self.output_dim)
+        new_signal = new_signal.stack()
+        # New signal: (subset, n_rotations, self.output_dim)
+        return tf.transpose(new_signal, perm=[1, 0, 2])
+
+    @tf.function
+    def _fold_fast(self, interpolations):
+        """Folds template vertex signal with the template weights
+
+        Parameters
+        ----------
+        interpolations: tf.Tensor
+            The according to a given weighting function weighted interpolations at the template vertices.
+            Shape: (subset, n_radial, n_angular, input_dim)
+
+        Returns
+        -------
+        tf.Tensor:
             The new mesh signal after the convolution. Shape: (subset, self.output_dim)
         """
 
@@ -263,8 +369,8 @@ class ConvIntrinsicLite(ABC, keras.layers.Layer):
         Parameters
         ----------
         template_matrix: np.ndarray
-            An array of size [n_radial, n_angular, 2], which contains the positions of the template vertices in cartesian
-            coordinates.
+            An array of size [n_radial, n_angular, 2], which contains the positions of the template vertices in
+            cartesian coordinates.
 
         Returns
         -------

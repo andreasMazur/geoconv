@@ -1,4 +1,4 @@
-from geoconv.layers.original.angular_max_pooling import AngularMaxPooling
+from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.lite.conv_geodesic_lite import ConvGeodesicLite
 from geoconv.models.intrinsic_model import ImCNN
 

@@ -1,9 +1,9 @@
-from geoconv.layers.medium.conv_intrinsic_medium import ConvIntrinsicMedium
+from geoconv.layers.conv_intrinsic import ConvIntrinsic
 
 import numpy as np
 
 
-class ConvDiracMedium(ConvIntrinsicMedium):
+class ConvDirac(ConvIntrinsic):
     """No interpolation weighting"""
 
     def __init__(self, *args, **kwargs):

@@ -1,4 +1,4 @@
-from geoconv.layers.original.conv_intrinsic import ConvIntrinsic
+from geoconv.layers.conv_intrinsic import ConvIntrinsic
 
 import numpy as np
 import scipy as sp
