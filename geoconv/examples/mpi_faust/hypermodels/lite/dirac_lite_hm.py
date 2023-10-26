@@ -1,4 +1,4 @@
-from geoconv.layers.lite.conv_dirac_lite import ConvDiracLite
+from geoconv.layers.conv_dirac import ConvDirac
 from geoconv.models.intrinsic_model import ImCNN
 
 from tensorflow import keras
@@ -37,25 +37,27 @@ class DiracLiteHyperModel(keras_tuner.HyperModel):
         signal_input = keras.layers.Input(shape=self.signal_dim, name="signal")
         bc_input = keras.layers.Input(shape=(self.kernel_size[0], self.kernel_size[1], 3, 2), name="bc")
 
-        signal = ConvDiracLite(
+        signal = ConvDirac(
             output_dim=self.output_dim,
             amt_templates=1,
             template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
-            name="gc_0"
+            name="gc_0",
+            variant="lite"
         )([signal_input, bc_input])
 
         if self.batch_normalization:
             signal = keras.layers.BatchNormalization(axis=-1)(signal)
         for idx in range(1, self.amt_convolutions):
-            signal = ConvDiracLite(
+            signal = ConvDirac(
                 output_dim=self.output_dim,
                 amt_templates=1,
                 template_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,
-                name=f"gc_{idx}"
+                name=f"gc_{idx}",
+                variant="lite"
             )([signal, bc_input])
 
             if self.batch_normalization:

@@ -43,7 +43,8 @@ class GeodesicLiteHyperModel(keras_tuner.HyperModel):
             template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
-            name="gc_0"
+            name="gc_0",
+            variant="lite"
         )([signal_input, bc_input])
 
         if self.batch_normalization:
@@ -55,7 +56,8 @@ class GeodesicLiteHyperModel(keras_tuner.HyperModel):
                 template_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,
-                name=f"gc_{idx}"
+                name=f"gc_{idx}",
+                variant="lite"
             )([signal, bc_input])
 
             if self.batch_normalization:

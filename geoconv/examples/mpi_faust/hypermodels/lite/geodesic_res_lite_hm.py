@@ -1,4 +1,4 @@
-from geoconv.layers.lite.conv_geodesic_lite import ConvGeodesicLite
+from geoconv.layers.conv_geodesic import ConvGeodesic
 from geoconv.models.intrinsic_model import ImCNN
 
 from tensorflow import keras
@@ -35,32 +35,35 @@ class GeoResLiteHyperModel(keras_tuner.HyperModel):
         signal_input = keras.layers.Input(shape=self.signal_dim, name="signal")
         bc_input = keras.layers.Input(shape=(self.kernel_size[0], self.kernel_size[1], 3, 2), name="bc")
 
-        signal_in = ConvGeodesicLite(
+        signal_in = ConvGeodesic(
             output_dim=self.output_dim,
             amt_templates=1,
             template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
-            name="gc_0"
+            name="gc_0",
+            variant="lite"
         )([signal_input, bc_input])
 
         for idx in range(1, self.amt_convolutions):
-            signal_1 = ConvGeodesicLite(
+            signal_1 = ConvGeodesic(
                 output_dim=self.output_dim,
                 amt_templates=1,
                 template_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,
-                name=f"gc_{idx}_1"
+                name=f"gc_{idx}_1",
+                variant="lite"
             )([signal_in, bc_input])
 
-            signal_2 = ConvGeodesicLite(
+            signal_2 = ConvGeodesic(
                 output_dim=128,
                 amt_templates=1,
                 template_radius=self.kernel_radius,
                 activation="relu",
                 splits=self.amt_splits,
-                name=f"gc_{idx}_2"
+                name=f"gc_{idx}_2",
+                variant="lite"
             )([signal_1, bc_input])
 
             signal_in = keras.layers.Add()([signal_1, signal_2])

@@ -1,4 +1,4 @@
-from geoconv.layers.lite.conv_geodesic_lite import ConvGeodesicLite
+from geoconv.layers.conv_geodesic import ConvGeodesic
 from geoconv.models.intrinsic_model import ImCNN
 
 from tensorflow import keras
@@ -28,33 +28,36 @@ class OriginalLiteHyperModel(keras_tuner.HyperModel):
         signal = keras.layers.Dense(16, activation="relu", name=name_0)(signal_input)
 
         name_1 = "GC32AMPReLU"
-        signal = ConvGeodesicLite(
+        signal = ConvGeodesic(
             output_dim=32,
             amt_templates=hp.Int("gc_0_amt_kernel", 1, 3),
             template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
-            name=name_1
+            name=name_1,
+            variant="lite"
         )([signal, bc_input])
 
         name_2 = "GC64AMPReLU"
-        signal = ConvGeodesicLite(
+        signal = ConvGeodesic(
             output_dim=64,
             amt_templates=hp.Int("gc_1_amt_kernel", 1, 3),
             template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
-            name=name_2
+            name=name_2,
+            variant="lite"
         )([signal, bc_input])
 
         name_3 = "GC128AMPReLU"
-        signal = ConvGeodesicLite(
+        signal = ConvGeodesic(
             output_dim=128,
             amt_templates=hp.Int("gc_2_amt_kernel", 1, 3),
             template_radius=self.kernel_radius,
             activation="relu",
             splits=self.amt_splits,
-            name=name_3
+            name=name_3,
+            variant="lite"
         )([signal, bc_input])
 
         name_4 = "LIN256ReLU"
