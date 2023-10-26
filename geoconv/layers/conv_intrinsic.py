@@ -49,12 +49,12 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
                  activation="relu",
                  rotation_delta=1,
                  splits=1,
+                 include_prior=True,
+                 variant="original",
                  name=None,
                  template_regularizer=None,
                  bias_regularizer=None,
-                 initializer="glorot_uniform",
-                 include_prior=True,
-                 variant="original"):
+                 initializer="glorot_uniform"):
         if name:
             super().__init__(name=name)
         else:
