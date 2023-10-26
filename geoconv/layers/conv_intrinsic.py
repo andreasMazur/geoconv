@@ -202,7 +202,15 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             tensor_array_name="outer_ta",
             name="call_ta"
         )
-        if self.variant in ["original", "radial", "angular"]:
+        if self.variant == "original":
+            for interpolations in tf.split(mesh_signal, self.splits):
+                new_signal = new_signal.write(idx, self._fold(interpolations))
+                idx = idx + tf.constant(1)
+        elif self.variant == "radial":
+            for interpolations in tf.split(mesh_signal, self.splits):
+                new_signal = new_signal.write(idx, self._fold(interpolations))
+                idx = idx + tf.constant(1)
+        elif self.variant == "angular":
             for interpolations in tf.split(mesh_signal, self.splits):
                 new_signal = new_signal.write(idx, self._fold(interpolations))
                 idx = idx + tf.constant(1)
