@@ -7,8 +7,12 @@ import tensorflow as tf
 import numpy as np
 
 
-class ConvIntrinsic(ABC, keras.layers.Layer):
+class ConvIntrinsicMedium(ABC, keras.layers.Layer):
     """A metaclass for intrinsic surface convolutions on Riemannian manifolds.
+
+    In difference to the original intrinsic surface convolution, this convolution does not define weight tensors for
+    each radial coordinate. Instead, 'ConvIntrinsicMedium' defines one weight tensor per angular coordinate. This weight
+    tensor is used across all radial coordinates.
 
     Attributes
     ----------
@@ -71,7 +75,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self._feature_dim = None
 
     def get_config(self):
-        config = super(ConvIntrinsic, self).get_config()
+        config = super(ConvIntrinsicMedium, self).get_config()
         config.update(
             {
                 "output_dim": self.output_dim,
@@ -110,7 +114,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         # Configure trainable weights
         self._template_weights = self.add_weight(
             name="conv_intrinsic_template",
-            shape=(self._template_size[0], self._template_size[1], self.amt_templates, self.output_dim, signal_shape[1]),
+            shape=(self._template_size[1], self.amt_templates, self.output_dim, signal_shape[1]),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.template_regularizer
@@ -243,8 +247,8 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             rotated_interpolations = tf.roll(interpolations, shift=rot, axis=2)
             # Fit dims for matvec: (subset, n_radial, n_angular, 1, input_dim)
             rotated_interpolations = tf.expand_dims(rotated_interpolations, axis=3)
-            # Shape template        : (        n_radial, n_angular, n_template, self.output_dim, input_dim)
-            # Shape input           : (subset, n_radial, n_angular,        1,                  input_dim)
+            # Shape template        : (                  n_angular, n_template, self.output_dim, input_dim)
+            # Shape input           : (subset, n_radial, n_angular,        1,                    input_dim)
             # After 'matvec + bias' : (subset, n_radial, n_angular, n_template, self.output_dim           )
             # After 'reduce_sum'    : (subset,                      n_template, self.output_dim           )
             rotated_interpolations = tf.reduce_sum(

@@ -77,7 +77,7 @@ def define_model(signal_shape, barycentric_shape, output_dim):
     barycentric = keras.layers.InputLayer(shape=barycentric_shape)
     signal = ConvGeodesic(
         output_dim=32,
-        amt_template=2,
+        amt_templates=2,
         template_radius=0.028
     )([signal_input, barycentric])
     signal = AngularMaxPooling()(signal)
