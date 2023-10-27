@@ -1,4 +1,4 @@
-from geoconv.layers.conv_dirac import ConvDirac
+from geoconv.layers.legacy.conv_dirac import ConvDirac
 from geoconv.models.intrinsic_model import ImCNN
 
 from tensorflow import keras

@@ -1,4 +1,3 @@
-
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
 
 from tensorflow import keras
@@ -13,6 +12,8 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
 
     Attributes
     ----------
+    output_dim: int
+        The dimensionality of the output vectors.
     amt_templates: int
         The amount of templates to apply during one convolution.
     activation_fn: str
@@ -30,15 +31,26 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         cause larger memory fragmentation.
     include_prior: bool
         Determines whether to include prior. If 'False', computation is faster.
+    variant: str
+        A string from ["original", "radial", "angular", "lite"]. Determines which weights will be defined:
+        - "original": Define a different weight matrix for each template vertex [requires subsequent AMP]
+        - "radial": Define a weight matrix per radial coordinate [requires subsequent AMP]
+        - "angular": Define a weight matrix per angular coordinate [requires subsequent AMP]
+        - "lite": Define one weight matrix for all template vertices [does not require subsequent AMP]
+        Less weights mean less memory usage and faster computation. The "lite"-variant does not pay attention to the
+        relative orientation between template and extracted patch and radial distances. This reduces computation time
+        and memory usage significantly.
     """
 
     def __init__(self,
+                 output_dim,
                  amt_templates,
                  template_radius,
                  activation="relu",
                  rotation_delta=1,
                  splits=1,
                  include_prior=True,
+                 variant="original",
                  name=None,
                  template_regularizer=None,
                  bias_regularizer=None,
@@ -49,6 +61,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             super().__init__()
 
         self.activation_fn = activation
+        self.output_dim = output_dim
         self.rotation_delta = rotation_delta
         self.amt_templates = amt_templates
         self.template_radius = template_radius
@@ -57,6 +70,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self.initializer = initializer
         self.splits = splits
         self.include_prior = include_prior
+        self.variant = variant
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = keras.layers.Activation(self.activation_fn)
@@ -72,6 +86,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         config = super(ConvIntrinsic, self).get_config()
         config.update(
             {
+                "output_dim": self.output_dim,
                 "amt_template": self.amt_templates,
                 "template_radius": self.template_radius,
                 "activation_fn": self.activation_fn,
@@ -81,7 +96,8 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
                 "template_regularizer": self.template_regularizer,
                 "bias_regularizer": self.bias_regularizer,
                 "initializer": self.initializer,
-                "include_prior": self.include_prior
+                "include_prior": self.include_prior,
+                "variant": self.variant
             }
         )
         return config
@@ -105,17 +121,50 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self._feature_dim = signal_shape[-1]
 
         # Configure trainable weights
-        self._template_weights = self.add_weight(
-            name="conv_intrinsic_template",
-            shape=(self.amt_templates, 1, signal_shape[1], self._template_size[0] * self._template_size[1]),
-            initializer=self.initializer,
-            trainable=True,
-            regularizer=self.template_regularizer
-        )
+        if self.variant == "original":
+            # Define a different weight matrix for each template vertex
+            self._template_weights = self.add_weight(
+                name="conv_intrinsic_template",
+                shape=(
+                    self._template_size[0], self._template_size[1], self.amt_templates, self.output_dim, signal_shape[1]
+                ),
+                initializer=self.initializer,
+                trainable=True,
+                regularizer=self.template_regularizer
+            )
+        elif self.variant == "radial":
+            # Define a weight matrix per radial coordinate
+            self._template_weights = self.add_weight(
+                name="conv_intrinsic_template",
+                shape=(self._template_size[0], 1, self.amt_templates, self.output_dim, signal_shape[1]),
+                initializer=self.initializer,
+                trainable=True,
+                regularizer=self.template_regularizer
+            )
+        elif self.variant == "angular":
+            # Define a weight matrix per angular coordinate
+            self._template_weights = self.add_weight(
+                name="conv_intrinsic_template",
+                shape=(self._template_size[1], self.amt_templates, self.output_dim, signal_shape[1]),
+                initializer=self.initializer,
+                trainable=True,
+                regularizer=self.template_regularizer
+            )
+        elif self.variant == "lite":
+            # Define one weight matrix for all template vertices
+            self._template_weights = self.add_weight(
+                name="conv_intrinsic_template",
+                shape=(self.amt_templates, self.output_dim, signal_shape[1]),
+                initializer=self.initializer,
+                trainable=True,
+                regularizer=self.template_regularizer
+            )
+        else:
+            raise RuntimeError("Choose a valid ISC variant from: ['original', 'radial', 'angular', 'lite']")
 
         self._bias = self.add_weight(
             name="conv_intrinsic_bias",
-            shape=(self.amt_templates, 1),
+            shape=(self.amt_templates, self.output_dim),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.bias_regularizer
@@ -153,9 +202,24 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             tensor_array_name="outer_ta",
             name="call_ta"
         )
-        for interpolations in tf.split(mesh_signal, self.splits):
-            new_signal = new_signal.write(idx, self._fold(interpolations))
-            idx = idx + tf.constant(1)
+        if self.variant == "original":
+            for interpolations in tf.split(mesh_signal, self.splits):
+                new_signal = new_signal.write(idx, self._fold(interpolations))
+                idx = idx + tf.constant(1)
+        elif self.variant == "radial":
+            for interpolations in tf.split(mesh_signal, self.splits):
+                new_signal = new_signal.write(idx, self._fold(interpolations))
+                idx = idx + tf.constant(1)
+        elif self.variant == "angular":
+            for interpolations in tf.split(mesh_signal, self.splits):
+                new_signal = new_signal.write(idx, self._fold(interpolations))
+                idx = idx + tf.constant(1)
+        elif self.variant == "lite":
+            for interpolations in tf.split(mesh_signal, self.splits):
+                new_signal = new_signal.write(idx, self._fold_fast(interpolations))
+                idx = idx + tf.constant(1)
+        else:
+            raise RuntimeError("Choose a valid ISC variant from: ['original', 'radial', 'angular', 'lite']")
         new_signal = new_signal.concat()
 
         return new_signal
@@ -220,7 +284,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         Returns
         -------
         tf.Tensor:
-            The new mesh signal after the convolution. Shape: (subset, n_rotations, n_templates)
+            The new mesh signal after the convolution. Shape: (subset, n_rotations, self.output_dim)
         """
         idx = tf.constant(0)
         all_rotations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
@@ -235,27 +299,65 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         )
         # Iterate over rotations to economize memory usage
         for rot in all_rotations:
-            # Rotation: (subset, n_radial, n_angular, input_dim)
+            # Compute rotation: (subset, n_radial, n_angular, input_dim)
             rotated_interpolations = tf.roll(interpolations, shift=rot, axis=2)
-            # Reshape for conv: (subset, n_radial * n_angular, input_dim)
-            rotated_interpolations = tf.reshape(
-                rotated_interpolations, (-1, self._template_size[0] * self._template_size[1], self._feature_dim)
+            # Fit dims for matvec: (subset, n_radial, n_angular, 1, input_dim)
+            rotated_interpolations = tf.expand_dims(rotated_interpolations, axis=3)
+            # Shape template        : (        [n_radial], n_angular|1, n_template, self.output_dim, input_dim)
+            # Shape input           : (subset,   n_radial,   n_angular,          1,                  input_dim)
+            # After 'matvec + bias' : (subset,   n_radial,   n_angular, n_template, self.output_dim           )
+            # After 'reduce_sum'    : (subset,                          n_template, self.output_dim           )
+            rotated_interpolations = tf.reduce_sum(
+                tf.linalg.matvec(self._template_weights, rotated_interpolations) + self._bias, axis=[1, 2]
             )
-            # Compute conv:
-            # Interpolated signals: (              subset, n_radial * n_angular,            input_dim)
-            # Weight matrix       : (n_templates,       1,            input_dim, n_radial * n_angular)
-            # Bias                : (n_templates,       1,                                           )
-            # Result              : (n_templates,  subset                                            )
-            rotated_interpolations = self._activation(
-                tf.einsum("ijk,xykj->xi", rotated_interpolations, self._template_weights) + self._bias
-            )
-            # Store result:
+            # Apply activation and sum over template: (subset, self.output_dim)
+            rotated_interpolations = tf.reduce_sum(self._activation(rotated_interpolations), axis=[1])
+            # Output dim: (subset, self.output_dim)
             new_signal = new_signal.write(idx, rotated_interpolations)
             idx = idx + tf.constant(1)
-        # Stack results for all rotations: (n_rotations, n_templates, subset)
+        # New signal: (n_rotations, subset, self.output_dim)
         new_signal = new_signal.stack()
-        # Transpose for AMP: (subset, n_rotations, n_templates)
-        return tf.transpose(new_signal, perm=[2, 0, 1])
+        # New signal: (subset, n_rotations, self.output_dim)
+        return tf.transpose(new_signal, perm=[1, 0, 2])
+
+    @tf.function
+    def _fold_fast(self, interpolations):
+        """Folds template vertex signal with the template weights
+
+        Parameters
+        ----------
+        interpolations: tf.Tensor
+            The according to a given weighting function weighted interpolations at the template vertices.
+            Shape: (subset, n_radial, n_angular, input_dim)
+
+        Returns
+        -------
+        tf.Tensor:
+            The new mesh signal after the convolution. Shape: (subset, self.output_dim)
+        """
+
+        # (subset, n_radial * n_angular, input_dim)
+        interpolations = tf.reshape(
+            interpolations, (-1, self._template_size[0] * self._template_size[1], self._feature_dim)
+        )
+        # (subset, input_dim, n_radial * n_angular)
+        interpolations = tf.transpose(interpolations, perm=[0, 2, 1])
+        # (subset, 1, input_dim, n_radial * n_angular)
+        interpolations = tf.expand_dims(interpolations, axis=1)
+        # Matrix x Signal
+        # Shape template : (        n_template, self.output_dim,            input_dim)
+        # Shape input  :   (subset,        1,         input_dim, n_radial * n_angular)
+        # Shape result :   (subset, n_template, self.output_dim, n_radial * n_angular)
+        interpolations = self._template_weights @ interpolations
+        # Sum over all (new) template vertex signals, add bias and apply activation function
+        # (subset, n_template, self.output_dim)
+        interpolations = self._activation(tf.reduce_sum(interpolations, axis=-1) + self._bias)
+        # Sum over template
+        # (subset, self.output_dim)
+        interpolations = tf.reduce_sum(interpolations, axis=1)
+
+        # New signal: (subset, self.output_dim)
+        return interpolations
 
     def _configure_patch_operator(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""

@@ -1,6 +1,7 @@
 from geoconv.examples.mpi_faust.faust_data_set import load_preprocessed_faust
 from geoconv.examples.mpi_faust.preprocess_faust import preprocess_faust
-from geoconv.layers.lite.conv_dirac_lite import ConvDiracLite
+from geoconv.layers.conv_dirac import ConvDirac
+from geoconv.layers.legacy.angular_max_pooling import AngularMaxPooling
 from geoconv.models.intrinsic_model import ImCNN
 from geoconv.utils.measures import princeton_benchmark
 
@@ -39,15 +40,16 @@ def define_model(input_dim,
 
     signal_input = keras.layers.Input(shape=(input_dim,), name="signal")
     bc_input = keras.layers.Input(shape=(n_radial, n_angular, 3, 2), name="bc")
+    amp = AngularMaxPooling()
 
-    signal = ConvDiracLite(
-        output_dim=output_dim,
+    signal = ConvDirac(
         amt_templates=amt_templates,
         template_radius=template_radius,
         activation="relu",
         name="ISC_layer",
         splits=splits,
     )([signal_input, bc_input])
+    signal = amp(signal)
     output = keras.layers.Dense(6890)(signal)
 
     model = ImCNN(splits=splits, inputs=[signal_input, bc_input], outputs=[output])

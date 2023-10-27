@@ -1,5 +1,5 @@
-from geoconv.layers.conv_intrinsic import ConvIntrinsic
-from geoconv.layers.conv_geodesic import angle_distance
+from geoconv.layers.legacy.conv_intrinsic import ConvIntrinsic
+from geoconv.layers.legacy.conv_geodesic import angle_distance
 
 import numpy as np
 import scipy as sp
