@@ -1,7 +1,7 @@
 from geoconv.examples.mpi_faust.faust_data_set import load_preprocessed_faust
 from geoconv.examples.mpi_faust.preprocess_faust import preprocess_faust
 from geoconv.layers.conv_dirac import ConvDirac
-from geoconv.layers.legacy.angular_max_pooling import AngularMaxPooling
+from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.models.intrinsic_model import ImCNN
 from geoconv.utils.measures import princeton_benchmark
 
@@ -14,7 +14,6 @@ import tensorflow as tf
 def define_model(input_dim,
                  n_radial,
                  n_angular,
-                 output_dim=128,
                  template_radius=0.028,
                  amt_templates=1,
                  splits=10):
@@ -28,8 +27,6 @@ def define_model(input_dim,
         The amount of radial coordinates for the template.
     n_angular: int
         The amount of angular coordinates for the template.
-    output_dim: int
-        The dimensionality of the output of the ISC-layer
     template_radius: float
         The template radius of the ISC-layer (the one used during preprocessing, defaults to radius for FAUST data set)
     amt_templates: int
@@ -72,7 +69,6 @@ def train_model(reference_mesh_path,
                 save_gpc_systems=False,
                 template_radius=0.028,
                 logging_dir="./imcnn_training_logs",
-                output_dim=128,
                 amt_templates=1,
                 splits=10):
     """Trains one singular IMCNN
@@ -108,8 +104,6 @@ def train_model(reference_mesh_path,
         data set).
     logging_dir: str
         [OPTIONAL] The path to the folder where logs will be stored
-    output_dim: int
-        [OPTIONAL] The dimensionality of the output of the ISC-layer
     amt_templates: int
         [OPTIONAL] The amount of templates for the ISC-layer
     splits: int
@@ -137,7 +131,7 @@ def train_model(reference_mesh_path,
     val_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=1)
 
     # Model
-    imcnn = define_model(signal_dim, n_radial, n_angular, output_dim, template_radius, amt_templates, splits)
+    imcnn = define_model(signal_dim, n_radial, n_angular, template_radius, amt_templates, splits)
     imcnn.summary()
 
     # Define callbacks

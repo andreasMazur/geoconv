@@ -1,4 +1,3 @@
-
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
 
 from tensorflow import keras

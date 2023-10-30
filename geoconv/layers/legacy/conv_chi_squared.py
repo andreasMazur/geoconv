@@ -1,73 +1,8 @@
 from geoconv.layers.legacy.conv_intrinsic import ConvIntrinsic
-from geoconv.layers.legacy.conv_geodesic import angle_distance
+from geoconv.layers.conv_chi_squared import chi_squared_pdf
 
 import numpy as np
 import scipy as sp
-
-
-def gamma_func(dof):
-    """Computes the gamma value for the given degrees of freedom
-
-    Parameters
-    ----------
-    dof: int
-        Degrees of freedom for chi-squared distribution
-
-    Returns
-    -------
-    float:
-        The gamma value for the given degrees of freedom
-    """
-    assert dof >= 1, "You need to have at least one degree of freedom."
-    r = dof / 2
-    if dof == 1/2:
-        return np.sqrt(np.pi)
-    elif dof == 1:
-        return 1.
-    else:
-        return r * gamma_func(dof - 1)
-
-
-def chi_squared_pdf(mean_rho, mean_theta, rho, theta, dof):
-    """Exponential probability distribution for geodesic polar coordinates
-
-    Parameters
-    ----------
-    mean_rho: float
-        Mean radial distance of the normal
-    mean_theta: float
-        Mean angle for the Gaussian
-    rho: float
-        Radial coordinate of the interpolation point that shall be weighted
-    theta: float
-        Angular coordinate of the interpolation point that shall be weighted
-    dof: int
-        Degrees of freedom for chi-squared distribution
-
-    Returns
-    -------
-    float:
-        The weight for the interpolation point (rho, theta)
-    """
-    assert dof >= 1, "You need to have at least one degree of freedom."
-
-    # Compute delta theta
-    max_angle = np.maximum(mean_theta, theta)
-    min_angle = np.minimum(mean_theta, theta)
-    delta_angle = angle_distance(max_angle, min_angle)
-    if delta_angle == 0 and dof == 1:
-        return 1.
-    delta_angle_p = delta_angle ** (dof / 2 - 1)
-
-    # Compute delta rho
-    delta_rho = np.abs(rho - mean_rho)
-    if delta_rho == 0 and dof == 1:
-        return 1.
-    delta_rho_p = delta_rho ** (dof / 2 - 1)
-
-    gamma = (1 / (2 ** (dof / 2) * gamma_func(dof))) ** 2
-
-    return gamma * delta_rho_p * delta_angle_p * np.exp(-(delta_rho + delta_angle) / 2)
 
 
 class ConvChiSquared(ConvIntrinsic):

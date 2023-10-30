@@ -1,68 +1,8 @@
 from geoconv.layers.legacy.conv_intrinsic import ConvIntrinsic
-from geoconv.layers.legacy.conv_geodesic import angle_distance
+from geoconv.layers.conv_student_t import student_t_pdf
 
-import math
 import numpy as np
 import scipy as sp
-
-
-def gamma_func(x):
-    """Computes the gamma value for the given degrees of freedom
-
-    Parameters
-    ----------
-    x: float
-        The input argument for the gamma function of the student-t distribution
-
-    Returns
-    -------
-    float:
-        The gamma value for the given degrees of freedom
-    """
-    assert x >= 1/2, "You need to have at least one degree of freedom."
-    n = math.floor(x)
-    if x - n == 1/2:
-        return (np.math.factorial(2 * n) / (np.math.factorial(n) * 4 ** n)) * np.sqrt(np.pi)
-    else:
-        return np.math.factorial(n)
-
-
-def student_t_pdf(mean_rho, mean_theta, rho, theta, dof):
-    """Student-t probability distribution for geodesic polar coordinates
-
-    Parameters
-    ----------
-    mean_rho: float
-        Mean radial distance of the normal
-    mean_theta: float
-        Mean angle for the Gaussian
-    rho: float
-        Radial coordinate of the interpolation point that shall be weighted
-    theta: float
-        Angular coordinate of the interpolation point that shall be weighted
-    dof: int
-        Degrees of freedom for chi-squared distribution
-
-    Returns
-    -------
-    float:
-        The weight for the interpolation point (rho, theta)
-    """
-    assert dof >= 1, "You need to have at least one degree of freedom."
-
-    # Compute delta theta
-    max_angle = np.maximum(mean_theta, theta)
-    min_angle = np.minimum(mean_theta, theta)
-    delta_angle = angle_distance(max_angle, min_angle)
-    delta_angle = (1 + ((delta_angle ** 2) / dof)) ** (- (dof + 1) / 2)
-
-    # Compute delta rho
-    delta_rho = np.abs(rho - mean_rho)
-    delta_rho = (1 + ((delta_rho ** 2) / dof)) ** (- (dof + 1) / 2)
-
-    quotient = (gamma_func((dof + 1) / 2) / (np.sqrt(dof * np.pi) * gamma_func(dof / 2))) ** 2
-
-    return quotient * delta_rho * delta_angle
 
 
 class ConvStudentT(ConvIntrinsic):
