@@ -29,13 +29,7 @@ def normalize_mesh(mesh, geodesic_diameter=None):
 
     # Determine geodesic diameter
     if geodesic_diameter is None:
-        n_vertices = mesh.vertices.shape[0]
-        distance_matrix = np.zeros((n_vertices, n_vertices))
-        geoalg = geodesic.PyGeodesicAlgorithmExact(mesh.vertices, mesh.faces)
-        for sp in tqdm(range(n_vertices), postfix=f"Calculating geodesic diameter.."):
-            distances, _ = geoalg.geodesicDistances([sp], None)
-            distance_matrix[sp] = distances
-        geodesic_diameter = distance_matrix.max()
+        distance_matrix, geodesic_diameter = compute_geodesic_diameter(mesh)
 
     # Scale mesh
     for dim in range(3):
@@ -43,6 +37,28 @@ def normalize_mesh(mesh, geodesic_diameter=None):
     print(f"-> Normalized with geodesic diameter: {geodesic_diameter}")
 
     return mesh, geodesic_diameter
+
+
+def compute_geodesic_diameter(mesh):
+    """Computes the geodesic diameter of a mesh.
+
+    Parameters
+    ----------
+    mesh: trimesh.Trimesh
+        The triangle mesh, for which the geodesic diameter shall be calculated.
+
+    Returns
+    -------
+    (np.array, float):
+        The distance matrix between all vertices of the mesh and the geodesic diameter of the mesh.
+    """
+    n_vertices = mesh.vertices.shape[0]
+    distance_matrix = np.zeros((n_vertices, n_vertices))
+    geoalg = geodesic.PyGeodesicAlgorithmExact(mesh.vertices, mesh.faces)
+    for sp in tqdm(range(n_vertices), postfix=f"Calculating geodesic diameter.."):
+        distances, _ = geoalg.geodesicDistances([sp], None)
+        distance_matrix[sp] = distances
+    return distance_matrix, distance_matrix.max()
 
 
 def gpc_systems_into_cart(gpc_systems):
