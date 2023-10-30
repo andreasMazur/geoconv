@@ -67,7 +67,6 @@ with Tensorflow.
 from geoconv.layers.conv_geodesic import ConvGeodesic
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from tensorflow import keras
-import tensorflow as tf
 
 
 def define_model(signal_shape, barycentric_shape, output_dim):
@@ -83,7 +82,7 @@ def define_model(signal_shape, barycentric_shape, output_dim):
     signal = AngularMaxPooling()(signal)
     logits = keras.layers.Dense(output_dim)(signal)
 
-    model = tf.keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
+    model = keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
     return model
 
 # Now train/validate/use it like you would with any other tensorflow model..
