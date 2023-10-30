@@ -42,6 +42,9 @@ def normalize_mesh(mesh, geodesic_diameter=None):
 def compute_geodesic_diameter(mesh):
     """Computes the geodesic diameter of a mesh.
 
+    In case the mesh contains a pair of vertices which are not connected by a path, this
+    function returns the largest geodesic distance that has been seen as the geodesic diameter.
+
     Parameters
     ----------
     mesh: trimesh.Trimesh
@@ -58,7 +61,7 @@ def compute_geodesic_diameter(mesh):
     for sp in tqdm(range(n_vertices), postfix=f"Calculating geodesic diameter.."):
         distances, _ = geoalg.geodesicDistances([sp], None)
         distance_matrix[sp] = distances
-    return distance_matrix, distance_matrix.max()
+    return distance_matrix, distance_matrix[distance_matrix != np.inf].max()
 
 
 def gpc_systems_into_cart(gpc_systems):
