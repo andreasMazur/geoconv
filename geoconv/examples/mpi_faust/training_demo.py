@@ -161,7 +161,7 @@ def train_model(reference_mesh_path,
         profile_batch=(1, 70)
     )
 
-    imcnn.fit(x=train_data, callbacks=[stop, tb], validation_data=val_data, epochs=3)
+    imcnn.fit(x=train_data, callbacks=[stop, tb], validation_data=val_data, epochs=200)
     imcnn.save(f"{logging_dir}/saved_imcnn")
 
     # Evaluate best model with Princeton benchmark
