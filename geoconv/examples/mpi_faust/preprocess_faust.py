@@ -142,15 +142,15 @@ def preprocess_faust(n_radial,
             and Path(gt_name).is_file()
             and Path(signal_name).is_file()
         ):
-            ##################################
-            # Shuffle vertices of query mesh
-            ##################################
+            #######################################################
+            # Shuffle vertices of query mesh and save ground truth
+            #######################################################
             reg_mesh, _, ground_truth = shuffle_mesh_vertices(reg_mesh)
             np.save(gt_name, ground_truth)
 
-            #############################################################
-            # Store mesh signal (here we simply use the 3D-coordinates)
-            #############################################################
+            ####################
+            # Store mesh signal
+            ####################
             if shot:
                 radius = find_largest_one_hop_dist(reg_mesh) * 2.5
                 shot_descrs = pyshot.get_descriptors(
