@@ -1,58 +1,76 @@
 from geoconv.examples.mpi_faust.faust_data_set import load_preprocessed_faust
 from geoconv.examples.mpi_faust.preprocess_faust import preprocess_faust
-from geoconv.layers.lite.conv_dirac_lite import ConvDiracLite
-from geoconv.models.intrinsic_model import ImCNN
 from geoconv.utils.measures import princeton_benchmark
+from geoconv.layers.conv_dirac import ConvDirac
+from geoconv.layers.angular_max_pooling import AngularMaxPooling
+from geoconv.models.intrinsic_model import ImCNN
 
 from pathlib import Path
 from tensorflow import keras
 
-import tensorflow as tf
 
-
-def define_model(input_dim,
-                 n_radial,
-                 n_angular,
-                 output_dim=128,
-                 template_radius=0.028,
-                 amt_templates=1,
-                 splits=10):
-    """Define a shallow IMCNN
+def define_model(input_signal_dim, kernel_size, template_radius, splits):
+    """Defines the model used during training.
 
     Parameters
     ----------
-    input_dim: int
-        The dimensionality of the input for the ISC-layer.
-    n_radial: int
-        The amount of radial coordinates for the template.
-    n_angular: int
-        The amount of angular coordinates for the template.
-    output_dim: int
-        The dimensionality of the output of the ISC-layer
+    input_signal_dim: int
+        The input-signal dimensionality.
+    kernel_size: tuple
+        The kernel size: (#radial coordinates, #angular coordinates)
     template_radius: float
-        The template radius of the ISC-layer (the one used during preprocessing, defaults to radius for FAUST data set)
-    amt_templates: int
-        The amount of templates for the ISC-layer
+        The template radius set during pre-processing.
     splits: int
-        The amount of splits over which the ISC-layer should iterate
+        The amount of splits, into which the entire mesh will be divided during computation.
+        This number has to divide the total number of vertices within the mesh.
+        Larger numbers will cause more iteration, while lowering memory consumption.
+    Returns
+    ----------
+    ImCNN:
+        An intrinsic mesh CNN.
     """
+    signal_input = keras.layers.Input(shape=(input_signal_dim,), name="signal")
+    bc_input = keras.layers.Input(shape=kernel_size + (3, 2), name="bc")
+    amp = AngularMaxPooling()
 
-    signal_input = keras.layers.Input(shape=(input_dim,), name="signal")
-    bc_input = keras.layers.Input(shape=(n_radial, n_angular, 3, 2), name="bc")
-
-    signal = ConvDiracLite(
-        output_dim=output_dim,
-        amt_templates=amt_templates,
+    signal = ConvDirac(
+        amt_templates=96,
         template_radius=template_radius,
         activation="relu",
-        name="ISC_layer",
-        splits=splits,
+        name="ISC_layer_1",
+        splits=splits
     )([signal_input, bc_input])
+    signal = amp(signal)
+    signal = ConvDirac(
+        amt_templates=256,
+        template_radius=template_radius,
+        activation="relu",
+        name="ISC_layer_2",
+        splits=splits,
+    )([signal, bc_input])
+    signal = amp(signal)
+    signal = ConvDirac(
+        amt_templates=384,
+        template_radius=template_radius,
+        activation="relu",
+        name="ISC_layer_3",
+        splits=splits,
+    )([signal, bc_input])
+    signal = amp(signal)
+    signal = ConvDirac(
+        amt_templates=256,
+        template_radius=template_radius,
+        activation="relu",
+        name="ISC_layer_4",
+        splits=splits
+    )([signal, bc_input])
+    signal = amp(signal)
+
     output = keras.layers.Dense(6890)(signal)
 
     model = ImCNN(splits=splits, inputs=[signal_input, bc_input], outputs=[output])
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    opt = keras.optimizers.Adam(learning_rate=0.0073429)
+    opt = keras.optimizers.Adam(learning_rate=0.00076215)
     model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
     return model
@@ -70,8 +88,6 @@ def train_model(reference_mesh_path,
                 save_gpc_systems=False,
                 template_radius=0.028,
                 logging_dir="./imcnn_training_logs",
-                output_dim=128,
-                amt_templates=1,
                 splits=10):
     """Trains one singular IMCNN
 
@@ -106,10 +122,6 @@ def train_model(reference_mesh_path,
         data set).
     logging_dir: str
         [OPTIONAL] The path to the folder where logs will be stored
-    output_dim: int
-        [OPTIONAL] The dimensionality of the output of the ISC-layer
-    amt_templates: int
-        [OPTIONAL] The amount of templates for the ISC-layer
     splits: int
         [OPTIONAL] The amount of splits over which the ISC-layer should iterate
     """
@@ -135,12 +147,12 @@ def train_model(reference_mesh_path,
     val_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=1)
 
     # Model
-    imcnn = define_model(signal_dim, n_radial, n_angular, output_dim, template_radius, amt_templates, splits)
+    imcnn = define_model(signal_dim, (n_radial, n_angular), template_radius, splits)
     imcnn.summary()
 
     # Define callbacks
-    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10)
-    tb = tf.keras.callbacks.TensorBoard(
+    stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=10)
+    tb = keras.callbacks.TensorBoard(
         log_dir=f"{logging_dir}/tensorboard",
         histogram_freq=1,
         write_graph=False,

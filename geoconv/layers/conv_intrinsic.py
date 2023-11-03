@@ -12,15 +12,14 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
 
     Attributes
     ----------
-    output_dim: int
-        The dimensionality of the output vectors.
-    amt_template: int
+    amt_templates: int
         The amount of templates to apply during one convolution.
     activation_fn: str
         The activation function to use.
     rotation_delta: int
         The distance between two rotations. If `n` angular coordinates are given in the data, then the default behavior
-        is to rotate the template `n` times, i.e. a shift in every angular coordinate of 1 to the next angular coordinate.
+        is to rotate the template `n` times, i.e. a shift in every angular coordinate of 1 to the next angular
+        coordinate.
         If `rotation_delta = 2`, then the shift increases to 2 and the total amount of rotations reduces to
         ceil(n / rotation_delta). This gives a speed-up and saves memory. However, quality of results might worsen.
     splits: int
@@ -33,26 +32,24 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
     """
 
     def __init__(self,
-                 output_dim,
-                 amt_template,
+                 amt_templates,
                  template_radius,
                  activation="relu",
                  rotation_delta=1,
                  splits=1,
+                 include_prior=True,
                  name=None,
                  template_regularizer=None,
                  bias_regularizer=None,
-                 initializer="glorot_uniform",
-                 include_prior=True):
+                 initializer="glorot_uniform"):
         if name:
             super().__init__(name=name)
         else:
             super().__init__()
 
         self.activation_fn = activation
-        self.output_dim = output_dim
         self.rotation_delta = rotation_delta
-        self.amt_template = amt_template
+        self.amt_templates = amt_templates
         self.template_radius = template_radius
         self.template_regularizer = template_regularizer
         self.bias_regularizer = bias_regularizer
@@ -74,8 +71,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         config = super(ConvIntrinsic, self).get_config()
         config.update(
             {
-                "output_dim": self.output_dim,
-                "amt_template": self.amt_template,
+                "amt_template": self.amt_templates,
                 "template_radius": self.template_radius,
                 "activation_fn": self.activation_fn,
                 "rotation_delta": self.rotation_delta,
@@ -110,14 +106,15 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         # Configure trainable weights
         self._template_weights = self.add_weight(
             name="conv_intrinsic_template",
-            shape=(self._template_size[0], self._template_size[1], self.amt_template, self.output_dim, signal_shape[1]),
+            shape=(self.amt_templates, 1, signal_shape[1], self._template_size[0] * self._template_size[1]),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.template_regularizer
         )
+
         self._bias = self.add_weight(
             name="conv_intrinsic_bias",
-            shape=(self.amt_template, self.output_dim),
+            shape=(self.amt_templates, 1),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.bias_regularizer
@@ -156,12 +153,10 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             name="call_ta"
         )
         for interpolations in tf.split(mesh_signal, self.splits):
-            # Compute convolution
             new_signal = new_signal.write(idx, self._fold(interpolations))
             idx = idx + tf.constant(1)
         new_signal = new_signal.concat()
 
-        # Shape result: (n_vertices, self.output_dim)
         return new_signal
 
     @tf.function
@@ -224,7 +219,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         Returns
         -------
         tf.Tensor:
-            The new mesh signal after the convolution. Shape: (subset, n_rotations, self.output_dim)
+            The new mesh signal after the convolution. Shape: (subset, n_rotations, n_templates)
         """
         idx = tf.constant(0)
         all_rotations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
@@ -239,26 +234,27 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         )
         # Iterate over rotations to economize memory usage
         for rot in all_rotations:
-            # Compute rotation: (subset, n_radial, n_angular, input_dim)
+            # Rotation: (subset, n_radial, n_angular, input_dim)
             rotated_interpolations = tf.roll(interpolations, shift=rot, axis=2)
-            # Fit dims for matvec: (subset, n_radial, n_angular, 1, input_dim)
-            rotated_interpolations = tf.expand_dims(rotated_interpolations, axis=3)
-            # Shape template        : (        n_radial, n_angular, n_template, self.output_dim, input_dim)
-            # Shape input           : (subset, n_radial, n_angular,        1,                  input_dim)
-            # After 'matvec + bias' : (subset, n_radial, n_angular, n_template, self.output_dim           )
-            # After 'reduce_sum'    : (subset,                      n_template, self.output_dim           )
-            rotated_interpolations = tf.reduce_sum(
-                tf.linalg.matvec(self._template_weights, rotated_interpolations) + self._bias, axis=[1, 2]
+            # Reshape for conv: (subset, n_radial * n_angular, input_dim)
+            rotated_interpolations = tf.reshape(
+                rotated_interpolations, (-1, self._template_size[0] * self._template_size[1], self._feature_dim)
             )
-            # Apply activation and sum over template: (subset, self.output_dim)
-            rotated_interpolations = tf.reduce_sum(self._activation(rotated_interpolations), axis=[1])
-            # Output dim: (subset, self.output_dim)
+            # Compute conv:
+            # Interpolated signals: (              subset, n_radial * n_angular,            input_dim)
+            # Weight matrix       : (n_templates,       1,            input_dim, n_radial * n_angular)
+            # Bias                : (n_templates,       1,                                           )
+            # Result              : (n_templates,  subset                                            )
+            rotated_interpolations = self._activation(
+                tf.einsum("ijk,xykj->xi", rotated_interpolations, self._template_weights) + self._bias
+            )
+            # Store result:
             new_signal = new_signal.write(idx, rotated_interpolations)
             idx = idx + tf.constant(1)
-        # New signal: (n_rotations, subset, self.output_dim)
+        # Stack results for all rotations: (n_rotations, n_templates, subset)
         new_signal = new_signal.stack()
-        # New signal: (subset, n_rotations, self.output_dim)
-        return tf.transpose(new_signal, perm=[1, 0, 2])
+        # Transpose for AMP: (subset, n_rotations, n_templates)
+        return tf.transpose(new_signal, perm=[2, 0, 1])
 
     def _configure_patch_operator(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""

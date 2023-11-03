@@ -1,9 +1,9 @@
-from geoconv.layers.lite.conv_intrinsic_lite import ConvIntrinsicLite
+from geoconv.layers.legacy.conv_intrinsic import ConvIntrinsic
 
 import numpy as np
 
 
-class ConvDiracLite(ConvIntrinsicLite):
+class ConvDirac(ConvIntrinsic):
     """No interpolation weighting"""
 
     def __init__(self, *args, **kwargs):

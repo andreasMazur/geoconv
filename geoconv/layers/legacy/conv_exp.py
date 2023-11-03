@@ -1,11 +1,11 @@
-from geoconv.layers.lite.conv_intrinsic_lite import ConvIntrinsicLite
-from geoconv.layers.original.conv_exp import exp_pdf
+from geoconv.layers.legacy.conv_intrinsic import ConvIntrinsic
+from geoconv.layers.conv_exp import exp_pdf
 
 import numpy as np
 import scipy as sp
 
 
-class ConvExpLite(ConvIntrinsicLite):
+class ConvExp(ConvIntrinsic):
     """Exponential vertex weighting"""
     def __init__(self, *args, exp_lambda=1, **kwargs):
         super().__init__(*args, **kwargs)
