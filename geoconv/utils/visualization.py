@@ -1,5 +1,4 @@
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart, determine_gpc_triangles
-from geoconv.preprocessing.geodesic_polar_coordinates import local_gpc
 from geoconv.preprocessing.geodesic_polar_coordinates import compute_gpc_system
 from geoconv.utils.misc import get_points_from_polygons
 

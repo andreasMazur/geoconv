@@ -420,7 +420,7 @@ def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, fa
 
             # In difference to the original pseudocode, we add 'new_u_i < u_max' to this IF-query
             # to ensure that the radial coordinates do not exceed 'u_max'.
-            if new_u_i < np.inf and u[i] / new_u_i > 1 + eps and new_u_i < u_max:
+            if u[i] / new_u_i > 1 + eps and new_u_i < u_max:
                 u[i] = new_u_i
                 theta[i] = new_theta_i
                 heapq.heappush(candidates, (new_u_i, i))
