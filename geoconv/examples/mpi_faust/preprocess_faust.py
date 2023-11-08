@@ -1,6 +1,6 @@
 from geoconv.examples.mpi_faust.faust_data_set import get_file_number
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
-from geoconv.preprocessing.discrete_gpc import compute_gpc_systems
+from geoconv.preprocessing.geodesic_polar_coordinates import compute_gpc_systems
 from geoconv.utils.misc import shuffle_mesh_vertices, normalize_mesh, find_largest_one_hop_dist
 
 from pathlib import Path

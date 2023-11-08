@@ -1,5 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart, determine_gpc_triangles
-from geoconv.preprocessing.discrete_gpc import local_gpc
+from geoconv.preprocessing.geodesic_polar_coordinates import local_gpc
+from geoconv.preprocessing.geodesic_polar_coordinates import compute_gpc_system
 from geoconv.utils.misc import get_points_from_polygons
 
 from matplotlib import pyplot as plt
@@ -312,7 +313,7 @@ def draw_gpc_triangles(object_mesh,
     """
 
     # Print triangles
-    radial, angular, _ = local_gpc(center_vertex, u_max=u_max, object_mesh=object_mesh, use_c=use_c)
+    radial, angular, _ = compute_gpc_system(center_vertex, u_max=u_max, object_mesh=object_mesh, use_c=use_c)
     gpc_system = np.stack([radial, angular], axis=1)
     contained_gpc_triangles, _ = determine_gpc_triangles(object_mesh, gpc_system)
     for tri_idx in range(contained_gpc_triangles.shape[0]):

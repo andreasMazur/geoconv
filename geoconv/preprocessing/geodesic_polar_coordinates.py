@@ -1,10 +1,148 @@
 from scipy.linalg import blas
+
+import c_extension
+import numpy as np
+import warnings
+import heapq
+
 from tqdm import tqdm
 
-import numpy as np
-import c_extension
-import heapq
-import warnings
+
+def get_neighbors(vertex, object_mesh):
+    """Calculates the one-hop neighbors of a vertex
+
+    Parameters
+    ----------
+    vertex: int
+        The index of the vertex for which the neighbor indices shall be computed
+    object_mesh: trimesh.Trimesh
+        An object mesh
+
+    Returns
+    -------
+    list:
+        A list of neighboring vertex-indices.
+    """
+
+    return list(object_mesh.vertex_adjacency_graph[vertex].keys())
+
+
+def compute_vector_angle(vector_a, vector_b, rotation_axis):
+    """Compute the angle between two vectors
+
+    Parameters
+    ----------
+    vector_a: np.ndarray
+        The first vector
+    vector_b: np.ndarray
+        The second vector
+    rotation_axis: [np.ndarray, None]
+        For angles in [0, 2*pi[ in the 3-dimensional space an "up"-direction is required. If `None` is passed an angle
+        between [0, pi[ is returned.
+
+    Returns
+    -------
+    float:
+        The angle between `vector_a` and `vector_b`
+    """
+    vector_a = vector_a / blas.dnrm2(vector_a)
+    vector_b = vector_b / blas.dnrm2(vector_b)
+    angle = blas.ddot(vector_a, vector_b)
+    if angle > 1.0:
+        angle = 1.0
+    elif angle < -1.0:
+        angle = -1.0
+    angle = np.arccos(angle)
+    if rotation_axis is None:
+        return angle
+    else:
+        cross_product = np.cross(vector_a, vector_b)
+        opposite_direction = rotation_axis.dot(cross_product) < 0.0
+        angle = 2 * np.pi - angle if opposite_direction else angle
+        return angle
+
+
+def get_faces_of_edge(edge, object_mesh):
+    """Determine both faces of a given edge
+
+    Parameters
+    ----------
+    edge: np.ndarray
+        The edge for which the faces shall be returned.
+    object_mesh: trimesh.Trimesh
+        The underlying mesh.
+    """
+    edge = np.sort(edge)
+    # 1.) Get the edge index of `sorted_edge` "in both ways", i.e. two indices for `sorted_edge`
+    edge_indices = object_mesh.edges_sorted == edge
+    edge_indices = np.where(np.logical_and(edge_indices[:, 0], edge_indices[:, 1]))
+    # 2.) Get faces of `sorted_edge` by retrieving `face_indices` for the found `edge_indices`
+    face_indices = object_mesh.edges_face[edge_indices]
+    considered_faces = object_mesh.faces[face_indices]
+    # 3.) Return sorted edge and corresponding faces
+    return edge, considered_faces
+
+
+def initialize_neighborhood(source_point, u, theta, object_mesh, use_c):
+    """Compute the initial radial and angular coordinates around a source point.
+
+    Angle coordinates are always given w.r.t. some reference direction. The choice of a reference
+    direction can be arbitrary. Here, we choose the vector `x - source_point` with `x` being the
+    first neighbor return by `get_neighbors` as the reference direction.
+
+    Parameters
+    ----------
+    source_point: int
+        The index of the source point around which a window (GPC-system) shall be established
+    u: np.ndarray
+        An array `u` of radial coordinates from the source point to other points in the object mesh
+    theta: np.ndarray
+        An array `theta` of angular coordinates of neighbors from `source_point` in its window
+    object_mesh: trimesh.Trimesh
+        A loaded object mesh
+    use_c: bool
+        A flag whether to use the c-extension
+
+    Returns
+    -------
+    (np.ndarray, np.ndarray, list, np.ndarray):
+        This function returns updated radial coordinates `u` (fst. value), updated angular coordinates `theta` (snd.
+        value), The neighbors of `source_point` (thr. value) and lastly the rotation axis for this GPC-system
+        (vertex-normal of the center vertex).
+    """
+
+    source_point_neighbors = get_neighbors(source_point, object_mesh)
+    face_cache = {}
+    for neighbor in source_point_neighbors:
+        edge, considered_faces = get_faces_of_edge(np.array([source_point, neighbor]), object_mesh)
+        face_cache[(edge[0], edge[1])] = []
+        for face in considered_faces:
+            face_cache[(edge[0], edge[1])].append(face)
+
+    r3_source_point = object_mesh.vertices[source_point]
+    ref_neighbor = source_point_neighbors[0]
+
+    # Calculate neighbor values: radial coordinates
+    r3_neighbors = object_mesh.vertices[source_point_neighbors]
+    u[source_point_neighbors] = np.linalg.norm(
+        r3_neighbors - np.stack([r3_source_point for _ in range(len(source_point_neighbors))]), ord=2, axis=-1
+    )
+
+    # Calculate neighbor values: angular coordinates
+    rotation_axis = object_mesh.vertex_normals[source_point]
+    theta_neighbors = np.full((len(source_point_neighbors,)), .0)
+    for idx, neighbor in enumerate(source_point_neighbors):
+        vector_a = object_mesh.vertices[ref_neighbor] - object_mesh.vertices[source_point]
+        vector_b = object_mesh.vertices[neighbor] - object_mesh.vertices[source_point]
+        if use_c:
+            theta_neighbors[idx] = c_extension.compute_angle_360(vector_a, vector_b, rotation_axis)
+        else:
+            theta_neighbors[idx] = compute_vector_angle(vector_a, vector_b, rotation_axis)
+
+    theta[source_point_neighbors] = theta_neighbors
+    theta[source_point] = 0.0
+
+    return u, theta, source_point_neighbors, rotation_axis, face_cache
 
 
 def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis):
@@ -177,154 +315,41 @@ def compute_distance_and_angle(vertex_i, vertex_j, u, theta, face_cache, object_
 
     Returns
     -------
-    (float, float, dict)
-        The Euclidean update u_ijk for vertex i (see equation 13 in paper) and the new angle vertex i. Also, the
-        possibly updated face cache is returned.
+    (float, float, list)
+        The Euclidean update u_ijk for vertex i (see equation 13 in paper) and the new angle vertex i. Lastly, this
+        function also returns a list containing the missing vertices for both faces of the edge `[vertex_i, vertex_j]`.
     """
-
-    if face_cache is None:
-        face_cache = dict()
-
-    # Caching considered triangles to save time
-    sorted_edge = (vertex_i if vertex_i < vertex_j else vertex_j, vertex_j if vertex_j > vertex_i else vertex_i)
-    if sorted_edge in face_cache.keys():
-        considered_faces = face_cache[sorted_edge]
+    # We consider both faces of `sorted_edge` for computing the coordinates to `vertex_i`
+    sorted_edge = np.sort([vertex_i, vertex_j])
+    if (sorted_edge[0], sorted_edge[1]) in face_cache.keys():
+        # Use cache to get faces of `sorted_edge`
+        considered_faces = face_cache[(sorted_edge[0], sorted_edge[1])]
     else:
-        # Determine both triangles of 'sorted_edge' and cache those
-        edge_indices = object_mesh.edges_sorted == sorted_edge
-        edge_indices = np.where(np.logical_and(edge_indices[:, 0], edge_indices[:, 1]))
+        # Cache considered faces to save time
+        _, considered_faces = get_faces_of_edge(sorted_edge, object_mesh)
 
-        face_indices = object_mesh.edges_face[edge_indices]
-        considered_faces = object_mesh.faces[face_indices]
-
-        face_cache[sorted_edge] = considered_faces
-
-    updates = []
-    for triangle in considered_faces:
-        vertex_k = [v for v in triangle if v not in [vertex_i, vertex_j]][0]
+    # Compute GPC for `vertex_i` considering both faces of `[vertex_i, vertex_j]`
+    updates, k_vertices = [], []
+    for face in considered_faces:
+        vertex_k = [v for v in face if v not in [vertex_i, vertex_j]][0]
+        k_vertices.append(vertex_k)
         # We need to know the distance to `vertex_k`
         if u[vertex_k] < np.inf and theta[vertex_k] >= 0.:
             u_ijk, phi_i = compute_u_ijk_and_angle(
                 vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis
             )
             updates.append((u_ijk, phi_i))
+
+    # If no GPC have been found for `vertex_i`, return default GPC
     if not updates:
-        return np.inf, -1.0, face_cache
+        return np.inf, -1.0, k_vertices
+    # If two GPC have been found for `vertex_i`, return the smallest distance to `vertex_i`
     else:
         u_ijk, phi_i = min(updates)
-        return u_ijk, phi_i, face_cache
+        return u_ijk, phi_i, k_vertices
 
 
-def compute_vector_angle(vector_a, vector_b, rotation_axis):
-    """Compute the angle between two vectors
-
-    Parameters
-    ----------
-    vector_a: np.ndarray
-        The first vector
-    vector_b: np.ndarray
-        The second vector
-    rotation_axis: [np.ndarray, None]
-        For angles in [0, 2*pi[ in the 3-dimensional space an "up"-direction is required. If `None` is passed an angle
-        between [0, pi[ is returned.
-
-    Returns
-    -------
-    float:
-        The angle between `vector_a` and `vector_b`
-    """
-    vector_a = vector_a / blas.dnrm2(vector_a)
-    vector_b = vector_b / blas.dnrm2(vector_b)
-    angle = blas.ddot(vector_a, vector_b)
-    if angle > 1.0:
-        angle = 1.0
-    elif angle < -1.0:
-        angle = -1.0
-    angle = np.arccos(angle)
-    if rotation_axis is None:
-        return angle
-    else:
-        cross_product = np.cross(vector_a, vector_b)
-        opposite_direction = rotation_axis.dot(cross_product) < 0.0
-        angle = 2 * np.pi - angle if opposite_direction else angle
-        return angle
-
-
-def get_neighbors(vertex, object_mesh):
-    """Calculates the one-hop neighbors of a vertex
-
-    Parameters
-    ----------
-    vertex: int
-        The index of the vertex for which the neighbor indices shall be computed
-    object_mesh: trimesh.Trimesh
-        An object mesh
-
-    Returns
-    -------
-    list:
-        A list of neighboring vertex-indices.
-    """
-
-    return list(object_mesh.vertex_adjacency_graph[vertex].keys())
-
-
-def initialize_neighborhood(source_point, u, theta, object_mesh, use_c):
-    """Compute the initial radial and angular coordinates around a source point.
-
-    Angle coordinates are always given w.r.t. some reference direction. The choice of a reference
-    direction can be arbitrary. Here, we choose the vector `x - source_point` with `x` being the
-    first neighbor return by `get_neighbors` as the reference direction.
-
-    Parameters
-    ----------
-    source_point: int
-        The index of the source point around which a window (GPC-system) shall be established
-    u: np.ndarray
-        An array `u` of radial coordinates from the source point to other points in the object mesh
-    theta: np.ndarray
-        An array `theta` of angular coordinates of neighbors from `source_point` in its window
-    object_mesh: trimesh.Trimesh
-        A loaded object mesh
-    use_c: bool
-        A flag whether to use the c-extension
-
-    Returns
-    -------
-    (np.ndarray, np.ndarray, list, np.ndarray):
-        This function returns updated radial coordinates `u` (fst. value), updated angular coordinates `theta` (snd.
-        value), The neighbors of `source_point` (thr. value) and lastly the rotation axis for this GPC-system (vertex-
-        normal of the center vertex).
-    """
-
-    source_point_neighbors = get_neighbors(source_point, object_mesh)
-    r3_source_point = object_mesh.vertices[source_point]
-    ref_neighbor = source_point_neighbors[0]
-
-    # Calculate neighbor values: radial coordinates
-    r3_neighbors = object_mesh.vertices[source_point_neighbors]
-    u[source_point_neighbors] = np.linalg.norm(
-        r3_neighbors - np.stack([r3_source_point for _ in range(len(source_point_neighbors))]), ord=2, axis=-1
-    )
-
-    # Calculate neighbor values: angular coordinates
-    rotation_axis = object_mesh.vertex_normals[source_point]
-    theta_neighbors = np.full((len(source_point_neighbors,)), .0)
-    for idx, neighbor in enumerate(source_point_neighbors):
-        vector_a = object_mesh.vertices[ref_neighbor] - object_mesh.vertices[source_point]
-        vector_b = object_mesh.vertices[neighbor] - object_mesh.vertices[source_point]
-        if use_c:
-            theta_neighbors[idx] = c_extension.compute_angle_360(vector_a, vector_b, rotation_axis)
-        else:
-            theta_neighbors[idx] = compute_vector_angle(vector_a, vector_b, rotation_axis)
-
-    theta[source_point_neighbors] = theta_neighbors
-    theta[source_point] = 0.0
-
-    return u, theta, source_point_neighbors, rotation_axis
-
-
-def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_cache=None):
+def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, face_cache=None):
     """Computes local GPC for one given source point.
 
     Parameters
@@ -339,7 +364,7 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
         A flag whether to use the c-extension
     eps: float
         An epsilon
-    triangle_cache: dict
+    face_cache: dict
         A cache storing the faces of a given edge
 
     Returns
@@ -350,14 +375,19 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
         associates seen triangles to edges, is also returned as a dictionary.
     """
 
-    # Initialization
+    #######################################
+    # Initialize GPC-system and face-cache
+    #######################################
     u = np.full((object_mesh.vertices.shape[0],), np.inf)
     theta = np.full((object_mesh.vertices.shape[0],), -1.0)
-    u, theta, source_point_neighbors, rotation_axis = initialize_neighborhood(
+    u, theta, source_point_neighbors, rotation_axis, new_face_cache = initialize_neighborhood(
         source_point, u, theta, object_mesh, use_c
     )
     u[source_point] = .0
+    if face_cache is None:
+        face_cache = new_face_cache
 
+    # Check whether initialization distances are larger than given max-radius
     check_array = np.array([x for x in u if not np.isinf(x)])
     if check_array.max() > u_max:
         warnings.warn(
@@ -365,22 +395,27 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
             f" length for a GPC-system. Current GPC-system will only contain initialization vertices.", RuntimeWarning
         )
 
-    candidates = []  # heap containing vertices sorted by distance u[i]
+    ############################################
+    # Initialize min-heap over radial distances
+    ############################################
+    candidates = []
     for neighbor in source_point_neighbors:
         candidates.append((u[neighbor], neighbor))
     heapq.heapify(candidates)
 
+    ###################################
+    # Algorithm to compute GPC-systems
+    ###################################
     while candidates:
-        # as we work with a min-heap the shortest distance is stored in root
+        # Get vertex from min-heap that is closest to GPC-system origin
         j_dist, j = heapq.heappop(candidates)
         j_neighbors = get_neighbors(j, object_mesh)
         j_neighbors = [j for j in j_neighbors if j != source_point]
-
         for i in j_neighbors:
-            # during computation of distance to `i` consider both triangles which contain (i, j)
-            # [compare section 4.1 and algorithm 1]
-            new_u_i, new_theta_i, triangle_cache = compute_distance_and_angle(
-                i, j, u, theta, triangle_cache, object_mesh, use_c, rotation_axis
+            # Compute the (updated) geodesic distance `new_u_i` and angular coordinate of the i-th neighbor from the
+            # closest vertex in the min-heap to the source point of the GPC-system
+            new_u_i, new_theta_i, k_vertices = compute_distance_and_angle(
+                i, j, u, theta, face_cache, object_mesh, use_c, rotation_axis
             )
 
             # In difference to the original pseudocode, we add 'new_u_i < u_max' to this IF-query
@@ -388,10 +423,9 @@ def local_gpc(source_point, u_max, object_mesh, use_c, eps=0.000001, triangle_ca
             if new_u_i < np.inf and u[i] / new_u_i > 1 + eps and new_u_i < u_max:
                 u[i] = new_u_i
                 theta[i] = new_theta_i
-                # if new_u_i < u_max:
                 heapq.heappush(candidates, (new_u_i, i))
 
-    return u, theta, triangle_cache
+    return u, theta, face_cache
 
 
 def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_msg=""):
@@ -424,17 +458,17 @@ def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_m
     """
 
     gpc_systems = []
-    triangle_cache = dict()
+    face_cache = dict()
     if tqdm_msg:
         for vertex_idx in tqdm(range(object_mesh.vertices.shape[0]), position=0, postfix=tqdm_msg):
-            u_v, theta_v, triangle_cache = local_gpc(
-                vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache
+            u_v, theta_v, face_cache = compute_gpc_system(
+                vertex_idx, u_max, object_mesh, use_c, eps, face_cache
             )
             gpc_systems.append(np.stack([u_v, theta_v], axis=1))
     else:
         for vertex_idx in range(object_mesh.vertices.shape[0]):
-            u_v, theta_v, triangle_cache = local_gpc(
-                vertex_idx, u_max, object_mesh, use_c, eps, triangle_cache
+            u_v, theta_v, face_cache = compute_gpc_system(
+                vertex_idx, u_max, object_mesh, use_c, eps, face_cache
             )
             gpc_systems.append(np.stack([u_v, theta_v], axis=1))
 

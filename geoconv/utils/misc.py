@@ -1,5 +1,5 @@
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
-from geoconv.preprocessing.discrete_gpc import initialize_neighborhood
+from geoconv.preprocessing.geodesic_polar_coordinates import initialize_neighborhood
 
 from tqdm import tqdm
 

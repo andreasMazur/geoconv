@@ -1,6 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix, polar_to_cart, \
     compute_barycentric_coordinates, determine_gpc_triangles
-from geoconv.preprocessing.discrete_gpc import compute_gpc_systems
+from geoconv.preprocessing.geodesic_polar_coordinates import compute_gpc_systems
 from geoconv.utils.visualization import draw_gpc_triangles, draw_gpc_on_mesh, draw_triangles
 from geoconv.utils.misc import reconstruct_template, find_largest_one_hop_dist, gpc_systems_into_cart, normalize_mesh
 
