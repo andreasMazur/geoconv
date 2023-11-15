@@ -1,17 +1,19 @@
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart, determine_gpc_triangles
-from geoconv.preprocessing.geodesic_polar_coordinates import compute_gpc_system
-from geoconv.utils.misc import get_points_from_polygons
+
 
 from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection
 from matplotlib.patches import Polygon
 from PIL import Image
+from pathlib import Path
 
+import os
 import matplotlib
 import trimesh
 import numpy as np
 import matplotlib.cm as cm
 import io
+import time
 
 
 def draw_multiple_princeton_benchmarks(save_name, **kwargs):
@@ -265,16 +267,13 @@ def draw_triangles(triangles, points=None, point_color="blue", title="", plot=Tr
         plt.show()
 
 
-def draw_gpc_triangles(object_mesh,
-                       center_vertex,
-                       u_max=.04,
+def draw_gpc_triangles(gpc_system,
+                       gpc_faces,
                        template_matrix=None,
-                       print_scatter=False,
                        alpha=.4,
                        edge_color="red",
                        scatter_color="green",
-                       highlight_triangle=-1,
-                       use_c=True,
+                       highlight_face=-1,
                        plot=True,
                        title="",
                        save_name=""):
@@ -282,27 +281,21 @@ def draw_gpc_triangles(object_mesh,
 
     Parameters
     ----------
-    object_mesh: trimesh.Trimesh
-        The object mesh on which to compute the GPC-system.
-    center_vertex: int
-        The center vertex of the GPC-system which shall be visualized.
-    u_max: float
-        The max-radius of the GPC-system
+    gpc_system: np.ndarray
+        The GPC-system to visualize.
+    gpc_faces:
+        The faces contained within the GPC-system.
     template_matrix: np.ndarray
         A 3D-array that describes template vertices in cartesian coordinates. If 'None' is passed
         no template vertices will be visualized.
-    print_scatter: bool
-        Whether to print dots at the triangle vertices.
     alpha: float
         The opacity of the polygons
     edge_color: str
         The color for the triangle edges
     scatter_color: str
         The color for the template vertices (in case a template is given)
-    highlight_triangle: int
+    highlight_face: int
         The index of a triangle, which shall be highlighted
-    use_c: bool
-        Whether to use the C-extension to compute the GPC-system.
     plot: bool
         Whether to immediately plot
     title: str
@@ -310,27 +303,20 @@ def draw_gpc_triangles(object_mesh,
     save_name: str
         The name of the image. If none is given, the image will not be saved.
     """
+    gpc_system_faces = gpc_system[gpc_faces]
+    for f, face in enumerate(gpc_system_faces):
+        for v in range(3):
+            gpc_system_faces[f, v] = polar_to_cart(angle=face[v, 1], scale=face[v, 0])
 
-    # Print triangles
-    radial, angular, _ = compute_gpc_system(center_vertex, u_max=u_max, object_mesh=object_mesh, use_c=use_c)
-    gpc_system = np.stack([radial, angular], axis=1)
-    contained_gpc_triangles, _ = determine_gpc_triangles(object_mesh, gpc_system)
-    for tri_idx in range(contained_gpc_triangles.shape[0]):
-        for point_idx in range(contained_gpc_triangles.shape[1]):
-            rho, theta = contained_gpc_triangles[tri_idx, point_idx]
-            contained_gpc_triangles[tri_idx, point_idx] = polar_to_cart(theta, scale=rho)
+    min_coordinate = gpc_system_faces.min()
+    max_coordinate = gpc_system_faces.max()
 
     fig, ax = plt.subplots()
     ax.set_title(title)
-    ax.set_xlim([contained_gpc_triangles.min(), contained_gpc_triangles.max()])
-    ax.set_ylim([contained_gpc_triangles.min(), contained_gpc_triangles.max()])
-    polygons = PolyCollection(contained_gpc_triangles, alpha=alpha, edgecolors=edge_color)
+    ax.set_xlim([min_coordinate, max_coordinate])
+    ax.set_ylim([min_coordinate, max_coordinate])
+    polygons = PolyCollection(gpc_system_faces, alpha=alpha, edgecolors=edge_color)
     ax.add_collection(polygons)
-
-    # Print scatter
-    if print_scatter:
-        points = get_points_from_polygons(contained_gpc_triangles)
-        ax.scatter(points[:, 0], points[:, 1], color="red")
 
     # Print template
     if template_matrix is not None:
@@ -338,19 +324,19 @@ def draw_gpc_triangles(object_mesh,
             ax.scatter(template_matrix[radial_idx, :, 0], template_matrix[radial_idx, :, 1], color=scatter_color)
 
     # Highlight triangle
-    if highlight_triangle > -1:
+    if highlight_face > -1:
         ax.add_patch(
-            Polygon(contained_gpc_triangles[highlight_triangle], linewidth=3., fill=False, edgecolor="purple")
+            Polygon(gpc_system_faces[highlight_face], linewidth=3., fill=False, edgecolor="purple")
         )
         ax.scatter(
-            contained_gpc_triangles[highlight_triangle][:, 0],
-            contained_gpc_triangles[highlight_triangle][:, 1],
+            gpc_system_faces[highlight_face][:, 0],
+            gpc_system_faces[highlight_face][:, 1],
             s=90.,
             color="purple"
         )
         for idx, annotation in enumerate(["a", "b", "c"]):
-            x = contained_gpc_triangles[highlight_triangle][idx, 0]
-            y = contained_gpc_triangles[highlight_triangle][idx, 1]
+            x = gpc_system_faces[highlight_face][idx, 0]
+            y = gpc_system_faces[highlight_face][idx, 1]
             ax.annotate(annotation, (x, y), fontsize=15)
 
     if save_name:
@@ -379,3 +365,36 @@ def draw_vertices_in_coordinate_system(radial_coordinates, angular_coordinates):
     _, ax = plt.subplots(subplot_kw={'projection': 'polar'})
     ax.plot(angular_coordinates[mask], radial_coordinates[mask], "ro")
     plt.show()
+
+
+def draw_edge_cache(edge_cache,
+                    u,
+                    theta,
+                    edges_to_highlight=None,
+                    point_to_highlight=None,
+                    highlighting_color="red",
+                    saving_folder="./visualization"):
+    if not os.path.exists(saving_folder):
+        os.makedirs(saving_folder)
+    fig, ax = plt.subplots()
+    for edge in edge_cache[-1]:
+        vertex_1 = polar_to_cart(angle=theta[edge[0]], scale=u[edge[0]])
+        vertex_2 = polar_to_cart(angle=theta[edge[1]], scale=u[edge[1]])
+        ax.plot([vertex_1[0], vertex_2[0]], [vertex_1[1], vertex_2[1]], c="blue")
+        ax.annotate(f"{edge[0]}", vertex_1)
+        ax.annotate(f"{edge[1]}", vertex_2)
+    if edges_to_highlight is not None:
+        for edge in edges_to_highlight:
+            vertex_1 = polar_to_cart(angle=theta[edge[0]], scale=u[edge[0]])
+            vertex_2 = polar_to_cart(angle=theta[edge[1]], scale=u[edge[1]])
+            ax.plot([vertex_1[0], vertex_2[0]], [vertex_1[1], vertex_2[1]], c=highlighting_color)
+            ax.scatter([vertex_1[0], vertex_2[0]], [vertex_1[1], vertex_2[1]], c=highlighting_color)
+            ax.annotate(f"{edge[0]}", vertex_1)
+            ax.annotate(f"{edge[1]}", vertex_2)
+    if point_to_highlight is not None:
+        x, y = polar_to_cart(angle=point_to_highlight[2], scale=point_to_highlight[1])
+        ax.scatter([x], [y], c="green")
+        ax.annotate(point_to_highlight[0], [x, y])
+    plt.savefig(f"./{saving_folder}/{time.time()}.svg")
+    plt.close()
+    time.sleep(.5)

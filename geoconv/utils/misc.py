@@ -1,11 +1,87 @@
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
-from geoconv.preprocessing.geodesic_polar_coordinates import initialize_neighborhood
 
 from tqdm import tqdm
+from scipy.linalg import blas
 
 import pygeodesic.geodesic as geodesic
 import numpy as np
 import trimesh
+
+
+def compute_vector_angle(vector_a, vector_b, rotation_axis):
+    """Compute the angle between two vectors
+
+    Parameters
+    ----------
+    vector_a: np.ndarray
+        The first vector
+    vector_b: np.ndarray
+        The second vector
+    rotation_axis: [np.ndarray, None]
+        For angles in [0, 2*pi[ in the 3-dimensional space an "up"-direction is required. If `None` is passed an angle
+        between [0, pi[ is returned.
+
+    Returns
+    -------
+    float:
+        The angle between `vector_a` and `vector_b`
+    """
+    vector_a = vector_a / blas.dnrm2(vector_a)
+    vector_b = vector_b / blas.dnrm2(vector_b)
+    angle = blas.ddot(vector_a, vector_b)
+    if angle > 1.0:
+        angle = 1.0
+    elif angle < -1.0:
+        angle = -1.0
+    angle = np.arccos(angle)
+    if rotation_axis is None:
+        return angle
+    else:
+        cross_product = np.cross(vector_a, vector_b)
+        opposite_direction = rotation_axis.dot(cross_product) < 0.0
+        angle = 2 * np.pi - angle if opposite_direction else angle
+        return angle
+
+
+def get_faces_of_edge(edge, object_mesh):
+    """Determine both faces of a given edge
+
+    Parameters
+    ----------
+    edge: np.ndarray
+        The edge for which the faces shall be returned.
+    object_mesh: trimesh.Trimesh
+        The underlying mesh.
+    """
+    edge = np.sort(edge)
+    # 1.) Get the edge index of `sorted_edge` "in both ways", i.e. two indices for `sorted_edge`
+    edge_indices = object_mesh.edges_sorted == edge
+    edge_indices = np.where(np.logical_and(edge_indices[:, 0], edge_indices[:, 1]))
+    # 2.) Get faces of `sorted_edge` by retrieving `face_indices` for the found `edge_indices`
+    face_indices = object_mesh.edges_face[edge_indices]
+    considered_faces = object_mesh.faces[face_indices]
+    # 3.) Return sorted edge and corresponding faces
+    return edge, considered_faces
+
+
+
+def get_neighbors(vertex, object_mesh):
+    """Calculates the one-hop neighbors of a vertex
+
+    Parameters
+    ----------
+    vertex: int
+        The index of the vertex for which the neighbor indices shall be computed
+    object_mesh: trimesh.Trimesh
+        An object mesh
+
+    Returns
+    -------
+    list:
+        A list of neighboring vertex-indices.
+    """
+
+    return list(object_mesh.vertex_adjacency_graph[vertex].keys())
 
 
 def normalize_mesh(mesh, geodesic_diameter=None):
@@ -227,6 +303,7 @@ def find_largest_one_hop_dist(object_mesh, use_c=True):
     ):
         u = np.full((object_mesh.vertices.shape[0],), np.inf)
         theta = np.full((object_mesh.vertices.shape[0],), -1.0)
+        # TODO
         u, theta, source_point_neighbors, rotation_axis = initialize_neighborhood(
             source_point, u, theta, object_mesh, use_c
         )
