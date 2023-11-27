@@ -190,8 +190,10 @@ def compute_distance_and_angle(vertex_i, vertex_j, gpc_system, object_mesh, use_
 
     # Compute GPC for `vertex_i` considering both faces of `[vertex_i, vertex_j]`
     updates = []
+    k_vertices = []
     for face in considered_faces:
         vertex_k = [v for v in face if v not in [vertex_i, vertex_j]][0]
+        k_vertices.append(vertex_k)
         # We need to know the distance to `vertex_k`
         if gpc_system.radial_coordinates[vertex_k] < np.inf and gpc_system.angular_coordinates[vertex_k] >= 0.:
             u_ijk, phi_i = compute_u_ijk_and_angle(
@@ -212,7 +214,7 @@ def compute_distance_and_angle(vertex_i, vertex_j, gpc_system, object_mesh, use_
     # If two GPC have been found for `vertex_i`, return the smallest distance to `vertex_i`
     else:
         u_ijk, phi_i, vertex_k = min(updates)
-        return u_ijk, phi_i, vertex_k
+        return u_ijk, phi_i, k_vertices
 
 
 def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, gpc_system=None):
@@ -235,7 +237,7 @@ def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, gp
     Returns
     -------
     GPCSystem:
-
+        The current gpc-system.
     """
 
     ########################
@@ -273,20 +275,18 @@ def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, gp
         for i in j_neighbors:
             # Compute the (updated) geodesic distance `new_u_i` and angular coordinate of the i-th neighbor from the
             # closest vertex in the min-heap to the source point of the GPC-system
-            new_u_i, new_theta_i, k = compute_distance_and_angle(
+            new_u_i, new_theta_i, k_vertices = compute_distance_and_angle(
                 i, j, gpc_system, object_mesh, use_c, rotation_axis=object_mesh.vertex_normals[source_point]
             )
-
             # In difference to the original pseudocode, we add 'new_u_i < u_max' to this IF-query
             # to ensure that the radial coordinates do not exceed 'u_max'.
             if new_u_i < u_max and gpc_system.radial_coordinates[i] / new_u_i > 1 + eps:
-                if gpc_system.update(i, new_u_i, new_theta_i, j, k):
+                if gpc_system.update(i, new_u_i, new_theta_i, j, k_vertices):
                     heapq.heappush(candidates, (new_u_i, i))
-
     return gpc_system
 
 
-def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_msg=""):
+def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_msg="", as_array=True):
     """Computes approximated geodesic polar coordinates for all vertices within an object mesh.
 
     > [Geodesic polar coordinates on polygonal
@@ -305,6 +305,8 @@ def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_m
         A flag whether to use the c-extension
     tqdm_msg: str
         A string to display as suffix with tqdm
+    as_array: bool
+        Whether to return the resulting GPC-systems as an array
 
     Returns
     -------
@@ -314,18 +316,20 @@ def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_m
         the radial coordinate of node `j` in the local GPC-system of node `i` w.r.t. a reference direction (see
         `initialize_neighborhood` for how the reference direction is selected).
     """
-
     gpc_systems = []
     if tqdm_msg:
         for vertex_idx in tqdm(range(object_mesh.vertices.shape[0]), position=0, postfix=tqdm_msg):
-            gpc_system = compute_gpc_system(
-                vertex_idx, u_max, object_mesh, use_c, eps
-            )
-            gpc_systems.append(gpc_system.get_gpc_system())
+            gpc_system = compute_gpc_system(vertex_idx, u_max, object_mesh, use_c, eps)
+            gpc_systems.append(gpc_system)
     else:
         for vertex_idx in range(object_mesh.vertices.shape[0]):
-            gpc_system = compute_gpc_system(
-                vertex_idx, u_max, object_mesh, use_c, eps
-            )
-            gpc_systems.append(gpc_system.get_gpc_system())
-    return np.stack(gpc_systems)
+            gpc_system = compute_gpc_system(vertex_idx, u_max, object_mesh, use_c, eps)
+            gpc_systems.append(gpc_system)
+
+    return_value = []
+    if as_array:
+        for system in gpc_systems:
+            return_value.append(system.get_gpc_system())
+        return np.stack(gpc_systems)
+    else:
+        return gpc_systems

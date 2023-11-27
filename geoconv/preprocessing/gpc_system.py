@@ -129,7 +129,7 @@ class GPCSystem:
             elif face not in self.faces[(edge[0], edge[1])]:
                 self.faces[(edge[0], edge[1])].append(face)
 
-    def update(self, vertex_i, rho_i, theta_i, vertex_j, vertex_k):
+    def update(self, vertex_i, rho_i, theta_i, vertex_j, k_vertices):
         """Update the GPC-system while preventing to edge intersections
 
         Parameters
@@ -142,64 +142,65 @@ class GPCSystem:
             The new angular coordinate for `vertex_i`
         vertex_j: int
             The first vertex that we used to update the coordinates of `vertex_i`
-        vertex_k: int
-            The second vertex that we used to update the coordinates of `vertex_i`
+        k_vertices: list
+            The list of second vertices that could have potentially been used to update the coordinates of `vertex_i`
 
         Returns
         -------
         bool:
             Whether the update succeeded, i.e. the update on `vertex_i` did not cause intersections
         """
-        # Sort vertex indices such that edge-cache does not store edges twice
-        sorted_face = np.sort([vertex_i, vertex_j, vertex_k])
+        for vertex_k in [k for k in k_vertices if not np.isinf(self.radial_coordinates[k])]:
+            # Sort vertex indices such that edge-cache does not store edges twice
+            sorted_face = np.sort([vertex_i, vertex_j, vertex_k])
 
-        #############################################
-        # Check edges of `vertex_i` on intersections
-        #############################################
-        updated_face_edges = [
-            [sorted_face[0], sorted_face[1]], [sorted_face[1], sorted_face[2]], [sorted_face[0], sorted_face[2]]
-        ]
-        if vertex_i in self.edges.keys():
-            edges_of_interest = self.edges[vertex_i].copy()
-        else:
-            self.edges[vertex_i] = []
-            edges_of_interest = []
-
-        for edge in updated_face_edges:
-            if edge not in edges_of_interest:
-                edges_of_interest.append(edge)
-
-        ##########################
-        # Check for intersections
-        ##########################
-        for edge in edges_of_interest:
-            if edge[0] == vertex_i:
-                edge_fst_vertex = [rho_i, theta_i]
+            ###############################################################################################
+            # Collect all edges of `vertex_i` that will be added or are captured by the current GPC-system
+            ###############################################################################################
+            updated_face_edges = [
+                [sorted_face[0], sorted_face[1]], [sorted_face[1], sorted_face[2]], [sorted_face[0], sorted_face[2]]
+            ]
+            if vertex_i in self.edges.keys():
+                edges_of_interest = self.edges[vertex_i].copy()
             else:
-                edge_fst_vertex = [self.radial_coordinates[edge[0]], self.angular_coordinates[edge[0]]]
-            if edge[1] == vertex_i:
-                edge_snd_vertex = [rho_i, theta_i]
-            else:
-                edge_snd_vertex = [self.radial_coordinates[edge[1]], self.angular_coordinates[edge[1]]]
-            if self.line_segment_intersection(np.array([edge_fst_vertex, edge_snd_vertex]), np.array(edge)):
-                return False
+                self.edges[vertex_i] = []
+                edges_of_interest = []
 
-        ################
-        # Add new edges
-        ################
-        for edge in edges_of_interest:
-            self.add_edge(edge)
+            for edge in updated_face_edges:
+                if edge not in edges_of_interest:
+                    edges_of_interest.append(edge)
 
-        ###############
-        # Add new face
-        ###############
-        self.add_face(sorted_face)
+            ##########################################
+            # Check collected edges for intersections
+            ##########################################
+            for edge in edges_of_interest:
+                if edge[0] == vertex_i:
+                    edge_fst_vertex = [rho_i, theta_i]
+                else:
+                    edge_fst_vertex = [self.radial_coordinates[edge[0]], self.angular_coordinates[edge[0]]]
+                if edge[1] == vertex_i:
+                    edge_snd_vertex = [rho_i, theta_i]
+                else:
+                    edge_snd_vertex = [self.radial_coordinates[edge[1]], self.angular_coordinates[edge[1]]]
+                if self.line_segment_intersection(np.array([edge_fst_vertex, edge_snd_vertex]), np.array(edge)):
+                    return False
 
-        ###########################
-        # Update GPC of `vertex_i`
-        ###########################
-        self.radial_coordinates[vertex_i] = rho_i
-        self.angular_coordinates[vertex_i] = theta_i
+            ################
+            # Add new edges
+            ################
+            for edge in edges_of_interest:
+                self.add_edge(edge)
+
+            ###############
+            # Add new face
+            ###############
+            self.add_face(sorted_face)
+
+            ###########################
+            # Update GPC of `vertex_i`
+            ###########################
+            self.radial_coordinates[vertex_i] = rho_i
+            self.angular_coordinates[vertex_i] = theta_i
         return True
 
     def line_segment_intersection(self, new_line_segment, new_line_segment_indices):
@@ -234,9 +235,9 @@ class GPCSystem:
                 denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
                 nominator_1 = (x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)
                 nominator_2 = (x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2)
+                x = nominator_1 / (denominator + 1e-10)
+                y = nominator_2 / (denominator + 1e-10)
                 eps = 1e-5
-                x = nominator_1 / denominator
-                y = nominator_2 / denominator
                 if 0. + eps < x < 1. - eps and 0. + eps < y < 1. - eps:
                     return True
         return False
@@ -246,14 +247,11 @@ class GPCSystem:
 
         An array `self.radial_coordinates` of radial coordinates from the source point to other points in the object
         mesh. An array `self.angular_coordinates` of angular coordinates of neighbors from `source_point` in its window.
-        The possibly updated face cache, which associates seen faces to edges, is returned as a dictionary at the third
-        position. The second to last dictionary contains all contained edges within the gpc-system. The last dictionary
-        contains all faces which are contained within the GPC-system, i.e. which consist of nodes that have geodesic
-        polar coordinates.
         """
         return np.stack([self.radial_coordinates, self.angular_coordinates], axis=1)
 
     def get_gpc_faces(self):
+        """Return all faces captured by the current GPC-systems."""
         gpc_system_faces = self.get_gpc_system()
         gpc_system_faces = gpc_system_faces[np.array(self.faces[(-1, -1)])]
         return gpc_systems_into_cart(gpc_system_faces)
