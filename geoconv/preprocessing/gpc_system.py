@@ -13,6 +13,9 @@ class GPCSystem:
         direction can be arbitrary. Here, we choose the vector `x - source_point` with `x` being the
         first neighbor return by `get_neighbors` as the reference direction.
 
+        Edge-cache: Remembers all edges to a vertex
+        Face-cache: Remembers all faces to a sorted edge
+
         Parameters
         ----------
         source_point: int

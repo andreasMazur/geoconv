@@ -64,7 +64,6 @@ def get_faces_of_edge(edge, object_mesh):
     return edge, considered_faces
 
 
-
 def get_neighbors(vertex, object_mesh):
     """Calculates the one-hop neighbors of a vertex
 
@@ -282,32 +281,13 @@ def get_points_from_polygons(polygons):
     return np.unique(polygons.reshape((-1, 2)), axis=0)
 
 
-def find_largest_one_hop_dist(object_mesh, use_c=True):
+def find_largest_one_hop_dist(object_mesh):
     """Finds the largest Euclidean distance from center vertex to a one-hop neighbor in a triangle mesh
-
-    The initialization of the algorithm that computes the GPC-systems cannot
-    ensure that the radial coordinates of the center-vertex's one-hop neighbors
-    are smaller than 'u_max'.
-
-    This function returns the largest radial coordinate that has been seen during
-    initialization.
 
     Returns
     -------
     float:
         The largest initialization distance from a center-vertex to a one-hop neighbor in the triangle mesh
     """
-    largest_radial_c = .0
-    for source_point in tqdm(
-        range(object_mesh.vertices.shape[0]), postfix="Determining largest one-hop neighborhood distance.."
-    ):
-        u = np.full((object_mesh.vertices.shape[0],), np.inf)
-        theta = np.full((object_mesh.vertices.shape[0],), -1.0)
-        # TODO
-        u, theta, source_point_neighbors, rotation_axis = initialize_neighborhood(
-            source_point, u, theta, object_mesh, use_c
-        )
-        u[source_point] = .0
-        gpc_largest_radial_c = np.array([x for x in u if not np.isinf(x)]).max()
-        largest_radial_c = largest_radial_c if largest_radial_c >= gpc_largest_radial_c else gpc_largest_radial_c
-    return largest_radial_c
+    all_edges = object_mesh.vertices[object_mesh.edges]
+    return np.linalg.norm(all_edges[:, 0, :] - all_edges[:, 1, :], axis=-1).max()
