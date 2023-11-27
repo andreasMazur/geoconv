@@ -3,6 +3,7 @@ from geoconv.utils.misc import get_neighbors, get_faces_of_edge, compute_vector_
 
 from scipy.linalg import blas
 from tqdm import tqdm
+from multiprocessing import Pool
 
 import c_extension
 import numpy as np
@@ -176,9 +177,9 @@ def compute_distance_and_angle(vertex_i, vertex_j, gpc_system, object_mesh, use_
 
     Returns
     -------
-    (float, float, int)
+    (float, float, list)
         The Euclidean update u_ijk for vertex i (see equation 13 in paper) and the new angle vertex i. Lastly, this
-        function also returns the missing vertex that is used to update the coordinates of `vertex_i`.
+        function also returns the missing vertices which could have been used to update the coordinates of `vertex_i`.
     """
     # We consider both faces of `sorted_edge` for computing the coordinates to `vertex_i`
     sorted_edge = np.sort([vertex_i, vertex_j])
@@ -283,10 +284,12 @@ def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, gp
             if new_u_i < u_max and gpc_system.radial_coordinates[i] / new_u_i > 1 + eps:
                 if gpc_system.update(i, new_u_i, new_theta_i, j, k_vertices):
                     heapq.heappush(candidates, (new_u_i, i))
+
+    # print(f"GPC-system {source_point} done!")
     return gpc_system
 
 
-def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_msg="", as_array=True):
+def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, processes=1, as_array=True):
     """Computes approximated geodesic polar coordinates for all vertices within an object mesh.
 
     > [Geodesic polar coordinates on polygonal
@@ -303,8 +306,8 @@ def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_m
         A threshold for update-improvements
     use_c: bool
         A flag whether to use the c-extension
-    tqdm_msg: str
-        A string to display as suffix with tqdm
+    processes: int
+        The amount of concurrent processes that compute GPC-systems
     as_array: bool
         Whether to return the resulting GPC-systems as an array
 
@@ -316,16 +319,12 @@ def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_m
         the radial coordinate of node `j` in the local GPC-system of node `i` w.r.t. a reference direction (see
         `initialize_neighborhood` for how the reference direction is selected).
     """
-    gpc_systems = []
-    if tqdm_msg:
-        for vertex_idx in tqdm(range(object_mesh.vertices.shape[0]), position=0, postfix=tqdm_msg):
-            gpc_system = compute_gpc_system(vertex_idx, u_max, object_mesh, use_c, eps)
-            gpc_systems.append(gpc_system)
-    else:
-        for vertex_idx in range(object_mesh.vertices.shape[0]):
-            gpc_system = compute_gpc_system(vertex_idx, u_max, object_mesh, use_c, eps)
-            gpc_systems.append(gpc_system)
-
+    vertex_indices = range(object_mesh.vertices.shape[0])
+    with Pool(processes) as p:
+        gpc_systems = p.starmap(
+            compute_gpc_system, [(vertex_idx, u_max, object_mesh, use_c, eps) for vertex_idx in vertex_indices]
+        )
+    print("GPC-system done!")
     return_value = []
     if as_array:
         for system in gpc_systems:
