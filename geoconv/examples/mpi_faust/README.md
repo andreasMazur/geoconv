@@ -28,7 +28,8 @@ if __name__ == "__main__":
         ### GENERAL ###
         template_radius=R * 0.75,
         logging_dir="./imcnn_training_logs",
-        splits=1
+        splits=1,
+        processes=10
     )
 ```
 

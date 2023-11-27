@@ -88,7 +88,8 @@ def train_model(reference_mesh_path,
                 save_gpc_systems=False,
                 template_radius=0.028,
                 logging_dir="./imcnn_training_logs",
-                splits=10):
+                splits=10,
+                processes=1):
     """Trains one singular IMCNN
 
     Parameters
@@ -124,6 +125,8 @@ def train_model(reference_mesh_path,
         [OPTIONAL] The path to the folder where logs will be stored
     splits: int
         [OPTIONAL] The amount of splits over which the ISC-layer should iterate
+    processes: int
+        [OPTIONAL] The amount of concurrent processes that compute GPC-systems
     """
 
     # Load data
@@ -137,7 +140,8 @@ def train_model(reference_mesh_path,
             shot=compute_shot,
             geodesic_diameters_path=geodesic_diameters_path,
             precomputed_gpc_radius=precomputed_gpc_radius,
-            save_gpc_systems=save_gpc_systems
+            save_gpc_systems=save_gpc_systems,
+            processes=processes
         )
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
