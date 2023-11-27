@@ -268,7 +268,6 @@ def draw_triangles(triangles, points=None, point_color="blue", title="", plot=Tr
 
 
 def draw_gpc_triangles(gpc_system,
-                       gpc_faces,
                        template_matrix=None,
                        alpha=.4,
                        edge_color="red",
@@ -281,10 +280,8 @@ def draw_gpc_triangles(gpc_system,
 
     Parameters
     ----------
-    gpc_system: np.ndarray
+    gpc_system: GPCSystem
         The GPC-system to visualize.
-    gpc_faces:
-        The faces contained within the GPC-system.
     template_matrix: np.ndarray
         A 3D-array that describes template vertices in cartesian coordinates. If 'None' is passed
         no template vertices will be visualized.
@@ -303,10 +300,7 @@ def draw_gpc_triangles(gpc_system,
     save_name: str
         The name of the image. If none is given, the image will not be saved.
     """
-    gpc_system_faces = gpc_system[gpc_faces]
-    for f, face in enumerate(gpc_system_faces):
-        for v in range(3):
-            gpc_system_faces[f, v] = polar_to_cart(angle=face[v, 1], scale=face[v, 0])
+    gpc_system_faces = gpc_system.get_gpc_faces()
 
     min_coordinate = gpc_system_faces.min()
     max_coordinate = gpc_system_faces.max()

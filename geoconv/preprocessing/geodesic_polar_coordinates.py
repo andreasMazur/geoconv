@@ -150,7 +150,7 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
     return u_ijk, theta_i
 
 
-def compute_distance_and_angle(vertex_i, vertex_j, u, theta, face_cache, object_mesh, use_c, rotation_axis):
+def compute_distance_and_angle(vertex_i, vertex_j, gpc_system, object_mesh, use_c, rotation_axis):
     """Euclidean update procedure for geodesic distance approximation
 
     See Section 4 in:
@@ -165,12 +165,8 @@ def compute_distance_and_angle(vertex_i, vertex_j, u, theta, face_cache, object_
         The index of the vertex for which we want to update the distance and angle
     vertex_j: int
         The index of a second vertex in the triangle of vertex i (candidate vertex from heap)
-    u: np.ndarray
-        The currently known radial coordinates
-    theta: np.ndarray
-        The currently known angular coordinates
-    face_cache: dict
-        A cache storing (or not storing) the faces for edge `(vertex_i, vertex_j)`
+    gpc_system: GPCSystem
+        The current GPC-system.
     object_mesh: trimesh.Trimesh
         A loaded object mesh
     use_c: bool
@@ -186,22 +182,27 @@ def compute_distance_and_angle(vertex_i, vertex_j, u, theta, face_cache, object_
     """
     # We consider both faces of `sorted_edge` for computing the coordinates to `vertex_i`
     sorted_edge = np.sort([vertex_i, vertex_j])
-    if (sorted_edge[0], sorted_edge[1]) in face_cache.keys():
+    if (sorted_edge[0], sorted_edge[1]) in gpc_system.faces.keys():
         # Use cache to get faces of `sorted_edge`
-        considered_faces = face_cache[(sorted_edge[0], sorted_edge[1])]
+        considered_faces = gpc_system.faces[(sorted_edge[0], sorted_edge[1])]
     else:
-        # Cache considered faces to save time
         _, considered_faces = get_faces_of_edge(sorted_edge, object_mesh)
-        face_cache[(sorted_edge[0], sorted_edge[1])] = considered_faces
 
     # Compute GPC for `vertex_i` considering both faces of `[vertex_i, vertex_j]`
     updates = []
     for face in considered_faces:
         vertex_k = [v for v in face if v not in [vertex_i, vertex_j]][0]
         # We need to know the distance to `vertex_k`
-        if u[vertex_k] < np.inf and theta[vertex_k] >= 0.:
+        if gpc_system.radial_coordinates[vertex_k] < np.inf and gpc_system.angular_coordinates[vertex_k] >= 0.:
             u_ijk, phi_i = compute_u_ijk_and_angle(
-                vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis
+                vertex_i,
+                vertex_j,
+                vertex_k,
+                gpc_system.radial_coordinates,
+                gpc_system.angular_coordinates,
+                object_mesh,
+                use_c,
+                rotation_axis
             )
             updates.append((u_ijk, phi_i, vertex_k))
 
@@ -214,7 +215,7 @@ def compute_distance_and_angle(vertex_i, vertex_j, u, theta, face_cache, object_
         return u_ijk, phi_i, vertex_k
 
 
-def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, face_cache=None, visualize=False):
+def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, gpc_system=None):
     """Computes local GPC for one given source point.
 
     Parameters
@@ -229,25 +230,21 @@ def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, fa
         A flag whether to use the c-extension
     eps: float
         An epsilon
-    face_cache: dict
-        A cache storing the faces of a given edge
-    visualize: bool
-        Whether to visualize the process of creating the GPC-system
+    gpc_system: GPCSystem
 
     Returns
     -------
-    (np.ndarray, np.ndarray, dict, dict, dict)
-        An array `u` of radial coordinates from the source point to other points in the object mesh. An array `theta` of
-        angular coordinates of neighbors from `source_point` in its window. The possibly updated face cache, which
-        associates seen faces to edges, is returned as a dictionary at the third position. The second to last dictionary
-        contains all contained edges within the gpc-system. The last dictionary contains all faces which are contained
-        within the GPC-system, i.e. which consist of nodes that have geodesic polar coordinates.
+    GPCSystem:
+
     """
 
-    #######################################
-    # Initialize GPC-system and face-cache
-    #######################################
-    gpc_system = GPCSystem(source_point, object_mesh, faces=face_cache, use_c=True)
+    ########################
+    # Initialize GPC-system
+    ########################
+    if gpc_system is None:
+        gpc_system = GPCSystem(source_point, object_mesh, use_c=True)
+    else:
+        gpc_system.soft_clear(source_point)
     # Check whether initialization distances are larger than given max-radius
     check_array = np.array([x for x in gpc_system.radial_coordinates if not np.isinf(x)])
     if check_array.max() > u_max:
@@ -261,7 +258,7 @@ def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, fa
     # Initialize min-heap over radial distances
     ############################################
     candidates = []
-    for neighbor in source_point_neighbors:
+    for neighbor in get_neighbors(source_point, object_mesh):
         candidates.append((gpc_system.radial_coordinates[neighbor], neighbor))
     heapq.heapify(candidates)
 
@@ -277,27 +274,16 @@ def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, fa
             # Compute the (updated) geodesic distance `new_u_i` and angular coordinate of the i-th neighbor from the
             # closest vertex in the min-heap to the source point of the GPC-system
             new_u_i, new_theta_i, k = compute_distance_and_angle(
-                i, j, u, theta, face_cache, object_mesh, use_c, rotation_axis
+                i, j, gpc_system, object_mesh, use_c, rotation_axis=object_mesh.vertex_normals[source_point]
             )
 
             # In difference to the original pseudocode, we add 'new_u_i < u_max' to this IF-query
             # to ensure that the radial coordinates do not exceed 'u_max'.
-            if new_u_i < u_max and u[i] / new_u_i > 1 + eps:
-                if update_edges(i, new_u_i, new_theta_i, j, k, u, theta, edge_cache, visualize):
-                    u[i] = new_u_i
-                    theta[i] = new_theta_i
+            if new_u_i < u_max and gpc_system.radial_coordinates[i] / new_u_i > 1 + eps:
+                if gpc_system.update(i, new_u_i, new_theta_i, j, k):
                     heapq.heappush(candidates, (new_u_i, i))
 
-    # Collect all faces that are entirely described in the GPC-system
-    gpc_faces = []
-    for edge in edge_cache[-1]:
-        faces_of_edge = face_cache[(edge[0], edge[1])]
-        for face in faces_of_edge:
-            face = list(face)
-            if np.inf not in u[face] and face not in gpc_faces:
-                gpc_faces.append(face)
-
-    return u, theta, face_cache, edge_cache, gpc_faces
+    return gpc_system
 
 
 def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_msg=""):
@@ -330,17 +316,16 @@ def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, tqdm_m
     """
 
     gpc_systems = []
-    face_cache = dict()
     if tqdm_msg:
         for vertex_idx in tqdm(range(object_mesh.vertices.shape[0]), position=0, postfix=tqdm_msg):
-            u_v, theta_v, face_cache, edge_cache, gpc_faces = compute_gpc_system(
-                vertex_idx, u_max, object_mesh, use_c, eps, face_cache, visualize=False
+            gpc_system = compute_gpc_system(
+                vertex_idx, u_max, object_mesh, use_c, eps
             )
-            gpc_systems.append(np.stack([u_v, theta_v], axis=1))
+            gpc_systems.append(gpc_system.get_gpc_system())
     else:
         for vertex_idx in range(object_mesh.vertices.shape[0]):
-            u_v, theta_v, face_cache, edge_cache, gpc_faces = compute_gpc_system(
-                vertex_idx, u_max, object_mesh, use_c, eps, face_cache, visualize=False
+            gpc_system = compute_gpc_system(
+                vertex_idx, u_max, object_mesh, use_c, eps
             )
-            gpc_systems.append(np.stack([u_v, theta_v], axis=1))
+            gpc_systems.append(gpc_system.get_gpc_system())
     return np.stack(gpc_systems)

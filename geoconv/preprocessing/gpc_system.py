@@ -1,12 +1,12 @@
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
-from geoconv.utils.misc import get_neighbors, get_faces_of_edge, compute_vector_angle
+from geoconv.utils.misc import get_neighbors, get_faces_of_edge, compute_vector_angle, gpc_systems_into_cart
 
 import c_extension
 import numpy as np
 
 
 class GPCSystem:
-    def __init__(self, source_point, object_mesh, faces=None, use_c=True):
+    def __init__(self, source_point, object_mesh, use_c=True, soft_clear=False):
         """Compute the initial radial and angular coordinates around a source point and setup caches.
 
         Angle coordinates are always given w.r.t. some reference direction. The choice of a reference
@@ -22,28 +22,32 @@ class GPCSystem:
             The index of the source point around which a window (GPC-system) shall be established
         object_mesh: trimesh.Trimesh
             A loaded object mesh
-        faces:
         use_c: bool
             A flag whether to use the c-extension
+        soft_clear: bool
+
         """
+        # Remember the underlying mesh
+        self.object_mesh = object_mesh
+
         ####################################################################################
         # Initialize face- and edge-cache with one-hop-neighborhood edges from source-point
         ####################################################################################
-        self.edges = {-1: []}
-        self.faces = faces if faces is not None else {}
+        if not soft_clear:
+            self.edges = {-1: []}
+            self.faces = {(-1, -1): []}
+
         source_point_neighbors = get_neighbors(source_point, object_mesh)
+        self.edges[source_point] = []
+
         for neighbor in source_point_neighbors:
             edge, considered_faces = get_faces_of_edge(np.array([source_point, neighbor]), object_mesh)
             edge = list(edge)
             # Add edges to edge-cache
-            new_vertex = edge[0] if edge[0] != source_point else edge[1]
-            self.edges[source_point].append(edge)
-            self.edges[new_vertex] = [edge]
-            self.edges[-1].append(edge)
+            self.add_edge(edge)
             # Add faces to face-cache
-            self.faces[(edge[0], edge[1])] = []
             for face in considered_faces:
-                self.faces[(edge[0], edge[1])].append(np.array(face))
+                self.add_face(face)
 
         #######################################
         # Calculate initial radial coordinates
@@ -73,6 +77,18 @@ class GPCSystem:
         self.angular_coordinates[source_point_neighbors] = theta_neighbors
         self.angular_coordinates[source_point] = 0.0
 
+    def soft_clear(self, source_point, use_c=True):
+        """Reset radial- and angular coordinates, keep underlying mesh and edge- and face-caches.
+
+        Parameters
+        ----------
+        source_point: int
+            The new source point
+        use_c: bool
+            A flag whether to use the c-extension
+        """
+        self.__init__(source_point, self.object_mesh, use_c=use_c, soft_clear=True)
+
     def add_edge(self, edge):
         """Add an edge to the GPC-system
 
@@ -81,19 +97,40 @@ class GPCSystem:
         edge: list
             The edge to add
         """
-        edge = list(edge)
-        # Check whether node already exists
-        if edge[0] not in self.edges.keys():
-            self.edges[edge[0]] = []
+        edge = list(np.sort(edge))
         # Check if edge was seen once
         if edge not in self.edges[-1]:
             self.edges[-1].append(edge)
-        # Check whether edge is already saved under node
-        if edge not in self.edges[edge[0]]:
-            self.edges[edge[0]].append(edge)
+        for vertex in edge:
+            # Check whether node already exists
+            if vertex not in self.edges.keys():
+                self.edges[vertex] = []
+            # Check whether edge is already saved under node
+            if edge not in self.edges[vertex]:
+                self.edges[vertex].append(edge)
+
+    def add_face(self, face):
+        """Add a face to the GPC-system
+
+        Parameters
+        ----------
+        face: np.array
+            The face to add
+        """
+        face = list(np.sort(face))
+        if face not in self.faces[(-1, -1)]:
+            self.faces[(-1, -1)].append(face)
+        face_edges = [
+            [face[0], face[1]], [face[1], face[2]], [face[0], face[2]]
+        ]
+        for edge in face_edges:
+            if (edge[0], edge[1]) not in self.faces.keys():
+                self.faces[(edge[0], edge[1])] = [face]
+            elif face not in self.faces[(edge[0], edge[1])]:
+                self.faces[(edge[0], edge[1])].append(face)
 
     def update(self, vertex_i, rho_i, theta_i, vertex_j, vertex_k):
-        """Add a face to the GPC-system
+        """Update the GPC-system while preventing to edge intersections
 
         Parameters
         ----------
@@ -122,7 +159,12 @@ class GPCSystem:
         updated_face_edges = [
             [sorted_face[0], sorted_face[1]], [sorted_face[1], sorted_face[2]], [sorted_face[0], sorted_face[2]]
         ]
-        edges_of_interest = self.edges[vertex_i].copy()
+        if vertex_i in self.edges.keys():
+            edges_of_interest = self.edges[vertex_i].copy()
+        else:
+            self.edges[vertex_i] = []
+            edges_of_interest = []
+
         for edge in updated_face_edges:
             if edge not in edges_of_interest:
                 edges_of_interest.append(edge)
@@ -147,6 +189,11 @@ class GPCSystem:
         ################
         for edge in edges_of_interest:
             self.add_edge(edge)
+
+        ###############
+        # Add new face
+        ###############
+        self.add_face(sorted_face)
 
         ###########################
         # Update GPC of `vertex_i`
@@ -194,5 +241,19 @@ class GPCSystem:
                     return True
         return False
 
-    def visualize(self):
-        pass
+    def get_gpc_system(self):
+        """Return the GPC-system as one numpy array.
+
+        An array `self.radial_coordinates` of radial coordinates from the source point to other points in the object
+        mesh. An array `self.angular_coordinates` of angular coordinates of neighbors from `source_point` in its window.
+        The possibly updated face cache, which associates seen faces to edges, is returned as a dictionary at the third
+        position. The second to last dictionary contains all contained edges within the gpc-system. The last dictionary
+        contains all faces which are contained within the GPC-system, i.e. which consist of nodes that have geodesic
+        polar coordinates.
+        """
+        return np.stack([self.radial_coordinates, self.angular_coordinates], axis=1)
+
+    def get_gpc_faces(self):
+        gpc_system_faces = self.get_gpc_system()
+        gpc_system_faces = gpc_system_faces[np.array(self.faces[(-1, -1)])]
+        return gpc_systems_into_cart(gpc_system_faces)
