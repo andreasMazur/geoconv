@@ -20,7 +20,8 @@ def preprocess_faust(n_radial,
                      shot=True,
                      geodesic_diameters_path="",
                      precomputed_gpc_radius=-1.,
-                     save_gpc_systems=True):
+                     save_gpc_systems=True,
+                     processes=1):
     """Preprocesses the FAUST-data set
 
     The FAUST-data set has to be downloaded from: https://faust-leaderboard.is.tuebingen.mpg.de/
@@ -49,6 +50,8 @@ def preprocess_faust(n_radial,
         The GPC-system radius to use for GPC-system computation. If not provided, the script will calculate it.
     save_gpc_systems: bool
         Whether to save the GPC-systems.
+    processes: int
+        The amount of concurrent processes that compute GPC-systems
 
     Returns
     -------
@@ -174,7 +177,7 @@ def preprocess_faust(n_radial,
             gpc_systems = compute_gpc_systems(
                 reg_mesh,
                 u_max=gpc_radius,
-                tqdm_msg=f"File {file_idx} - Compute local GPC-systems"
+                processes=processes
             )
 
             # GPC-system do not necessarily need to be saved since IMCNNs only expect a signal and barycentric
