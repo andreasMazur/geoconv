@@ -85,7 +85,7 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     path = os.path.dirname(path_to_stanford_bunny)
     bunny_path_gpc = f"{path}/bunny_gpc_systems.npy"
     if not Path(bunny_path_gpc).is_file() or recompute_gpc:
-        gpc_systems = compute_gpc_systems(bunny, u_max=u_max, tqdm_msg="Computing GPC-systems", use_c=True)
+        gpc_systems = compute_gpc_systems(bunny, u_max=u_max, use_c=True)
         np.save(bunny_path_gpc, gpc_systems)
     else:
         gpc_systems = np.load(bunny_path_gpc)
@@ -99,7 +99,7 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     bunny_path_bc = f"{path}/bunny_barycentric_coordinates.npy"
     if not Path(bunny_path_bc).is_file() or recompute_bc:
         bc = compute_barycentric_coordinates(
-            bunny, gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius, verbose=True
+            gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius, verbose=True
         )
         np.save(bunny_path_bc, bc)
     else:
@@ -142,11 +142,8 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
 
         # Original/Set template vertices
         draw_gpc_triangles(
-            bunny,
             gpc_system_idx,
-            u_max=u_max,
             template_matrix=template_matrix,
-            print_scatter=False,
             plot=True,
             title="GPC-system",
             save_name="gpc_system.svg"

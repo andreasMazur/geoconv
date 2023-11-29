@@ -300,7 +300,7 @@ def draw_gpc_triangles(gpc_system,
     save_name: str
         The name of the image. If none is given, the image will not be saved.
     """
-    gpc_system_faces = gpc_system.get_gpc_faces()
+    gpc_system_faces = gpc_system.get_gpc_triangles(in_cart=True)
 
     min_coordinate = gpc_system_faces.min()
     max_coordinate = gpc_system_faces.max()

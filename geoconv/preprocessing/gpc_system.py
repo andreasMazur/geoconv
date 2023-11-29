@@ -250,8 +250,60 @@ class GPCSystem:
         """
         return np.stack([self.radial_coordinates, self.angular_coordinates], axis=1)
 
-    def get_gpc_faces(self):
-        """Return all faces captured by the current GPC-systems."""
+    def get_gpc_triangles(self, in_cart=False):
+        """Return all triangles captured by the current GPC-system.
+
+        Parameters
+        ----------
+        in_cart: bool
+            Whether to translate geodesic polar coordinates into cartesian.
+        """
         gpc_system_faces = self.get_gpc_system()
         gpc_system_faces = gpc_system_faces[np.array(self.faces[(-1, -1)])]
-        return gpc_systems_into_cart(gpc_system_faces)
+        if in_cart:
+            return gpc_systems_into_cart(gpc_system_faces)
+        else:
+            return gpc_system_faces
+
+    def fill_gpc_system(self):
+        """TODO"""
+        pass
+
+    def load_gpc_system_from_array(self, path):
+        """Loads a GPC-system from an array.
+
+        Thereby, the array should have a shape similar to the return value from 'self.get_gpc_system()'.
+
+        Parameters
+        ----------
+        path: str
+            The path to the stored GPC-system.
+        """
+        # Load coordinates
+        coordinates = np.load(path)
+        self.radial_coordinates = coordinates[:, 0]
+        self.angular_coordinates = coordinates[:, 1]
+
+        # Load all included faces
+        not_included_faces = np.all(np.invert(np.any(coordinates[self.object_mesh.faces] == np.inf, axis=-1)), axis=-1)
+        faces = np.sort(self.object_mesh.faces[not_included_faces])
+        self.faces = {(-1, -1): [list(f) for f in faces]}
+
+        # Load all included edges
+        face_edges = faces[:, [[0, 1], [1, 2], [0, 2]]]
+        self.edges = {-1: [list(e) for e in np.unique(face_edges.reshape(-1, 2), axis=0)]}
+
+        # Fill edge cache
+        for vertex in np.unique(self.edges[-1]):
+            self.edges[vertex] = []
+            for edge in self.edges[-1]:
+                if vertex in edge:
+                    self.edges[vertex].append(list(edge))
+
+        # Fill face cache
+        for edge in self.edges[-1]:
+            self.faces[(edge[0], edge[1])] = []
+            for face_idx, face in enumerate(face_edges):
+                if edge in face:
+                    self.faces[(edge[0], edge[1])].append(list(faces[face_idx]))
+        print()

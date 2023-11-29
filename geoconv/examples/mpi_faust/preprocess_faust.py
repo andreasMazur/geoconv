@@ -183,7 +183,7 @@ def preprocess_faust(n_radial,
             # GPC-system do not necessarily need to be saved since IMCNNs only expect a signal and barycentric
             # coordinates. However, they might be useful later. E.g. you only want to compute other barycentric
             # coordinates for a different template in the same GPC-systems.
-            if save_gpc_systems:
+            if save_gpc_systems:  # TODO: How to store GPCSystem-class?
                 np.save(gpc_name, gpc_systems)
 
             ##################################
