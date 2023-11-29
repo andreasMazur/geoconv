@@ -285,7 +285,7 @@ def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, gp
                 if gpc_system.update(i, new_u_i, new_theta_i, j, k_vertices):
                     heapq.heappush(candidates, (new_u_i, i))
 
-    # print(f"GPC-system {source_point} done!")
+    gpc_system.fill_gpc_system()
     return gpc_system
 
 
