@@ -284,8 +284,6 @@ def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, gp
             if new_u_i < u_max and gpc_system.radial_coordinates[i] / new_u_i > 1 + eps:
                 if gpc_system.update(i, new_u_i, new_theta_i, j, k_vertices):
                     heapq.heappush(candidates, (new_u_i, i))
-
-    gpc_system.fill_gpc_system()
     return gpc_system
 
 
