@@ -318,11 +318,12 @@ def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, proces
         `initialize_neighborhood` for how the reference direction is selected).
     """
     vertex_indices = range(object_mesh.vertices.shape[0])
+    print("Computing GPC-systems...")
     with Pool(processes) as p:
         gpc_systems = p.starmap(
             compute_gpc_system, [(vertex_idx, u_max, object_mesh, use_c, eps) for vertex_idx in vertex_indices]
         )
-    print("GPC-system done!")
+    print("GPC-systems done!")
     return_value = []
     if as_array:
         for system in gpc_systems:

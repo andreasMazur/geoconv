@@ -1,6 +1,8 @@
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
 from geoconv.utils.misc import get_neighbors, get_faces_of_edge, compute_vector_angle, gpc_systems_into_cart
 
+from tqdm import tqdm
+
 import c_extension
 import numpy as np
 
