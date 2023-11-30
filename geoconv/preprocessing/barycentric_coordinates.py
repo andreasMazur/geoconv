@@ -202,7 +202,7 @@ def compute_barycentric_coordinates(gpc_systems, n_radial=2, n_angular=4, radius
             - c: References the c-th angular coordinate of the template
             - B[a, b, c, :, 0]: Returns the **indices** of the nodes that construct the triangle containing the template
                                 vertex (b, c) in GPC-system centered in node `a`
-            - B[a, b, c, :, 1]: Returns the **Barycentric coordinates** of the nodes that construct the triangle
+            - B[a, b, c, :, 1]: Returns the **barycentric coordinates** of the nodes that construct the triangle
                                 containing the template vertex (b, c) in GPC-system centered in node `a`
     """
 
