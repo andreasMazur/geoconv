@@ -182,7 +182,7 @@ def preprocess_faust(n_radial,
             print(f"Found temp-files:\n{bc_name}\n{gt_name}\n{signal_name}\nSkipping to next temp.-mesh..")
 
     shutil.rmtree(temp_dir)
-    shutil.make_archive(target_dir[:-4], "zip", target_dir)
+    shutil.make_archive(target_dir, "zip", target_dir)
     shutil.rmtree(target_dir)
     print("Preprocessing finished.")
 

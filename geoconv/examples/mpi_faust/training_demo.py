@@ -134,7 +134,7 @@ def train_model(reference_mesh_path,
         template_radius = preprocess_faust(
             n_radial=n_radial,
             n_angular=n_angular,
-            target_dir=preprocess_zip,
+            target_dir=preprocess_zip[:-4],
             registration_path=registration_path,
             shot=compute_shot,
             geodesic_diameters_path=geodesic_diameters_path,
