@@ -79,7 +79,7 @@ def preprocess_faust(n_radial,
 
     # Determine GPC-system-radius
     gpc_radius = .0
-    for file_idx in range(1):  # len(paths_reg_meshes)
+    for file_idx in range(len(paths_reg_meshes)):
         # Define file names for normalized vertices and faces (=temp.-meshes)
         reg_file_name = f"{registration_path}/{paths_reg_meshes[file_idx]}"
         normalized_v_name = f"{temp_dir}/vertices_{file_idx}.npy"
@@ -123,7 +123,7 @@ def preprocess_faust(n_radial,
     json.dump({"gpc_system_radius": gpc_radius, "kernel_radius": kernel_radius}, properties_file, indent=4)
     properties_file.close()
 
-    for file_idx in range(1):  # len(paths_reg_meshes)
+    for file_idx in range(len(paths_reg_meshes)):
         # Define file names
         bc_name = f"{target_dir}/BC_{paths_reg_meshes[file_idx][:-4]}.npy"
         gt_name = f"{target_dir}/GT_{paths_reg_meshes[file_idx][:-4]}.npy"
