@@ -241,20 +241,22 @@ class GPCSystem:
         """
         x1, y1 = edge_fst_vertex[0], edge_fst_vertex[1]
         x2, y2 = edge_snd_vertex[0], edge_snd_vertex[1]
-        for line_segment in self.edges[-1]:
-            if not (new_line_segment_indices[0] == line_segment[0] and new_line_segment_indices[1] == line_segment[1]):
-                # Calculate Cartesian coordinates of existing line segment
-                x3, y3 = self.x_coordinates[line_segment[0]], self.y_coordinates[line_segment[0]]
-                x4, y4 = self.x_coordinates[line_segment[1]], self.y_coordinates[line_segment[1]]
-                # Check on line-segment intersection
-                denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-                nominator_1 = (x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)
-                nominator_2 = (x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2)
-                x = nominator_1 / (denominator + 1e-10)
-                y = nominator_2 / (denominator + 1e-10)
-                eps = 1e-5
-                if 0. + eps < x < 1. - eps and 0. + eps < y < 1. - eps:
-                    return True
+        all_edges = np.array(self.edges[-1])
+        xs3, ys3 = self.x_coordinates[all_edges[:, 0]], self.y_coordinates[all_edges[:, 0]]
+        xs4, ys4 = self.x_coordinates[all_edges[:, 1]], self.y_coordinates[all_edges[:, 1]]
+
+        denominators = (x1 - x2) * (ys3 - ys4) - (y1 - y2) * (xs3 - xs4)
+        nominators_1 = (x1 - xs3) * (ys3 - ys4) - (y1 - ys3) * (xs3 - xs4)
+        nominators_2 = (x1 - xs3) * (y1 - y2) - (y1 - ys3) * (x1 - x2)
+
+        xs = nominators_1 / (denominators + 1e-10)
+        ys = nominators_2 / (denominators + 1e-10)
+
+        eps = 1e-5
+        if np.any(
+            np.logical_and(np.logical_and(0. + eps < xs, xs < 1. - eps), np.logical_and(0. + eps < ys, ys < 1. - eps))
+        ):
+            return True
         return False
 
     def get_gpc_system(self):
