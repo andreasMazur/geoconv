@@ -240,7 +240,6 @@ def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, gp
     GPCSystem:
         The current gpc-system.
     """
-    print(f"Computing GPC-system for source point {source_point}")
     ########################
     # Initialize GPC-system
     ########################
@@ -287,6 +286,16 @@ def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, gp
     return gpc_system
 
 
+def wrapper(vertex_indices, u_max, object_mesh, use_c, eps):
+    results = []
+    with tqdm(total=len(vertex_indices)) as pbar:
+        for vertex_idx in vertex_indices:
+            results.append(compute_gpc_system(vertex_idx, u_max, object_mesh, use_c, eps))
+            pbar.update(1)
+        pbar.close()
+    return results
+
+
 def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, processes=1, as_array=True):
     """Computes approximated geodesic polar coordinates for all vertices within an object mesh.
 
@@ -317,13 +326,9 @@ def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, proces
         the radial coordinate of node `j` in the local GPC-system of node `i` w.r.t. a reference direction (see
         `initialize_neighborhood` for how the reference direction is selected).
     """
-    vertex_indices = range(object_mesh.vertices.shape[0])
-    print("Computing GPC-systems...")
+    vertex_indices = np.split(np.arange(object_mesh.vertices.shape[0]), processes)
     with Pool(processes) as p:
-        gpc_systems = p.starmap(
-            compute_gpc_system, [(vertex_idx, u_max, object_mesh, use_c, eps) for vertex_idx in vertex_indices]
-        )
-    print("GPC-systems done!")
+        gpc_systems = p.starmap(wrapper, [(vi, u_max, object_mesh, use_c, eps) for vi in vertex_indices])
     return_value = []
     if as_array:
         for system in gpc_systems:
