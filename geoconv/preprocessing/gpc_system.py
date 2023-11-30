@@ -29,6 +29,7 @@ class GPCSystem:
         """
         # Remember the underlying mesh
         self.object_mesh = object_mesh
+        self.source_point = source_point
 
         ####################################################################################
         # Initialize face- and edge-cache with one-hop-neighborhood edges from source-point

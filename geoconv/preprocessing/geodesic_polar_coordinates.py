@@ -329,6 +329,7 @@ def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, proces
     vertex_indices = np.split(np.arange(object_mesh.vertices.shape[0]), processes)
     with Pool(processes) as p:
         gpc_systems = p.starmap(wrapper, [(vi, u_max, object_mesh, use_c, eps) for vi in vertex_indices])
+    gpc_systems = np.array(gpc_systems).flatten()
     return_value = []
     if as_array:
         for system in gpc_systems:
