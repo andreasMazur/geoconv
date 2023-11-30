@@ -20,7 +20,6 @@ def preprocess_faust(n_radial,
                      shot=True,
                      geodesic_diameters_path="",
                      precomputed_gpc_radius=-1.,
-                     save_gpc_systems=True,
                      processes=1):
     """Preprocesses the FAUST-data set
 
@@ -43,15 +42,13 @@ def preprocess_faust(n_radial,
     registration_path: str
         The path to the training-registration meshes of the FAUST-data set.
     shot: bool
-        Whether to compute SHOT-descriptors as mesh signal
+        Whether to compute SHOT-descriptors as mesh signal.
     geodesic_diameters_path: str
         Path, which points to *.npy file, that contains the geodesic diameters for all the meshes in the dataset.
     precomputed_gpc_radius: float
         The GPC-system radius to use for GPC-system computation. If not provided, the script will calculate it.
-    save_gpc_systems: bool
-        Whether to save the GPC-systems.
     processes: int
-        The amount of concurrent processes that compute GPC-systems
+        The amount of concurrent processes that compute GPC-systems.
 
     Returns
     -------
@@ -82,7 +79,7 @@ def preprocess_faust(n_radial,
 
     # Determine GPC-system-radius
     gpc_radius = .0
-    for file_idx in range(len(paths_reg_meshes)):
+    for file_idx in range(1):  # len(paths_reg_meshes)
         # Define file names for normalized vertices and faces (=temp.-meshes)
         reg_file_name = f"{registration_path}/{paths_reg_meshes[file_idx]}"
         normalized_v_name = f"{temp_dir}/vertices_{file_idx}.npy"
@@ -126,9 +123,8 @@ def preprocess_faust(n_radial,
     json.dump({"gpc_system_radius": gpc_radius, "kernel_radius": kernel_radius}, properties_file, indent=4)
     properties_file.close()
 
-    for file_idx in range(len(paths_reg_meshes)):
+    for file_idx in range(1):  # len(paths_reg_meshes)
         # Define file names
-        gpc_name = f"{target_dir}/GPC_{paths_reg_meshes[file_idx][:-4]}.npy"
         bc_name = f"{target_dir}/BC_{paths_reg_meshes[file_idx][:-4]}.npy"
         gt_name = f"{target_dir}/GT_{paths_reg_meshes[file_idx][:-4]}.npy"
         signal_name = f"{target_dir}/SIGNAL_{paths_reg_meshes[file_idx][:-4]}.npy"
@@ -139,12 +135,7 @@ def preprocess_faust(n_radial,
         reg_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
 
         # Check whether preprocessed files already exist
-        if not (
-            Path(gpc_name).is_file()
-            and Path(bc_name).is_file()
-            and Path(gt_name).is_file()
-            and Path(signal_name).is_file()
-        ):
+        if not (Path(bc_name).is_file() and Path(gt_name).is_file() and Path(signal_name).is_file()):
             #######################################################
             # Shuffle vertices of query mesh and save ground truth
             #######################################################
@@ -180,21 +171,15 @@ def preprocess_faust(n_radial,
                 processes=processes
             )
 
-            # GPC-system do not necessarily need to be saved since IMCNNs only expect a signal and barycentric
-            # coordinates. However, they might be useful later. E.g. you only want to compute other barycentric
-            # coordinates for a different template in the same GPC-systems.
-            if save_gpc_systems:  # TODO: How to store GPCSystem-class?
-                np.save(gpc_name, gpc_systems)
-
             ##################################
             # Compute Barycentric coordinates
             ##################################
             bary_coords = compute_barycentric_coordinates(
-                reg_mesh, gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=kernel_radius
+                gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=kernel_radius
             )
             np.save(bc_name, bary_coords)
         else:
-            print(f"Found temp-files:\n{gpc_name}\n{bc_name}\n{gt_name}\n{signal_name}\nSkipping to temp.-mesh..")
+            print(f"Found temp-files:\n{bc_name}\n{gt_name}\n{signal_name}\nSkipping to next temp.-mesh..")
 
     shutil.rmtree(temp_dir)
     shutil.make_archive(target_dir, "zip", target_dir)

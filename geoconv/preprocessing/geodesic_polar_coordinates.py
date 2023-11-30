@@ -240,7 +240,7 @@ def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, gp
     GPCSystem:
         The current gpc-system.
     """
-
+    print(f"Computing GPC-system for source point {source_point}")
     ########################
     # Initialize GPC-system
     ########################

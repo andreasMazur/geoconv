@@ -85,7 +85,6 @@ def train_model(reference_mesh_path,
                 compute_shot=True,
                 geodesic_diameters_path="",
                 precomputed_gpc_radius=0.037,
-                save_gpc_systems=False,
                 template_radius=0.028,
                 logging_dir="./imcnn_training_logs",
                 splits=10,
@@ -140,7 +139,6 @@ def train_model(reference_mesh_path,
             shot=compute_shot,
             geodesic_diameters_path=geodesic_diameters_path,
             precomputed_gpc_radius=precomputed_gpc_radius,
-            save_gpc_systems=save_gpc_systems,
             processes=processes
         )
     else:

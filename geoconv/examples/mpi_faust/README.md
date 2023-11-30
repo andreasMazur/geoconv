@@ -24,7 +24,6 @@ if __name__ == "__main__":
         # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
         geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
         precomputed_gpc_radius=R,
-        save_gpc_systems=False,  # Set this to 'True' in case you want to inspect GPC-systems
         ### GENERAL ###
         template_radius=R * 0.75,
         logging_dir="./imcnn_training_logs",
