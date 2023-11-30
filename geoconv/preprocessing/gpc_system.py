@@ -1,8 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
 from geoconv.utils.misc import get_neighbors, get_faces_of_edge, compute_vector_angle, gpc_systems_into_cart
 
-from tqdm import tqdm
-
 import c_extension
 import numpy as np
 
@@ -79,6 +77,15 @@ class GPCSystem:
         self.angular_coordinates[source_point_neighbors] = theta_neighbors
         self.angular_coordinates[source_point] = 0.0
 
+        self.x_coordinates = np.full((object_mesh.vertices.shape[0],), np.inf)
+        self.y_coordinates = np.full((object_mesh.vertices.shape[0],), np.inf)
+        self.x_coordinates[source_point] = 0.
+        self.y_coordinates[source_point] = 0.
+        for neighbor in source_point_neighbors:
+            x, y = polar_to_cart(angle=self.angular_coordinates[neighbor], scale=self.radial_coordinates[neighbor])
+            self.x_coordinates[neighbor] = x
+            self.y_coordinates[neighbor] = y
+
     def soft_clear(self, source_point, use_c=True):
         """Reset radial- and angular coordinates, keep underlying mesh and edge- and face-caches.
 
@@ -116,7 +123,7 @@ class GPCSystem:
 
         Parameters
         ----------
-        face: np.array
+        face: np.ndarray
             The face to add
         """
         face = list(np.sort(face))
@@ -175,16 +182,20 @@ class GPCSystem:
             ##########################################
             # Check collected edges for intersections
             ##########################################
+            x, y = polar_to_cart(angle=theta_i, scale=rho_i)
             for edge in edges_of_interest:
+
                 if edge[0] == vertex_i:
-                    edge_fst_vertex = [rho_i, theta_i]
+                    edge_fst_vertex = [x, y]
                 else:
-                    edge_fst_vertex = [self.radial_coordinates[edge[0]], self.angular_coordinates[edge[0]]]
+                    edge_fst_vertex = [self.x_coordinates[edge[0]], self.y_coordinates[edge[0]]]
+
                 if edge[1] == vertex_i:
-                    edge_snd_vertex = [rho_i, theta_i]
+                    edge_snd_vertex = [x, y]
                 else:
-                    edge_snd_vertex = [self.radial_coordinates[edge[1]], self.angular_coordinates[edge[1]]]
-                if self.line_segment_intersection(np.array([edge_fst_vertex, edge_snd_vertex]), np.array(edge)):
+                    edge_snd_vertex = [self.x_coordinates[edge[1]], self.y_coordinates[edge[1]]]
+
+                if self.line_segment_intersection(edge_fst_vertex, edge_snd_vertex, np.array(edge)):
                     return False
 
             ################
@@ -203,9 +214,12 @@ class GPCSystem:
             ###########################
             self.radial_coordinates[vertex_i] = rho_i
             self.angular_coordinates[vertex_i] = theta_i
+
+            self.x_coordinates[vertex_i] = x
+            self.y_coordinates[vertex_i] = y
         return True
 
-    def line_segment_intersection(self, new_line_segment, new_line_segment_indices):
+    def line_segment_intersection(self, edge_fst_vertex, edge_snd_vertex, new_line_segment_indices):
         """Checks, whether a line segment intersects previously existing ones.
 
         Implements:
@@ -213,8 +227,10 @@ class GPCSystem:
 
         Parameters
         ----------
-        new_line_segment: np.ndarray
-            The new line segment in polar coordinates to be checked.
+        edge_fst_vertex: np.ndarray
+            The cartesian coordinates of the first vertex of the line to check
+        edge_snd_vertex: np.ndarray
+            The cartesian coordinates of the second vertex of the line to check
         new_line_segment_indices: np.ndarray
             The indices of the new line segment to be checked.
 
@@ -223,16 +239,13 @@ class GPCSystem:
         bool:
             Whether the new line segment intersect already existing ones.
         """
-        # Calculate Cartesian coordinates of new line segment
-        x1, y1 = polar_to_cart(angle=new_line_segment[0, 1], scale=new_line_segment[0, 0])
-        x2, y2 = polar_to_cart(angle=new_line_segment[1, 1], scale=new_line_segment[1, 0])
+        x1, y1 = edge_fst_vertex[0], edge_fst_vertex[1]
+        x2, y2 = edge_snd_vertex[0], edge_snd_vertex[1]
         for line_segment in self.edges[-1]:
-            if not np.array_equal(new_line_segment_indices, line_segment):
+            if not (new_line_segment_indices[0] == line_segment[0] and new_line_segment_indices[1] == line_segment[1]):
                 # Calculate Cartesian coordinates of existing line segment
-                theta_2, rho_2 = self.angular_coordinates[line_segment[0]], self.radial_coordinates[line_segment[0]]
-                theta_3, rho_3 = self.angular_coordinates[line_segment[1]], self.radial_coordinates[line_segment[1]]
-                x3, y3 = polar_to_cart(angle=theta_2, scale=rho_2)
-                x4, y4 = polar_to_cart(angle=theta_3, scale=rho_3)
+                x3, y3 = self.x_coordinates[line_segment[0]], self.y_coordinates[line_segment[0]]
+                x4, y4 = self.x_coordinates[line_segment[1]], self.y_coordinates[line_segment[1]]
                 # Check on line-segment intersection
                 denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
                 nominator_1 = (x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)
