@@ -208,7 +208,7 @@ def compute_barycentric_coordinates(gpc_systems, n_radial=2, n_angular=4, radius
 
     # Define template vertices at which interpolation values will be needed
     template_matrix = create_template_matrix(n_radial=n_radial, n_angular=n_angular, radius=radius, in_cart=True)
-    n_gpc_systems = gpc_systems.object_mesh_gpc_systems.shape[0]qq
+    n_gpc_systems = gpc_systems.object_mesh_gpc_systems.shape[0]
     barycentric_coordinates = np.zeros((n_gpc_systems, n_radial, n_angular, 3, 2))
 
     for gpc_system_idx in tqdm(range(n_gpc_systems), postfix=f"Computing barycentric coordinates"):
