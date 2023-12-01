@@ -84,7 +84,7 @@ class GPCSystem:
         self.x_coordinates[source_point] = 0.
         self.y_coordinates[source_point] = 0.
         for neighbor in source_point_neighbors:
-            x, y = polar_to_cart(angle=self.angular_coordinates[neighbor], scale=self.radial_coordinates[neighbor])
+            x, y = polar_to_cart(angles=self.angular_coordinates[neighbor], scales=self.radial_coordinates[neighbor])
             self.x_coordinates[neighbor] = x
             self.y_coordinates[neighbor] = y
 
@@ -184,7 +184,7 @@ class GPCSystem:
             ##########################################
             # Check collected edges for intersections
             ##########################################
-            x, y = polar_to_cart(angle=theta_i, scale=rho_i)
+            x, y = polar_to_cart(angles=theta_i, scales=rho_i)
             for edge in edges_of_interest:
 
                 if edge[0] == vertex_i:
@@ -277,9 +277,9 @@ class GPCSystem:
         in_cart: bool
             Whether to translate geodesic polar coordinates into cartesian.
         """
-        gpc_system_faces = self.get_gpc_system()
-        gpc_system_faces = gpc_system_faces[np.array(self.faces[(-1, -1)])]
+        gpc_system_triangles = self.get_gpc_system()
+        gpc_system_triangles = gpc_system_triangles[np.array(self.faces[(-1, -1)])]
         if in_cart:
-            return gpc_systems_into_cart(gpc_system_faces)
+            return gpc_systems_into_cart(gpc_system_triangles)
         else:
-            return gpc_system_faces
+            return gpc_system_triangles

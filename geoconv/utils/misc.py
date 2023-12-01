@@ -153,12 +153,7 @@ def gpc_systems_into_cart(gpc_systems):
         The same GPC-systems but in cartesian coordinates
     """
     gpc_systems_cart = np.copy(gpc_systems)
-    for gpc_system_idx in tqdm(range(gpc_systems_cart.shape[0]), postfix="Translating GPC-coordinates into cartesian"):
-        for vertex_idx in range(gpc_systems_cart.shape[1]):
-            gpc_systems_cart[gpc_system_idx, vertex_idx] = polar_to_cart(
-                gpc_systems_cart[gpc_system_idx, vertex_idx, 1], gpc_systems_cart[gpc_system_idx, vertex_idx, 0]
-            )
-    return gpc_systems_cart
+    return polar_to_cart(gpc_systems_cart[:, :, 1], gpc_systems_cart[:, :, 0])
 
 
 def reconstruct_template(gpc_system, b_coordinates):

@@ -89,7 +89,7 @@ def prep_interpolation(gpc_system, object_mesh):
     for tri_idx in range(gpc_triangles.shape[0]):
         for point_idx in range(gpc_triangles.shape[1]):
             rho, theta = gpc_triangles[tri_idx, point_idx]
-            gpc_triangles[tri_idx, point_idx] = polar_to_cart(theta, scale=rho)
+            gpc_triangles[tri_idx, point_idx] = polar_to_cart(theta, scales=rho)
 
     return gpc_triangles, gpc_triangles_node_indices
 
@@ -121,23 +121,23 @@ def interpolation(query_point, gpc_triangles, gpc_triangles_node_indices):
     return np.array([0., 0., 0.]), np.array([0, 0, 0])
 
 
-def polar_to_cart(angle, scale=1.):
+def polar_to_cart(angles, scales=1.):
     """Returns x and y for a given angle.
 
     Parameters
     ----------
-    angle: float
-        The angular coordinate
-    scale: float
-        The radial coordinate
+    angles: np.ndarray
+        The angular coordinates
+    scales: np.ndarray
+        The radial coordinates
 
     Returns
     -------
-    (float, float):
-        The x-coordinate and y-coordinate
+    np.ndarray:
+        The x-coordinate and y-coordinates
 
     """
-    return scale * np.cos(angle), scale * np.sin(angle)
+    return np.stack([scales * np.cos(angles), scales * np.sin(angles)], axis=-1)
 
 
 def create_template_matrix(n_radial, n_angular, radius, in_cart=False):
