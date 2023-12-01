@@ -28,10 +28,15 @@ class GPCSystemGroup:
         """
         n_vertices = self.object_mesh.vertices.shape[0]
         vertex_indices = np.arange(n_vertices)
-        gpc_systems = []
         with Pool(self.processes) as p:
-            for result in p.starmap(self.compute_gpc_system, tqdm([(vi, u_max) for vi in vertex_indices], total=n_vertices)):
-                gpc_systems.append(result)
+            gpc_systems = p.starmap(
+                self.compute_gpc_system,
+                tqdm(
+                    [(vi, u_max) for vi in vertex_indices],
+                    total=n_vertices,
+                    postfix="Computing GPC-systems"
+                )
+            )
         self.object_mesh_gpc_systems = np.array(gpc_systems).flatten()
 
     def compute_gpc_system(self, source_point, u_max, gpc_system=None):

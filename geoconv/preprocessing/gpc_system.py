@@ -197,7 +197,7 @@ class GPCSystem:
                 else:
                     edge_snd_vertex = [self.x_coordinates[edge[1]], self.y_coordinates[edge[1]]]
 
-                if self.line_segment_intersection(edge_fst_vertex, edge_snd_vertex, np.array(edge)):
+                if self.line_segment_intersection(edge_fst_vertex, edge_snd_vertex):
                     return False
 
             ################
@@ -221,7 +221,7 @@ class GPCSystem:
             self.y_coordinates[vertex_i] = y
         return True
 
-    def line_segment_intersection(self, edge_fst_vertex, edge_snd_vertex, new_line_segment_indices):
+    def line_segment_intersection(self, edge_fst_vertex, edge_snd_vertex):
         """Checks, whether a line segment intersects previously existing ones.
 
         Implements:
@@ -233,8 +233,6 @@ class GPCSystem:
             The cartesian coordinates of the first vertex of the line to check
         edge_snd_vertex: np.ndarray
             The cartesian coordinates of the second vertex of the line to check
-        new_line_segment_indices: np.ndarray
-            The indices of the new line segment to be checked.
 
         Returns
         -------
@@ -255,11 +253,9 @@ class GPCSystem:
         ys = nominators_2 / (denominators + 1e-10)
 
         eps = 1e-5
-        if np.any(
+        return np.any(
             np.logical_and(np.logical_and(0. + eps < xs, xs < 1. - eps), np.logical_and(0. + eps < ys, ys < 1. - eps))
-        ):
-            return True
-        return False
+        )
 
     def get_gpc_system(self):
         """Return the GPC-system as one numpy array.
