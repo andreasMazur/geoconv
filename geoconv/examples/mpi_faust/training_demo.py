@@ -115,8 +115,6 @@ def train_model(reference_mesh_path,
     precomputed_gpc_radius: float
         [REQUIRED FOR PRE-PROCESSING] The GPC-system radius to use for GPC-system computation. If not provided, the
         script will calculate it.
-    save_gpc_systems: bool
-        [REQUIRED FOR PRE-PROCESSING] Whether to save the GPC-systems.
     template_radius: float
         [OPTIONAL] The template radius of the ISC-layer (the one used during preprocessing, defaults to radius for FAUST
         data set).

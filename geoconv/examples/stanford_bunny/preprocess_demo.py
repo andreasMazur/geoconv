@@ -77,7 +77,7 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     print(f"GPC-system max.-radius: {u_max} | Template max.-radius: {template_radius}")
 
     # Compute and store the GPC-systems for the bunny mesh.
-    gpc_systems = GPCSystemGroup(bunny, processes=processes)  # processes)
+    gpc_systems = GPCSystemGroup(bunny, processes=processes)
     gpc_systems.compute(u_max=u_max)
 
     # Compute the barycentric coordinates for the template in the computed GPC-systems.
