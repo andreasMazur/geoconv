@@ -13,19 +13,20 @@ class GPCSystem:
         direction can be arbitrary. Here, we choose the vector `x - source_point` with `x` being the
         first neighbor return by `get_neighbors` as the reference direction.
 
-        Edge-cache: Remembers all edges to a vertex
-        Face-cache: Remembers all faces to a sorted edge
+        This class handles two caches which connect GPC-system- with mesh information:
+            - Edge-cache: Remembers all edges to a vertex
+            - Face-cache: Remembers all faces to a sorted edge
 
         Parameters
         ----------
         source_point: int
-            The index of the source point around which a window (GPC-system) shall be established
+            The index of the source point around which a window (GPC-system) shall be established.
         object_mesh: trimesh.Trimesh
-            A loaded object mesh
+            A loaded object mesh.
         use_c: bool
-            A flag whether to use the c-extension
+            A flag whether to use the c-extension.
         soft_clear: bool
-
+            Whether to re-use old edge- and face-caches.
         """
         # Remember the underlying mesh
         self.object_mesh = object_mesh

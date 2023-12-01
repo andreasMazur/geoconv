@@ -177,12 +177,12 @@ def create_template_matrix(n_radial, n_angular, radius, in_cart=False):
 
 
 def compute_barycentric_coordinates(gpc_systems, n_radial=2, n_angular=4, radius=0.05, verbose=True):
-    """TODO: Compute the barycentric coordinates for the given GPC-systems (Adjust to class)
+    """Compute the barycentric coordinates for the given GPC-systems
 
     Parameters
     ----------
-    gpc_systems: list
-        The list of GPC-systems for the underlying mesh
+    gpc_systems: GPCSystemGroup
+        The GPC-system-group for the underlying mesh
     n_radial: int
         The amount of radial coordinates of the template you wish to use
     n_angular: int
@@ -208,11 +208,11 @@ def compute_barycentric_coordinates(gpc_systems, n_radial=2, n_angular=4, radius
 
     # Define template vertices at which interpolation values will be needed
     template_matrix = create_template_matrix(n_radial=n_radial, n_angular=n_angular, radius=radius, in_cart=True)
-    n_gpc_systems = len(gpc_systems)
+    n_gpc_systems = gpc_systems.object_mesh_gpc_systems.shape[0]qq
     barycentric_coordinates = np.zeros((n_gpc_systems, n_radial, n_angular, 3, 2))
 
     for gpc_system_idx in tqdm(range(n_gpc_systems), postfix=f"Computing barycentric coordinates"):
-        gpc_system = gpc_systems[gpc_system_idx]
+        gpc_system = gpc_systems.object_mesh_gpc_systems[gpc_system_idx]
         gpc_triangles = gpc_system.get_gpc_triangles(in_cart=True)
         for radial_coordinate in range(n_radial):
             for angular_coordinate in range(n_angular):

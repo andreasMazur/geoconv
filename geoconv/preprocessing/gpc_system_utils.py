@@ -1,14 +1,10 @@
 from geoconv.preprocessing.gpc_system import GPCSystem
-from geoconv.utils.misc import get_neighbors, get_faces_of_edge, compute_vector_angle
+from geoconv.utils.misc import get_faces_of_edge, compute_vector_angle
 
 from scipy.linalg import blas
-from tqdm import tqdm
-from multiprocessing import Pool
 
 import c_extension
 import numpy as np
-import warnings
-import heapq
 
 
 def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis):
@@ -16,8 +12,8 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
 
     See Section 3 in:
 
-    > [Geodesic polar coordinates on polygonal
-    meshes](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1467-8659.2012.03187.x)
+    > [Geodesic polar coordinates on polygonal meshes]
+      (https://onlinelibrary.wiley.com/doi/full/10.1111/j.1467-8659.2012.03187.x)
     > Melvær, Eivind Lyche, and Martin Reimers.
 
     Parameters
@@ -212,128 +208,8 @@ def compute_distance_and_angle(vertex_i, vertex_j, gpc_system, object_mesh, use_
     # If no GPC have been found for `vertex_i`, return default GPC
     if not updates:
         return np.inf, -1.0, None
+
     # If two GPC have been found for `vertex_i`, return the smallest distance to `vertex_i`
     else:
         u_ijk, phi_i, vertex_k = min(updates)
         return u_ijk, phi_i, k_vertices
-
-
-def compute_gpc_system(source_point, u_max, object_mesh, use_c, eps=0.000001, gpc_system=None):
-    """Computes local GPC for one given source point.
-
-    Parameters
-    ----------
-    source_point: int
-        The index of the source point around which a window (GPC-system) shall be established
-    u_max: float
-        The maximal distance (e.g. radius of the patch) which a vertex may have to `source_point`
-    object_mesh: trimesh.Trimesh
-        A loaded object mesh
-    use_c: bool
-        A flag whether to use the c-extension
-    eps: float
-        An epsilon
-    gpc_system: GPCSystem
-
-    Returns
-    -------
-    GPCSystem:
-        The current gpc-system.
-    """
-    ########################
-    # Initialize GPC-system
-    ########################
-    if gpc_system is None:
-        gpc_system = GPCSystem(source_point, object_mesh, use_c=True)
-    else:
-        gpc_system.soft_clear(source_point)
-    # Check whether initialization distances are larger than given max-radius
-    check_array = np.array([x for x in gpc_system.radial_coordinates if not np.isinf(x)])
-    if check_array.max() > u_max:
-        warnings.warn(
-            f"You chose a 'u_max' to be smaller then {check_array.max()}, which has been seen as an initialization"
-            f" length for a GPC-system. Current GPC-system will only contain initialization vertices.",
-            RuntimeWarning
-        )
-
-    ############################################
-    # Initialize min-heap over radial distances
-    ############################################
-    candidates = []
-    for neighbor in get_neighbors(source_point, object_mesh):
-        candidates.append((gpc_system.radial_coordinates[neighbor], neighbor))
-    heapq.heapify(candidates)
-
-    ###################################
-    # Algorithm to compute GPC-systems
-    ###################################
-    while candidates:
-        # Get vertex from min-heap that is closest to GPC-system origin
-        j_dist, j = heapq.heappop(candidates)
-        j_neighbors = get_neighbors(j, object_mesh)
-        j_neighbors = [j for j in j_neighbors if j != source_point]
-        for i in j_neighbors:
-            # Compute the (updated) geodesic distance `new_u_i` and angular coordinate of the i-th neighbor from the
-            # closest vertex in the min-heap to the source point of the GPC-system
-            new_u_i, new_theta_i, k_vertices = compute_distance_and_angle(
-                i, j, gpc_system, object_mesh, use_c, rotation_axis=object_mesh.vertex_normals[source_point]
-            )
-            # In difference to the original pseudocode, we add 'new_u_i < u_max' to this IF-query
-            # to ensure that the radial coordinates do not exceed 'u_max'.
-            if new_u_i < u_max and gpc_system.radial_coordinates[i] / new_u_i > 1 + eps:
-                if gpc_system.update(i, new_u_i, new_theta_i, j, k_vertices):
-                    heapq.heappush(candidates, (new_u_i, i))
-    return gpc_system
-
-
-def wrapper(vertex_indices, u_max, object_mesh, use_c, eps):
-    results = []
-    with tqdm(total=len(vertex_indices)) as pbar:
-        for vertex_idx in vertex_indices:
-            results.append(compute_gpc_system(vertex_idx, u_max, object_mesh, use_c, eps))
-            pbar.update(1)
-        pbar.close()
-    return results
-
-
-def compute_gpc_systems(object_mesh, u_max=.04, eps=0.000001, use_c=True, processes=1, as_array=True):
-    """Computes approximated geodesic polar coordinates for all vertices within an object mesh.
-
-    > [Geodesic polar coordinates on polygonal
-    meshes](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1467-8659.2012.03187.x)
-    > Melvær, Eivind Lyche, and Martin Reimers.
-
-    Parameters
-    ----------
-    object_mesh: trimesh.Trimesh
-        An object mesh
-    u_max: float
-        The maximal radius for the GPC-system
-    eps: float
-        A threshold for update-improvements
-    use_c: bool
-        A flag whether to use the c-extension
-    processes: int
-        The amount of concurrent processes that compute GPC-systems
-    as_array: bool
-        Whether to return the resulting GPC-systems as an array
-
-    Returns
-    -------
-    np.ndarray:
-        Array A with dimensions `(n, n, 2)` with `n = object_mesh.vertices.shape[0]`. A[i][j][0] stores the radial
-        distance (with max value `u_max`) from node `j` to origin `i` of the local GPC-system. A[i][j][1] contains
-        the radial coordinate of node `j` in the local GPC-system of node `i` w.r.t. a reference direction (see
-        `initialize_neighborhood` for how the reference direction is selected).
-    """
-    vertex_indices = np.split(np.arange(object_mesh.vertices.shape[0]), processes)
-    with Pool(processes) as p:
-        gpc_systems = p.starmap(wrapper, [(vi, u_max, object_mesh, use_c, eps) for vi in vertex_indices])
-    gpc_systems = np.array(gpc_systems).flatten()
-    return_value = []
-    if as_array:
-        for system in gpc_systems:
-            return_value.append(system.get_gpc_system())
-        return np.stack(gpc_systems)
-    else:
-        return gpc_systems

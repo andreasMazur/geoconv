@@ -1,9 +1,7 @@
-from geoconv.preprocessing.barycentric_coordinates import create_template_matrix, polar_to_cart, \
-    compute_barycentric_coordinates, determine_gpc_triangles
-from geoconv.preprocessing.geodesic_polar_coordinates import compute_gpc_systems
+from geoconv.preprocessing.barycentric_coordinates import create_template_matrix, polar_to_cart, compute_barycentric_coordinates
+from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.utils.visualization import draw_gpc_triangles, draw_gpc_on_mesh, draw_triangles
-from geoconv.utils.misc import reconstruct_template, find_largest_one_hop_dist, gpc_systems_into_cart, normalize_mesh
-
+from geoconv.utils.misc import reconstruct_template, find_largest_one_hop_dist, normalize_mesh
 
 import open3d as o3d
 import trimesh
@@ -73,13 +71,14 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     # Set the maximal radial distance for the GPC-systems
     u_max = u_max + u_max * .1
 
-    # Compute and store the GPC-systems for the bunny mesh.
-    gpc_systems = compute_gpc_systems(bunny, u_max=u_max, use_c=True, processes=processes)
-
     # Select the template radius to be 3/4-th of the GPC-systems max-radius to increase the likelihood of
     # the template vertices to fall into the GPC-system and not exceed its bounds.
     template_radius = u_max * 0.75
     print(f"GPC-system max.-radius: {u_max} | Template max.-radius: {template_radius}")
+
+    # Compute and store the GPC-systems for the bunny mesh.
+    gpc_systems = GPCSystemGroup(bunny, processes=1)
+    gpc_systems.compute(u_max=u_max)
 
     # Compute the barycentric coordinates for the template in the computed GPC-systems.
     bc = compute_barycentric_coordinates(
@@ -97,7 +96,9 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
                 template_matrix[rc, ac] = polar_to_cart(template_matrix[rc, ac, 1], template_matrix[rc, ac, 0])
 
         # Template depicted via barycentric coordinates
-        reconstructed_template = reconstruct_template(gpc_systems[gpc_system_idx].get_gpc_system(), bc[gpc_system_idx])
+        reconstructed_template = reconstruct_template(
+            gpc_systems.object_mesh_gpc_systems[gpc_system_idx].get_gpc_system(), bc[gpc_system_idx]
+        )
         for radial_coordinate in range(bc.shape[1]):
             for angular_coordinate in range(bc.shape[2]):
                 print(
@@ -111,14 +112,14 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
         # Draw GPC-system on the mesh (center_vertex, radial_coordinates, angular_coordinates, object_mesh)
         draw_gpc_on_mesh(
             gpc_system_idx,
-            gpc_systems[gpc_system_idx].radial_coordinates,
-            gpc_systems[gpc_system_idx].angular_coordinates,
+            gpc_systems.object_mesh_gpc_systems[gpc_system_idx].radial_coordinates,
+            gpc_systems.object_mesh_gpc_systems[gpc_system_idx].angular_coordinates,
             bunny
         )
 
         # Original/Set template vertices
         draw_gpc_triangles(
-            gpc_systems[gpc_system_idx],
+            gpc_systems.object_mesh_gpc_systems[gpc_system_idx],
             template_matrix=template_matrix,
             plot=True,
             title="GPC-system",
@@ -129,7 +130,7 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
         # computed barycentric coordinates
         # Translate GPC-systems into cartesian coordinates (for visualization purposes).
         draw_triangles(
-            gpc_systems[gpc_system_idx].get_gpc_triangles(in_cart=True),
+            gpc_systems.object_mesh_gpc_systems[gpc_system_idx].get_gpc_triangles(in_cart=True),
             points=reconstructed_template.reshape((-1, 2)),
             title="\"Template Vertices in Patch\"",
             plot=True
