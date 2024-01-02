@@ -233,7 +233,7 @@ class GPCSystem:
         return True
 
     def plot(self, new_line, save_name):
-        """Plots the currently captured faces and highlights the updated line.
+        """Plots the currently captured faces and highlights the updated line and vertex.
 
         new_line: list
             The vertex indices of the updated line.
