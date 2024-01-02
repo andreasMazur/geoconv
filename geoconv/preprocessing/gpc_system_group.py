@@ -101,7 +101,6 @@ class GPCSystemGroup:
                     i,
                     j,
                     gpc_system,
-                    self.object_mesh,
                     self.use_c,
                     rotation_axis=self.object_mesh.vertex_normals[source_point]
                 )

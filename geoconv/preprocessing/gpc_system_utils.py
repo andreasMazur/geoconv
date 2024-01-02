@@ -147,7 +147,7 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
     return u_ijk, theta_i
 
 
-def compute_distance_and_angle(vertex_i, vertex_j, gpc_system, object_mesh, use_c, rotation_axis):
+def compute_distance_and_angle(vertex_i, vertex_j, gpc_system, use_c, rotation_axis):
     """Euclidean update procedure for geodesic distance approximation
 
     See Section 4 in:
@@ -164,8 +164,6 @@ def compute_distance_and_angle(vertex_i, vertex_j, gpc_system, object_mesh, use_
         The index of a second vertex in the triangle of vertex i (candidate vertex from heap)
     gpc_system: GPCSystem
         The current GPC-system.
-    object_mesh: trimesh.Trimesh
-        A loaded object mesh
     use_c: bool
         A flag whether to use the c-extension
     rotation_axis: np.ndarray [DEPRECATED]
@@ -183,7 +181,7 @@ def compute_distance_and_angle(vertex_i, vertex_j, gpc_system, object_mesh, use_
         # Use cache to get faces of `sorted_edge`
         considered_faces = gpc_system.faces[(sorted_edge[0], sorted_edge[1])]
     else:
-        _, considered_faces = get_faces_of_edge(sorted_edge, object_mesh)
+        _, considered_faces = get_faces_of_edge(sorted_edge, gpc_system.object_mesh)
 
     # Compute GPC for `vertex_i` considering both faces of `[vertex_i, vertex_j]`
     updates = []
@@ -199,7 +197,7 @@ def compute_distance_and_angle(vertex_i, vertex_j, gpc_system, object_mesh, use_
                 vertex_k,
                 gpc_system.radial_coordinates,
                 gpc_system.angular_coordinates,
-                object_mesh,
+                gpc_system.object_mesh,
                 use_c,
                 rotation_axis
             )
