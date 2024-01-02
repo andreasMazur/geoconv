@@ -1,6 +1,9 @@
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
 from geoconv.utils.misc import get_neighbors, get_faces_of_edge, compute_vector_angle, gpc_systems_into_cart
 
+from matplotlib import pyplot as plt
+from matplotlib.patches import Polygon
+
 import c_extension
 import numpy as np
 
@@ -140,7 +143,7 @@ class GPCSystem:
             elif face not in self.faces[(edge[0], edge[1])]:
                 self.faces[(edge[0], edge[1])].append(face)
 
-    def update(self, vertex_i, rho_i, theta_i, vertex_j, k_vertices):
+    def update(self, vertex_i, rho_i, theta_i, vertex_j, k_vertices, plot_name=""):
         """Update the GPC-system while preventing to edge intersections
 
         Parameters
@@ -155,6 +158,8 @@ class GPCSystem:
             The first vertex that we used to update the coordinates of `vertex_i`
         k_vertices: list
             The list of second vertices that could have potentially been used to update the coordinates of `vertex_i`
+        plot_name: string
+            If given, the update step is plotted and stored under the given name.
 
         Returns
         -------
@@ -198,6 +203,7 @@ class GPCSystem:
                     edge_snd_vertex = [self.x_coordinates[edge[1]], self.y_coordinates[edge[1]]]
 
                 if self.line_segment_intersection(edge_fst_vertex, edge_snd_vertex):
+                    # Return 'False' to indicate failed update due to intersection
                     return False
 
             ################
@@ -219,7 +225,58 @@ class GPCSystem:
 
             self.x_coordinates[vertex_i] = x
             self.y_coordinates[vertex_i] = y
+
+        if plot_name:
+            self.plot([vertex_i, vertex_j], plot_name)
+
+        # Return 'True' to indicate successful update
         return True
+
+    def plot(self, new_line, save_name):
+        """Plots the currently captured faces and highlights the updated line.
+
+        new_line: list
+            The vertex indices of the updated line.
+        save_name: str
+            The path under which the plot is saved.
+        """
+        fig, ax = plt.subplots(1, 1)
+        x_new_0 = self.x_coordinates[new_line[0]]
+        y_new_0 = self.y_coordinates[new_line[0]]
+        x_new_1 = self.x_coordinates[new_line[1]]
+        y_new_1 = self.y_coordinates[new_line[1]]
+        ax.plot([x_new_0, x_new_1], [y_new_0, y_new_1], color="blue", linewidth=2., label="Updated Line")
+        ax.scatter([x_new_0], [y_new_0], color="blue", s=50., label="Updated Vertex")
+
+        all_coordinates = set()
+        for face in self.faces[(-1, -1)]:
+            x0 = self.x_coordinates[face[0]]
+            y0 = self.y_coordinates[face[0]]
+
+            x1 = self.x_coordinates[face[1]]
+            y1 = self.y_coordinates[face[1]]
+
+            x2 = self.x_coordinates[face[2]]
+            y2 = self.y_coordinates[face[2]]
+
+            coordinates = [(x0, y0), (x1, y1), (x2, y2)]
+            for c in coordinates:
+                all_coordinates.add(c)
+
+            polygon = Polygon(
+                np.array(coordinates),
+                alpha=.4,
+                edgecolor="red"
+            )
+            ax.add_patch(polygon)
+
+        all_coordinates = np.array([list(c) for c in all_coordinates])
+        ax.set_xlim(all_coordinates[:, 0].min(), all_coordinates[:, 0].max())
+        ax.set_ylim(all_coordinates[:, 1].min(), all_coordinates[:, 1].max())
+
+        plt.savefig(f"{save_name}.svg")
+        plt.legend(loc="upper right")
+        plt.close()
 
     def line_segment_intersection(self, edge_fst_vertex, edge_snd_vertex):
         """Checks, whether a line segment intersects previously existing ones.

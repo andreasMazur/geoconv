@@ -39,7 +39,7 @@ class GPCSystemGroup:
             )
         self.object_mesh_gpc_systems = np.array(gpc_systems).flatten()
 
-    def compute_gpc_system(self, source_point, u_max, gpc_system=None):
+    def compute_gpc_system(self, source_point, u_max, gpc_system=None, plot_path=""):
         """Computes local GPC for one given source point.
 
         This method implements the algorithm of:
@@ -56,6 +56,8 @@ class GPCSystemGroup:
         gpc_system: GPCSystem
             A GPC-system that has been computed previously on the same mesh. Its caches can be re-used
             which saves computation time.
+        plot_path: bool
+            If given, the update steps will be plotted and stored at the given path.
 
         Returns
         -------
@@ -89,6 +91,7 @@ class GPCSystemGroup:
         ###################################
         # Algorithm to compute GPC-systems
         ###################################
+        plot_number = 0
         while candidates:
             # Get vertex from min-heap that is closest to GPC-system origin
             j_dist, j = heapq.heappop(candidates)
@@ -107,6 +110,13 @@ class GPCSystemGroup:
                 # In difference to the original pseudocode, we add 'new_u_i < u_max' to this IF-query
                 # to ensure that the radial coordinates do not exceed 'u_max'.
                 if new_u_i < u_max and gpc_system.radial_coordinates[i] / new_u_i > 1 + self.eps:
-                    if gpc_system.update(i, new_u_i, new_theta_i, j, k_vertices):
-                        heapq.heappush(candidates, (new_u_i, i))
+                    if plot_path:
+                        if gpc_system.update(
+                            i, new_u_i, new_theta_i, j, k_vertices, plot_name=f"{plot_path}/{plot_number}"
+                        ):
+                            heapq.heappush(candidates, (new_u_i, i))
+                            plot_number += 1
+                    else:
+                        if gpc_system.update(i, new_u_i, new_theta_i, j, k_vertices):
+                            heapq.heappush(candidates, (new_u_i, i))
         return gpc_system
