@@ -3,32 +3,6 @@ from tqdm import tqdm
 import numpy as np
 
 
-def determine_gpc_triangles(object_mesh, gpc_system):
-    """Get triangles and faces which are contained within a given local GPC-system
-
-    Parameters
-    ----------
-    object_mesh: trimesh.Trimesh
-        The object mesh
-    gpc_system: np.ndarray
-        2D-array containing the coordinates for each vertex in the local GPC-system
-
-    Returns
-    -------
-    (np.ndarray, np.ndarray):
-        Two arrays. The first 3D-array contains all triangles that are entirely contained in the GPC-system. The second
-        2D-array contains the same triangles described in node-indices. Depending on whether the GPC-system has geodesic
-        polar- or cartesian coordinates, the triangles will have geodesic polar- or cartesian coordinates.
-    """
-    triangles = gpc_system[object_mesh.faces]
-    indices = []
-    for idx, tri in enumerate(triangles):
-        if not (np.inf in tri or -1. in tri):
-            indices.append(idx)
-
-    return triangles[indices], object_mesh.faces[indices]
-
-
 def compute_barycentric(query_vertex, triangle):
     """Computes barycentric coordinates
 
@@ -68,32 +42,6 @@ def compute_barycentric(query_vertex, triangle):
         return (None, None, None), False
 
 
-def prep_interpolation(gpc_system, object_mesh):
-    """Retrieves the triangles that are contained within a given GPC-system
-
-    Parameters
-    ----------
-    gpc_system:
-        The current GPC-system from which the triangles are required
-    object_mesh:
-        The underlying object mesh
-
-    Returns
-    -------
-    (np.ndarray, np.ndarray)
-        The first array contains the triangles that are contained within the given GPC-system in cartesian coordinates.
-        The second array contains the indices of the nodes from the triangles in the according order.
-    """
-
-    gpc_triangles, gpc_triangles_node_indices = determine_gpc_triangles(object_mesh, gpc_system)
-    for tri_idx in range(gpc_triangles.shape[0]):
-        for point_idx in range(gpc_triangles.shape[1]):
-            rho, theta = gpc_triangles[tri_idx, point_idx]
-            gpc_triangles[tri_idx, point_idx] = polar_to_cart(theta, scales=rho)
-
-    return gpc_triangles, gpc_triangles_node_indices
-
-
 def interpolation(query_point, gpc_triangles, gpc_triangles_node_indices):
     """Interpolates a query point within a GPC-system
 
@@ -102,9 +50,9 @@ def interpolation(query_point, gpc_triangles, gpc_triangles_node_indices):
     query_point: np.ndarray
         A query point in cartesian coordinates
     gpc_triangles: np.ndarray
-        The triangles returned by 'prep_interpolation'
+        The triangles contained in the GPC-system
     gpc_triangles_node_indices: np.ndarray
-        The indices returned by 'prep_interpolation'
+        The indices of the triangles contained in the GPC-system
 
     Returns
     -------
@@ -176,7 +124,7 @@ def create_template_matrix(n_radial, n_angular, radius, in_cart=False):
     return coordinates
 
 
-def compute_barycentric_coordinates(gpc_systems, n_radial=2, n_angular=4, radius=0.05, verbose=True):
+def compute_barycentric_coordinates(gpc_systems, n_radial=2, n_angular=4, radius=0.05):
     """Compute the barycentric coordinates for the given GPC-systems
 
     Parameters
