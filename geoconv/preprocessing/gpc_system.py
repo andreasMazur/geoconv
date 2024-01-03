@@ -6,6 +6,7 @@ from matplotlib.patches import Polygon
 
 import c_extension
 import numpy as np
+import sys
 
 
 class GPCSystem:
@@ -34,30 +35,15 @@ class GPCSystem:
         # Remember the underlying mesh
         self.object_mesh = object_mesh
         self.source_point = source_point
-
-        ####################################################################################
-        # Initialize face- and edge-cache with one-hop-neighborhood edges from source-point
-        ####################################################################################
-        if not soft_clear:
-            self.edges = {-1: []}
-            self.faces = {(-1, -1): []}
-
-        source_point_neighbors = get_neighbors(source_point, object_mesh)
-        self.edges[source_point] = []
-
-        for neighbor in source_point_neighbors:
-            edge, considered_faces = get_faces_of_edge(np.array([source_point, neighbor]), object_mesh)
-            edge = list(edge)
-            # Add edges to edge-cache
-            self.add_edge(edge)
-            # Add faces to face-cache
-            for face in considered_faces:
-                self.add_face(face)
+        self.radial_coordinates = np.full((object_mesh.vertices.shape[0],), np.inf)
+        self.angular_coordinates = np.full((object_mesh.vertices.shape[0],), -1.0)
+        self.x_coordinates = np.full((object_mesh.vertices.shape[0],), np.inf)
+        self.y_coordinates = np.full((object_mesh.vertices.shape[0],), np.inf)
 
         #######################################
         # Calculate initial radial coordinates
         #######################################
-        self.radial_coordinates = np.full((object_mesh.vertices.shape[0],), np.inf)
+        source_point_neighbors = get_neighbors(source_point, object_mesh)
         r3_source_point = object_mesh.vertices[source_point]
         r3_neighbors = object_mesh.vertices[source_point_neighbors]
         self.radial_coordinates[source_point_neighbors] = np.linalg.norm(
@@ -68,7 +54,6 @@ class GPCSystem:
         ########################################
         # Calculate initial angular coordinates
         ########################################
-        self.angular_coordinates = np.full((object_mesh.vertices.shape[0],), -1.0)
         ref_neighbor = source_point_neighbors[0]
         rotation_axis = object_mesh.vertex_normals[source_point]
         theta_neighbors = np.full((len(source_point_neighbors, )), .0)
@@ -82,14 +67,31 @@ class GPCSystem:
         self.angular_coordinates[source_point_neighbors] = theta_neighbors
         self.angular_coordinates[source_point] = 0.0
 
-        self.x_coordinates = np.full((object_mesh.vertices.shape[0],), np.inf)
-        self.y_coordinates = np.full((object_mesh.vertices.shape[0],), np.inf)
+        ##########################################
+        # Calculate initial Cartesian coordinates
+        ##########################################
         self.x_coordinates[source_point] = 0.
         self.y_coordinates[source_point] = 0.
         for neighbor in source_point_neighbors:
             x, y = polar_to_cart(angles=self.angular_coordinates[neighbor], scales=self.radial_coordinates[neighbor])
             self.x_coordinates[neighbor] = x
             self.y_coordinates[neighbor] = y
+
+        ####################################################################################
+        # Initialize face- and edge-cache with one-hop-neighborhood edges from source-point
+        ####################################################################################
+        if not soft_clear:
+            self.edges = {-1: []}
+            self.faces = {(-1, -1): []}
+        self.edges[source_point] = []
+        for neighbor in source_point_neighbors:
+            edge, considered_faces = get_faces_of_edge(np.array([source_point, neighbor]), object_mesh)
+            edge = list(edge)
+            # Add edges to edge-cache
+            self.add_edge(edge)
+            # Add faces to face-cache
+            for face in considered_faces:
+                self.add_face(face)
 
     def soft_clear(self, source_point, use_c=True):
         """Reset radial- and angular coordinates, keep underlying mesh and edge- and face-caches.
@@ -111,6 +113,9 @@ class GPCSystem:
         edge: list
             The edge to add
         """
+        if np.inf in [self.x_coordinates[edge[0]], self.x_coordinates[edge[1]]]:
+            raise RuntimeError(f"Edge {edge} lacks GPC: {[self.x_coordinates[edge[0]], self.x_coordinates[edge[1]]]}")
+
         edge = list(np.sort(edge))
         # Check if edge was seen once
         if edge not in self.edges[-1]:
@@ -143,7 +148,23 @@ class GPCSystem:
             elif face not in self.faces[(edge[0], edge[1])]:
                 self.faces[(edge[0], edge[1])].append(face)
 
-    def update(self, vertex_i, rho_i, theta_i, vertex_j, k_vertices, plot_name=""):
+            # Recursively check all edges on whether their 2nd face is entirely describable with GPCs
+            for new_face in get_faces_of_edge(edge, self.object_mesh)[1]:
+                new_face = np.sort(new_face)
+                # If all face coordinates are known and face has not been seen, then update GPC-system with `new_face`
+                if (not np.array_equal(new_face, face)
+                    and not np.any(np.isinf(self.radial_coordinates[new_face]))
+                    and list(new_face) not in self.faces[(-1, -1)]):
+                    self.update(
+                        new_face[0],
+                        self.radial_coordinates[new_face[0]],
+                        self.angular_coordinates[new_face[0]],
+                        new_face[1],
+                        [new_face[2]],
+                        update=False
+                    )
+
+    def update(self, vertex_i, rho_i, theta_i, vertex_j, k_vertices, plot_name="", update=True):
         """Update the GPC-system while preventing to edge intersections
 
         Parameters
@@ -160,6 +181,8 @@ class GPCSystem:
             The list of second vertices that could have potentially been used to update the coordinates of `vertex_i`
         plot_name: string
             If given, the update step is plotted and stored under the given name.
+        update: bool
+            Whether to update the stored coordinates of `vertex_i`.
 
         Returns
         -------
@@ -176,6 +199,7 @@ class GPCSystem:
             updated_face_edges = [
                 [sorted_face[0], sorted_face[1]], [sorted_face[1], sorted_face[2]], [sorted_face[0], sorted_face[2]]
             ]
+
             if vertex_i in self.edges.keys():
                 edges_of_interest = self.edges[vertex_i].copy()
             else:
@@ -191,7 +215,6 @@ class GPCSystem:
             ##########################################
             x, y = polar_to_cart(angles=theta_i, scales=rho_i)
             for edge in edges_of_interest:
-
                 if edge[0] == vertex_i:
                     edge_fst_vertex = [x, y]
                 else:
@@ -206,6 +229,16 @@ class GPCSystem:
                     # Return 'False' to indicate failed update due to intersection
                     return False
 
+            ###########################
+            # Update GPC of `vertex_i`
+            ###########################
+            if update:
+                self.radial_coordinates[vertex_i] = rho_i
+                self.angular_coordinates[vertex_i] = theta_i
+
+                self.x_coordinates[vertex_i] = x
+                self.y_coordinates[vertex_i] = y
+
             ################
             # Add new edges
             ################
@@ -216,15 +249,6 @@ class GPCSystem:
             # Add new face
             ###############
             self.add_face(sorted_face)
-
-            ###########################
-            # Update GPC of `vertex_i`
-            ###########################
-            self.radial_coordinates[vertex_i] = rho_i
-            self.angular_coordinates[vertex_i] = theta_i
-
-            self.x_coordinates[vertex_i] = x
-            self.y_coordinates[vertex_i] = y
 
         if plot_name:
             self.plot([vertex_i, vertex_j], plot_name)
@@ -263,11 +287,7 @@ class GPCSystem:
             for c in coordinates:
                 all_coordinates.add(c)
 
-            polygon = Polygon(
-                np.array(coordinates),
-                alpha=.4,
-                edgecolor="red"
-            )
+            polygon = Polygon(np.array(coordinates), alpha=.4, edgecolor="red")
             ax.add_patch(polygon)
 
         all_coordinates = np.array([list(c) for c in all_coordinates])
@@ -303,11 +323,13 @@ class GPCSystem:
         xs4, ys4 = self.x_coordinates[all_edges[:, 1]], self.y_coordinates[all_edges[:, 1]]
 
         denominators = (x1 - x2) * (ys3 - ys4) - (y1 - y2) * (xs3 - xs4)
+        if 0. in denominators:
+            denominators += sys.float_info.min
         nominators_1 = (x1 - xs3) * (ys3 - ys4) - (y1 - ys3) * (xs3 - xs4)
         nominators_2 = (x1 - xs3) * (y1 - y2) - (y1 - ys3) * (x1 - x2)
 
-        xs = nominators_1 / (denominators + 1e-10)
-        ys = nominators_2 / (denominators + 1e-10)
+        xs = nominators_1 / denominators
+        ys = nominators_2 / denominators
 
         eps = 1e-5
         return np.any(
