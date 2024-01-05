@@ -1,11 +1,9 @@
-from geoconv.preprocessing.barycentric_coordinates import polar_to_cart, determine_gpc_triangles
-
+from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
 
 from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection
 from matplotlib.patches import Polygon
 from PIL import Image
-from pathlib import Path
 
 import os
 import matplotlib
@@ -14,6 +12,40 @@ import numpy as np
 import matplotlib.cm as cm
 import io
 import time
+
+
+def draw_barycentric_coordinates(gpc_system, barycentric_coordinates, save_name=""):
+    """Draws barycentric coordinates successively.
+
+    Parameters
+    ----------
+    gpc_system: GPCSystem
+        The GPC-system in which the barycentric coordinates should be illustrated.
+    barycentric_coordinates: np.ndarray
+        The barycentric coordinates to illustrate.
+    save_name: str
+        If given, the plot will be saved under this path.
+    """
+    interpolated_points = []
+    for rc in range(barycentric_coordinates.shape[0]):
+        for ac in range(barycentric_coordinates.shape[1]):
+            triangle_indices = barycentric_coordinates[rc, ac, :, 0].astype(np.int16)
+            triangle_interpolation_coefficients = barycentric_coordinates[rc, ac, :, 1]
+            triangle_coordinates = np.stack(
+                [gpc_system.x_coordinates[triangle_indices], gpc_system.y_coordinates[triangle_indices]],
+                axis=-1
+            )
+            dot_interpolation = triangle_coordinates.T @ triangle_interpolation_coefficients
+            interpolated_points.append(dot_interpolation)
+            pc = ["blue" for _ in range(len(interpolated_points) - 1)] + ["yellow"] + ["orange" for _ in range(3)]
+            draw_triangles(
+                gpc_system.get_gpc_triangles(in_cart=True),
+                points=np.array(interpolated_points + list(triangle_coordinates)),
+                point_color=pc,
+                title=f"Interpolation Coefficients: {triangle_interpolation_coefficients}",
+                plot=True,
+                save_name=f"{save_name}_{rc}_{ac}"
+            )
 
 
 def draw_multiple_princeton_benchmarks(save_name, **kwargs):
@@ -233,7 +265,7 @@ def draw_gpc_on_mesh(center_vertex,
         matplotlib.image.imsave(f"{save_name}_angular_coords.png", image_array)
 
 
-def draw_triangles(triangles, points=None, point_color="blue", title="", plot=True):
+def draw_triangles(triangles, points=None, point_color="blue", title="", plot=True, save_name=""):
     """Draws a single triangle and optionally a point in 2D space.
 
     Parameters
@@ -248,6 +280,8 @@ def draw_triangles(triangles, points=None, point_color="blue", title="", plot=Tr
         The title of the plot
     plot: bool
         Whether to plot the image immediately
+    save_name: str
+        If given, the plot will be stored under this path.
     """
     fig, ax = plt.subplots(1, 1)
     ax.set_title(title)
@@ -256,12 +290,15 @@ def draw_triangles(triangles, points=None, point_color="blue", title="", plot=Tr
         ax.add_patch(polygon)
 
     if points is not None:
-        for point in points:
-            ax.scatter(point[0], point[1], color=point_color)
+        ax.scatter(points[:, 0], points[:, 1], color=point_color)
 
     if points is None:
         ax.set_xlim(triangles[:, :, 0].min(), triangles[:, :, 0].max())
         ax.set_ylim(triangles[:, :, 1].min(), triangles[:, :, 1].max())
+
+    plt.grid()
+    if save_name:
+        plt.savefig(f"{save_name}.svg")
 
     if plot:
         plt.show()

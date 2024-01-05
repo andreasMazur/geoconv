@@ -1,6 +1,7 @@
 from tqdm import tqdm
 
 import numpy as np
+import sys
 
 
 def compute_barycentric(query_vertex, triangle):
@@ -30,16 +31,15 @@ def compute_barycentric(query_vertex, triangle):
     dot11, dot12 = v1.dot(v1), v1.dot(v2)
 
     denominator = dot00 * dot11 - dot01 * dot01
-    if denominator > 0:
-        point_2_weight = (dot11 * dot02 - dot01 * dot12) / denominator
-        point_1_weight = (dot00 * dot12 - dot01 * dot02) / denominator
-        point_0_weight = 1 - point_2_weight - point_1_weight
+    if denominator == 0:
+        denominator += sys.float_info.min
+    point_2_weight = (dot11 * dot02 - dot01 * dot12) / denominator
+    point_1_weight = (dot00 * dot12 - dot01 * dot02) / denominator
+    point_0_weight = 1 - point_2_weight - point_1_weight
 
-        is_inside_triangle = point_2_weight > 0 and point_1_weight > 0 and point_2_weight + point_1_weight <= 1
+    is_inside_triangle = point_2_weight > 0 and point_1_weight > 0 and point_2_weight + point_1_weight <= 1
 
-        return (point_0_weight, point_1_weight, point_2_weight), is_inside_triangle
-    else:
-        return (None, None, None), False
+    return (point_0_weight, point_1_weight, point_2_weight), is_inside_triangle
 
 
 def interpolation(query_point, gpc_triangles, gpc_triangles_node_indices):

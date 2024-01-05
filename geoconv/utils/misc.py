@@ -180,7 +180,7 @@ def reconstruct_template(gpc_system, b_coordinates):
             # Get vertices
             vertex_indices = b_coordinates[rc, ac, :, 0].astype(np.int16)
             vertices = [(gpc_system[vertex_indices[idx], 0], gpc_system[vertex_indices[idx], 1]) for idx in range(3)]
-            vertices = np.array([polar_to_cart(y, x) for x, y in vertices])
+            vertices = np.array([polar_to_cart(angles=y, scales=x) for x, y in vertices])
 
             # Interpolate vertices
             weights = b_coordinates[rc, ac, :, 1]
