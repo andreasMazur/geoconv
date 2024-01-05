@@ -116,12 +116,12 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
         print("==========================================================================")
 
         # Draw GPC-system on the mesh (center_vertex, radial_coordinates, angular_coordinates, object_mesh)
-        # draw_gpc_on_mesh(
-        #     gpc_system_idx,
-        #     gpc_systems.object_mesh_gpc_systems[gpc_system_idx].radial_coordinates,
-        #     gpc_systems.object_mesh_gpc_systems[gpc_system_idx].angular_coordinates,
-        #     bunny
-        # )
+        draw_gpc_on_mesh(
+            gpc_system_idx,
+            gpc_systems.object_mesh_gpc_systems[gpc_system_idx].radial_coordinates,
+            gpc_systems.object_mesh_gpc_systems[gpc_system_idx].angular_coordinates,
+            bunny
+        )
 
         # Original/Set template vertices
         draw_gpc_triangles(
