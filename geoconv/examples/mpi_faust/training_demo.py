@@ -75,17 +75,22 @@ def train_model(reference_mesh_path,
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
 
+    # Log device placement
     tf.debugging.set_log_device_placement(True)
 
+    # Load data
     kernel_size = (n_radial, n_angular)
     train_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0)
     val_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=1)
 
-    # Model
+    # Define and compile model
     imcnn = Imcnn(template_radius=template_radius, splits=splits)
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     opt = keras.optimizers.Adam(learning_rate=0.00076215)
     imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
+
+    # Build model
+    imcnn([tf.random.uniform(shape=(6890, signal_dim)), tf.random.uniform(shape=(6890,) + kernel_size + (3, 2))])
     imcnn.summary()
 
     # Define callbacks
