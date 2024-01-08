@@ -48,8 +48,13 @@ class Imcnn(keras.Model):
     def call(self, inputs, training=None, mask=None):
         signal, bc = inputs
         signal = self.conv1([signal, bc])
+        signal = self.amp(signal)
         signal = self.conv2([signal, bc])
+        signal = self.amp(signal)
         signal = self.conv3([signal, bc])
+        signal = self.amp(signal)
         signal = self.conv4([signal, bc])
+        signal = self.amp(signal)
         signal = self.conv5([signal, bc])
+        signal = self.amp(signal)
         return self.output_layer(signal)
