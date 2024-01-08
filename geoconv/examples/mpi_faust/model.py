@@ -1,49 +1,53 @@
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.conv_dirac import ConvDirac
 
-from tensorflow import keras
+import tensorflow as tf
 
 
-class Imcnn(keras.Model):
+class Imcnn(tf.keras.Model):
     def __init__(self, template_radius, splits):
         super().__init__()
         self.amp = AngularMaxPooling()
-        self.conv1 = ConvDirac(
-            amt_templates=96,
-            template_radius=template_radius,
-            activation="relu",
-            name="ISC_layer_1",
-            splits=splits
-        )
-        self.conv2 = ConvDirac(
-            amt_templates=256,
-            template_radius=template_radius,
-            activation="relu",
-            name="ISC_layer_2",
-            splits=splits,
-        )
-        self.conv3 = ConvDirac(
-            amt_templates=384,
-            template_radius=template_radius,
-            activation="relu",
-            name="ISC_layer_3",
-            splits=splits,
-        )
-        self.conv4 = ConvDirac(
-            amt_templates=384,
-            template_radius=template_radius,
-            activation="relu",
-            name="ISC_layer_4",
-            splits=splits,
-        )
-        self.conv5 = ConvDirac(
-            amt_templates=256,
-            template_radius=template_radius,
-            activation="relu",
-            name="ISC_layer_5",
-            splits=splits
-        )
-        self.output_layer = keras.layers.Dense(6890)
+
+        with tf.device("/device:GPU:0"):
+            self.conv1 = ConvDirac(
+                amt_templates=96,
+                template_radius=template_radius,
+                activation="relu",
+                name="ISC_layer_1",
+                splits=splits
+            )
+            self.conv2 = ConvDirac(
+                amt_templates=256,
+                template_radius=template_radius,
+                activation="relu",
+                name="ISC_layer_2",
+                splits=splits,
+            )
+            self.conv3 = ConvDirac(
+                amt_templates=384,
+                template_radius=template_radius,
+                activation="relu",
+                name="ISC_layer_3",
+                splits=splits,
+            )
+
+        with tf.device("/device:GPU:1"):
+            self.conv4 = ConvDirac(
+                amt_templates=384,
+                template_radius=template_radius,
+                activation="relu",
+                name="ISC_layer_4",
+                splits=splits,
+            )
+            self.conv5 = ConvDirac(
+                amt_templates=256,
+                template_radius=template_radius,
+                activation="relu",
+                name="ISC_layer_5",
+                splits=splits
+            )
+            self.output_layer = tf.keras.layers.Dense(6890)
 
     def call(self, inputs, training=None, mask=None):
         signal, bc = inputs
