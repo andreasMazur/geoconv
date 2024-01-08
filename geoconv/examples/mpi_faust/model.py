@@ -10,7 +10,7 @@ class Imcnn(tf.keras.Model):
     def __init__(self, template_radius, splits):
         super().__init__()
         self.amp = AngularMaxPooling()
-        gpus = [device_name for device_name in device_lib.list_local_devices() if "GPU" in device_name]
+        gpus = [device_name for device_name in device_lib.list_local_devices() if "GPU" in device_name.name]
 
         with tf.device(gpus[0].name):
             self.conv1 = ConvDirac(
