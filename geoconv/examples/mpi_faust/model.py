@@ -27,6 +27,8 @@ class Imcnn(tf.keras.Model):
                 name="ISC_layer_2",
                 splits=splits,
             )
+
+        with tf.device(self.gpus[1].name):
             self.conv3 = ConvDirac(
                 amt_templates=384,
                 template_radius=template_radius,
@@ -35,7 +37,7 @@ class Imcnn(tf.keras.Model):
                 splits=splits,
             )
 
-        with tf.device(self.gpus[1].name):
+        with tf.device(self.gpus[2].name):
             self.conv4 = ConvDirac(
                 amt_templates=384,
                 template_radius=template_radius,
@@ -59,9 +61,10 @@ class Imcnn(tf.keras.Model):
             signal = self.amp(signal)
             signal = self.conv2([signal, bc])
             signal = self.amp(signal)
+        with tf.device(self.gpus[1].name):
             signal = self.conv3([signal, bc])
             signal = self.amp(signal)
-        with tf.device(self.gpus[0].name):
+        with tf.device(self.gpus[2].name):
             signal = self.conv4([signal, bc])
             signal = self.amp(signal)
             signal = self.conv5([signal, bc])
