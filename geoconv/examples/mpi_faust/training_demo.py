@@ -1,79 +1,12 @@
 from geoconv.examples.mpi_faust.faust_data_set import load_preprocessed_faust
+from geoconv.examples.mpi_faust.model import Imcnn
 from geoconv.examples.mpi_faust.preprocess_faust import preprocess_faust
 from geoconv.utils.measures import princeton_benchmark
-from geoconv.layers.conv_dirac import ConvDirac
-from geoconv.layers.angular_max_pooling import AngularMaxPooling
-from geoconv.models.intrinsic_model import ImCNN
 
 from pathlib import Path
 from tensorflow import keras
 
-
-def define_model(input_signal_dim, kernel_size, template_radius, splits):
-    """Defines the model used during training.
-
-    Parameters
-    ----------
-    input_signal_dim: int
-        The input-signal dimensionality.
-    kernel_size: tuple
-        The kernel size: (#radial coordinates, #angular coordinates)
-    template_radius: float
-        The template radius set during pre-processing.
-    splits: int
-        The amount of splits, into which the entire mesh will be divided during computation.
-        This number has to divide the total number of vertices within the mesh.
-        Larger numbers will cause more iteration, while lowering memory consumption.
-    Returns
-    ----------
-    ImCNN:
-        An intrinsic mesh CNN.
-    """
-    signal_input = keras.layers.Input(shape=(input_signal_dim,), name="signal")
-    bc_input = keras.layers.Input(shape=kernel_size + (3, 2), name="bc")
-    amp = AngularMaxPooling()
-
-    signal = ConvDirac(
-        amt_templates=96,
-        template_radius=template_radius,
-        activation="relu",
-        name="ISC_layer_1",
-        splits=splits
-    )([signal_input, bc_input])
-    signal = amp(signal)
-    signal = ConvDirac(
-        amt_templates=256,
-        template_radius=template_radius,
-        activation="relu",
-        name="ISC_layer_2",
-        splits=splits,
-    )([signal, bc_input])
-    signal = amp(signal)
-    signal = ConvDirac(
-        amt_templates=384,
-        template_radius=template_radius,
-        activation="relu",
-        name="ISC_layer_3",
-        splits=splits,
-    )([signal, bc_input])
-    signal = amp(signal)
-    signal = ConvDirac(
-        amt_templates=256,
-        template_radius=template_radius,
-        activation="relu",
-        name="ISC_layer_4",
-        splits=splits
-    )([signal, bc_input])
-    signal = amp(signal)
-
-    output = keras.layers.Dense(6890)(signal)
-
-    model = ImCNN(splits=splits, inputs=[signal_input, bc_input], outputs=[output])
-    loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    opt = keras.optimizers.Adam(learning_rate=0.00076215)
-    model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
-
-    return model
+import tensorflow as tf
 
 
 def train_model(reference_mesh_path,
@@ -142,12 +75,17 @@ def train_model(reference_mesh_path,
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
 
+    tf.debugging.set_log_device_placement(True)
+
     kernel_size = (n_radial, n_angular)
     train_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0)
     val_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=1)
 
     # Model
-    imcnn = define_model(signal_dim, (n_radial, n_angular), template_radius, splits)
+    imcnn = Imcnn(template_radius=template_radius, splits=splits)
+    loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    opt = keras.optimizers.Adam(learning_rate=0.00076215)
+    imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
     imcnn.summary()
 
     # Define callbacks
