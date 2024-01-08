@@ -10,7 +10,7 @@ class Imcnn(tf.keras.Model):
         self.amp = AngularMaxPooling()
         gpus = tf.config.list_physical_devices("CPU")
 
-        with tf.device(gpus[0]):
+        with tf.device(gpus[0].name):
             self.conv1 = ConvDirac(
                 amt_templates=96,
                 template_radius=template_radius,
@@ -33,7 +33,7 @@ class Imcnn(tf.keras.Model):
                 splits=splits,
             )
 
-        with tf.device(gpus[1]):
+        with tf.device(gpus[1].name):
             self.conv4 = ConvDirac(
                 amt_templates=384,
                 template_radius=template_radius,
