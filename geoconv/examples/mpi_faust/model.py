@@ -1,6 +1,8 @@
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.conv_dirac import ConvDirac
 
+from tensorflow.python.client import device_lib
+
 import tensorflow as tf
 
 
@@ -8,7 +10,7 @@ class Imcnn(tf.keras.Model):
     def __init__(self, template_radius, splits):
         super().__init__()
         self.amp = AngularMaxPooling()
-        gpus = tf.config.list_physical_devices("GPU")
+        gpus = [device_name for device_name in device_lib.list_local_devices() if "GPU" in device_name]
 
         with tf.device(gpus[0].name):
             self.conv1 = ConvDirac(
