@@ -44,11 +44,9 @@ class CountGradients(keras.metrics.Metric):
 
 class ImCNN(keras.Model):
 
-    def __init__(self, *args, splits=1, accumulation_limit=10, **kwargs):
+    def __init__(self, *args, splits=1, **kwargs):
         super().__init__(*args, **kwargs)
         self.splits = splits
-        self.counter = 0
-        self.accumulation_limit = accumulation_limit
         self.gpu = [device_name.name for device_name in tf.config.list_logical_devices("GPU")][-1]
 
         # Capture gradient statistics
