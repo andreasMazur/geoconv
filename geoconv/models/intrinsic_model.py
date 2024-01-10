@@ -58,7 +58,7 @@ class ImCNN(keras.Model):
                 gradients = tape.gradient(loss, self.trainable_variables)
             else:
                 gradients = [
-                    tf.reduce_sum(g) for g in zip(gradients, tape.gradient(loss, self.trainable_variables))
+                    tf.reduce_sum(g, axis=0) for g in zip(gradients, tape.gradient(loss, self.trainable_variables))
                 ]
             total_loss = total_loss + loss
         gradients = [g / self.splits for g in gradients]
