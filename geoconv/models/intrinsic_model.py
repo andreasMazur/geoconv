@@ -49,7 +49,7 @@ class ImCNN(keras.Model):
         self.splits = splits
         self.counter = 0
         self.accumulation_limit = accumulation_limit
-        self.gpu = [device_name.name for device_name in tf.config.list_logical_devices("GPU")][0]
+        self.gpu = [device_name.name for device_name in tf.config.list_logical_devices("GPU")][-1]
 
         # Capture gradient statistics
         self.gradient_stat_names = ["gradients_mean", "gradient_counter"]
@@ -97,20 +97,21 @@ class ImCNN(keras.Model):
         total_loss = tf.constant(0.)
         with tf.GradientTape(persistent=True) as tape:
             y_pred = self(x, training=True)
-            with tf.device(self.gpu):
-                original_shape = tf.shape(y_pred)
 
-                y_pred = tf.stack(tf.split(y_pred, self.splits))
-                for inner_idx in tf.range(self.splits):
-                    loss = self.compute_loss(y=y[inner_idx], y_pred=y_pred[inner_idx])
+            original_shape = tf.shape(y_pred)
 
-                    with tape.stop_recording():
+            y_pred = tf.stack(tf.split(y_pred, self.splits))
+            for inner_idx in tf.range(self.splits):
+                loss = self.compute_loss(y=y[inner_idx], y_pred=y_pred[inner_idx])
+
+                with tape.stop_recording():
+                    with tf.device(self.gpu):
                         gradients = tape.gradient(loss, self.trainable_variables)
                         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-                        # Update gradient dependent metrics
-                        for g in gradients:
-                            self.gradient_mean.update_state(g)
-                        self.gradient_counter.update_state()
-                        total_loss = total_loss + loss
-            del tape
-            return tf.reshape(y_pred, original_shape), total_loss
+                    # Update gradient dependent metrics
+                    for g in gradients:
+                        self.gradient_mean.update_state(g)
+                    self.gradient_counter.update_state()
+                    total_loss = total_loss + loss
+        del tape
+        return tf.reshape(y_pred, original_shape), total_loss
