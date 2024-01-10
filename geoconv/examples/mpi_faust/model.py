@@ -10,35 +10,35 @@ class Imcnn(ImCNN):
         super().__init__(splits=splits, rotations=rotations)
         self.amp = AngularMaxPooling()
         self.conv1 = ConvDirac(
-            amt_templates=1,  # 96,
+            amt_templates=96,
             template_radius=template_radius,
             activation="relu",
             name="ISC_layer_1",
             splits=splits
         )
         self.conv2 = ConvDirac(
-            amt_templates=1,  # 256,
+            amt_templates=256,
             template_radius=template_radius,
             activation="relu",
             name="ISC_layer_2",
             splits=splits,
         )
         self.conv3 = ConvDirac(
-            amt_templates=1,  # 384,
+            amt_templates=384,
             template_radius=template_radius,
             activation="relu",
             name="ISC_layer_3",
             splits=splits,
         )
         self.conv4 = ConvDirac(
-            amt_templates=1,  # 384,
+            amt_templates=384,
             template_radius=template_radius,
             activation="relu",
             name="ISC_layer_4",
             splits=splits,
         )
         self.conv5 = ConvDirac(
-            amt_templates=1,  # 256,
+            amt_templates=256,
             template_radius=template_radius,
             activation="relu",
             name="ISC_layer_5",
