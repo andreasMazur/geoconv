@@ -88,18 +88,18 @@ class ImCNN(keras.Model):
                 metric.update_state(y, y_pred)
         return {m.name: m.result() for m in self.metrics}
 
-    @tf.function
+    # @tf.function
     def gradient_step(self, x, y):
         """Compute multiple gradients per mesh"""
         y = tf.stack(tf.split(y, self.splits))
         total_loss = tf.constant(0.)
-
         # TODO: Compute gradients per rotation and add+average over those
+        gradients = []
         for rot in self.rotations:
             with tf.GradientTape() as tape:
                 y_pred = self(x, orientation=rot, training=True)
                 loss = self.compute_loss(y=y, y_pred=y_pred)
-            gradients = tape.gradient(loss, self.trainable_variables)
-            self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-
+            gradients.append(tape.gradient(loss, self.trainable_variables))
+        gradients = [tf.reduce_mean(g, axis=0) for g in zip(*gradients)]
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
         return y_pred, total_loss
