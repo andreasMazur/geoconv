@@ -58,4 +58,4 @@ class Imcnn(ImCNN):
         signal = self.amp(signal)
         signal = self.conv5([signal, bc], orientation)
         signal = self.amp(signal)
-        return self.output_layer(signal, orientation)
+        return self.output_layer(signal)
