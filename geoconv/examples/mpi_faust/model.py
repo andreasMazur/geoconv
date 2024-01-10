@@ -9,7 +9,6 @@ class Imcnn(ImCNN):
     def __init__(self, template_radius, splits):
         super().__init__(splits=splits)
         self.amp = AngularMaxPooling()
-        self.gpus = [device_name.name for device_name in tf.config.list_logical_devices("GPU")]
         self.conv1 = ConvDirac(
             amt_templates=96,
             template_radius=template_radius,

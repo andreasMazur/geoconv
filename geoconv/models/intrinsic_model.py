@@ -93,23 +93,11 @@ class ImCNN(keras.Model):
 
         y = tf.stack(tf.split(y, self.splits))
         total_loss = tf.constant(0.)
-        with tf.GradientTape(persistent=True) as tape:
+        with tf.GradientTape() as tape:
             y_pred = self(x, training=True)
+            loss = self.compute_loss(y=y, y_pred=y_pred)
+        with tf.device(self.gpu):
+            gradients = tape.gradient(loss, self.trainable_variables)
+            self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
-            original_shape = tf.shape(y_pred)
-
-            y_pred = tf.stack(tf.split(y_pred, self.splits))
-            for inner_idx in tf.range(self.splits):
-                loss = self.compute_loss(y=y[inner_idx], y_pred=y_pred[inner_idx])
-
-                with tape.stop_recording():
-                    with tf.device(self.gpu):
-                        gradients = tape.gradient(loss, self.trainable_variables)
-                        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-                    # Update gradient dependent metrics
-                    for g in gradients:
-                        self.gradient_mean.update_state(g)
-                    self.gradient_counter.update_state()
-                    total_loss = total_loss + loss
-        del tape
-        return tf.reshape(y_pred, original_shape), total_loss
+        return y_pred, total_loss
