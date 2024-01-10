@@ -93,11 +93,11 @@ class ImCNN(keras.Model):
 
         y = tf.stack(tf.split(y, self.splits))
         total_loss = tf.constant(0.)
-        with tf.GradientTape() as tape:
-            y_pred = self(x, training=True)
-            loss = self.compute_loss(y=y, y_pred=y_pred)
         with tf.device(self.gpu):
-            gradients = tape.gradient(loss, self.trainable_variables)
-            self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+            with tf.GradientTape() as tape:
+                y_pred = self(x, training=True)
+                loss = self.compute_loss(y=y, y_pred=y_pred)
+        gradients = tape.gradient(loss, self.trainable_variables)
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
         return y_pred, total_loss
