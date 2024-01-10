@@ -55,8 +55,8 @@ class ImCNN(keras.Model):
             size=self.splits,
             dynamic_size=False,
             clear_after_read=True,
-            tensor_array_name="outer_ta",
-            name="call_ta"
+            tensor_array_name="gradient_ta",
+            name="gradient_step_ta"
         )
         for rot in self.concurrent_rotations:
             with tf.GradientTape() as tape:
@@ -66,6 +66,7 @@ class ImCNN(keras.Model):
                 idx,
                 tape.gradient(loss, self.trainable_variables)
             )
+            idx = idx + tf.constant(1)
             total_loss = total_loss + loss
         gradients = tf.reduce_mean(gradients.stack(), axis=0)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
