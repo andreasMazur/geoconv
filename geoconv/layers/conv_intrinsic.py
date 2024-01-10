@@ -162,7 +162,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
                 gpu_usages.append(tf.config.experimental.get_memory_info(gpu)["current"])
             gpu_to_use = tf.math.argmin(gpu_usages)
 
-            with tf.device(gpu_to_use):
+            with tf.device(logical_gpus[gpu_to_use]):
                 new_signal = new_signal.write(idx, self._fold(interpolations))
 
             idx = idx + tf.constant(1)
