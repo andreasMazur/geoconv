@@ -8,9 +8,8 @@ class Imcnn(tf.keras.Model):
     def __init__(self, template_radius, splits):
         super().__init__()
         self.amp = AngularMaxPooling()
-        self.gpu = [device_name.name for device_name in tf.config.list_logical_devices("GPU")][0]
+        self.gpus = [device_name.name for device_name in tf.config.list_logical_devices("GPU")]
 
-        # with tf.device(self.gpu):
         self.conv1 = ConvDirac(
             amt_templates=96,
             template_radius=template_radius,
@@ -25,7 +24,6 @@ class Imcnn(tf.keras.Model):
             name="ISC_layer_2",
             splits=splits,
         )
-
         self.conv3 = ConvDirac(
             amt_templates=384,
             template_radius=template_radius,
@@ -50,15 +48,17 @@ class Imcnn(tf.keras.Model):
         self.output_layer = tf.keras.layers.Dense(6890)
 
     def call(self, inputs, training=None, mask=None):
-        signal, bc = inputs
-        signal = self.conv1([signal, bc])
-        signal = self.amp(signal)
-        signal = self.conv2([signal, bc])
-        signal = self.amp(signal)
-        signal = self.conv3([signal, bc])
-        signal = self.amp(signal)
-        signal = self.conv4([signal, bc])
-        signal = self.amp(signal)
-        signal = self.conv5([signal, bc])
-        signal = self.amp(signal)
-        return self.output_layer(signal)
+        with tf.device(self.gpus[0]):
+            signal, bc = inputs
+            signal = self.conv1([signal, bc])
+            signal = self.amp(signal)
+            signal = self.conv2([signal, bc])
+            signal = self.amp(signal)
+        with tf.device(self.gpus[1]):
+            signal = self.conv3([signal, bc])
+            signal = self.amp(signal)
+            signal = self.conv4([signal, bc])
+            signal = self.amp(signal)
+            signal = self.conv5([signal, bc])
+            signal = self.amp(signal)
+            return self.output_layer(signal)
