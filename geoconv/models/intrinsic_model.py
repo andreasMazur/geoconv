@@ -7,8 +7,8 @@ class ImCNN(keras.Model):
 
     def __init__(self, *args, max_rotations, splits=None, **kwargs):
         super().__init__(*args, **kwargs)
-        splits = splits if splits is not None else 1
-        self.concurrent_rotations = tf.split(tf.range(max_rotations), splits)
+        self.splits = splits if splits is not None else 1
+        self.concurrent_rotations = tf.split(tf.range(max_rotations), self.splits)
 
     def test_step(self, data):
         x, y = data
