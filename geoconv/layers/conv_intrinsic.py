@@ -146,21 +146,13 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         mesh_signal = self._patch_operator(mesh_signal, bary_coordinates)
         mesh_signal = tf.stack(tf.split(mesh_signal, self.splits))
 
-        # No specific orientations given. Hence, compute for all orientations.
         if tf.equal(tf.size(orientations), 0):
-            batched_folding = lambda batch: self._fold(
-                batch, tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
-            )
-            return tf.reshape(
-                tf.map_fn(batched_folding, mesh_signal), (-1, self._all_rotations, self.amt_templates)
-            )
-        # Compute convolutions only for given orientations.
-        else:
-            batched_folding = lambda batch: self._fold(batch, orientations)
-            return tf.reshape(
-                tf.map_fn(batched_folding, mesh_signal),
-                (-1, tf.shape(orientations)[0], self.amt_templates)
-            )
+            # No specific orientations given. Hence, compute for all orientations.
+            orientations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
+
+        batched_folding = lambda batch: self._fold(batch, orientations)
+        return tf.reshape(tf.map_fn(batched_folding, mesh_signal), (-1, tf.shape(orientations)[0], self.amt_templates))
+
 
     @tf.function
     def _patch_operator(self, mesh_signal, barycentric_coordinates):
