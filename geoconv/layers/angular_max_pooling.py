@@ -7,7 +7,7 @@ class AngularMaxPooling(keras.layers.Layer):
     """The implementation for angular max-pooling"""
 
     @tf.function
-    def call(self, inputs):
+    def call(self, inputs, training=None):
         """Max-pools over the results of a geodesic convolution.
 
         Parameters
@@ -27,7 +27,6 @@ class AngularMaxPooling(keras.layers.Layer):
         """
         maximal_response = tf.norm(inputs, ord="euclidean", axis=-1)
         maximal_response = tf.cast(tf.argmax(maximal_response, axis=1), dtype=tf.int32)
-
         return tf.gather_nd(
             indices=tf.stack([tf.range(tf.shape(inputs)[0]), maximal_response], axis=-1),
             params=inputs

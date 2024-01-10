@@ -7,6 +7,7 @@ from geoconv.utils.misc import reconstruct_template, find_largest_one_hop_dist, 
 import open3d as o3d
 import trimesh
 import os
+import numpy as np
 
 
 def load_bunny(path, target_triangles_amount=6000):
@@ -90,6 +91,7 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     bc = compute_barycentric_coordinates(
         gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius
     )
+    np.save(f"{os.path.dirname(path_to_stanford_bunny)}/bunny_barycentric_coordinates.npy", bc)
 
     ####################################################################
     # Visualization of the GPC-systems and the barycentric coordinates

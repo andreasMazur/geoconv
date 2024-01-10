@@ -44,9 +44,10 @@ class CountGradients(keras.metrics.Metric):
 
 class ImCNN(keras.Model):
 
-    def __init__(self, *args, splits=1, **kwargs):
+    def __init__(self, *args, rotations, splits=1, **kwargs):
         super().__init__(*args, **kwargs)
         self.splits = splits
+        self.rotations = range(rotations)
         self.gpu = [device_name.name for device_name in tf.config.list_logical_devices("GPU")][-1]
 
         # Capture gradient statistics
@@ -90,14 +91,15 @@ class ImCNN(keras.Model):
     @tf.function
     def gradient_step(self, x, y):
         """Compute multiple gradients per mesh"""
-
         y = tf.stack(tf.split(y, self.splits))
         total_loss = tf.constant(0.)
-        with tf.device(self.gpu):
+
+        # TODO: Compute gradients per rotation and add+average over those
+        for rot in self.rotations:
             with tf.GradientTape() as tape:
-                y_pred = self(x, training=True)
+                y_pred = self(x, orientation=rot, training=True)
                 loss = self.compute_loss(y=y, y_pred=y_pred)
-        gradients = tape.gradient(loss, self.trainable_variables)
-        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+            gradients = tape.gradient(loss, self.trainable_variables)
+            self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
         return y_pred, total_loss
