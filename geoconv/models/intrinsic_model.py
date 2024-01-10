@@ -49,13 +49,18 @@ class ImCNN(keras.Model):
         total_loss = tf.constant(0.)
 
         # Average over subset of gradients which were computed for subsets of orientations
-        gradients = []
+        gradients = None
         for rot in self.concurrent_rotations:
             with tf.GradientTape() as tape:
                 y_pred = self(x, orientations=rot, training=True)
                 loss = self.compute_loss(y=y, y_pred=y_pred)
-            gradients.append(tape.gradient(loss, self.trainable_variables))
+            if gradients is None:
+                gradients = tape.gradient(loss, self.trainable_variables)
+            else:
+                gradients = [
+                    tf.reduce_sum(g) for g in zip(gradients, tape.gradient(loss, self.trainable_variables))
+                ]
             total_loss = total_loss + loss
-        gradients = [tf.reduce_mean(g, axis=0) for g in zip(*gradients)]
+        gradients = [g / self.splits for g in gradients]
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
         return y_pred, total_loss
