@@ -21,6 +21,7 @@ def train_model(reference_mesh_path,
                 template_radius=0.028,
                 logging_dir="./imcnn_training_logs",
                 splits=10,
+                rotation_delta=1,
                 processes=1):
     """Trains one singular IMCNN
 
@@ -55,6 +56,8 @@ def train_model(reference_mesh_path,
         [OPTIONAL] The path to the folder where logs will be stored
     splits: int
         [OPTIONAL] The amount of splits over which the ISC-layer should iterate
+    rotation_delta: int
+        [OPTIONAL] The amount of skips between each rotation while computing the convolution
     processes: int
         [OPTIONAL] The amount of concurrent processes that compute GPC-systems
     """
@@ -81,7 +84,7 @@ def train_model(reference_mesh_path,
     val_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=1)
 
     # Define and compile model
-    imcnn = Imcnn(template_radius=template_radius, splits=splits, rotations=n_angular, splits_opt=4)
+    imcnn = Imcnn(template_radius=template_radius, splits=splits, rotation_delta=rotation_delta)
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     opt = keras.optimizers.Adam(learning_rate=0.00076215)
     imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])

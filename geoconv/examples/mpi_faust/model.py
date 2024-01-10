@@ -1,20 +1,21 @@
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.conv_dirac import ConvDirac
-from geoconv.models.intrinsic_model import ImCNN
 
 import tensorflow as tf
 
 
-class Imcnn(ImCNN):
-    def __init__(self, template_radius, rotations, splits, splits_opt):
-        super().__init__(max_rotations=rotations, splits=splits_opt)
+class Imcnn(tf.keras.Model):
+    def __init__(self, template_radius, rotation_delta, splits):
+        super().__init__()
         self.amp = AngularMaxPooling()
+        self.input_layer = tf.keras.layers.Dense(64, activation="relu")
         self.conv1 = ConvDirac(
             amt_templates=96,
             template_radius=template_radius,
             activation="relu",
             name="ISC_layer_1",
-            splits=splits
+            splits=splits,
+            rotation_delta=rotation_delta
         )
         self.conv2 = ConvDirac(
             amt_templates=256,
@@ -22,6 +23,7 @@ class Imcnn(ImCNN):
             activation="relu",
             name="ISC_layer_2",
             splits=splits,
+            rotation_delta=rotation_delta
         )
         self.conv3 = ConvDirac(
             amt_templates=384,
@@ -29,6 +31,7 @@ class Imcnn(ImCNN):
             activation="relu",
             name="ISC_layer_3",
             splits=splits,
+            rotation_delta=rotation_delta
         )
         self.conv4 = ConvDirac(
             amt_templates=384,
@@ -36,18 +39,21 @@ class Imcnn(ImCNN):
             activation="relu",
             name="ISC_layer_4",
             splits=splits,
+            rotation_delta=rotation_delta
         )
         self.conv5 = ConvDirac(
             amt_templates=256,
             template_radius=template_radius,
             activation="relu",
             name="ISC_layer_5",
-            splits=splits
+            splits=splits,
+            rotation_delta=rotation_delta
         )
         self.output_layer = tf.keras.layers.Dense(6890)
 
     def call(self, inputs, orientations=None, training=None, mask=None):
         signal, bc = inputs
+        signal = self.input_layer(signal)
         signal = self.conv1([signal, bc])
         signal = self.amp(signal)
         signal = self.conv2([signal, bc])
