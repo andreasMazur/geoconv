@@ -108,10 +108,10 @@ def train_model(reference_mesh_path,
     imcnn.save(f"{logging_dir}/saved_imcnn")
 
     # Evaluate best model with Princeton benchmark
-    test_dataset = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=2)
-    princeton_benchmark(
-        imcnn=imcnn,
-        test_dataset=test_dataset,
-        ref_mesh_path=reference_mesh_path,
-        file_name=f"{train_data}/best_model_benchmark"
-    )
+    # test_dataset = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=2)
+    # princeton_benchmark(
+    #     imcnn=imcnn,
+    #     test_dataset=test_dataset,
+    #     ref_mesh_path=reference_mesh_path,
+    #     file_name=f"{train_data}/best_model_benchmark"
+    # )

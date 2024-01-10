@@ -50,16 +50,15 @@ class Imcnn(tf.keras.Model):
             self.output_layer = tf.keras.layers.Dense(6890)
 
     def call(self, inputs, training=None, mask=None):
-        with tf.device(self.gpu):
-            signal, bc = inputs
-            signal = self.conv1([signal, bc])
-            signal = self.amp(signal)
-            signal = self.conv2([signal, bc])
-            signal = self.amp(signal)
-            signal = self.conv3([signal, bc])
-            signal = self.amp(signal)
-            signal = self.conv4([signal, bc])
-            signal = self.amp(signal)
-            signal = self.conv5([signal, bc])
-            signal = self.amp(signal)
-            return self.output_layer(signal)
+        signal, bc = inputs
+        signal = self.conv1([signal, bc])
+        signal = self.amp(signal)
+        signal = self.conv2([signal, bc])
+        signal = self.amp(signal)
+        signal = self.conv3([signal, bc])
+        signal = self.amp(signal)
+        signal = self.conv4([signal, bc])
+        signal = self.amp(signal)
+        signal = self.conv5([signal, bc])
+        signal = self.amp(signal)
+        return self.output_layer(signal)
