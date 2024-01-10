@@ -54,6 +54,7 @@ class Imcnn(tf.keras.Model):
             signal = self.amp(signal)
             signal = self.conv2([signal, bc])
             signal = self.amp(signal)
+        signal = tf.identity(signal)
         with tf.device(self.gpus[1]):
             signal = self.conv3([signal, bc])
             signal = self.amp(signal)
@@ -61,4 +62,5 @@ class Imcnn(tf.keras.Model):
             signal = self.amp(signal)
             signal = self.conv5([signal, bc])
             signal = self.amp(signal)
-            return self.output_layer(signal)
+            signal self.output_layer(signal)
+        return tf.identity(signal)
