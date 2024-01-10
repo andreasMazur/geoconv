@@ -75,9 +75,6 @@ def train_model(reference_mesh_path,
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
 
-    # Log device placement
-    tf.debugging.set_log_device_placement(True)
-
     # Load data
     kernel_size = (n_radial, n_angular)
     train_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0)
