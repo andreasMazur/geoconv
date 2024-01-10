@@ -153,7 +153,6 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         batched_folding = lambda batch: self._fold(batch, orientations)
         return tf.reshape(tf.map_fn(batched_folding, mesh_signal), (-1, tf.shape(orientations)[0], self.amt_templates))
 
-
     @tf.function
     def _patch_operator(self, mesh_signal, barycentric_coordinates):
         """Implements the patch operator
