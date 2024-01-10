@@ -144,33 +144,14 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         """
         mesh_signal, bary_coordinates = inputs
         mesh_signal = self._patch_operator(mesh_signal, bary_coordinates)
-        idx = tf.constant(0)
-        new_signal = tf.TensorArray(
-            tf.float32,
-            size=self.splits,
-            dynamic_size=False,
-            clear_after_read=True,
-            tensor_array_name="outer_ta",
-            name="call_ta"
-        )
         # No specific orientations given. Hence, compute for all orientations.
         if tf.equal(tf.size(orientations), 0):
-            for interpolations in tf.split(mesh_signal, self.splits):
-                new_signal = new_signal.write(
-                    idx,
-                    self._select_orientations(
-                        interpolations, tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
-                    )
-                )
-                idx = idx + tf.constant(1)
-            new_signal = new_signal.concat()
+            return self._fold(
+                mesh_signal, tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
+            )
         # Compute convolutions only for given orientations.
         else:
-            for interpolations in tf.split(mesh_signal, self.splits):
-                new_signal = new_signal.write(idx, self._select_orientations(interpolations, orientations))
-                idx = idx + tf.constant(1)
-            new_signal = new_signal.concat()
-        return new_signal
+            return self._fold(mesh_signal, orientations)
 
     @tf.function
     def _patch_operator(self, mesh_signal, barycentric_coordinates):
@@ -220,30 +201,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         return tf.linalg.matvec(mesh_signal, self._interpolation_coefficients)
 
     @tf.function
-    def _select_orientations(self, interpolations, considered_rotations):
-        idx = tf.constant(0)
-        size = tf.shape(considered_rotations)[0]
-        new_signal = tf.TensorArray(
-            tf.float32,
-            size=size,
-            dynamic_size=False,
-            clear_after_read=True,
-            tensor_array_name="inner_ta",
-            name="rotation_ta"
-        )
-        # Iterate over rotations to economize memory usage
-        for rot in considered_rotations:
-            rotated_interpolations = self._fold(interpolations, rot)
-            # Store result:
-            new_signal = new_signal.write(idx, rotated_interpolations)
-            idx = idx + tf.constant(1)
-        # Stack results for all rotations: (n_rotations, n_templates, subset)
-        new_signal = new_signal.stack()
-        # Transpose for AMP: (subset, n_rotations, n_templates)
-        return tf.transpose(new_signal, perm=[2, 0, 1])
-
-    @tf.function
-    def _fold(self, interpolations, orientation):
+    def _fold(self, interpolations, considered_rotations):
         """Folds template vertex signal with the template weights
 
         Parameters
@@ -259,20 +217,24 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         tf.Tensor:
             The new mesh signal after the convolution. Shape: (subset, n_rotations, n_templates)
         """
-        # Rotation: (subset, n_radial, n_angular, input_dim)
-        rotated_interpolations = tf.roll(interpolations, shift=orientation, axis=2)
-        # Reshape for conv: (subset, n_radial * n_angular, input_dim)
-        rotated_interpolations = tf.reshape(
-            rotated_interpolations, (-1, self._template_size[0] * self._template_size[1], self._feature_dim)
+        # n_rotations = ceil(self.all_rotations / self.rotation_delta)
+        all_rotations_fn = lambda rot: tf.roll(interpolations, shift=rot, axis=2)
+        # (n_rotations, subset, n_radial, n_angular, input_dim)
+        interpolations = tf.map_fn(all_rotations_fn, considered_rotations, fn_output_signature=tf.float32)
+        # (n_rotations, subset, n_radial * n_angular, input_dim)
+        interpolations = tf.reshape(
+            interpolations,
+            (tf.shape(considered_rotations)[0], -1, self._template_size[0] * self._template_size[1], self._feature_dim)
         )
-        # Compute conv:
-        # Interpolated signals: (              subset, n_radial * n_angular,            input_dim)
-        # Weight matrix       : (n_templates,       1,            input_dim, n_radial * n_angular)
-        # Bias                : (n_templates,       1,                                           )
-        # Result              : (n_templates,  subset                                            )
-        return self._activation(
-            tf.einsum("ijk,xykj->xi", rotated_interpolations, self._template_weights) + self._bias
+        # Interpolated signals: (n_rotations,           1,  subset, n_radial * n_angular,            input_dim)
+        # Weight matrix       : (             n_templates,       1,            input_dim, n_radial * n_angular)
+        # Bias                : (             n_templates,       1,                                           )
+        # Result              : (n_rotations, n_templates,  subset                                            )
+        interpolations = self._activation(
+            tf.einsum("aijk,xykj->axi", interpolations, self._template_weights) + self._bias
         )
+        # Transpose for AMP: (subset, n_rotations, n_templates)
+        return tf.transpose(interpolations, perm=[2, 0, 1])
 
     def _configure_patch_operator(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
