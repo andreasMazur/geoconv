@@ -56,6 +56,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self.initializer = initializer
         self.splits = splits
         self.include_prior = include_prior
+        self._visible_gpus = [device_name.name for device_name in tf.config.list_logical_devices("GPU")]
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = keras.layers.Activation(self.activation_fn)
@@ -152,8 +153,18 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             tensor_array_name="outer_ta",
             name="call_ta"
         )
+        logical_gpus = [gpu.name for gpu in tf.config.list_logical_devices("GPU")]
         for interpolations in tf.split(mesh_signal, self.splits):
-            new_signal = new_signal.write(idx, self._fold(interpolations))
+
+            # Select gpu with the lowest memory usage
+            gpu_usages = []
+            for gpu in logical_gpus:
+                gpu_usages.append(tf.config.experimental.get_memory_info(gpu)["current"])
+            gpu_to_use = tf.math.argmin(gpu_usages)
+
+            with tf.device(gpu_to_use):
+                new_signal = new_signal.write(idx, self._fold(interpolations))
+
             idx = idx + tf.constant(1)
         new_signal = new_signal.concat()
 
