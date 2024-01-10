@@ -46,7 +46,6 @@ class ImCNN(keras.Model):
     @tf.function
     def gradient_step(self, x, y):
         """Compute multiple gradients per mesh"""
-        y = tf.stack(tf.split(y, self.splits))
         total_loss = tf.constant(0.)
 
         # Average over subset of gradients which were computed for subsets of orientations
