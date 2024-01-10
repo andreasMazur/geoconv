@@ -3,57 +3,12 @@ from tensorflow import keras
 import tensorflow as tf
 
 
-class AbsoluteMean(keras.metrics.Metric):
-
-    def __init__(self, name="absolute_mean", **kwargs):
-        super(AbsoluteMean, self).__init__(name=name, **kwargs)
-        self.absolute_mean = tf.Variable(
-            tf.constant(0., dtype=tf.float32), name="absolute_mean_value", trainable=False
-        )
-        self.counter = tf.Variable(
-            tf.constant(0., dtype=tf.float32), name="values_counter", trainable=False
-        )
-
-    def update_state(self, values):
-        """Compute the absolute value and mean"""
-        self.counter.assign_add(tf.constant(1., dtype=tf.float32))
-        new_values = tf.math.reduce_mean(tf.math.abs(values))
-        self.absolute_mean.assign((self.absolute_mean + new_values) / self.counter)
-
-    def result(self):
-        """Return the current absolute mean"""
-        return self.absolute_mean
-
-
-class CountGradients(keras.metrics.Metric):
-
-    def __init__(self, name="gradient_counter", **kwargs):
-        super(CountGradients, self).__init__(name=name, **kwargs)
-        self.counted_gradients = tf.Variable(
-            tf.constant(0, dtype=tf.int32), name="counted_gradients", trainable=False
-        )
-
-    def update_state(self, *args, **kwargs):
-        """Update increments gradient counter by 1"""
-        self.counted_gradients.assign_add(tf.constant(1, dtype=tf.int32))
-
-    def result(self):
-        """Return the current counter"""
-        return self.counted_gradients
-
-
 class ImCNN(keras.Model):
 
-    def __init__(self, *args, rotations, splits=1, **kwargs):
+    def __init__(self, *args, max_rotations, splits=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.splits = splits
-        self.rotations = [tf.constant(x) for x in range(rotations)]
-        self.gpu = [device_name.name for device_name in tf.config.list_logical_devices("GPU")][-1]
-
-        # Capture gradient statistics
-        self.gradient_stat_names = ["gradients_mean", "gradient_counter"]
-        self.gradient_mean = AbsoluteMean(name=self.gradient_stat_names[0])
-        self.gradient_counter = CountGradients(name=self.gradient_stat_names[1])
+        splits = splits if splits is not None else 1
+        self.concurrent_rotations = tf.split(tf.range(max_rotations), splits)
 
     def test_step(self, data):
         x, y = data
@@ -68,6 +23,7 @@ class ImCNN(keras.Model):
                 pass
             else:
                 metric.update_state(y, y_pred)
+
         return {m.name: m.result() for m in self.metrics if m.name not in self.gradient_stat_names}
 
     def train_step(self, data):
@@ -82,24 +38,36 @@ class ImCNN(keras.Model):
         for metric in self.metrics:
             if metric.name == "loss":
                 metric.update_state(loss)
-            elif metric.name in self.gradient_stat_names:
-                pass
             else:
                 metric.update_state(y, y_pred)
+
         return {m.name: m.result() for m in self.metrics}
 
-    # @tf.function
+    @tf.function
     def gradient_step(self, x, y):
         """Compute multiple gradients per mesh"""
         y = tf.stack(tf.split(y, self.splits))
         total_loss = tf.constant(0.)
-        # TODO: Compute gradients per rotation and add+average over those
-        gradients = []
-        for rot in self.rotations:
+
+        # Average over subset of gradients which were computed for subsets of orientations
+        idx = tf.constant(0)
+        gradients = tf.TensorArray(
+            tf.float32,
+            size=self.splits,
+            dynamic_size=False,
+            clear_after_read=True,
+            tensor_array_name="outer_ta",
+            name="call_ta"
+        )
+        for rot in self.concurrent_rotations:
             with tf.GradientTape() as tape:
-                y_pred = self(x, orientation=rot, training=True)
+                y_pred = self(x, orientations=rot, training=True)
                 loss = self.compute_loss(y=y, y_pred=y_pred)
-            gradients.append(tape.gradient(loss, self.trainable_variables))
-        gradients = [tf.reduce_mean(g, axis=0) for g in zip(*gradients)]
+            gradients.write(
+                idx,
+                tape.gradient(loss, self.trainable_variables)
+            )
+            total_loss = total_loss + loss
+        gradients = tf.reduce_mean(gradients.stack(), axis=0)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
         return y_pred, total_loss

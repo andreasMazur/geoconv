@@ -124,7 +124,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self._configure_patch_operator()
 
     @tf.function
-    def call(self, inputs, orientation=tf.constant(-1)):
+    def call(self, inputs, orientations=tf.constant([], dtype=tf.int32)):
         """Computes intrinsic surface convolution for multiple given GPC-systems
 
         Parameters
@@ -133,7 +133,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             The first tensor represents the signal defined on the manifold. It has size
             (n_vertices, feature_dim). The second tensor represents the barycentric coordinates. It has
             size (n_vertices, n_radial, n_angular, 3, 2).
-        orientation: tf.Tensor
+        orientations: tf.Tensor
             Contains an integer that tells how to rotate the data.
 
         Returns
@@ -153,14 +153,21 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             tensor_array_name="outer_ta",
             name="call_ta"
         )
-        if orientation > tf.constant(-1):
+        # No specific orientations given. Hence, compute for all orientations.
+        if tf.equal(tf.size(orientations), 0):
             for interpolations in tf.split(mesh_signal, self.splits):
-                new_signal = new_signal.write(idx, self._select_orientations(interpolations, orientation))
+                new_signal = new_signal.write(
+                    idx,
+                    self._select_orientations(
+                        interpolations, tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
+                    )
+                )
                 idx = idx + tf.constant(1)
             new_signal = new_signal.concat()
+        # Compute convolutions only for given orientations.
         else:
             for interpolations in tf.split(mesh_signal, self.splits):
-                new_signal = new_signal.write(idx, self._select_orientations(interpolations))
+                new_signal = new_signal.write(idx, self._select_orientations(interpolations, orientations))
                 idx = idx + tf.constant(1)
             new_signal = new_signal.concat()
         return new_signal
@@ -213,10 +220,9 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         return tf.linalg.matvec(mesh_signal, self._interpolation_coefficients)
 
     @tf.function
-    def _select_orientations(self, interpolations, orientation=tf.constant(-1)):
+    def _select_orientations(self, interpolations, considered_rotations):
         idx = tf.constant(0)
-        all_rotations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
-        size = tf.shape(all_rotations)[0]
+        size = tf.shape(considered_rotations)[0]
         new_signal = tf.TensorArray(
             tf.float32,
             size=size,
@@ -225,24 +231,16 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             tensor_array_name="inner_ta",
             name="rotation_ta"
         )
-        if orientation > tf.constant(-1):
-            # (n_templates, subset)
-            new_signal = self._fold(interpolations, orientation)
-            # (subset, n_templates)
-            new_signal = tf.transpose(new_signal, perm=[1, 0])
-            # add missing dimension: (n_vertices, 1, n_templates)
-            return tf.expand_dims(new_signal, axis=1)
-        else:
-            # Iterate over rotations to economize memory usage
-            for rot in all_rotations:
-                rotated_interpolations = self._fold(interpolations, rot)
-                # Store result:
-                new_signal = new_signal.write(idx, rotated_interpolations)
-                idx = idx + tf.constant(1)
-            # Stack results for all rotations: (n_rotations, n_templates, subset)
-            new_signal = new_signal.stack()
-            # Transpose for AMP: (subset, n_rotations, n_templates)
-            return tf.transpose(new_signal, perm=[2, 0, 1])
+        # Iterate over rotations to economize memory usage
+        for rot in considered_rotations:
+            rotated_interpolations = self._fold(interpolations, rot)
+            # Store result:
+            new_signal = new_signal.write(idx, rotated_interpolations)
+            idx = idx + tf.constant(1)
+        # Stack results for all rotations: (n_rotations, n_templates, subset)
+        new_signal = new_signal.stack()
+        # Transpose for AMP: (subset, n_rotations, n_templates)
+        return tf.transpose(new_signal, perm=[2, 0, 1])
 
     @tf.function
     def _fold(self, interpolations, orientation):

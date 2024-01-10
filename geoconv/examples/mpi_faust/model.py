@@ -6,8 +6,8 @@ import tensorflow as tf
 
 
 class Imcnn(ImCNN):
-    def __init__(self, template_radius, rotations, splits):
-        super().__init__(splits=splits, rotations=rotations)
+    def __init__(self, template_radius, rotations, splits, splits_opt):
+        super().__init__(max_rotations=rotations, splits=splits_opt)
         self.amp = AngularMaxPooling()
         self.conv1 = ConvDirac(
             amt_templates=96,
@@ -46,16 +46,16 @@ class Imcnn(ImCNN):
         )
         self.output_layer = tf.keras.layers.Dense(6890)
 
-    def call(self, inputs, orientation=tf.constant(-1), training=None, mask=None):
+    def call(self, inputs, orientations=None, training=None, mask=None):
         signal, bc = inputs
-        signal = self.conv1([signal, bc], orientation)
+        signal = self.conv1([signal, bc])
         signal = self.amp(signal)
-        signal = self.conv2([signal, bc], orientation)
+        signal = self.conv2([signal, bc])
         signal = self.amp(signal)
-        signal = self.conv3([signal, bc], orientation)
+        signal = self.conv3([signal, bc])
         signal = self.amp(signal)
-        signal = self.conv4([signal, bc], orientation)
+        signal = self.conv4([signal, bc])
         signal = self.amp(signal)
-        signal = self.conv5([signal, bc], orientation)
+        signal = self.conv5([signal, bc])
         signal = self.amp(signal)
         return self.output_layer(signal)
