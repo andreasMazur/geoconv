@@ -37,7 +37,7 @@ class HyperModel(keras_tuner.HyperModel):
             )([signal, bc_input])
             signal = amp(signal)
             signal = keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}")(signal)
-        output = keras.layers.Dense(6890, name="Output")
+        output = keras.layers.Dense(6890, name="Output")(signal)
 
         model = keras.Model(inputs=[signal_input, bc_input], outputs=[output])
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
