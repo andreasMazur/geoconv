@@ -10,9 +10,10 @@ import os
 
 class HyperModel(keras_tuner.HyperModel):
 
-    def __init__(self, signal_dim, template_radius, splits, rotation_delta):
+    def __init__(self, signal_dim, kernel_size, template_radius, splits, rotation_delta):
         super().__init__()
         self.signal_dim = signal_dim
+        self.kernel_size = kernel_size
         self.template_radius = template_radius
         self.splits = splits
         self.rotation_delta = rotation_delta
@@ -86,7 +87,11 @@ def hypertune(logging_dir,
 
     # Load hypermodel
     hyper = HyperModel(
-        signal_dim=signal_dim, template_radius=template_radius, splits=splits, rotation_delta=rotation_delta
+        signal_dim=signal_dim,
+        kernel_size=kernel_size,
+        template_radius=template_radius,
+        splits=splits,
+        rotation_delta=rotation_delta
     )
 
     # Configure tuner
