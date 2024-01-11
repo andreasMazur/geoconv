@@ -10,8 +10,9 @@ import os
 
 class HyperModel(keras_tuner.HyperModel):
 
-    def __init__(self, template_radius, splits, rotation_delta):
+    def __init__(self, signal_dim, template_radius, splits, rotation_delta):
         super().__init__()
+        self.signal_dim = signal_dim
         self.template_radius = template_radius
         self.splits = splits
         self.rotation_delta = rotation_delta
@@ -84,7 +85,9 @@ def hypertune(logging_dir,
     val_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=1)
 
     # Load hypermodel
-    hyper = HyperModel(template_radius=template_radius, splits=splits, rotation_delta=rotation_delta)
+    hyper = HyperModel(
+        signal_dim=signal_dim, template_radius=template_radius, splits=splits, rotation_delta=rotation_delta
+    )
 
     # Configure tuner
     tuner = keras_tuner.Hyperband(
