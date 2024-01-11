@@ -24,7 +24,7 @@ class HyperModel(keras_tuner.HyperModel):
 
         signal = keras.layers.Dense(64, activation="relu", name="Downsize")(signal_input)
         signal = keras.layers.BatchNormalization(axis=-1)(signal)
-        for idx in range(5):
+        for idx in range(len(self.output_dims)):
             signal = ConvDirac(
                 amt_templates=self.output_dims[idx],
                 template_radius=self.template_radius,
