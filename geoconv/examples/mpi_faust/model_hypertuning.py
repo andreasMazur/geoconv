@@ -23,7 +23,7 @@ class HyperModel(keras_tuner.HyperModel):
         amp = AngularMaxPooling()
 
         signal = keras.layers.Dense(64, activation="relu", name="Downsize")(signal_input)
-        signal = keras.layers.BatchNormalization(axis=-1)(signal)
+        signal = keras.layers.BatchNormalization(axis=-1, name="BN_downsize")(signal)
         for idx in range(len(self.output_dims)):
             signal = ConvDirac(
                 amt_templates=self.output_dims[idx],
