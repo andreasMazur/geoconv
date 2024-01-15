@@ -34,8 +34,8 @@ class HyperModel(keras_tuner.HyperModel):
                 name=f"ISC_layer_{idx}",
                 splits=self.splits,
                 rotation_delta=self.rotation_delta,
-                template_regularizer=tf.keras.regularizers.L2(l2=hp.Float("lr", min_value=1e-5, max_value=1e-1)),
-                bias_regularizer=tf.keras.regularizers.L2(l2=hp.Float("lr", min_value=1e-5, max_value=1e-1))
+                template_regularizer=tf.keras.regularizers.L2(l2=hp.Float("L2_temp", min_value=1e-5, max_value=1e-1)),
+                bias_regularizer=tf.keras.regularizers.L2(l2=hp.Float("L2_bias", min_value=1e-5, max_value=1e-1))
             )([signal, bc_input])
             signal = amp(signal)
             signal = keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}")(signal)
