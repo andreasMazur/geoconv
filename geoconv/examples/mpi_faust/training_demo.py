@@ -78,48 +78,46 @@ def train_model(reference_mesh_path,
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
 
-    strategy = tf.distribute.MirroredStrategy()
-    with strategy.scope():
-        # Load data
-        kernel_size = (n_radial, n_angular)
-        train_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0)
-        val_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=1)
+    # Load data
+    kernel_size = (n_radial, n_angular)
+    train_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0)
+    val_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=1)
 
-        # Define and compile model
-        imcnn = Imcnn(
-            signal_dim=signal_dim,
-            kernel_size=kernel_size,
-            template_radius=template_radius,
-            splits=splits,
-            rotation_delta=rotation_delta
-        )
-        loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        opt = keras.optimizers.Adam(learning_rate=0.0016923323371819856)
-        imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
+    # Define and compile model
+    imcnn = Imcnn(
+        signal_dim=signal_dim,
+        kernel_size=kernel_size,
+        template_radius=template_radius,
+        splits=splits,
+        rotation_delta=rotation_delta
+    )
+    loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    opt = keras.optimizers.Adam(learning_rate=0.0016923323371819856)
+    imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
-        # Build model
-        imcnn(
-            [
-                tf.random.uniform(shape=(6890, signal_dim)),
-                tf.random.uniform(shape=(6890,) + kernel_size + (3, 2)),
-                tf.constant([0])
-            ]
-        )
-        imcnn.summary()
+    # Build model
+    imcnn(
+        [
+            tf.random.uniform(shape=(6890, signal_dim)),
+            tf.random.uniform(shape=(6890,) + kernel_size + (3, 2)),
+            tf.constant([0])
+        ]
+    )
+    imcnn.summary()
 
-        # Define callbacks
-        stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=10)
-        tb = keras.callbacks.TensorBoard(
-            log_dir=f"{logging_dir}/tensorboard",
-            histogram_freq=1,
-            write_graph=False,
-            write_steps_per_second=True,
-            update_freq="epoch",
-            profile_batch=(1, 70)
-        )
+    # Define callbacks
+    stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=10)
+    tb = keras.callbacks.TensorBoard(
+        log_dir=f"{logging_dir}/tensorboard",
+        histogram_freq=1,
+        write_graph=False,
+        write_steps_per_second=True,
+        update_freq="epoch",
+        profile_batch=(1, 70)
+    )
 
-        imcnn.fit(x=train_data, callbacks=[stop, tb], validation_data=val_data, epochs=200)
-        imcnn.save(f"{logging_dir}/saved_imcnn")
+    imcnn.fit(x=train_data, callbacks=[stop, tb], validation_data=val_data, epochs=200)
+    imcnn.save(f"{logging_dir}/saved_imcnn")
 
     # Evaluate best model with Princeton benchmark
     # test_dataset = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=2)
