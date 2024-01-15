@@ -1,67 +1,46 @@
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.conv_dirac import ConvDirac
+from tensorflow import keras
 
 import tensorflow as tf
 
 
 class Imcnn(tf.keras.Model):
-    def __init__(self, template_radius, rotation_delta, splits):
+    def __init__(self, signal_dim, kernel_size, template_radius, splits, rotation_delta):
         super().__init__()
+        self.signal_dim = signal_dim
+        self.kernel_size = kernel_size
+        self.template_radius = template_radius
+        self.splits = splits
+        self.rotation_delta = rotation_delta
+        self.output_dims = [96, 256, 384, 384, 256]
+
         self.amp = AngularMaxPooling()
-        self.input_layer = tf.keras.layers.Dense(64, activation="relu")
-        self.conv1 = ConvDirac(
-            amt_templates=96,
-            template_radius=template_radius,
-            activation="relu",
-            name="ISC_layer_1",
-            splits=splits,
-            rotation_delta=rotation_delta
-        )
-        self.conv2 = ConvDirac(
-            amt_templates=256,
-            template_radius=template_radius,
-            activation="relu",
-            name="ISC_layer_2",
-            splits=splits,
-            rotation_delta=rotation_delta
-        )
-        self.conv3 = ConvDirac(
-            amt_templates=384,
-            template_radius=template_radius,
-            activation="relu",
-            name="ISC_layer_3",
-            splits=splits,
-            rotation_delta=rotation_delta
-        )
-        self.conv4 = ConvDirac(
-            amt_templates=384,
-            template_radius=template_radius,
-            activation="relu",
-            name="ISC_layer_4",
-            splits=splits,
-            rotation_delta=rotation_delta
-        )
-        self.conv5 = ConvDirac(
-            amt_templates=256,
-            template_radius=template_radius,
-            activation="relu",
-            name="ISC_layer_5",
-            splits=splits,
-            rotation_delta=rotation_delta
-        )
-        self.output_layer = tf.keras.layers.Dense(6890)
+        self.downsize_dense = keras.layers.Dense(64, activation="relu", name="downsize")
+        self.downsize_bn = keras.layers.BatchNormalization(axis=-1, name="BN_downsize")
+
+        self.isc_layers = []
+        self.bn_layers = []
+        for idx in range(len(self.output_dims)):
+            self.isc_layers.append(
+                ConvDirac(
+                    amt_templates=self.output_dims[idx],
+                    template_radius=self.template_radius,
+                    activation="relu",
+                    name=f"ISC_layer_{idx}",
+                    splits=self.splits,
+                    rotation_delta=self.rotation_delta
+                )
+            )
+            self.bn_layers.append(keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}"))
+        self.output_dense = keras.layers.Dense(6890, name="output")
 
     def call(self, inputs, orientations=None, training=None, mask=None):
         signal, bc = inputs
-        signal = self.input_layer(signal)
-        signal = self.conv1([signal, bc])
-        signal = self.amp(signal)
-        signal = self.conv2([signal, bc])
-        signal = self.amp(signal)
-        signal = self.conv3([signal, bc])
-        signal = self.amp(signal)
-        signal = self.conv4([signal, bc])
-        signal = self.amp(signal)
-        signal = self.conv5([signal, bc])
-        signal = self.amp(signal)
-        return self.output_layer(signal)
+        signal = self.downsize_dense(signal)
+        signal = self.downsize_bn(signal)
+        for idx in range(len(self.output_dims)):
+            signal = self.isc_layers[idx]([signal, bc])
+            signal = self.amp(signal)
+            signal = self.bn_layers[idx](signal)
+        return self.output_dense(signal)
