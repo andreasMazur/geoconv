@@ -29,18 +29,20 @@ class Imcnn(tf.keras.Model):
                     activation="relu",
                     name=f"ISC_layer_{idx}",
                     splits=self.splits,
-                    rotation_delta=self.rotation_delta
+                    rotation_delta=self.rotation_delta,
+                    template_regularizer=tf.keras.regularizers.L2(),
+                    bias_regularizer=tf.keras.regularizers.L2()
                 )
             )
             self.bn_layers.append(keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}"))
         self.output_dense = keras.layers.Dense(6890, name="output")
 
     def call(self, inputs, orientations=None, training=None, mask=None):
-        signal, bc, orientation = inputs
+        signal, bc = inputs
         signal = self.downsize_dense(signal)
         signal = self.downsize_bn(signal)
         for idx in range(len(self.output_dims)):
-            signal = self.isc_layers[idx]([signal, bc], orientations=orientation)
+            signal = self.isc_layers[idx]([signal, bc])
             signal = self.amp(signal)
             signal = self.bn_layers[idx](signal)
         return self.output_dense(signal)

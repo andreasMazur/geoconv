@@ -68,8 +68,9 @@ def faust_generator(path_to_zip, set_type=0):
         # Return the indices of the ones for each row
         # (as required by `tf.keras.losses.SparseCategoricalCrossentropy`)
         gt = dataset[GT[idx]]
-        for orientation in tf.range(tf.shape(bc)[2]):
-            yield (signal, bc, tf.reshape(orientation, (-1,))), gt
+        yield (signal, bc), gt
+        # for orientation in tf.range(tf.shape(bc)[2]):
+        #     yield (signal, bc, tf.reshape(orientation, (-1,))), gt
 
 
 def load_preprocessed_faust(path_to_zip,
@@ -110,7 +111,7 @@ def load_preprocessed_faust(path_to_zip,
             (
                 tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
                 tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32),  # Barycentric Coordinates
-                tf.TensorSpec(shape=(None,), dtype=tf.int32)  # Orientation
+                # tf.TensorSpec(shape=(None,), dtype=tf.int32)  # Orientation
             ),
             tf.TensorSpec(shape=(None,), dtype=tf.float32)  # Ground Truth
         )
