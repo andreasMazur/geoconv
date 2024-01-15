@@ -96,7 +96,13 @@ def train_model(reference_mesh_path,
     imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
     # Build model
-    imcnn([tf.random.uniform(shape=(6890, signal_dim)), tf.random.uniform(shape=(6890,) + kernel_size + (3, 2))])
+    imcnn(
+        [
+            tf.random.uniform(shape=(6890, signal_dim)),
+            tf.random.uniform(shape=(6890,) + kernel_size + (3, 2)),
+            tf.constant([0])
+        ]
+    )
     imcnn.summary()
 
     # Define callbacks
