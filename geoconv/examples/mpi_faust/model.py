@@ -36,11 +36,11 @@ class Imcnn(tf.keras.Model):
         self.output_dense = keras.layers.Dense(6890, name="output")
 
     def call(self, inputs, orientations=None, training=None, mask=None):
-        signal, bc = inputs
+        signal, bc, orientation = inputs
         signal = self.downsize_dense(signal)
         signal = self.downsize_bn(signal)
         for idx in range(len(self.output_dims)):
-            signal = self.isc_layers[idx]([signal, bc])
+            signal = self.isc_layers[idx]([signal, bc], orientations=orientation)
             signal = self.amp(signal)
             signal = self.bn_layers[idx](signal)
         return self.output_dense(signal)
