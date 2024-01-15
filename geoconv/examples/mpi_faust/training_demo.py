@@ -100,7 +100,7 @@ def train_model(reference_mesh_path,
         [
             tf.random.uniform(shape=(6890, signal_dim)),
             tf.random.uniform(shape=(6890,) + kernel_size + (3, 2)),
-            tf.constant([0])
+            # tf.constant([0])
         ]
     )
     imcnn.summary()
