@@ -96,8 +96,10 @@ def train_model(reference_mesh_path,
     imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
     # Adapt normalization
-    imcnn.normalize.build(tf.constant([6890, signal_dim]))
-    imcnn.normalize.adapt(train_data)
+    adaption_data = load_preprocessed_faust(
+        preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0, only_signal=True
+    )
+    imcnn.normalize.adapt(adaption_data)
 
     # Build model
     imcnn(

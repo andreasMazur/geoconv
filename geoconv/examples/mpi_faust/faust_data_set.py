@@ -23,7 +23,7 @@ def get_file_number(file_name):
     raise RuntimeError(f"Filename '{file_name}' has no digit.")
 
 
-def faust_generator(path_to_zip, set_type=0):
+def faust_generator(path_to_zip, set_type=0, only_signal=False):
     """Reads one element of preprocessed FAUST-examples into memory per 'next'-call.
 
     Parameters
@@ -39,6 +39,8 @@ def faust_generator(path_to_zip, set_type=0):
         the one given in:
         > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
         > Jonathan Masci and Davide Boscaini et al.
+    only_signal: bool
+        Return only the signal matrices. Helpful for tf.keras.Normalization(axis=-1).adapt(data)
 
     Returns
     -------
@@ -68,15 +70,17 @@ def faust_generator(path_to_zip, set_type=0):
         # Return the indices of the ones for each row
         # (as required by `tf.keras.losses.SparseCategoricalCrossentropy`)
         gt = dataset[GT[idx]]
-        yield (signal, bc), gt
-        # for orientation in tf.range(tf.shape(bc)[2]):
-        #     yield (signal, bc, tf.reshape(orientation, (-1,))), gt
+        if only_signal:
+            yield signal
+        else:
+            yield (signal, bc), gt
 
 
 def load_preprocessed_faust(path_to_zip,
                             signal_dim,
                             kernel_size=(2, 4),
-                            set_type=0):
+                            set_type=0,
+                            only_signal=False):
     """Returns a 'tf.data.Dataset' of the preprocessed MPI-FAUST examples.
 
     Requires that preprocessing already happened. This function operates directly on the resulting 'zip'-file.
@@ -98,6 +102,8 @@ def load_preprocessed_faust(path_to_zip,
         the one given in:
         > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
         > Jonathan Masci and Davide Boscaini et al.
+    only_signal: bool
+        Return only the signal matrices. Helpful for tf.keras.Normalization(axis=-1).adapt(data)
 
     Returns
     -------
@@ -106,12 +112,11 @@ def load_preprocessed_faust(path_to_zip,
     """
     return tf.data.Dataset.from_generator(
         faust_generator,
-        args=(path_to_zip, set_type),
+        args=(path_to_zip, set_type, only_signal),
         output_signature=(
             (
                 tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
                 tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32),  # Barycentric Coordinates
-                # tf.TensorSpec(shape=(None,), dtype=tf.int32)  # Orientation
             ),
             tf.TensorSpec(shape=(None,), dtype=tf.float32)  # Ground Truth
         )
