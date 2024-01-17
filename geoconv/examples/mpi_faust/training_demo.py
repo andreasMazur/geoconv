@@ -92,7 +92,7 @@ def train_model(reference_mesh_path,
         rotation_delta=rotation_delta
     )
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    opt = keras.optimizers.Adam(learning_rate=0.0016923323371819856)
+    opt = keras.optimizers.AdamW(learning_rate=0.0016923323371819856, weight_decay=0.00064257)
     imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
     # Build model
