@@ -95,6 +95,9 @@ def train_model(reference_mesh_path,
     opt = keras.optimizers.AdamW(learning_rate=0.0016923323371819856, weight_decay=0.00039809)
     imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
+    # Adapt normalization
+    imcnn.normalize.adapt(train_data)
+
     # Build model
     imcnn(
         [

@@ -18,6 +18,7 @@ class Imcnn(tf.keras.Model):
         self.amp = AngularMaxPooling()
         self.downsize_dense = keras.layers.Dense(64, activation="relu", name="downsize")
         self.downsize_bn = keras.layers.BatchNormalization(axis=-1, name="BN_downsize")
+        self.normalize = keras.layers.Normalization(axis=-1)
 
         self.isc_layers = []
         self.bn_layers = []
@@ -39,6 +40,7 @@ class Imcnn(tf.keras.Model):
 
     def call(self, inputs, orientations=None, training=None, mask=None):
         signal, bc = inputs
+        signal = self.normalize(signal)
         signal = self.downsize_dense(signal)
         signal = self.downsize_bn(signal)
         for idx in range(len(self.output_dims)):
