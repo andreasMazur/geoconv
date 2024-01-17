@@ -13,7 +13,7 @@ class Imcnn(tf.keras.Model):
         self.template_radius = template_radius
         self.splits = splits
         self.rotation_delta = rotation_delta
-        self.output_dims = [96, 256, 384, 384, 256]
+        self.output_dims = [96, 256, 384, 384]  # , 256
 
         self.amp = AngularMaxPooling()
         self.downsize_dense = keras.layers.Dense(64, activation="relu", name="downsize")
