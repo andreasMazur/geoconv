@@ -111,7 +111,7 @@ def load_preprocessed_faust(path_to_zip,
         A tensorflow data set of the preprocessed MPI-FAUST examples
     """
     if only_signal:
-        output_signature = (tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),)
+        output_signature = tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32)
     else:
         output_signature = (
             (
