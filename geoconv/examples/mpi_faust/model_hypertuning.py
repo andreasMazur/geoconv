@@ -44,7 +44,7 @@ class HyperModel(keras_tuner.HyperModel):
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = keras.optimizers.AdamW(
             learning_rate=0.0016923323371819856,
-            weight_decay=hp.Float("weight_deacy", min_value=1e-6, max_value=1e-3)
+            weight_decay=hp.Float("weight_decay", min_value=1e-6, max_value=1e-3)
         )
         model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
         return model
