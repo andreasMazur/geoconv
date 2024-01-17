@@ -29,9 +29,7 @@ class Imcnn(tf.keras.Model):
                     activation="relu",
                     name=f"ISC_layer_{idx}",
                     splits=self.splits,
-                    rotation_delta=self.rotation_delta,
-                    # template_regularizer=tf.keras.regularizers.L2(),
-                    # bias_regularizer=tf.keras.regularizers.L2()
+                    rotation_delta=self.rotation_delta
                 )
             )
             self.bn_layers.append(keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}"))

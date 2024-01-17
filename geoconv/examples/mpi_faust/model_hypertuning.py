@@ -33,9 +33,7 @@ class HyperModel(keras_tuner.HyperModel):
                 activation="relu",
                 name=f"ISC_layer_{idx}",
                 splits=self.splits,
-                rotation_delta=self.rotation_delta,
-                template_regularizer=tf.keras.regularizers.L2(l2=hp.Float("L2_temp", min_value=1e-5, max_value=1e-1)),
-                bias_regularizer=tf.keras.regularizers.L2(l2=hp.Float("L2_bias", min_value=1e-5, max_value=1e-1))
+                rotation_delta=self.rotation_delta
             )([signal, bc_input])
             signal = amp(signal)
             signal = keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}")(signal)
@@ -43,7 +41,10 @@ class HyperModel(keras_tuner.HyperModel):
 
         model = keras.Model(inputs=[signal_input, bc_input], outputs=[output])
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        opt = keras.optimizers.Adam(learning_rate=hp.Float("lr", min_value=1e-5, max_value=1e-1))
+        opt = keras.optimizers.AdamW(
+            learning_rate=0.0016923323371819856,
+            weight_decay=hp.Float("lr", min_value=1e-6, max_value=1e-3)
+        )
         model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
         return model
 
