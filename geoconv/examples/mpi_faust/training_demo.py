@@ -92,7 +92,14 @@ def train_model(reference_mesh_path,
         rotation_delta=rotation_delta
     )
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    opt = keras.optimizers.AdamW(learning_rate=0.0016923323371819856, weight_decay=0.00039809)
+    opt = keras.optimizers.AdamW(
+        learning_rate=keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=0.0016923323371819856,
+            decay_steps=490,
+            decay_rate=0.9
+        ),
+        weight_decay=0.00039809
+    )
     imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
     # Adapt normalization
