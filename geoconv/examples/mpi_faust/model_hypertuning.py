@@ -37,6 +37,7 @@ class HyperModel(keras_tuner.HyperModel):
             )([signal, bc_input])
             signal = amp(signal)
             signal = keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}")(signal)
+            signal = keras.layers.Dropout(rate=0.2)(signal)
         output = keras.layers.Dense(6890, name="Output")(signal)
 
         model = keras.Model(inputs=[signal_input, bc_input], outputs=[output])

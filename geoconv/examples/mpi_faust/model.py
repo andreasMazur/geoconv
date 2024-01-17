@@ -21,6 +21,7 @@ class Imcnn(tf.keras.Model):
 
         self.isc_layers = []
         self.bn_layers = []
+        self.do_layers = []
         for idx in range(len(self.output_dims)):
             self.isc_layers.append(
                 ConvDirac(
@@ -33,6 +34,7 @@ class Imcnn(tf.keras.Model):
                 )
             )
             self.bn_layers.append(keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}"))
+            self.do_layers.append(keras.layers.Dropout(rate=0.2))
         self.output_dense = keras.layers.Dense(6890, name="output")
 
     def call(self, inputs, orientations=None, training=None, mask=None):
@@ -43,4 +45,5 @@ class Imcnn(tf.keras.Model):
             signal = self.isc_layers[idx]([signal, bc])
             signal = self.amp(signal)
             signal = self.bn_layers[idx](signal)
+            signal = self.do_layers[idx](signal)
         return self.output_dense(signal)
