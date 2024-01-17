@@ -34,7 +34,7 @@ class Imcnn(tf.keras.Model):
                 )
             )
             self.bn_layers.append(keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}"))
-            self.do_layers.append(keras.layers.Dropout(rate=0.2))
+            self.do_layers.append(keras.layers.Dropout(rate=0.2, name=f"DO_layer_{idx}"))
         self.output_dense = keras.layers.Dense(6890, name="output")
 
     def call(self, inputs, orientations=None, training=None, mask=None):
