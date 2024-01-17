@@ -103,18 +103,19 @@ def train_model(reference_mesh_path,
     imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
     # Adapt normalization
+    print("Initializing normalization layer..")
     imcnn.normalize.build(tf.TensorShape([6890, signal_dim]))
     adaption_data = load_preprocessed_faust(
         preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0, only_signal=True
     )
     imcnn.normalize.adapt(adaption_data)
+    print("Done.")
 
     # Build model
     imcnn(
         [
             tf.random.uniform(shape=(6890, signal_dim)),
-            tf.random.uniform(shape=(6890,) + kernel_size + (3, 2)),
-            # tf.constant([0])
+            tf.random.uniform(shape=(6890,) + kernel_size + (3, 2))
         ]
     )
     imcnn.summary()
