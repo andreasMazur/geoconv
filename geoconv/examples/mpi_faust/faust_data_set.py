@@ -110,14 +110,15 @@ def load_preprocessed_faust(path_to_zip,
     tf.data.Dataset:
         A tensorflow data set of the preprocessed MPI-FAUST examples
     """
+    if only_signal:
+        output_signature = (tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),)
+    else:
+        output_signature = (
+            tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
+            tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32),  # Barycentric Coordinates
+        )
     return tf.data.Dataset.from_generator(
         faust_generator,
         args=(path_to_zip, set_type, only_signal),
-        output_signature=(
-            (
-                tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
-                tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32),  # Barycentric Coordinates
-            ),
-            tf.TensorSpec(shape=(None,), dtype=tf.float32)  # Ground Truth
-        )
+        output_signature=(output_signature, tf.TensorSpec(shape=(None,), dtype=tf.float32))
     )
