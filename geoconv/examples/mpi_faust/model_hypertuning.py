@@ -17,7 +17,7 @@ class HyperModel(keras_tuner.HyperModel):
         self.template_radius = template_radius
         self.splits = splits
         self.rotation_delta = rotation_delta
-        self.output_dims = [96, 256, 384, 384, 256]
+        self.output_dims = [96, 256, 384]  # , 384, 256
 
     def build(self, hp):
         signal_input = keras.layers.Input(shape=self.signal_dim, name="Signal_input")
@@ -43,7 +43,11 @@ class HyperModel(keras_tuner.HyperModel):
         model = keras.Model(inputs=[signal_input, bc_input], outputs=[output])
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = keras.optimizers.AdamW(
-            learning_rate=0.0016923323371819856,
+            learning_rate=keras.optimizers.schedules.ExponentialDecay(
+                initial_learning_rate=0.0016923323371819856,
+                decay_steps=490,
+                decay_rate=0.9
+            ),
             weight_decay=hp.Float("weight_decay", min_value=1e-6, max_value=1e-3)
         )
         model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
