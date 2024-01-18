@@ -17,14 +17,14 @@ class Imcnn(tf.keras.Model):
         #################
         # Handling Input
         #################
-        self.normalize = keras.layers.Normalization(axis=-1)
-        self.downsize_dense = keras.layers.Dense(64, activation="relu", name="downsize")
-        self.downsize_bn = keras.layers.BatchNormalization(axis=-1, name="BN_downsize")
+        self.normalize = keras.layers.Normalization(axis=-1, name="input_normalization")
+        # self.downsize_dense = keras.layers.Dense(64, activation="relu", name="downsize")
+        # self.downsize_bn = keras.layers.BatchNormalization(axis=-1, name="BN_downsize")
 
         ##################
         # Global Features
         ##################
-        self.output_dims = [50, 20, 10, 20, 50]
+        self.output_dims = [100 for _ in range(5)]
         self.isc_layers = []
         self.bn_layers = []
         self.do_layers = []
@@ -48,7 +48,7 @@ class Imcnn(tf.keras.Model):
         # Local Features
         ##################
         self.local_isc = ConvDirac(
-            amt_templates=50,
+            amt_templates=500,
             template_radius=self.template_radius,
             activation="relu",
             name=f"local_ISC_layer",
@@ -69,8 +69,8 @@ class Imcnn(tf.keras.Model):
         #################
         signal, bc = inputs
         signal = self.normalize(signal)
-        signal = self.downsize_dense(signal)
-        signal = self.downsize_bn(signal)
+        # signal = self.downsize_dense(signal)
+        # signal = self.downsize_bn(signal)
 
         ##################
         # Global Features

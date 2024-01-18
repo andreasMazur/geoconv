@@ -17,38 +17,80 @@ class HyperModel(keras_tuner.HyperModel):
         self.template_radius = template_radius
         self.splits = splits
         self.rotation_delta = rotation_delta
-        self.output_dims = [300, 200]
+        self.global_dims = [100 for _ in range(5)]
+        self.local_dim = 500
+        self.normalize = keras.layers.Normalization(axis=-1, name="input_normalization")
 
     def build(self, hp):
+        amp = AngularMaxPooling()
         signal_input = keras.layers.Input(shape=self.signal_dim, name="Signal_input")
         bc_input = keras.layers.Input(shape=(self.kernel_size[0], self.kernel_size[1], 3, 2), name="BC_input")
-        amp = AngularMaxPooling()
 
-        signal = keras.layers.Dense(64, activation="relu", name="Downsize")(signal_input)
-        signal = keras.layers.BatchNormalization(axis=-1, name="BN_downsize")(signal)
-        for idx in range(len(self.output_dims)):
-            signal = ConvDirac(
-                amt_templates=self.output_dims[idx],
+        #################
+        # Handling Input
+        #################
+        signal = self.normalize(signal_input)
+        # signal = keras.layers.Dense(64, activation="relu", name="Downsize")(signal)
+        # signal = keras.layers.BatchNormalization(axis=-1, name="BN_downsize")(signal)
+
+        ##################
+        # Global Features
+        ##################
+        global_signal = ConvDirac(
+            amt_templates=self.global_dims[0],
+            template_radius=self.template_radius,
+            activation="relu",
+            name=f"ISC_layer_{0}",
+            splits=self.splits,
+            rotation_delta=self.rotation_delta
+        )([signal, bc_input])
+        global_signal = amp(global_signal)
+        global_signal = keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{0}")(global_signal)
+        global_signal = keras.layers.Dropout(rate=0.2)(global_signal)
+        for idx in range(1, len(self.global_dims)):
+            global_signal = ConvDirac(
+                amt_templates=self.global_dims[idx],
                 template_radius=self.template_radius,
                 activation="relu",
                 name=f"ISC_layer_{idx}",
                 splits=self.splits,
                 rotation_delta=self.rotation_delta
-            )([signal, bc_input])
-            signal = amp(signal)
-            signal = keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}")(signal)
-            signal = keras.layers.Dropout(rate=0.2)(signal)
-        output = keras.layers.Dense(6890, name="Output")(signal)
+            )([global_signal, bc_input])
+            global_signal = amp(global_signal)
+            global_signal = keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}")(global_signal)
+            global_signal = keras.layers.Dropout(rate=0.2)(global_signal)
 
+        ##################
+        # Local Features
+        ##################
+        local_signal = ConvDirac(
+            amt_templates=self.local_dim,
+            template_radius=self.template_radius,
+            activation="relu",
+            name=f"local_ISC_layer",
+            splits=self.splits,
+            rotation_delta=self.rotation_delta
+        )(signal)
+        local_signal = amp(local_signal)
+
+        ##########################
+        # Output = Global + Local
+        ##########################
+        combined_signal = keras.layers.Concatenate(axis=1)([local_signal, global_signal])
+        output = keras.layers.Dense(6890, name="Output")(combined_signal)
+
+        ################
+        # Compile Model
+        ################
         model = keras.Model(inputs=[signal_input, bc_input], outputs=[output])
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = keras.optimizers.AdamW(
             learning_rate=keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=0.0016923323371819856,
-                decay_steps=490,
-                decay_rate=0.9
+                initial_learning_rate=hp.Float("weight_decay", min_value=1e-6, max_value=0.01),
+                decay_steps=500,
+                decay_rate=0.95
             ),
-            weight_decay=hp.Float("weight_decay", min_value=1e-6, max_value=1e-3)
+            weight_decay=hp.Float("weight_decay", min_value=1e-6, max_value=0.01)
         )
         model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
         return model
@@ -102,6 +144,16 @@ def hypertune(logging_dir,
         rotation_delta=rotation_delta
     )
 
+    # Adapt normalization
+    print("Initializing normalization layer..")
+    hyper.normalize.build(tf.TensorShape([6890, signal_dim]))
+    adaption_data = load_preprocessed_faust(
+        preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0, only_signal=True
+    )
+    imcnn.normalize.adapt(adaption_data)
+    print("Done.")
+
+
     # Configure tuner
     tuner = keras_tuner.Hyperband(
         hypermodel=hyper,
@@ -113,7 +165,7 @@ def hypertune(logging_dir,
     )
 
     # Start hyperparameter-search
-    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=5)
+    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
     tuner.search(
         x=train_data.prefetch(tf.data.AUTOTUNE),
         validation_data=val_data.prefetch(tf.data.AUTOTUNE),
