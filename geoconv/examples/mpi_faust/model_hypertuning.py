@@ -150,7 +150,7 @@ def hypertune(logging_dir,
     adaption_data = load_preprocessed_faust(
         preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0, only_signal=True
     )
-    imcnn.normalize.adapt(adaption_data)
+    hyper.normalize.adapt(adaption_data)
     print("Done.")
 
 
