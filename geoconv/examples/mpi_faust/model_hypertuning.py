@@ -17,7 +17,7 @@ class HyperModel(keras_tuner.HyperModel):
         self.template_radius = template_radius
         self.splits = splits
         self.rotation_delta = rotation_delta
-        self.output_dims = [96, 256, 384]  # , 384, 256
+        self.output_dims = [300, 200]
 
     def build(self, hp):
         signal_input = keras.layers.Input(shape=self.signal_dim, name="Signal_input")
