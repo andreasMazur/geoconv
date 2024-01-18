@@ -70,7 +70,7 @@ class HyperModel(keras_tuner.HyperModel):
             name=f"local_ISC_layer",
             splits=self.splits,
             rotation_delta=self.rotation_delta
-        )(signal)
+        )([signal, bc_input])
         local_signal = amp(local_signal)
 
         ##########################
