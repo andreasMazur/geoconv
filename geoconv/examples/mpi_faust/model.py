@@ -60,7 +60,7 @@ class Imcnn(tf.keras.Model):
         ##########################
         # Output = Global + Local
         ##########################
-        self.concat_layer = keras.layers.Concatenate(axis=0)
+        self.concat_layer = keras.layers.Concatenate(axis=1)
         self.output_dense = keras.layers.Dense(6890, name="output")
 
     def call(self, inputs, orientations=None, training=None, mask=None):
