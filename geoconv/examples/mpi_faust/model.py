@@ -81,6 +81,9 @@ class Imcnn(tf.keras.Model):
         # Global Features
         ##################
         global_signal = self.isc_layers[0]([signal, bc])
+        global_signal = self.amp_layers[0](global_signal)
+        global_signal = self.bn_layers[0](global_signal)
+        global_signal = self.do_layers[0](global_signal)
         for idx in range(1, len(self.output_dims)):
             global_signal = self.isc_layers[idx]([global_signal, bc])
             if idx < len(self.output_dims) - 1:
