@@ -24,7 +24,7 @@ class Imcnn(tf.keras.Model):
         ##################
         # Global Features
         ##################
-        self.output_dims = [20, 20, 20, 20, 20]
+        self.output_dims = [20, 20, 20, 20, 50]
         self.isc_layers = []
         self.bn_layers = []
         self.do_layers = []
@@ -49,7 +49,7 @@ class Imcnn(tf.keras.Model):
         # Local Features
         ##################
         self.local_isc = ConvDirac(
-            amt_templates=400,
+            amt_templates=50,
             template_radius=self.template_radius,
             activation="relu",
             name=f"local_ISC_layer",
