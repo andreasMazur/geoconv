@@ -67,11 +67,19 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
         raise RuntimeError(f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test'].")
 
     for idx in indices:
+        # Read signal
         signal = tf.cast(dataset[SIGNAL[idx]], tf.float32)
+
+        # Read bc + add noise
         bc = tf.cast(dataset[BC[idx]], tf.float32)
-        # Return the indices of the ones for each row
+        noise = np.random.normal(size=(6890, 5, 8, 3, 2))
+        noise[:, :, :, :, 0] = 0
+        bc = bc + noise
+
+        # Ground truth: Return the indices of the ones for each row
         # (as required by `tf.keras.losses.SparseCategoricalCrossentropy`)
         gt = dataset[GT[idx]]
+
         if only_signal:
             yield signal
         else:
