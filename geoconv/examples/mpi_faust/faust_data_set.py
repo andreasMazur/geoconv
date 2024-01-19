@@ -75,7 +75,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
         if only_signal:
             yield signal
         else:
-            yield (signal, bc, tf.constant([idx])), gt
+            yield (signal, bc), gt
 
 
 def load_preprocessed_faust(path_to_zip,
@@ -118,8 +118,7 @@ def load_preprocessed_faust(path_to_zip,
         output_signature = (
             (
                 tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
-                tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32),  # Barycentric Coordinates
-                tf.TensorSpec(shape=(None,), dtype=tf.int32)
+                tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32)  # Barycentric Coordinates
             ),
             tf.TensorSpec(shape=(None,), dtype=tf.float32)
         )
