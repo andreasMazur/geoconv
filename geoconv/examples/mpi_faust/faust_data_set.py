@@ -72,7 +72,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
 
         # Read bc + add noise
         bc = tf.cast(dataset[BC[idx]], tf.float32)
-        if set_type == 1:
+        if set_type == 0:
             noise = np.abs(np.random.normal(size=(6890, 5, 8, 3, 2), scale=1e-5))
             noise[:, :, :, :, 0] = 0
             bc = bc + noise
