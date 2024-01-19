@@ -17,8 +17,7 @@ class HyperModel(keras_tuner.HyperModel):
         self.template_radius = template_radius
         self.splits = splits
         self.rotation_delta = rotation_delta
-        self.global_dims = [100 for _ in range(5)]
-        self.local_dim = 500
+        self.global_dims = [100 for _ in range(3)]
         self.normalize = keras.layers.Normalization(axis=-1, name="input_normalization")
 
     def build(self, hp):
@@ -33,51 +32,26 @@ class HyperModel(keras_tuner.HyperModel):
         # signal = keras.layers.Dense(64, activation="relu", name="Downsize")(signal)
         # signal = keras.layers.BatchNormalization(axis=-1, name="BN_downsize")(signal)
 
-        ##################
-        # Global Features
-        ##################
-        global_signal = ConvDirac(
-            amt_templates=self.global_dims[0],
-            template_radius=self.template_radius,
-            activation="relu",
-            name=f"ISC_layer_{0}",
-            splits=self.splits,
-            rotation_delta=self.rotation_delta
-        )([signal, bc_input])
-        global_signal = amp(global_signal)
-        global_signal = keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{0}")(global_signal)
-        global_signal = keras.layers.Dropout(rate=0.2)(global_signal)
-        for idx in range(1, len(self.global_dims)):
-            global_signal = ConvDirac(
+        #######################
+        # Network Architecture
+        #######################
+        for idx in range(len(self.global_dims)):
+            signal = ConvDirac(
                 amt_templates=self.global_dims[idx],
                 template_radius=self.template_radius,
                 activation="relu",
                 name=f"ISC_layer_{idx}",
                 splits=self.splits,
                 rotation_delta=self.rotation_delta
-            )([global_signal, bc_input])
-            global_signal = amp(global_signal)
-            global_signal = keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}")(global_signal)
-            global_signal = keras.layers.Dropout(rate=0.2)(global_signal)
+            )([signal, bc_input])
+            signal = amp(signal)
+            signal = keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}")(signal)
+            signal = keras.layers.Dropout(rate=0.2)(signal)
 
-        ##################
-        # Local Features
-        ##################
-        local_signal = ConvDirac(
-            amt_templates=self.local_dim,
-            template_radius=self.template_radius,
-            activation="relu",
-            name=f"local_ISC_layer",
-            splits=self.splits,
-            rotation_delta=self.rotation_delta
-        )([signal, bc_input])
-        local_signal = amp(local_signal)
-
-        ##########################
-        # Output = Global + Local
-        ##########################
-        combined_signal = keras.layers.Concatenate(axis=1)([local_signal, global_signal])
-        output = keras.layers.Dense(6890, name="Output")(combined_signal)
+        #########
+        # Output
+        #########
+        output = keras.layers.Dense(6890, name="Output")(signal)
 
         ################
         # Compile Model
