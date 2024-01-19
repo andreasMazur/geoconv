@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import os
+import random
 
 
 def get_file_number(file_name):
@@ -56,7 +57,8 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
     SIGNAL.sort(key=get_file_number), BC.sort(key=get_file_number), GT.sort(key=get_file_number)
 
     if set_type == 0:
-        indices = range(80)
+        indices = list(range(80))
+        random.shuffle(indices)
     elif set_type == 1:
         indices = range(80, 100)
     elif set_type == 2:
@@ -73,7 +75,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
         if only_signal:
             yield signal
         else:
-            yield (signal, bc), gt
+            yield (signal, bc, tf.constant([idx])), gt
 
 
 def load_preprocessed_faust(path_to_zip,
@@ -117,6 +119,7 @@ def load_preprocessed_faust(path_to_zip,
             (
                 tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
                 tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32),  # Barycentric Coordinates
+                tf.TensorSpec(shape=(None,), dtype=tf.int32)
             ),
             tf.TensorSpec(shape=(None,), dtype=tf.float32)
         )
