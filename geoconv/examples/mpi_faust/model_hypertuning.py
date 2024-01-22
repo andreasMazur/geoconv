@@ -138,26 +138,28 @@ def hypertune(logging_dir,
     print("Done.")
 
     # Configure tuner
-    # tuner = keras_tuner.Hyperband(
-    #     hypermodel=hyper,
-    #     objective="val_loss",
-    #     max_epochs=200,
-    #     directory=f"{logging_dir}/keras_tuner",
-    #     project_name=f"faust_example",
-    #     seed=42
-    # )
-    tuner = keras_tuner.BayesianOptimization(
+    tuner = keras_tuner.Hyperband(
         hypermodel=hyper,
         objective=[
             keras_tuner.Objective("val_loss", "min"),
             keras_tuner.Objective("val_sparse_categorical_accuracy", "max")
         ],
-        max_trials=1000,
-        executions_per_trial=200,
+        max_epochs=200,
         directory=f"{logging_dir}/keras_tuner",
         project_name=f"faust_example",
         seed=42
     )
+    # tuner = keras_tuner.BayesianOptimization(
+    #     hypermodel=hyper,
+    #     objective=[
+    #         keras_tuner.Objective("val_loss", "min"),
+    #         keras_tuner.Objective("val_sparse_categorical_accuracy", "max")
+    #     ],
+    #     max_trials=1000,
+    #     directory=f"{logging_dir}/keras_tuner",
+    #     project_name=f"faust_example",
+    #     seed=42
+    # )
 
     # Start hyperparameter-search
     stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
