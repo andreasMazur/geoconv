@@ -153,6 +153,7 @@ def hypertune(logging_dir,
             keras_tuner.Objective("val_sparse_categorical_accuracy", "max")
         ],
         max_trials=1000,
+        executions_per_trial=200,
         directory=f"{logging_dir}/keras_tuner",
         project_name=f"faust_example",
         seed=42
