@@ -56,15 +56,25 @@ class HyperModel(keras_tuner.HyperModel):
         ################
         # Compile Model
         ################
+        init_lr = 0.0005678732779923849
+        init_wd = 0.005162427678095758
         model = keras.Model(inputs=[signal_input, bc_input], outputs=[output])
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = keras.optimizers.AdamW(
             learning_rate=keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=hp.Float("init_lr", min_value=1e-6, max_value=0.01),
+                initial_learning_rate=hp.Float(
+                    "init_lr",
+                    min_value=init_lr - .1 * init_lr,
+                    max_value=init_lr + .1 * init_lr
+                ),
                 decay_steps=500,
                 decay_rate=0.95
             ),
-            weight_decay=hp.Float("weight_decay", min_value=1e-6, max_value=0.01)
+            weight_decay=hp.Float(
+                "weight_decay",
+                min_value=init_wd - .1 * init_wd,
+                max_value=init_wd + .1 * init_wd
+            )
         )
         model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
         return model
@@ -127,12 +137,19 @@ def hypertune(logging_dir,
     hyper.normalize.adapt(adaption_data)
     print("Done.")
 
-
     # Configure tuner
-    tuner = keras_tuner.Hyperband(
+    # tuner = keras_tuner.Hyperband(
+    #     hypermodel=hyper,
+    #     objective="val_loss",
+    #     max_epochs=200,
+    #     directory=f"{logging_dir}/keras_tuner",
+    #     project_name=f"faust_example",
+    #     seed=42
+    # )
+    tuner = keras_tuner.BayesianOptimization(
         hypermodel=hyper,
         objective="val_loss",
-        max_epochs=200,
+        max_trials=1000,
         directory=f"{logging_dir}/keras_tuner",
         project_name=f"faust_example",
         seed=42
