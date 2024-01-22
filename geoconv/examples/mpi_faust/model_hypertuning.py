@@ -148,7 +148,10 @@ def hypertune(logging_dir,
     # )
     tuner = keras_tuner.BayesianOptimization(
         hypermodel=hyper,
-        objective="val_loss",
+        objective=[
+            keras_tuner.Objective("val_loss", "min"),
+            keras_tuner.Objective("val_sparse_categorical_accuracy", "max")
+        ],
         max_trials=1000,
         directory=f"{logging_dir}/keras_tuner",
         project_name=f"faust_example",
