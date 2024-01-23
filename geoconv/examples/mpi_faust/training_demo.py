@@ -22,7 +22,9 @@ def train_model(reference_mesh_path,
                 logging_dir="./imcnn_training_logs",
                 splits=10,
                 rotation_delta=1,
-                processes=1):
+                processes=1,
+                init_lr=0.00061612,
+                weight_decay=0.0047954):
     """Trains one singular IMCNN
 
     Parameters
@@ -60,6 +62,10 @@ def train_model(reference_mesh_path,
         [OPTIONAL] The amount of skips between each rotation while computing the convolution
     processes: int
         [OPTIONAL] The amount of concurrent processes that compute GPC-systems
+    init_lr: float
+        [OPTIONAL] Initial learning rate.
+    weight_decay: float
+        [OPTIONAL] Weight decay.
     """
 
     # Load data
@@ -94,11 +100,11 @@ def train_model(reference_mesh_path,
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     opt = keras.optimizers.AdamW(
         learning_rate=keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=0.0016923323371819856,
-            decay_steps=490,
-            decay_rate=0.9
+            initial_learning_rate=init_lr,
+            decay_steps=500,
+            decay_rate=0.95
         ),
-        weight_decay=0.00039809
+        weight_decay=weight_decay
     )
     imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
