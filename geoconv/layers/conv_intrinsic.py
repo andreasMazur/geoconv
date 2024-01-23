@@ -63,7 +63,8 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self._all_rotations = None
         self._template_size = None  # (#radial, #angular)
         self._template_vertices = None
-        self._template_weights = None
+        self._template_neighbor_weights = None
+        self._template_center_weights = None
         self._interpolation_coefficients = None
         self._feature_dim = None
 
@@ -104,17 +105,23 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self._feature_dim = signal_shape[-1]
 
         # Configure trainable weights
-        self._template_weights = self.add_weight(
-            name="conv_intrinsic_template",
-            shape=(self.amt_templates, 1, signal_shape[1], self._template_size[0] * self._template_size[1]),
+        self._template_neighbor_weights = self.add_weight(
+            name="neighbor_weights",
+            shape=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[1]),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.template_regularizer
         )
-
+        self._template_center_weights = self.add_weight(
+            name="center_weights",
+            shape=(self.amt_templates, 1, signal_shape[1]),
+            initializer=self.initializer,
+            trainable=True,
+            regularizer=self.template_regularizer
+        )
         self._bias = self.add_weight(
             name="conv_intrinsic_bias",
-            shape=(self.amt_templates, 1),
+            shape=(self.amt_templates,),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.bias_regularizer
@@ -143,15 +150,27 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             It has size (n_batch, n_vertices, feature_dim)
         """
         mesh_signal, bary_coordinates = inputs
-        mesh_signal = self._patch_operator(mesh_signal, bary_coordinates)
-        mesh_signal = tf.stack(tf.split(mesh_signal, self.splits))
 
+        # Call patch operator
+        interpolations = self._patch_operator(mesh_signal, bary_coordinates)
+
+        # Batch input
+        mesh_signal = tf.stack(tf.split(mesh_signal, self.splits))
+        interpolations = tf.stack(tf.split(interpolations, self.splits))
+
+        # Fold center features
+        conv_center = tf.reshape(tf.map_fn(self._fold_center, mesh_signal), (-1, 1, self.amt_templates))
+
+        # Fold neighbor features
         if tf.equal(tf.size(orientations), 0):
             # No specific orientations given. Hence, compute for all orientations.
             orientations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
 
-        batched_folding = lambda batch: self._fold(batch, orientations)
-        return tf.reshape(tf.map_fn(batched_folding, mesh_signal), (-1, tf.shape(orientations)[0], self.amt_templates))
+        batched_folding = lambda batch: self._fold_neighbors(batch, orientations)
+        conv_neighbor = tf.reshape(
+            tf.map_fn(batched_folding, interpolations), (-1, tf.shape(orientations)[0], self.amt_templates)
+        )
+        return self._activation(conv_center + conv_neighbor)
 
     @tf.function
     def _patch_operator(self, mesh_signal, barycentric_coordinates):
@@ -201,7 +220,26 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         return tf.linalg.matvec(mesh_signal, self._interpolation_coefficients)
 
     @tf.function
-    def _fold(self, interpolations, considered_rotations):
+    def _fold_center(self, mesh_signal):
+        """Folds the features in the center of the template
+
+        Parameters
+        ----------
+        mesh_signal: tf.Tensor
+            The mesh signal at the mesh vertices.
+
+        Returns
+        -------
+        tf.Tensor:
+            New mesh signal at the mesh vertices.
+        """
+        # Mesh signal   : (subset, input_dim)
+        # Weight matrix : (n_templates, 1, input_dim)
+        # Result        : (subset, 1, n_templates)
+        return tf.einsum("si,tji->sjt", mesh_signal, self._template_center_weights)
+
+    @tf.function
+    def _fold_neighbors(self, interpolations, considered_rotations):
         """Folds template vertex signal with the template weights
 
         Parameters
@@ -221,20 +259,12 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         all_rotations_fn = lambda rot: tf.roll(interpolations, shift=rot, axis=2)
         # (n_rotations, subset, n_radial, n_angular, input_dim)
         interpolations = tf.map_fn(all_rotations_fn, considered_rotations, fn_output_signature=tf.float32)
-        # (n_rotations, subset, n_radial * n_angular, input_dim)
-        interpolations = tf.reshape(
-            interpolations,
-            (tf.shape(considered_rotations)[0], -1, self._template_size[0] * self._template_size[1], self._feature_dim)
-        )
-        # Interpolated signals: (n_rotations,           1,  subset, n_radial * n_angular,            input_dim)
-        # Weight matrix       : (             n_templates,       1,            input_dim, n_radial * n_angular)
-        # Bias                : (             n_templates,       1,                                           )
-        # Result              : (n_rotations, n_templates,  subset                                            )
-        interpolations = self._activation(
-            tf.einsum("aijk,xykj->axi", interpolations, self._template_weights) + self._bias
-        )
-        # Transpose for AMP: (subset, n_rotations, n_templates)
-        return tf.transpose(interpolations, perm=[2, 0, 1])
+
+        # Interpolated signals: (n_rotations, subset,                      n_radial, n_angular, input_dim)
+        # Weight matrix       : (                     n_templates,         n_radial, n_angular, input_dim)
+        # Bias                : (                     n_templates                                        )
+        # Result              : (subset, n_rotations, n_templates)
+        return tf.einsum("rsijk,tijk->srt", interpolations, self._template_neighbor_weights) + self._bias
 
     def _configure_patch_operator(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
