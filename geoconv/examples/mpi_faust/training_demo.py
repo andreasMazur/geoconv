@@ -24,7 +24,8 @@ def train_model(reference_mesh_path,
                 rotation_delta=1,
                 processes=1,
                 init_lr=0.00061612,
-                weight_decay=0.0047954):
+                weight_decay=0.0047954,
+                output_dims=None):
     """Trains one singular IMCNN
 
     Parameters
@@ -66,6 +67,8 @@ def train_model(reference_mesh_path,
         [OPTIONAL] Initial learning rate.
     weight_decay: float
         [OPTIONAL] Weight decay.
+    output_dims: list
+        [OPTIONAL] The output dimensions of the ISC-layers.
     """
 
     # Load data
@@ -95,7 +98,8 @@ def train_model(reference_mesh_path,
         kernel_size=kernel_size,
         template_radius=template_radius,
         splits=splits,
-        rotation_delta=rotation_delta
+        rotation_delta=rotation_delta,
+        output_dims=output_dims if output_dims is not None else [100 for _ in range(3)]
     )
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     opt = keras.optimizers.AdamW(

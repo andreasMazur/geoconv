@@ -6,14 +6,17 @@ import tensorflow as tf
 
 
 class Imcnn(tf.keras.Model):
-    def __init__(self, signal_dim, kernel_size, template_radius, splits, rotation_delta):
+    def __init__(self, signal_dim, kernel_size, template_radius, splits, rotation_delta, output_dims=None):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
         self.template_radius = template_radius
         self.splits = splits
         self.rotation_delta = rotation_delta
-        self.output_dims = [100 for _ in range(3)]
+        if output_dims is not None:
+            self.output_dims = [x for x in output_dims]
+        else:
+            self.output_dims = [100 for _ in range(3)]
 
         #################
         # Handling Input
