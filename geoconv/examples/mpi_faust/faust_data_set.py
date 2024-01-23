@@ -24,15 +24,13 @@ def get_file_number(file_name):
     raise RuntimeError(f"Filename '{file_name}' has no digit.")
 
 
-def faust_generator(path_to_zip, kernel_size, set_type=0, only_signal=False):
+def faust_generator(path_to_zip, set_type=0, only_signal=False):
     """Reads one element of preprocessed FAUST-examples into memory per 'next'-call.
 
     Parameters
     ----------
     path_to_zip: str
         The path to the .zip-file that contains the preprocessed faust data set
-    kernel_size: tuple
-        The same amount of radial- and angular coordinates of the kernel defined in the preprocessing step
     set_type: int
         This integer has to be either:
             - 0 -> "train"
@@ -51,6 +49,7 @@ def faust_generator(path_to_zip, kernel_size, set_type=0, only_signal=False):
         A generator yielding the preprocessed data. I.e. the signal defined on the vertices, the barycentric coordinates
         and the ground truth correspondences.
     """
+    kernel_size = None
     dataset = np.load(path_to_zip, allow_pickle=True)
     file_names = [os.path.basename(fn) for fn in dataset.files]
     SIGNAL = [file_name for file_name in file_names if file_name.startswith("SIGNAL")]
@@ -74,6 +73,9 @@ def faust_generator(path_to_zip, kernel_size, set_type=0, only_signal=False):
 
         # Read bc + add noise
         bc = tf.cast(dataset[BC[idx]], tf.float32)
+        if kernel_size is None:
+            kernel_size = bc.shape[1:3]
+
         if set_type == 0:
             noise = np.abs(np.random.normal(size=(6890,) + kernel_size + (3, 2), scale=1e-5))
             noise[:, :, :, :, 0] = 0
@@ -135,6 +137,6 @@ def load_preprocessed_faust(path_to_zip,
         )
     return tf.data.Dataset.from_generator(
         faust_generator,
-        args=(path_to_zip, kernel_size, set_type, only_signal),
+        args=(path_to_zip, set_type, only_signal),
         output_signature=output_signature
     )
