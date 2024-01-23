@@ -17,7 +17,7 @@ class HyperModel(keras_tuner.HyperModel):
         self.template_radius = template_radius
         self.splits = splits
         self.rotation_delta = rotation_delta
-        self.global_dims = [100 for _ in range(3)]
+        self.global_dims = [96, 256, 384, 384, 256]
         self.normalize = keras.layers.Normalization(axis=-1, name="input_normalization")
 
     def build(self, hp):
@@ -166,7 +166,7 @@ def hypertune(logging_dir,
     tuner.search(
         x=train_data.prefetch(tf.data.AUTOTUNE),
         validation_data=val_data.prefetch(tf.data.AUTOTUNE),
-        callbacks=[stop]
+        # callbacks=[stop]
     )
     print(tuner.results_summary())
 

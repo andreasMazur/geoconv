@@ -99,7 +99,7 @@ def train_model(reference_mesh_path,
         template_radius=template_radius,
         splits=splits,
         rotation_delta=rotation_delta,
-        output_dims=output_dims if output_dims is not None else [100 for _ in range(3)]
+        output_dims=output_dims if output_dims is not None else [96, 256, 384, 384, 256]
     )
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     opt = keras.optimizers.AdamW(
