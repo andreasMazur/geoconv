@@ -159,6 +159,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         interpolations = tf.stack(tf.split(interpolations, self.splits))
 
         # Fold center features
+        # conv_center: (subset, 1, n_templates)
         conv_center = tf.reshape(tf.map_fn(self._fold_center, mesh_signal), (-1, 1, self.amt_templates))
 
         # Fold neighbor features
@@ -167,6 +168,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             orientations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
 
         batched_folding = lambda batch: self._fold_neighbors(batch, orientations)
+        # conv_neighbor: (subset, n_rotations, n_templates)
         conv_neighbor = tf.reshape(
             tf.map_fn(batched_folding, interpolations), (-1, tf.shape(orientations)[0], self.amt_templates)
         )

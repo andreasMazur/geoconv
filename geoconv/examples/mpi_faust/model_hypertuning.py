@@ -64,16 +64,16 @@ class HyperModel(keras_tuner.HyperModel):
             learning_rate=keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=hp.Float(
                     "init_lr",
-                    min_value=init_lr - .1 * init_lr,
-                    max_value=init_lr + .1 * init_lr
+                    min_value=init_lr - .25 * init_lr,
+                    max_value=init_lr + .25 * init_lr
                 ),
                 decay_steps=500,
                 decay_rate=0.95
             ),
             weight_decay=hp.Float(
                 "weight_decay",
-                min_value=init_wd - .1 * init_wd,
-                max_value=init_wd + .1 * init_wd
+                min_value=init_wd - .25 * init_wd,
+                max_value=init_wd + .25 * init_wd
             )
         )
         model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
