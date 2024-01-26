@@ -130,7 +130,7 @@ class ISCResnet18(tf.keras.Model):
         ###############
         # Forward pass
         ###############
-        for layer in self.forward_pass_list[:-1]:
+        for layer in self.forward_pass_list:
             signal = layer([signal, bc])
 
         #########
