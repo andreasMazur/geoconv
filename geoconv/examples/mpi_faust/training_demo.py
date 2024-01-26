@@ -1,4 +1,5 @@
 from geoconv.examples.mpi_faust.faust_data_set import load_preprocessed_faust
+from geoconv.examples.mpi_faust.isc_resnet_18 import ISCResnet18
 from geoconv.examples.mpi_faust.model import Imcnn
 from geoconv.examples.mpi_faust.preprocess_faust import preprocess_faust
 from geoconv.utils.measures import princeton_benchmark
@@ -24,7 +25,8 @@ def train_model(reference_mesh_path,
                 processes=1,
                 init_lr=0.00061612,
                 weight_decay=0.0047954,
-                layer_conf=None):
+                layer_conf=None,
+                model="regular"):
     """Trains one singular IMCNN
 
     Parameters
@@ -67,6 +69,8 @@ def train_model(reference_mesh_path,
     layer_conf: list
         [OPTIONAL] List of tuples: The first entry references the output dimensions of the i-th ISC-layer, The second
         entry references of skips between each rotation while computing the convolution (rotation delta).
+    model: str
+        [OPTIONAL] If model == "resnet": ISCResnet18 will be trained, otherwise model from model.py.
     """
 
     # Load data
@@ -91,13 +95,20 @@ def train_model(reference_mesh_path,
     val_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=1)
 
     # Define and compile model
-    imcnn = Imcnn(
-        signal_dim=signal_dim,
-        kernel_size=kernel_size,
-        template_radius=template_radius,
-        splits=splits,
-        layer_conf=layer_conf
-    )
+    if model == "resnet":
+        imcnn = ISCResnet18(
+            splits=splits,
+            template_radius=template_radius,
+            rotation_deltas=zip(*layer_conf)[-1]
+        )
+    else:
+        imcnn = Imcnn(
+            signal_dim=signal_dim,
+            kernel_size=kernel_size,
+            template_radius=template_radius,
+            splits=splits,
+            layer_conf=layer_conf
+        )
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     opt = keras.optimizers.AdamW(
         learning_rate=keras.optimizers.schedules.ExponentialDecay(
