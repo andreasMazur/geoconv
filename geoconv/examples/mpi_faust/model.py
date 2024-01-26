@@ -7,17 +7,18 @@ import tensorflow as tf
 
 
 class Imcnn(tf.keras.Model):
-    def __init__(self, signal_dim, kernel_size, template_radius, splits, rotation_delta, output_dims=None):
+    def __init__(self, signal_dim, kernel_size, template_radius, splits, layer_conf=None):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
         self.template_radius = template_radius
         self.splits = splits
-        self.rotation_delta = rotation_delta
-        if output_dims is not None:
-            self.output_dims = [x for x in output_dims]
+
+        if layer_conf is None:
+            self.output_dims = [96, 256, 384, 384, 256]
+            self.rotation_deltas = [1 for _ in range(len(self.output_dims))]
         else:
-            self.output_dims = [100 for _ in range(3)]
+            self.output_dims, self.rotation_deltas = list(zip(*layer_conf))
 
         #################
         # Handling Input
@@ -41,7 +42,7 @@ class Imcnn(tf.keras.Model):
                     activation="relu",
                     name=f"ISC_layer_{idx}",
                     splits=self.splits,
-                    rotation_delta=self.rotation_delta
+                    rotation_delta=self.rotation_deltas[idx]
                 )
             )
             self.bn_layers.append(keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}"))

@@ -21,11 +21,10 @@ def train_model(reference_mesh_path,
                 template_radius=0.028,
                 logging_dir="./imcnn_training_logs",
                 splits=10,
-                rotation_delta=1,
                 processes=1,
                 init_lr=0.00061612,
                 weight_decay=0.0047954,
-                output_dims=None):
+                layer_conf=None):
     """Trains one singular IMCNN
 
     Parameters
@@ -59,16 +58,15 @@ def train_model(reference_mesh_path,
         [OPTIONAL] The path to the folder where logs will be stored
     splits: int
         [OPTIONAL] The amount of splits over which the ISC-layer should iterate
-    rotation_delta: int
-        [OPTIONAL] The amount of skips between each rotation while computing the convolution
     processes: int
         [OPTIONAL] The amount of concurrent processes that compute GPC-systems
     init_lr: float
         [OPTIONAL] Initial learning rate.
     weight_decay: float
         [OPTIONAL] Weight decay.
-    output_dims: list
-        [OPTIONAL] The output dimensions of the ISC-layers.
+    layer_conf: list
+        [OPTIONAL] List of tuples: The first entry references the output dimensions of the i-th ISC-layer, The second
+        entry references of skips between each rotation while computing the convolution (rotation delta).
     """
 
     # Load data
@@ -98,8 +96,7 @@ def train_model(reference_mesh_path,
         kernel_size=kernel_size,
         template_radius=template_radius,
         splits=splits,
-        rotation_delta=rotation_delta,
-        output_dims=output_dims if output_dims is not None else [96, 256, 384, 384, 256]
+        layer_conf=layer_conf
     )
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     opt = keras.optimizers.AdamW(

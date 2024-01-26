@@ -10,14 +10,19 @@ import os
 
 class HyperModel(keras_tuner.HyperModel):
 
-    def __init__(self, signal_dim, kernel_size, template_radius, splits, rotation_delta):
+    def __init__(self, signal_dim, kernel_size, template_radius, splits, layer_conf=None):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
         self.template_radius = template_radius
         self.splits = splits
-        self.rotation_delta = rotation_delta
-        self.global_dims = [96, 256, 384, 384, 256]
+
+        if layer_conf is None:
+            self.output_dims = [96, 256, 384, 384, 256]
+            self.rotation_deltas = [1 for _ in range(len(self.output_dims))]
+        else:
+            self.output_dims, self.rotation_deltas = list(zip(*layer_conf))
+
         self.normalize = keras.layers.Normalization(axis=-1, name="input_normalization")
 
     def build(self, hp):
@@ -35,14 +40,14 @@ class HyperModel(keras_tuner.HyperModel):
         #######################
         # Network Architecture
         #######################
-        for idx in range(len(self.global_dims)):
+        for idx in range(len(self.output_dims)):
             signal = ConvDirac(
-                amt_templates=self.global_dims[idx],
+                amt_templates=self.output_dims[idx],
                 template_radius=self.template_radius,
                 activation="relu",
                 name=f"ISC_layer_{idx}",
                 splits=self.splits,
-                rotation_delta=self.rotation_delta
+                rotation_delta=self.rotation_deltas[idx]
             )([signal, bc_input])
             signal = amp(signal)
             signal = keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}")(signal)
@@ -56,8 +61,8 @@ class HyperModel(keras_tuner.HyperModel):
         ################
         # Compile Model
         ################
-        init_lr = 0.0005678732779923849
-        init_wd = 0.005162427678095758
+        init_lr = 0.0004607
+        init_wd = 0.0052094
         model = keras.Model(inputs=[signal_input, bc_input], outputs=[output])
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = keras.optimizers.AdamW(
@@ -68,7 +73,7 @@ class HyperModel(keras_tuner.HyperModel):
                     max_value=init_lr + .25 * init_lr
                 ),
                 decay_steps=500,
-                decay_rate=0.95
+                decay_rate=0.99
             ),
             weight_decay=hp.Float(
                 "weight_decay",
@@ -87,7 +92,7 @@ def hypertune(logging_dir,
               n_angular,
               template_radius,
               splits,
-              rotation_delta):
+              layer_conf=None):
     """Tunes the learning rate of the above IMCNN.
 
     Parameters
@@ -106,8 +111,9 @@ def hypertune(logging_dir,
         The template radius.
     splits:
         The amount of splits for the ISC-layers.
-    rotation_delta:
-        The rotation delta for the ISC-layers.
+    layer_conf: list
+        List of tuples: The first entry references the output dimensions of the i-th ISC-layer, The second
+        entry references of skips between each rotation while computing the convolution (rotation delta).
     """
     # Create logging dir if necessary
     if not os.path.exists(logging_dir):
@@ -125,7 +131,7 @@ def hypertune(logging_dir,
         kernel_size=kernel_size,
         template_radius=template_radius,
         splits=splits,
-        rotation_delta=rotation_delta
+        layer_conf=layer_conf
     )
 
     # Adapt normalization
