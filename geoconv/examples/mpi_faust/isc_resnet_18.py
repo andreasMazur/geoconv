@@ -103,6 +103,7 @@ class ISCResnet18(tf.keras.Model):
             activation="relu",
             template_radius=template_radius
         )
+        self.output_dense = tf.keras.layers.Dense(6890, name="output")
 
         self.forward_pass_list = [
             self.block_64_1,
@@ -125,8 +126,9 @@ class ISCResnet18(tf.keras.Model):
         ###############
         # Forward pass
         ###############
-        for layer in self.forward_pass_list:
+        for layer in self.forward_pass_list[:-1]:
             signal = layer([signal, bc])
+        signal = self.output_dense(signal)
 
         #########
         # Output
