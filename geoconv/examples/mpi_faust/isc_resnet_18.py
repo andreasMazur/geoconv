@@ -26,7 +26,8 @@ class ISCResnet18(tf.keras.Model):
             layer_conf=[(64, rotation_deltas[0]), (64, rotation_deltas[0])],
             splits=splits,
             activation="relu",
-            template_radius=template_radius
+            template_radius=template_radius,
+            fit_dim=True
         )
         self.block_64_2 = ISCResidual(
             first_isc=ConvDirac,
@@ -48,7 +49,8 @@ class ISCResnet18(tf.keras.Model):
             layer_conf=[(128, rotation_deltas[1]), (128, rotation_deltas[1])],
             splits=splits,
             activation="relu",
-            template_radius=template_radius
+            template_radius=template_radius,
+            fit_dim=True
         )
         self.block_128_2 = ISCResidual(
             first_isc=ConvDirac,
@@ -70,7 +72,8 @@ class ISCResnet18(tf.keras.Model):
             layer_conf=[(256, rotation_deltas[2]), (256, rotation_deltas[2])],
             splits=splits,
             activation="relu",
-            template_radius=template_radius
+            template_radius=,
+            fit_dim=True
         )
         self.block_256_2 = ISCResidual(
             first_isc=ConvDirac,
@@ -92,7 +95,8 @@ class ISCResnet18(tf.keras.Model):
             layer_conf=[(512, rotation_deltas[3]), (512, rotation_deltas[3])],
             splits=splits,
             activation="relu",
-            template_radius=template_radius
+            template_radius=template_radius,
+            fit_dim=True
         )
         self.block_512_2 = ISCResidual(
             first_isc=ConvDirac,
