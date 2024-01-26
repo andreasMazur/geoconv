@@ -131,7 +131,7 @@ def train_model(reference_mesh_path,
     imcnn.summary()
 
     # Define callbacks
-    stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=10)
+    stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
     tb = keras.callbacks.TensorBoard(
         log_dir=f"{logging_dir}/tensorboard",
         histogram_freq=1,

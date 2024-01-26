@@ -1,3 +1,4 @@
+from geoconv.layers.angular_avg_pooling import AngularAvgPooling
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.conv_dirac import ConvDirac
 from tensorflow import keras
@@ -45,7 +46,7 @@ class Imcnn(tf.keras.Model):
             )
             self.bn_layers.append(keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}"))
             self.do_layers.append(keras.layers.Dropout(rate=0.2, name=f"DO_layer_{idx}"))
-            self.amp_layers.append(AngularMaxPooling())
+            self.amp_layers.append(AngularAvgPooling())
 
         #########
         # Output
