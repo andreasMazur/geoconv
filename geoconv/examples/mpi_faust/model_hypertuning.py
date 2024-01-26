@@ -186,6 +186,7 @@ class HyperModel(keras_tuner.HyperModel):
         # Network Architecture
         #######################
         for idx in range(len(self.output_dims)):
+            signal = keras.layers.Dropout(rate=0.2)(signal)
             signal = ConvDirac(
                 amt_templates=self.output_dims[idx],
                 template_radius=self.template_radius,
@@ -196,7 +197,6 @@ class HyperModel(keras_tuner.HyperModel):
             )([signal, bc_input])
             signal = amp(signal)
             signal = keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}")(signal)
-            signal = keras.layers.Dropout(rate=0.2)(signal)
 
         #########
         # Output

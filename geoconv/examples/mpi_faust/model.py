@@ -67,10 +67,10 @@ class Imcnn(tf.keras.Model):
         # Forward pass
         ###############
         for idx in range(len(self.output_dims)):
+            signal = self.do_layers[idx](signal)
             signal = self.isc_layers[idx]([signal, bc])
             signal = self.amp_layers[idx](signal)
             signal = self.bn_layers[idx](signal)
-            signal = self.do_layers[idx](signal)
 
         #########
         # Output
