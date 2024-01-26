@@ -280,7 +280,7 @@ def hypertune(logging_dir,
             kernel_size=kernel_size,
             splits=splits,
             template_radius=template_radius,
-            rotation_deltas=[2, 3, 3, 3]
+            rotation_deltas=list(zip(*layer_conf))[-1]
         )
     else:
         hyper = HyperModel(
