@@ -63,9 +63,9 @@ class Imcnn(tf.keras.Model):
         # signal = self.downsize_dense(signal)
         # signal = self.downsize_bn(signal)
 
-        ##################
-        # Global Features
-        ##################
+        ###############
+        # Forward pass
+        ###############
         for idx in range(len(self.output_dims)):
             signal = self.isc_layers[idx]([signal, bc])
             signal = self.amp_layers[idx](signal)
