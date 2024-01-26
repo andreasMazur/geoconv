@@ -99,7 +99,7 @@ def train_model(reference_mesh_path,
         imcnn = ISCResnet18(
             splits=splits,
             template_radius=template_radius,
-            rotation_deltas=zip(*layer_conf)[-1]
+            rotation_deltas=list(zip(*layer_conf))[-1]
         )
     else:
         imcnn = Imcnn(
