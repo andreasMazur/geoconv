@@ -62,6 +62,6 @@ class ISCResidual(keras.Model):
 
         if self.fit_dim:
             entry_signal = self.third_isc([entry_signal, bc])
+            entry_signal = self.pool(entry_signal)
 
-        signal = self.activation(self.add([entry_signal, signal]))
-        return self.pool(signal)
+        return self.activation(self.add([entry_signal, signal]))

@@ -111,7 +111,7 @@ class ISCResnet18(tf.keras.Model):
 
         self.forward_pass_list = [
             self.block_64_1,
-            self.block_64_1,
+            self.block_64_2,
             self.block_128_1,
             self.block_128_2,
             self.block_256_1,
@@ -132,7 +132,6 @@ class ISCResnet18(tf.keras.Model):
         ###############
         for layer in self.forward_pass_list[:-1]:
             signal = layer([signal, bc])
-        signal = self.output_dense(signal)
 
         #########
         # Output
