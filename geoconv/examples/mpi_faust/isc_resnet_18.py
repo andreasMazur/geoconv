@@ -72,7 +72,7 @@ class ISCResnet18(tf.keras.Model):
             layer_conf=[(256, rotation_deltas[2]), (256, rotation_deltas[2])],
             splits=splits,
             activation="relu",
-            template_radius=,
+            template_radius=template_radius,
             fit_dim=True
         )
         self.block_256_2 = ISCResidual(
