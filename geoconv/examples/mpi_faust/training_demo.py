@@ -26,7 +26,8 @@ def train_model(reference_mesh_path,
                 init_lr=0.00061612,
                 weight_decay=0.0047954,
                 layer_conf=None,
-                model="regular"):
+                model="regular",
+                add_noise=False):
     """Trains one singular IMCNN
 
     Parameters
@@ -71,6 +72,8 @@ def train_model(reference_mesh_path,
         entry references of skips between each rotation while computing the convolution (rotation delta).
     model: str
         [OPTIONAL] If model == "resnet": ISCResnet18 will be trained, otherwise model from model.py.
+    add_noise: bool
+        Adds Gaussian noise to the mesh data.
     """
 
     # Load data
@@ -84,7 +87,8 @@ def train_model(reference_mesh_path,
             shot=compute_shot,
             geodesic_diameters_path=geodesic_diameters_path,
             precomputed_gpc_radius=precomputed_gpc_radius,
-            processes=processes
+            processes=processes,
+            add_noise=add_noise
         )
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
