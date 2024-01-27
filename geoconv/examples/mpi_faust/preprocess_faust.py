@@ -20,7 +20,8 @@ def preprocess_faust(n_radial,
                      shot=True,
                      geodesic_diameters_path="",
                      precomputed_gpc_radius=-1.,
-                     processes=1):
+                     processes=1,
+                     add_noise=False):
     """Preprocesses the FAUST-data set
 
     The FAUST-data set has to be downloaded from: https://faust-leaderboard.is.tuebingen.mpg.de/
@@ -49,6 +50,8 @@ def preprocess_faust(n_radial,
         The GPC-system radius to use for GPC-system computation. If not provided, the script will calculate it.
     processes: int
         The amount of concurrent processes that compute GPC-systems.
+    add_noise: bool
+        Adds Gaussian noise to the mesh data.
 
     Returns
     -------
@@ -85,6 +88,8 @@ def preprocess_faust(n_radial,
         normalized_v_name = f"{temp_dir}/vertices_{file_idx}.npy"
         normalized_f_name = f"{temp_dir}/faces_{file_idx}.npy"
         reg_mesh = trimesh.load_mesh(reg_file_name)
+        if add_noise:
+            reg_mesh = trimesh.permutate.noise(reg_mesh, magnitude=reg_mesh.scale / 200)
 
         # Check whether normalized meshes already exist
         if not (Path(normalized_v_name).is_file() and Path(normalized_f_name).is_file()):
