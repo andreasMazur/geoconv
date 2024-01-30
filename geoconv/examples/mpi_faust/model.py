@@ -34,8 +34,8 @@ class Imcnn(tf.keras.Model):
         # Handling Input
         #################
         self.normalize = keras.layers.Normalization(axis=-1, name="input_normalization")
-        # self.downsize_dense = keras.layers.Dense(64, activation="relu", name="downsize")
-        # self.downsize_bn = keras.layers.BatchNormalization(axis=-1, name="BN_downsize")
+        self.downsize_dense = keras.layers.Dense(64, activation="relu", name="downsize")
+        self.downsize_bn = keras.layers.BatchNormalization(axis=-1, name="BN_downsize")
 
         ##################
         # Global Features
@@ -70,8 +70,8 @@ class Imcnn(tf.keras.Model):
         #################
         signal, bc = inputs
         signal = self.normalize(signal)
-        # signal = self.downsize_dense(signal)
-        # signal = self.downsize_bn(signal)
+        signal = self.downsize_dense(signal)
+        signal = self.downsize_bn(signal)
 
         ###############
         # Forward pass
