@@ -207,19 +207,10 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         ##################
         # Including prior
         ##################
-        # (subset, n_radial * n_angular, input_dim)
-        mesh_signal = tf.reshape(mesh_signal, (-1, self._template_size[0] * self._template_size[1], self._feature_dim))
-
-        # (subset, input_dim, n_radial * n_angular)
-        mesh_signal = tf.transpose(mesh_signal, perm=[0, 2, 1])
-
-        # (subset, 1, 1, input_dim, n_radial * n_angular)
-        mesh_signal = tf.expand_dims(tf.expand_dims(mesh_signal, axis=1), axis=1)
-
-        # (subset,       1,          1, input_dim, n_radial * n_angular)
-        # (        n_radial, n_angular,            n_radial * n_angular)
-        # (subset, n_radial, n_angular, input_dim                      )
-        return tf.linalg.matvec(mesh_signal, self._interpolation_coefficients)
+        # (subset, n_radial, n_angular, input_dim)
+        return tf.einsum(
+            "xyra,kraf->kxyf", self._interpolation_coefficients, mesh_signal
+        )
 
     @tf.function
     def _fold_center(self, mesh_signal):
@@ -273,10 +264,6 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
 
         self._interpolation_coefficients = tf.cast(
             self.define_interpolation_coefficients(self._template_vertices.numpy()), tf.float32
-        )
-        self._interpolation_coefficients = tf.reshape(
-            self._interpolation_coefficients,
-            (self._template_size[0], self._template_size[1], self._template_size[0] * self._template_size[1])
         )
 
     @abstractmethod
