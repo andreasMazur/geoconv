@@ -58,10 +58,10 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
     SIGNAL.sort(key=get_file_number), BC.sort(key=get_file_number), GT.sort(key=get_file_number)
 
     if set_type == 0:
-        indices = list(range(80))
+        indices = list(range(70))
         random.shuffle(indices)
     elif set_type == 1:
-        indices = range(80, 100)
+        indices = range(70, 80)
     elif set_type == 2:
         indices = range(80, 100)
     else:

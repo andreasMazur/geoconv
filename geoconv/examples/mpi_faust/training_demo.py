@@ -1,11 +1,13 @@
 from geoconv.examples.mpi_faust.faust_data_set import load_preprocessed_faust
 from geoconv.examples.mpi_faust.model import Imcnn
 from geoconv.examples.mpi_faust.preprocess_faust import preprocess_faust
+from geoconv.utils.measures import princeton_benchmark
 
 from pathlib import Path
 from tensorflow import keras
 
 import tensorflow as tf
+import numpy as np
 
 
 def train_model(reference_mesh_path,
@@ -25,7 +27,8 @@ def train_model(reference_mesh_path,
                 weight_decay=0.0047954,
                 layer_conf=None,
                 model="dirac",
-                add_noise=False):
+                add_noise=False,
+                experiment_repetitions=10):
     """Trains one singular IMCNN
 
     Parameters
@@ -72,7 +75,12 @@ def train_model(reference_mesh_path,
         [OPTIONAL] Which model variant (['dirac', 'geodesic', 'zero']) shall be tuned.
     add_noise: bool
         [OPTIONAL] Adds Gaussian noise to the mesh data.
+    experiment_repetitions: int
+        [OPTIONAL] The amount of experiment repetitions.
     """
+    # Set seeds
+    tf.random.set_seed(0)
+    np.random.seed(0)
 
     # Load data
     preprocess_zip = f"{preprocessed_data}.zip"
@@ -91,68 +99,72 @@ def train_model(reference_mesh_path,
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
 
-    # Load data
-    kernel_size = (n_radial, n_angular)
-    train_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0)
-    val_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=1)
+    for exp_number in range(experiment_repetitions):
+        # Load data
+        kernel_size = (n_radial, n_angular)
+        train_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0)
+        val_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=1)
 
-    # Define and compile model
-    imcnn = Imcnn(
-        signal_dim=signal_dim,
-        kernel_size=kernel_size,
-        template_radius=template_radius,
-        splits=splits,
-        layer_conf=layer_conf,
-        variant=model
-    )
-    loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    opt = keras.optimizers.AdamW(
-        learning_rate=keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=init_lr,
-            decay_steps=500,
-            decay_rate=0.95
-        ),
-        weight_decay=weight_decay
-    )
-    imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
+        # Define and compile model
+        imcnn = Imcnn(
+            signal_dim=signal_dim,
+            kernel_size=kernel_size,
+            template_radius=template_radius,
+            splits=splits,
+            layer_conf=layer_conf,
+            variant=model
+        )
+        loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        opt = keras.optimizers.AdamW(
+            learning_rate=keras.optimizers.schedules.ExponentialDecay(
+                initial_learning_rate=init_lr,
+                decay_steps=500,
+                decay_rate=0.95
+            ),
+            weight_decay=weight_decay
+        )
+        imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
 
-    # Adapt normalization
-    print("Initializing normalization layer..")
-    imcnn.normalize.build(tf.TensorShape([6890, signal_dim]))
-    adaption_data = load_preprocessed_faust(
-        preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0, only_signal=True
-    )
-    imcnn.normalize.adapt(adaption_data)
-    print("Done.")
+        # Adapt normalization
+        print("Initializing normalization layer..")
+        imcnn.normalize.build(tf.TensorShape([6890, signal_dim]))
+        adaption_data = load_preprocessed_faust(
+            preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0, only_signal=True
+        )
+        imcnn.normalize.adapt(adaption_data)
+        print("Done.")
 
-    # Build model
-    imcnn(
-        [
-            tf.random.uniform(shape=(6890, signal_dim)),
-            tf.random.uniform(shape=(6890,) + kernel_size + (3, 2))
-        ]
-    )
-    imcnn.summary()
+        # Build model
+        imcnn(
+            [
+                tf.random.uniform(shape=(6890, signal_dim)),
+                tf.random.uniform(shape=(6890,) + kernel_size + (3, 2))
+            ]
+        )
+        imcnn.summary()
 
-    # Define callbacks
-    stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
-    tb = keras.callbacks.TensorBoard(
-        log_dir=f"{logging_dir}/tensorboard",
-        histogram_freq=1,
-        write_graph=False,
-        write_steps_per_second=True,
-        update_freq="epoch",
-        profile_batch=(1, 70)
-    )
+        # Define callbacks
+        csv = keras.callbacks.CSVLogger(f"training_{exp_number}.log")
+        stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
+        tb = keras.callbacks.TensorBoard(
+            log_dir=f"{logging_dir}/tensorboard_{exp_number}",
+            histogram_freq=1,
+            write_graph=False,
+            write_steps_per_second=True,
+            update_freq="epoch",
+            profile_batch=(1, 70)
+        )
 
-    imcnn.fit(x=train_data, callbacks=[stop, tb], validation_data=val_data, epochs=200)
-    imcnn.save(f"{logging_dir}/saved_imcnn")
+        imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=val_data, epochs=200)
+        imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
 
-    # Evaluate best model with Princeton benchmark
-    # test_dataset = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=2)
-    # princeton_benchmark(
-    #     imcnn=imcnn,
-    #     test_dataset=test_dataset,
-    #     ref_mesh_path=reference_mesh_path,
-    #     file_name=f"{train_data}/best_model_benchmark"
-    # )
+        # Evaluate best model with Princeton benchmark
+        test_dataset = load_preprocessed_faust(
+            preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=2
+        )
+        princeton_benchmark(
+            imcnn=imcnn,
+            test_dataset=test_dataset,
+            ref_mesh_path=reference_mesh_path,
+            file_name=f"{train_data}/best_model_benchmark_{exp_number}"
+        )
