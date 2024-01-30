@@ -1,166 +1,32 @@
 from geoconv.examples.mpi_faust.faust_data_set import load_preprocessed_faust
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.conv_dirac import ConvDirac
+from geoconv.layers.conv_geodesic import ConvGeodesic
+from geoconv.layers.conv_zero import ConvZero
 from tensorflow import keras
 
 import keras_tuner
 import tensorflow as tf
 import os
 
-from geoconv.models.resnet_block import ISCResidual
-
-
-class ResNetHyperModel(keras_tuner.HyperModel):
-
-    def __init__(self, signal_dim, kernel_size, splits, template_radius, rotation_deltas=None):
-        super().__init__()
-        self.splits = splits
-        self.kernel_size = kernel_size
-        self.template_radius = template_radius
-        self.signal_dim = signal_dim
-
-        self.rotation_deltas = rotation_deltas
-        if self.rotation_deltas is None:
-            self.rotation_deltas = [1, 1, 1, 1]
-        assert len(rotation_deltas) == 4, "You have to provide 4 rotation delta values."
-
-        # Input normalization
-        self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
-
-    def build(self, hp):
-        signal_input = keras.layers.Input(shape=self.signal_dim, name="Signal_input")
-        bc_input = keras.layers.Input(shape=(self.kernel_size[0], self.kernel_size[1], 3, 2), name="BC_input")
-
-        signal = self.normalize(signal_input)
-
-        ############
-        #  2x 64   #
-        ############
-        signal = ISCResidual(
-            first_isc=ConvDirac,
-            second_isc=ConvDirac,
-            pool=AngularMaxPooling,
-            layer_conf=[(64, self.rotation_deltas[0]), (64, self.rotation_deltas[0])],
-            splits=self.splits,
-            activation="relu",
-            template_radius=self.template_radius,
-            fit_dim=True
-        )([signal, bc_input])
-        signal = ISCResidual(
-            first_isc=ConvDirac,
-            second_isc=ConvDirac,
-            pool=AngularMaxPooling,
-            layer_conf=[(64, self.rotation_deltas[0]), (64, self.rotation_deltas[0])],
-            splits=self.splits,
-            activation="relu",
-            template_radius=self.template_radius
-        )([signal, bc_input])
-
-        ############
-        #  2x 128  #
-        ############
-        signal = ISCResidual(
-            first_isc=ConvDirac,
-            second_isc=ConvDirac,
-            pool=AngularMaxPooling,
-            layer_conf=[(128, self.rotation_deltas[1]), (128, self.rotation_deltas[1])],
-            splits=self.splits,
-            activation="relu",
-            template_radius=self.template_radius,
-            fit_dim=True
-        )([signal, bc_input])
-        signal = ISCResidual(
-            first_isc=ConvDirac,
-            second_isc=ConvDirac,
-            pool=AngularMaxPooling,
-            layer_conf=[(128, self.rotation_deltas[1]), (128, self.rotation_deltas[1])],
-            splits=self.splits,
-            activation="relu",
-            template_radius=self.template_radius
-        )([signal, bc_input])
-
-        ############
-        #  2x 256  #
-        ############
-        signal = ISCResidual(
-            first_isc=ConvDirac,
-            second_isc=ConvDirac,
-            pool=AngularMaxPooling,
-            layer_conf=[(256, self.rotation_deltas[2]), (256, self.rotation_deltas[2])],
-            splits=self.splits,
-            activation="relu",
-            template_radius=self.template_radius,
-            fit_dim=True
-        )([signal, bc_input])
-        signal = ISCResidual(
-            first_isc=ConvDirac,
-            second_isc=ConvDirac,
-            pool=AngularMaxPooling,
-            layer_conf=[(256, self.rotation_deltas[2]), (256, self.rotation_deltas[2])],
-            splits=self.splits,
-            activation="relu",
-            template_radius=self.template_radius
-        )([signal, bc_input])
-
-        ############
-        #  2x 512  #
-        ############
-        signal = ISCResidual(
-            first_isc=ConvDirac,
-            second_isc=ConvDirac,
-            pool=AngularMaxPooling,
-            layer_conf=[(512, self.rotation_deltas[3]), (512, self.rotation_deltas[3])],
-            splits=self.splits,
-            activation="relu",
-            template_radius=self.template_radius,
-            fit_dim=True
-        )([signal, bc_input])
-        signal = ISCResidual(
-            first_isc=ConvDirac,
-            second_isc=ConvDirac,
-            pool=AngularMaxPooling,
-            layer_conf=[(512, self.rotation_deltas[3]), (512, self.rotation_deltas[3])],
-            splits=self.splits,
-            activation="relu",
-            template_radius=self.template_radius
-        )([signal, bc_input])
-        output = tf.keras.layers.Dense(6890, name="output")(signal)
-
-        ################
-        # Compile Model
-        ################
-        init_lr = 0.0004607
-        init_wd = 0.0052094
-        model = keras.Model(inputs=[signal_input, bc_input], outputs=[output])
-        loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        opt = keras.optimizers.AdamW(
-            learning_rate=keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=hp.Float(
-                    "init_lr",
-                    min_value=init_lr - .25 * init_lr,
-                    max_value=init_lr + .25 * init_lr
-                ),
-                decay_steps=500,
-                decay_rate=0.99
-            ),
-            weight_decay=hp.Float(
-                "weight_decay",
-                min_value=init_wd - .25 * init_wd,
-                max_value=init_wd + .25 * init_wd
-            )
-        )
-        model.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
-        return model
-
 
 class HyperModel(keras_tuner.HyperModel):
 
-    def __init__(self, signal_dim, kernel_size, template_radius, splits, layer_conf=None):
+    def __init__(self, signal_dim, kernel_size, template_radius, splits, layer_conf=None, variant="dirac"):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
         self.template_radius = template_radius
         self.splits = splits
+
+        if variant == "dirac":
+            self.layer_type = ConvDirac
+        elif variant == "geodesic":
+            self.layer_type = ConvGeodesic
+        elif variant == "zero":
+            self.layer_type = ConvZero
+        else:
+            raise RuntimeError("Select a layer type from: ['dirac', 'geodesic', 'zero']")
 
         if layer_conf is None:
             self.output_dims = [96, 256, 384, 384, 256]
@@ -187,7 +53,7 @@ class HyperModel(keras_tuner.HyperModel):
         #######################
         for idx in range(len(self.output_dims)):
             signal = keras.layers.Dropout(rate=0.2)(signal)
-            signal = ConvDirac(
+            signal = self.layer_type(
                 amt_templates=self.output_dims[idx],
                 template_radius=self.template_radius,
                 activation="relu",
@@ -237,8 +103,7 @@ def hypertune(logging_dir,
               n_angular,
               template_radius,
               splits,
-              layer_conf=None,
-              model="regular"):
+              layer_conf=None):
     """Tunes the learning rate of the above IMCNN.
 
     Parameters
@@ -274,22 +139,13 @@ def hypertune(logging_dir,
     val_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=1)
 
     # Load hypermodel
-    if model == "resnet":
-        hyper = ResNetHyperModel(
-            signal_dim=signal_dim,
-            kernel_size=kernel_size,
-            splits=splits,
-            template_radius=template_radius,
-            rotation_deltas=list(zip(*layer_conf))[-1]
-        )
-    else:
-        hyper = HyperModel(
-            signal_dim=signal_dim,
-            kernel_size=kernel_size,
-            template_radius=template_radius,
-            splits=splits,
-            layer_conf=layer_conf
-        )
+    hyper = HyperModel(
+        signal_dim=signal_dim,
+        kernel_size=kernel_size,
+        template_radius=template_radius,
+        splits=splits,
+        layer_conf=layer_conf
+    )
 
     # Adapt normalization
     print("Initializing normalization layer..")

@@ -1,5 +1,6 @@
-from geoconv.layers.angular_avg_pooling import AngularAvgPooling
 from geoconv.layers.angular_max_pooling import AngularMaxPooling
+from geoconv.layers.conv_geodesic import ConvGeodesic
+from geoconv.layers.conv_zero import ConvZero
 from geoconv.layers.conv_dirac import ConvDirac
 from tensorflow import keras
 
@@ -7,12 +8,21 @@ import tensorflow as tf
 
 
 class Imcnn(tf.keras.Model):
-    def __init__(self, signal_dim, kernel_size, template_radius, splits, layer_conf=None):
+    def __init__(self, signal_dim, kernel_size, template_radius, splits, layer_conf=None, variant="dirac"):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
         self.template_radius = template_radius
         self.splits = splits
+
+        if variant == "dirac":
+            self.layer_type = ConvDirac
+        elif variant == "geodesic":
+            self.layer_type = ConvGeodesic
+        elif variant == "zero":
+            self.layer_type = ConvZero
+        else:
+            raise RuntimeError("Select a layer type from: ['dirac', 'geodesic', 'zero']")
 
         if layer_conf is None:
             self.output_dims = [96, 256, 384, 384, 256]
@@ -47,7 +57,7 @@ class Imcnn(tf.keras.Model):
             )
             self.bn_layers.append(keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}"))
             self.do_layers.append(keras.layers.Dropout(rate=0.2, name=f"DO_layer_{idx}"))
-            self.amp_layers.append(AngularAvgPooling())
+            self.amp_layers.append(AngularMaxPooling())
 
         #########
         # Output
