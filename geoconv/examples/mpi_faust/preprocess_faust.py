@@ -88,8 +88,6 @@ def preprocess_faust(n_radial,
         normalized_v_name = f"{temp_dir}/vertices_{file_idx}.npy"
         normalized_f_name = f"{temp_dir}/faces_{file_idx}.npy"
         reg_mesh = trimesh.load_mesh(reg_file_name)
-        if add_noise:
-            reg_mesh = trimesh.permutate.noise(reg_mesh, magnitude=reg_mesh.scale / 200)
 
         # Check whether normalized meshes already exist
         if not (Path(normalized_v_name).is_file() and Path(normalized_f_name).is_file()):
@@ -99,6 +97,11 @@ def preprocess_faust(n_radial,
                 geodesic_diameters[file_idx] = geodesic_diameter
             else:
                 reg_mesh, geodesic_diameter = normalize_mesh(reg_mesh, geodesic_diameters[file_idx])
+
+            # Add noise
+            if add_noise:
+                reg_mesh.vertices = reg_mesh.vertices + np.random.normal(size=(6890, 3), loc=0, scale=0.0005)
+
             # Save normalized mesh
             np.save(normalized_v_name, np.asarray(reg_mesh.vertices))
             np.save(normalized_f_name, np.asarray(reg_mesh.faces))
