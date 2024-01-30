@@ -10,6 +10,6 @@ class ConvZero(ConvIntrinsic):
         super().__init__(*args, **kwargs)
 
     def define_interpolation_coefficients(self, template_matrix):
-        """Returns all-zero interpolation coefficients."""
+        """Returns all-zero interpolation coefficients, which causes the layer to only work with self-connections."""
 
         return np.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1])
