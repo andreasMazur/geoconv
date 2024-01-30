@@ -25,7 +25,7 @@ class Imcnn(tf.keras.Model):
             raise RuntimeError("Select a layer type from: ['dirac', 'geodesic', 'zero']")
 
         if layer_conf is None:
-            self.output_dims = [96, 256, 384, 384, 256]
+            self.output_dims = [96, 256, 384, 384]
             self.rotation_deltas = [1 for _ in range(len(self.output_dims))]
         else:
             self.output_dims, self.rotation_deltas = list(zip(*layer_conf))
