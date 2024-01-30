@@ -46,7 +46,7 @@ class Imcnn(tf.keras.Model):
         self.amp_layers = []
         for idx in range(len(self.output_dims)):
             self.isc_layers.append(
-                ConvDirac(
+                self.layer_type(
                     amt_templates=self.output_dims[idx],
                     template_radius=self.template_radius,
                     activation="relu",
