@@ -144,7 +144,7 @@ def train_model(reference_mesh_path,
         imcnn.summary()
 
         # Define callbacks
-        csv = keras.callbacks.CSVLogger(f"training_{exp_number}.log")
+        csv = keras.callbacks.CSVLogger(f"{logging_dir}/training_{exp_number}.log")
         stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
         tb = keras.callbacks.TensorBoard(
             log_dir=f"{logging_dir}/tensorboard_{exp_number}",
