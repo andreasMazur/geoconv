@@ -131,7 +131,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self._configure_patch_operator()
 
     @tf.function
-    def call(self, inputs, orientations=tf.constant([], dtype=tf.int32)):
+    def call(self, inputs, orientations=None):
         """Computes intrinsic surface convolution for multiple given GPC-systems
 
         Parameters
@@ -163,7 +163,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         conv_center = tf.reshape(tf.map_fn(self._fold_center, mesh_signal), (-1, 1, self.amt_templates))
 
         # Fold neighbor features
-        if tf.equal(tf.size(orientations), 0):
+        if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
             orientations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
 
