@@ -100,6 +100,19 @@ def geodesic_alg_wrapper(ground_truth_and_prediction, reference_mesh):
     """A wrapper function for PyGeodesicAlgorithmExact
 
     Required, since 'geodesic.PyGeodesicAlgorithmExact' can't be directly used as an argument for 'Pool.starmap'.
+
+    Parameters
+    ----------
+    ground_truth_and_prediction: np.ndarray
+        Simple array with two entries. First entry is the index of the ground truth vertex.
+        The second entry is the index of the predicted vertex.
+    reference_mesh: trimesh.Trimesh
+        The triangle mesh on which the geodesic distances will be calculated.
+
+    Returns
+    -------
+    float:
+        The geodesic distance between the ground truth and predicted vertex.
     """
     geoalg = geodesic.PyGeodesicAlgorithmExact(reference_mesh.vertices, reference_mesh.faces)
     gt, pred = ground_truth_and_prediction
