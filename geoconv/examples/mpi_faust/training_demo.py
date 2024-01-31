@@ -164,7 +164,7 @@ def train_model(reference_mesh_path,
         imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=val_data, epochs=200)
         imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
 
-        # Evaluate best model with Princeton benchmark
+        # Evaluate model with Princeton benchmark
         test_dataset = load_preprocessed_faust(
             preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=2
         )
