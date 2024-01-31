@@ -28,7 +28,6 @@ def train_model(reference_mesh_path,
                 layer_conf=None,
                 model="dirac",
                 add_noise=False,
-                experiment_repetitions=10,
                 reference_mesh_diameter=2.2093810817030244):
     """Trains one singular IMCNN
 
@@ -80,8 +79,6 @@ def train_model(reference_mesh_path,
         [OPTIONAL] Which model variant (['dirac', 'geodesic', 'zero']) shall be tuned.
     add_noise: bool
         [OPTIONAL] Adds Gaussian noise to the mesh data.
-    experiment_repetitions: int
-        [OPTIONAL] The amount of experiment repetitions.
     """
     # Load data
     preprocess_zip = f"{preprocessed_data}.zip"
@@ -101,7 +98,7 @@ def train_model(reference_mesh_path,
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
 
     seeds = [10, 20, 30, 40, 50]
-    for exp_number in range(experiment_repetitions):
+    for exp_number in range(len(seeds)):
         # Set seeds
         tf.random.set_seed(seeds[exp_number])
         np.random.seed(seeds[exp_number])
