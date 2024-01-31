@@ -78,10 +78,6 @@ def train_model(reference_mesh_path,
     experiment_repetitions: int
         [OPTIONAL] The amount of experiment repetitions.
     """
-    # Set seeds
-    tf.random.set_seed(0)
-    np.random.seed(0)
-
     # Load data
     preprocess_zip = f"{preprocessed_data}.zip"
     if not Path(preprocess_zip).is_file():
@@ -99,7 +95,12 @@ def train_model(reference_mesh_path,
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
 
+    seeds = [10, 20, 30, 40, 50]
     for exp_number in range(experiment_repetitions):
+        # Set seeds
+        tf.random.set_seed(seeds[exp_number])
+        np.random.seed(seeds[exp_number])
+
         # Load data
         kernel_size = (n_radial, n_angular)
         train_data = load_preprocessed_faust(preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=0)
