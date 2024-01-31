@@ -28,7 +28,8 @@ def train_model(reference_mesh_path,
                 layer_conf=None,
                 model="dirac",
                 add_noise=False,
-                experiment_repetitions=10):
+                experiment_repetitions=10,
+                reference_mesh_diameter=2.2093810817030244):
     """Trains one singular IMCNN
 
     Parameters
@@ -77,6 +78,9 @@ def train_model(reference_mesh_path,
         [OPTIONAL] Adds Gaussian noise to the mesh data.
     experiment_repetitions: int
         [OPTIONAL] The amount of experiment repetitions.
+    reference_mesh_diameter: float
+        The geodesic diameter of the reference mesh. Defaults to the diameter of the first registration mesh
+        (tr_reg_000.ply) in the training set of the FAUST data set.
     """
     # Load data
     preprocess_zip = f"{preprocessed_data}.zip"
@@ -168,5 +172,6 @@ def train_model(reference_mesh_path,
             test_dataset=test_dataset,
             ref_mesh_path=reference_mesh_path,
             file_name=f"{train_data}/best_model_benchmark_{exp_number}",
-            processes=processes
+            processes=processes,
+            geodesic_diameter=reference_mesh_diameter
         )
