@@ -173,7 +173,7 @@ def train_model(reference_mesh_path,
             imcnn=imcnn,
             test_dataset=test_dataset,
             ref_mesh_path=reference_mesh_path,
-            file_name=f"{train_data}/best_model_benchmark_{exp_number}",
+            file_name=f"{logging_dir}/best_model_benchmark_{exp_number}",
             processes=processes,
             geodesic_diameter=reference_mesh_diameter
         )
