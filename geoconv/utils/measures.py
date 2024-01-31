@@ -1,11 +1,12 @@
 from geoconv.utils.misc import get_included_faces, normalize_mesh
 
 from matplotlib import pyplot as plt
+from multiprocessing import Pool
+from tqdm import tqdm
 
 import pygeodesic.geodesic as geodesic
 import trimesh
 import numpy as np
-import sys
 
 
 def princeton_benchmark(imcnn,
@@ -15,7 +16,9 @@ def princeton_benchmark(imcnn,
                         normalize=True,
                         plot_title="Princeton Benchmark",
                         curve_label=None,
-                        plot=True):
+                        plot=True,
+                        processes=1,
+                        geodesic_diameter=None):
     """Plots the accuracy w.r.t. a gradually changing geodesic error
 
     Princeton benchmark has been introduced in:
@@ -40,21 +43,26 @@ def princeton_benchmark(imcnn,
         The name displayed in the plot legend
     plot: bool
         Whether to plot immediately.
+    processes: int
+        The amount of concurrent processes.
+    geodesic_diameter: float
+        The geodesic diameter of the reference mesh
     """
+
     reference_mesh = trimesh.load_mesh(ref_mesh_path)
     if normalize:
-        reference_mesh, _ = normalize_mesh(reference_mesh)
-    geoalg = geodesic.PyGeodesicAlgorithmExact(reference_mesh.vertices, reference_mesh.faces)
+        reference_mesh, _ = normalize_mesh(reference_mesh, geodesic_diameter=geodesic_diameter)
 
-    geodesic_errors, mesh_idx = [], -1
+    mesh_number = 0
     for ((signal, barycentric), ground_truth) in test_dataset:
-        mesh_idx += 1
         prediction = imcnn([signal, barycentric]).numpy().argmax(axis=1)
-        pred_idx = -1
-        for gt, pred in np.stack([ground_truth, prediction], axis=1):
-            pred_idx += 1
-            sys.stdout.write(f"\rCurrently at mesh {mesh_idx} - Prediction {pred_idx}")
-            geodesic_errors.append(geoalg.geodesicDistance(pred, gt)[0])
+        batched = [(data, reference_mesh) for data in np.stack([ground_truth, prediction], axis=-1)]
+        with Pool(processes) as p:
+            geodesic_errors = p.starmap(
+                geodesic_alg_wrapper,
+                tqdm(batched, total=len(batched), postfix=f"Computing Princeton benchmark for test mesh {mesh_number}")
+            )
+        mesh_number += 1
 
     ##########################
     # Sorting geodesic errors
@@ -86,6 +94,16 @@ def princeton_benchmark(imcnn,
         plt.legend()
         plt.savefig(f"{file_name}.svg")
         plt.show()
+
+
+def geodesic_alg_wrapper(ground_truth_and_prediction, reference_mesh):
+    """A wrapper function for PyGeodesicAlgorithmExact
+
+    Required, since 'geodesic.PyGeodesicAlgorithmExact' can't be directly used as an argument for 'Pool.starmap'.
+    """
+    geoalg = geodesic.PyGeodesicAlgorithmExact(reference_mesh.vertices, reference_mesh.faces)
+    gt, pred = ground_truth_and_prediction
+    return geoalg.geodesicDistance(pred, gt)[0]
 
 
 def kernel_coverage(object_mesh, gpc_system, bary_coordinates):

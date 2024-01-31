@@ -63,7 +63,7 @@ def train_model(reference_mesh_path,
     splits: int
         [OPTIONAL] The amount of splits over which the ISC-layer should iterate
     processes: int
-        [OPTIONAL] The amount of concurrent processes that compute GPC-systems
+        [OPTIONAL] The amount of concurrent processes. Affects preprocessing and Princeton benchmark.
     init_lr: float
         [OPTIONAL] Initial learning rate.
     weight_decay: float
@@ -167,5 +167,6 @@ def train_model(reference_mesh_path,
             imcnn=imcnn,
             test_dataset=test_dataset,
             ref_mesh_path=reference_mesh_path,
-            file_name=f"{train_data}/best_model_benchmark_{exp_number}"
+            file_name=f"{train_data}/best_model_benchmark_{exp_number}",
+            processes=processes
         )
