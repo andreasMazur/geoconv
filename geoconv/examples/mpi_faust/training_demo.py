@@ -43,6 +43,10 @@ def train_model(reference_mesh_path,
         path, this script will execute pre-processing for you. For this to work, you need to pass the arguments which
         are annotated with '[REQUIRED FOR PRE-PROCESSING]'. If pre-processing is not required, you can ignore those
         arguments.
+    reference_mesh_diameter: float
+        [REQUIRED FOR BENCHMARKING] The geodesic diameter of the reference mesh. Defaults to the diameter of the first
+        registration mesh (tr_reg_000.ply) in the training set of the FAUST data set. If other reference mesh is
+        selected, adjust this parameter accordingly!
     n_radial: int
         [REQUIRED FOR PRE-PROCESSING] The amount of radial coordinates for the template.
     n_angular: int
@@ -78,9 +82,6 @@ def train_model(reference_mesh_path,
         [OPTIONAL] Adds Gaussian noise to the mesh data.
     experiment_repetitions: int
         [OPTIONAL] The amount of experiment repetitions.
-    reference_mesh_diameter: float
-        The geodesic diameter of the reference mesh. Defaults to the diameter of the first registration mesh
-        (tr_reg_000.ply) in the training set of the FAUST data set.
     """
     # Load data
     preprocess_zip = f"{preprocessed_data}.zip"
