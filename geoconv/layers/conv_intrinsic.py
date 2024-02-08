@@ -138,7 +138,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         -------
         tf.Tensor
             The geodesic convolution of the template with the signal on the object mesh in every given GPC-system.
-            It has size (n_batch, n_vertices, feature_dim)
+            It has size (vertices, n_rotations, templates)
         """
         mesh_signal, bary_coordinates = inputs
 
