@@ -152,7 +152,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         # Fold neighbors - conv_neighbor: (vertices, n_rotations, templates)
         #####################################################################
         # Call patch operator
-        interpolations = self._signal_retrieval(mesh_signal, bary_coordinates)
+        interpolations = self._patch_operator(mesh_signal, bary_coordinates)
         # Determine orientations
         if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
@@ -160,13 +160,11 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
 
         def fold_neighbor(o):
             # Weight              : (templates, radial, angular, input_dim)
-            # Kernel              : (radial, angular, radial, angular)
             # Mesh interpolations : (vertices, radial, angular, input_dim)
             # Result              : (vertices, templates)
             return tf.einsum(
-                "traf,raxy,kxyf->kt",
+                "traf,kraf->kt",
                 self._template_neighbor_weights,
-                self._kernel,
                 tf.roll(interpolations, shift=o, axis=2)
             ) + self._bias
 
@@ -175,6 +173,29 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             tf.map_fn(fold_neighbor, orientations, fn_output_signature=tf.float32), perm=[1, 0, 2]
         )
         return self._activation(conv_center + conv_neighbor)
+
+    @tf.function
+    def _patch_operator(self, mesh_signal, barycentric_coordinates):
+        """Interpolates and weights mesh signal
+
+        Parameters
+        ----------
+        mesh_signal: tf.Tensor
+            The signal values at the template vertices
+        barycentric_coordinates: tf.Tensor
+            The barycentric coordinates for the template vertices
+
+        Returns
+        -------
+        tf.Tensor:
+            Weighted and interpolated mesh signals
+        """
+        interpolations = self._signal_retrieval(mesh_signal, barycentric_coordinates)
+
+        # Weight matrix  : (radial, angular, radial, angular)
+        # interpolations : (vertices, radial, angular, input_dim)
+        # Result         : (vertices, radial, angular, input_dim)
+        return tf.einsum("raxy,kxyf->kraf", self._kernel, interpolations)
 
     @tf.function
     def _signal_retrieval(self, mesh_signal, barycentric_coordinates):
