@@ -195,9 +195,6 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         """
         interpolations = self._signal_retrieval(mesh_signal, barycentric_coordinates)
 
-        #################
-        # Patch operator
-        #################
         if self.include_prior:
             # Weight matrix  : (radial, angular, radial, angular)
             # interpolations : (vertices, radial, angular, input_dim)
