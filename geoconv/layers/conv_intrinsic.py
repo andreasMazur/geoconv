@@ -203,6 +203,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         else:
             return interpolations
 
+    @tf.function
     def _signal_retrieval(self, mesh_signal, barycentric_coordinates):
         """Interpolates signals at template vertices
 
@@ -218,9 +219,17 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         tf.Tensor:
             Interpolation values for the template vertices
         """
-        mesh_signal = np.array(mesh_signal)[np.array(barycentric_coordinates[:, :, :, :, 0], dtype=np.int32)]
+        vertex_indices = tf.reshape(
+            tf.cast(barycentric_coordinates[:, :, :, :, 0], tf.int32), (-1, 1)
+        )
+        mesh_signal = tf.reshape(
+            tf.gather_nd(mesh_signal, vertex_indices),
+            (-1, self._template_size[0], self._template_size[1], 3, self._feature_dim)
+        )
         # (vertices, n_radial, n_angular, input_dim)
-        return (mesh_signal * np.expand_dims(barycentric_coordinates[:, :, :, :, 1], axis=-1)).sum(axis=-2)
+        return tf.math.reduce_sum(
+            tf.expand_dims(barycentric_coordinates[:, :, :, :, 1], axis=-1) * mesh_signal, axis=-2
+        )
 
     def _configure_patch_operator(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
