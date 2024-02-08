@@ -39,6 +39,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         else:
             super().__init__()
 
+        self.given_name = name
         self.activation_fn = activation
         self.rotation_delta = rotation_delta
         self.amt_templates = amt_templates
@@ -61,19 +62,17 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
 
     def get_config(self):
         config = super(ConvIntrinsic, self).get_config()
-        # TODO: Update
         config.update(
             {
-                "amt_template": self.amt_templates,
+                "amt_templates": self.amt_templates,
                 "template_radius": self.template_radius,
-                "activation_fn": self.activation_fn,
+                "include_prior": self.include_prior,
+                "activation": self.activation_fn,
                 "rotation_delta": self.rotation_delta,
-                "splits": self.splits,
-                "name": self.name,
+                "name": self.given_name,
                 "template_regularizer": self.template_regularizer,
                 "bias_regularizer": self.bias_regularizer,
-                "initializer": self.initializer,
-                "include_prior": self.include_prior
+                "initializer": self.initializer
             }
         )
         return config
