@@ -27,7 +27,6 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
     def __init__(self,
                  amt_templates,
                  template_radius,
-                 concurrent_rotations=1,
                  activation="relu",
                  rotation_delta=1,
                  name=None,
@@ -47,7 +46,6 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self.template_regularizer = template_regularizer
         self.bias_regularizer = bias_regularizer
         self.initializer = initializer
-        self.concurrent_rotations = concurrent_rotations
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = keras.layers.Activation(self.activation_fn)

@@ -47,7 +47,6 @@ class Imcnn(tf.keras.Model):
         for idx in range(len(self.output_dims)):
             self.isc_layers.append(
                 self.layer_type(
-                    concurrent_rotations=self.splits,
                     amt_templates=self.output_dims[idx],
                     template_radius=self.template_radius,
                     activation="relu",
