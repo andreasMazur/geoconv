@@ -193,32 +193,9 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         tf.Tensor:
             Weighted and interpolated mesh signals
         """
-        interpolations = self._signal_retrieval(mesh_signal, barycentric_coordinates)
-
-        if self.include_prior:
-            # Weight matrix  : (radial, angular, radial, angular)
-            # interpolations : (vertices, radial, angular, input_dim)
-            # Result         : (vertices, radial, angular, input_dim)
-            return tf.einsum("raxy,kxyf->kraf", self._kernel, interpolations)
-        else:
-            return interpolations
-
-    @tf.function
-    def _signal_retrieval(self, mesh_signal, barycentric_coordinates):
-        """Interpolates signals at template vertices
-
-        Parameters
-        ----------
-        mesh_signal: tf.Tensor
-            The signal values at the template vertices
-        barycentric_coordinates: tf.Tensor
-            The barycentric coordinates for the template vertices
-
-        Returns
-        -------
-        tf.Tensor:
-            Interpolation values for the template vertices
-        """
+        ###################
+        # Signal retrieval
+        ###################
         vertex_indices = tf.reshape(
             tf.cast(barycentric_coordinates[:, :, :, :, 0], tf.int32), (-1, 1)
         )
@@ -227,9 +204,20 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             (-1, self._template_size[0], self._template_size[1], 3, self._feature_dim)
         )
         # (vertices, n_radial, n_angular, input_dim)
-        return tf.math.reduce_sum(
+        interpolations = tf.math.reduce_sum(
             tf.expand_dims(barycentric_coordinates[:, :, :, :, 1], axis=-1) * mesh_signal, axis=-2
         )
+
+        #################
+        # Patch operator
+        #################
+        if self.include_prior:
+            # Weight matrix  : (radial, angular, radial, angular)
+            # interpolations : (vertices, radial, angular, input_dim)
+            # Result         : (vertices, radial, angular, input_dim)
+            return tf.einsum("raxy,kxyf->kraf", self._kernel, interpolations)
+        else:
+            return interpolations
 
     def _configure_patch_operator(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
