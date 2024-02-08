@@ -27,6 +27,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
     def __init__(self,
                  amt_templates,
                  template_radius,
+                 include_prior=True,
                  activation="relu",
                  rotation_delta=1,
                  name=None,
@@ -38,7 +39,6 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         else:
             super().__init__()
 
-        # TODO: re-introduce include prior parameter
         self.activation_fn = activation
         self.rotation_delta = rotation_delta
         self.amt_templates = amt_templates
@@ -46,6 +46,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self.template_regularizer = template_regularizer
         self.bias_regularizer = bias_regularizer
         self.initializer = initializer
+        self.include_prior = include_prior
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = keras.layers.Activation(self.activation_fn)
@@ -194,10 +195,13 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         """
         interpolations = self._signal_retrieval(mesh_signal, barycentric_coordinates)
 
-        # Weight matrix  : (radial, angular, radial, angular)
-        # interpolations : (vertices, radial, angular, input_dim)
-        # Result         : (vertices, radial, angular, input_dim)
-        return tf.einsum("raxy,kxyf->kraf", self._kernel, interpolations)
+        if self.include_prior:
+            # Weight matrix  : (radial, angular, radial, angular)
+            # interpolations : (vertices, radial, angular, input_dim)
+            # Result         : (vertices, radial, angular, input_dim)
+            return tf.einsum("raxy,kxyf->kraf", self._kernel, interpolations)
+        else:
+            return interpolations
 
     @tf.function
     def _signal_retrieval(self, mesh_signal, barycentric_coordinates):
