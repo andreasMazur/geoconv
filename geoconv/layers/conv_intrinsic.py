@@ -27,6 +27,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
     def __init__(self,
                  amt_templates,
                  template_radius,
+                 concurrent_rotations=1,
                  activation="relu",
                  rotation_delta=1,
                  name=None,
@@ -38,6 +39,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         else:
             super().__init__()
 
+        # TODO: re-introduce include prior parameter
         self.activation_fn = activation
         self.rotation_delta = rotation_delta
         self.amt_templates = amt_templates
@@ -45,6 +47,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self.template_regularizer = template_regularizer
         self.bias_regularizer = bias_regularizer
         self.initializer = initializer
+        self.concurrent_rotations = concurrent_rotations
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = keras.layers.Activation(self.activation_fn)
@@ -59,6 +62,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
 
     def get_config(self):
         config = super(ConvIntrinsic, self).get_config()
+        # TODO: Update
         config.update(
             {
                 "amt_template": self.amt_templates,
@@ -157,20 +161,26 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
             orientations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
+        orientations = tf.stack(tf.split(orientations, self.concurrent_rotations))
+
+        def interpolation_roll(rot):
+            return tf.roll(interpolations, shift=rot, axis=2)
 
         def fold_neighbor(o):
             # Weight              : (templates, radial, angular, input_dim)
-            # Mesh interpolations : (vertices, radial, angular, input_dim)
-            # Result              : (vertices, templates)
+            # Mesh interpolations : (orientations, vertices, radial, angular, input_dim)
+            # Result              : (vertices, orientations, templates)
             return tf.einsum(
-                "traf,kraf->kt",
+                "traf,okraf->okt",
                 self._template_neighbor_weights,
-                tf.roll(interpolations, shift=o, axis=2)
+                tf.map_fn(interpolation_roll, o, fn_output_signature=tf.float32)
             ) + self._bias
 
-        # conv_neighbor: (vertices, n_rotations, templates)
+        # conv_neighbor: (len(orientations), vertices, rotations, templates)
+        conv_neighbor = tf.map_fn(fold_neighbor, orientations, fn_output_signature=tf.float32)
         conv_neighbor = tf.transpose(
-            tf.map_fn(fold_neighbor, orientations, fn_output_signature=tf.float32), perm=[1, 0, 2]
+            tf.reshape(conv_neighbor, (tf.reduce_sum(tf.shape(orientations)), -1, self.amt_templates)),
+            perm=[1, 0, 2]
         )
         return self._activation(conv_center + conv_neighbor)
 

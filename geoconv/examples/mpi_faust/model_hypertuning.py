@@ -54,6 +54,7 @@ class HyperModel(keras_tuner.HyperModel):
         for idx in range(len(self.output_dims)):
             signal = keras.layers.Dropout(rate=0.2)(signal)
             signal = self.layer_type(
+                concurrent_rotations=self.splits,
                 amt_templates=self.output_dims[idx],
                 template_radius=self.template_radius,
                 activation="relu",
