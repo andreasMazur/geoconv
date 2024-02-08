@@ -158,21 +158,22 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             # No specific orientations given. Hence, compute for all orientations.
             orientations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
 
-        def all_rotations_fn(rot):
-            return tf.roll(interpolations, shift=rot, axis=2)
+        def fold_neighbor(o):
+            # Weight              : (templates, radial, angular, input_dim)
+            # Kernel              : (radial, angular, radial, angular)
+            # Mesh interpolations : (vertices, radial, angular, input_dim)
+            # Result              : (vertices, templates)
+            return tf.einsum(
+                "traf,raxy,kxyf->kt",
+                self._template_neighbor_weights,
+                self._kernel,
+                tf.roll(interpolations, shift=o, axis=2)
+            ) + self._bias
 
-        # orientations = ceil(self.all_rotations / self.rotation_delta)
-        # (orientations, vertices, n_radial, n_angular, input_dim)
-        interpolations = tf.map_fn(all_rotations_fn, orientations, fn_output_signature=tf.float32)
-
-        # Weight              : (templates, radial, angular, input_dim)
-        # Kernel              : (radial, angular, radial, angular)
-        # Mesh interpolations : (orientations, vertices, radial, angular, input_dim)
-        # Result              : (vertices, orientations, templates)
-        conv_neighbor = tf.einsum(
-            "traf,raxy,okxyf->kot", self._template_neighbor_weights, self._kernel, interpolations
-        ) + self._bias
-
+        # conv_neighbor: (vertices, n_rotations, templates)
+        conv_neighbor = tf.transpose(
+            tf.map_fn(fold_neighbor, orientations, fn_output_signature=tf.float32), perm=[1, 0, 2]
+        )
         return self._activation(conv_center + conv_neighbor)
 
     @tf.function
