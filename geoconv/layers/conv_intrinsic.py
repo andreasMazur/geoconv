@@ -213,8 +213,11 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         tf.Tensor:
             Interpolation values for the template vertices
         """
+        vertex_indices = tf.reshape(
+            tf.cast(barycentric_coordinates[:, :, :, :, 0], tf.int32), (-1, 1)
+        )
         mesh_signal = tf.reshape(
-            tf.gather(mesh_signal, tf.reshape(tf.cast(barycentric_coordinates[:, :, :, :, 0], tf.int32), (-1,))),
+            tf.gather_nd(mesh_signal, vertex_indices),
             (-1, self._template_size[0], self._template_size[1], 3, self._feature_dim)
         )
         # (vertices, n_radial, n_angular, input_dim)
@@ -224,7 +227,6 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
 
     def _configure_patch_operator(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
-
         self._kernel = tf.cast(
             self.define_interpolation_coefficients(self._template_vertices.numpy()), tf.float32
         )
