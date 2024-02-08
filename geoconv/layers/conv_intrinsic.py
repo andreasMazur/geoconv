@@ -179,7 +179,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         # conv_neighbor: (len(orientations), vertices, rotations, templates)
         conv_neighbor = tf.map_fn(fold_neighbor, orientations, fn_output_signature=tf.float32)
         conv_neighbor = tf.transpose(
-            tf.reshape(conv_neighbor, (tf.reduce_sum(tf.shape(orientations)), -1, self.amt_templates)),
+            tf.reshape(conv_neighbor, (tf.reduce_prod(tf.shape(orientations)), -1, self.amt_templates)),
             perm=[1, 0, 2]
         )
         return self._activation(conv_center + conv_neighbor)
