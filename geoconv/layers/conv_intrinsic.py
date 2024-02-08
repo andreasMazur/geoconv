@@ -123,7 +123,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
 
     @tf.function
     def call(self, inputs, orientations=None):
-        """Computes intrinsic surface convolution for multiple given GPC-systems
+        """Computes intrinsic surface convolution on all vertices of a given mesh.
 
         Parameters
         ----------
