@@ -58,7 +58,6 @@ class HyperModel(keras_tuner.HyperModel):
                 template_radius=self.template_radius,
                 activation="relu",
                 name=f"ISC_layer_{idx}",
-                splits=self.splits,
                 rotation_delta=self.rotation_deltas[idx]
             )([signal, bc_input])
             signal = amp(signal)

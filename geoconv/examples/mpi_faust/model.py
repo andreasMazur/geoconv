@@ -51,7 +51,6 @@ class Imcnn(tf.keras.Model):
                     template_radius=self.template_radius,
                     activation="relu",
                     name=f"ISC_layer_{idx}",
-                    splits=self.splits,
                     rotation_delta=self.rotation_deltas[idx]
                 )
             )
