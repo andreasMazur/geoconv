@@ -22,13 +22,6 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         coordinate.
         If `rotation_delta = 2`, then the shift increases to 2 and the total amount of rotations reduces to
         ceil(n / rotation_delta). This gives a speed-up and saves memory. However, quality of results might worsen.
-    splits: int
-        The 'splits'-parameter determines into how many chunks the mesh signal is split. Each chunk will be folded
-        iteratively to save memory. That is, fewer splits allow a faster convolution. More splits allow reduced memory
-        usage. Careful: 'splits' has to divide the amount of vertices in the input mesh. Also, using many splits might
-        cause larger memory fragmentation.
-    include_prior: bool
-        Determines whether to include prior. If 'False', computation is faster.
     """
 
     def __init__(self,
@@ -36,8 +29,6 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
                  template_radius,
                  activation="relu",
                  rotation_delta=1,
-                 splits=1,
-                 include_prior=True,
                  name=None,
                  template_regularizer=None,
                  bias_regularizer=None,
@@ -54,8 +45,6 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self.template_regularizer = template_regularizer
         self.bias_regularizer = bias_regularizer
         self.initializer = initializer
-        self.splits = splits
-        self.include_prior = include_prior
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = keras.layers.Activation(self.activation_fn)
@@ -64,8 +53,8 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self._template_size = None  # (#radial, #angular)
         self._template_vertices = None
         self._template_neighbor_weights = None
-        self._template_center_weights = None
-        self._interpolation_coefficients = None
+        self._template_self_weights = None
+        self._kernel = None
         self._feature_dim = None
 
     def get_config(self):
@@ -112,7 +101,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             trainable=True,
             regularizer=self.template_regularizer
         )
-        self._template_center_weights = self.add_weight(
+        self._template_self_weights = self.add_weight(
             name="center_weights",
             shape=(self.amt_templates, 1, signal_shape[1]),
             initializer=self.initializer,
@@ -151,32 +140,44 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         """
         mesh_signal, bary_coordinates = inputs
 
+        ######################################################
+        # Fold center - conv_center: (vertices, 1, templates)
+        ######################################################
+        # Weight matrix : (templates, 1, input_dim)
+        # Mesh signal   : (vertices, input_dim)
+        # Result        : (vertices, 1, n_templates)
+        conv_center = tf.einsum("tef,kf->ket", self._template_self_weights, mesh_signal)
+
+        #####################################################################
+        # Fold neighbors - conv_neighbor: (vertices, n_rotations, templates)
+        #####################################################################
         # Call patch operator
-        interpolations = self._patch_operator(mesh_signal, bary_coordinates)
-
-        # Batch input
-        mesh_signal = tf.stack(tf.split(mesh_signal, self.splits))
-        interpolations = tf.stack(tf.split(interpolations, self.splits))
-
-        # Fold center features
-        # conv_center: (subset, 1, n_templates)
-        conv_center = tf.reshape(tf.map_fn(self._fold_center, mesh_signal), (-1, 1, self.amt_templates))
-
-        # Fold neighbor features
+        interpolations = self._signal_retrieval(mesh_signal, bary_coordinates)
+        # Determine orientations
         if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
             orientations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
 
-        batched_folding = lambda batch: self._fold_neighbors(batch, orientations)
-        # conv_neighbor: (subset, n_rotations, n_templates)
-        conv_neighbor = tf.reshape(
-            tf.map_fn(batched_folding, interpolations), (-1, tf.shape(orientations)[0], self.amt_templates)
-        )
+        def all_rotations_fn(rot):
+            return tf.roll(interpolations, shift=rot, axis=2)
+
+        # orientations = ceil(self.all_rotations / self.rotation_delta)
+        # (orientations, vertices, n_radial, n_angular, input_dim)
+        interpolations = tf.map_fn(all_rotations_fn, orientations, fn_output_signature=tf.float32)
+
+        # Weight              : (templates, radial, angular, input_dim)
+        # Kernel              : (radial, angular, radial, angular)
+        # Mesh interpolations : (orientations, vertices, radial, angular, input_dim)
+        # Result              : (vertices, orientations, templates)
+        conv_neighbor = tf.einsum(
+            "traf,raxy,okxyf->kot", self._template_neighbor_weights, self._kernel, interpolations
+        ) + self._bias
+
         return self._activation(conv_center + conv_neighbor)
 
     @tf.function
-    def _patch_operator(self, mesh_signal, barycentric_coordinates):
-        """Implements the patch operator
+    def _signal_retrieval(self, mesh_signal, barycentric_coordinates):
+        """Interpolates signals at template vertices
 
         Parameters
         ----------
@@ -190,85 +191,25 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         tf.Tensor:
             Interpolation values for the template vertices
         """
-        ############################################
-        # Signal-interpolation at template vertices
-        ############################################
         mesh_signal = tf.reshape(
             tf.gather(mesh_signal, tf.reshape(tf.cast(barycentric_coordinates[:, :, :, :, 0], tf.int32), (-1,))),
             (-1, self._template_size[0], self._template_size[1], 3, self._feature_dim)
         )
-        # (subset, n_radial, n_angular, input_dim)
-        mesh_signal = tf.math.reduce_sum(
+        # (vertices, n_radial, n_angular, input_dim)
+        return tf.math.reduce_sum(
             tf.expand_dims(barycentric_coordinates[:, :, :, :, 1], axis=-1) * mesh_signal, axis=-2
         )
-        if not self.include_prior:
-            return mesh_signal
-
-        ##################
-        # Including prior
-        ##################
-        # (subset, n_radial, n_angular, input_dim)
-        return tf.einsum(
-            "xyra,kraf->kxyf", self._interpolation_coefficients, mesh_signal
-        )
-
-    @tf.function
-    def _fold_center(self, mesh_signal):
-        """Folds the features in the center of the template
-
-        Parameters
-        ----------
-        mesh_signal: tf.Tensor
-            The mesh signal at the mesh vertices.
-
-        Returns
-        -------
-        tf.Tensor:
-            New mesh signal at the mesh vertices.
-        """
-        # Mesh signal   : (subset, input_dim)
-        # Weight matrix : (n_templates, 1, input_dim)
-        # Result        : (subset, 1, n_templates)
-        return tf.einsum("si,tji->sjt", mesh_signal, self._template_center_weights)
-
-    @tf.function
-    def _fold_neighbors(self, interpolations, considered_rotations):
-        """Folds template vertex signal with the template weights
-
-        Parameters
-        ----------
-        interpolations: tf.Tensor
-            The according to a given weighting function weighted interpolations at the template vertices.
-            Shape: (subset, n_radial, n_angular, input_dim)
-        orientation: tf.Tensor
-            Contains an integer that tells how to rotate the data.
-
-        Returns
-        -------
-        tf.Tensor:
-            The new mesh signal after the convolution. Shape: (subset, n_rotations, n_templates)
-        """
-        # n_rotations = ceil(self.all_rotations / self.rotation_delta)
-        all_rotations_fn = lambda rot: tf.roll(interpolations, shift=rot, axis=2)
-        # (n_rotations, subset, n_radial, n_angular, input_dim)
-        interpolations = tf.map_fn(all_rotations_fn, considered_rotations, fn_output_signature=tf.float32)
-
-        # Interpolated signals: (n_rotations, subset,                      n_radial, n_angular, input_dim)
-        # Weight matrix       : (                     n_templates,         n_radial, n_angular, input_dim)
-        # Bias                : (                     n_templates                                        )
-        # Result              : (subset, n_rotations, n_templates)
-        return tf.einsum("rsijk,tijk->srt", interpolations, self._template_neighbor_weights) + self._bias
 
     def _configure_patch_operator(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
 
-        self._interpolation_coefficients = tf.cast(
+        self._kernel = tf.cast(
             self.define_interpolation_coefficients(self._template_vertices.numpy()), tf.float32
         )
 
     @abstractmethod
     def define_interpolation_coefficients(self, template_matrix):
-        """Defines the interpolation coefficients for each template vertex.
+        """Defines the kernel values for each template vertex.
 
         Parameters
         ----------
