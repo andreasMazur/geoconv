@@ -10,7 +10,7 @@ class ConvDirac(ConvIntrinsic):
         kwargs["include_prior"] = False  # Interpolation coefficients not required for Dirac prior
         super().__init__(*args, **kwargs)
 
-    def define_interpolation_coefficients(self, template_matrix):
+    def define_kernel_values(self, template_matrix):
         """
         Only take the value at ('rho_in', 'theta_in') into account for the patch operator at ('rho_in', 'theta_in')
 

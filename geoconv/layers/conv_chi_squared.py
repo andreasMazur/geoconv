@@ -76,7 +76,7 @@ class ConvChiSquared(ConvIntrinsic):
         super().__init__(*args, **kwargs)
         self.dof = dof
 
-    def define_interpolation_coefficients(self, template_matrix):
+    def define_kernel_values(self, template_matrix):
         template_matrix[:, :, 0] = template_matrix[:, :, 0] / template_matrix[:, :, 0].max()
         interpolation_coefficients = np.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1])
         for mean_rho_idx in range(template_matrix.shape[0]):

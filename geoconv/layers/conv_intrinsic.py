@@ -119,8 +119,8 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
             regularizer=self.bias_regularizer
         )
 
-        # Configure patch operator
-        self._configure_patch_operator()
+        # Configure kernel
+        self._configure_kernel()
 
     @tf.function
     def call(self, inputs, orientations=None):
@@ -193,20 +193,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         tf.Tensor:
             Weighted and interpolated mesh signals
         """
-        ###################
-        # Signal retrieval
-        ###################
-        vertex_indices = tf.reshape(
-            tf.cast(barycentric_coordinates[:, :, :, :, 0], tf.int32), (-1, 1)
-        )
-        mesh_signal = tf.reshape(
-            tf.gather_nd(mesh_signal, vertex_indices),
-            (-1, self._template_size[0], self._template_size[1], 3, self._feature_dim)
-        )
-        # (vertices, n_radial, n_angular, input_dim)
-        interpolations = tf.math.reduce_sum(
-            tf.expand_dims(barycentric_coordinates[:, :, :, :, 1], axis=-1) * mesh_signal, axis=-2
-        )
+        interpolations = self._signal_retrieval(mesh_signal, barycentric_coordinates)
 
         #################
         # Patch operator
@@ -219,14 +206,42 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         else:
             return interpolations
 
-    def _configure_patch_operator(self):
+    @tf.function
+    def _signal_retrieval(self, mesh_signal, barycentric_coordinates):
+        """Interpolates signals at template vertices
+
+        Parameters
+        ----------
+        mesh_signal: tf.Tensor
+            The signal values at the template vertices
+        barycentric_coordinates: tf.Tensor
+            The barycentric coordinates for the template vertices
+
+        Returns
+        -------
+        tf.Tensor:
+            Interpolation values for the template vertices
+        """
+        vertex_indices = tf.reshape(
+            tf.cast(barycentric_coordinates[:, :, :, :, 0], tf.int32), (-1, 1)
+        )
+        mesh_signal = tf.reshape(
+            tf.gather_nd(mesh_signal, vertex_indices),
+            (-1, self._template_size[0], self._template_size[1], 3, self._feature_dim)
+        )
+        # (vertices, n_radial, n_angular, input_dim)
+        return tf.math.reduce_sum(
+            tf.expand_dims(barycentric_coordinates[:, :, :, :, 1], axis=-1) * mesh_signal, axis=-2
+        )
+
+    def _configure_kernel(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
         self._kernel = tf.cast(
-            self.define_interpolation_coefficients(self._template_vertices.numpy()), tf.float32
+            self.define_kernel_values(self._template_vertices.numpy()), tf.float32
         )
 
     @abstractmethod
-    def define_interpolation_coefficients(self, template_matrix):
+    def define_kernel_values(self, template_matrix):
         """Defines the kernel values for each template vertex.
 
         Parameters

@@ -49,7 +49,7 @@ class ConvGeodesic(ConvIntrinsic):
     > Jonathan Masci and Davide Boscaini et al.
     """
 
-    def define_interpolation_coefficients(self, template_matrix):
+    def define_kernel_values(self, template_matrix):
         interpolation_coefficients = np.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1])
         var_rho = template_matrix[:, :, 0].var()
         var_theta = template_matrix[:, :, 1].var()
