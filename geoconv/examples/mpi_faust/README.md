@@ -20,16 +20,19 @@ if __name__ == "__main__":
         n_radial=5,
         n_angular=8,
         registration_path=rp,
-        compute_shot=True,
-        # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
+        compute_shot=True,  # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
         geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
         precomputed_gpc_radius=R,
         ### GENERAL ###
         template_radius=R * 0.75,
         logging_dir="./imcnn_training_logs",
-        splits=1,
-        processes=10
+        processes=1,
+        layer_conf=[(96, 1), (256, 1), (384, 1), (384, 1)],  # (n_templates, rotation_delta) for each layer
+        init_lr=0.00165,
+        weight_decay=0.005,
+        model="dirac"
     )
+
 ```
 
 ## Installing pyshot
