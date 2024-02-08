@@ -8,12 +8,11 @@ import tensorflow as tf
 
 
 class Imcnn(tf.keras.Model):
-    def __init__(self, signal_dim, kernel_size, template_radius, splits, layer_conf=None, variant="dirac"):
+    def __init__(self, signal_dim, kernel_size, template_radius, layer_conf=None, variant="dirac"):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
         self.template_radius = template_radius
-        self.splits = splits
 
         if variant == "dirac":
             self.layer_type = ConvDirac

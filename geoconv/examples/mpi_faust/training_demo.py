@@ -21,7 +21,6 @@ def train_model(reference_mesh_path,
                 precomputed_gpc_radius=0.037,
                 template_radius=0.027744965069279016,
                 logging_dir="./imcnn_training_logs",
-                splits=10,
                 processes=1,
                 init_lr=0.00165,
                 weight_decay=0.005,
@@ -64,8 +63,6 @@ def train_model(reference_mesh_path,
         data set).
     logging_dir: str
         [OPTIONAL] The path to the folder where logs will be stored
-    splits: int
-        [OPTIONAL] The amount of splits over which the ISC-layer should iterate
     processes: int
         [OPTIONAL] The amount of concurrent processes. Affects preprocessing and Princeton benchmark.
     init_lr: float
@@ -113,7 +110,6 @@ def train_model(reference_mesh_path,
             signal_dim=signal_dim,
             kernel_size=kernel_size,
             template_radius=template_radius,
-            splits=splits,
             layer_conf=layer_conf,
             variant=model
         )
@@ -138,12 +134,7 @@ def train_model(reference_mesh_path,
         print("Done.")
 
         # Build model
-        imcnn(
-            [
-                tf.random.uniform(shape=(6890, signal_dim)),
-                tf.random.uniform(shape=(6890,) + kernel_size + (3, 2))
-            ]
-        )
+        imcnn([tf.random.uniform(shape=(6890, signal_dim)), tf.random.uniform(shape=(6890,) + kernel_size + (3, 2))])
         imcnn.summary()
 
         # Define callbacks
