@@ -7,7 +7,7 @@ class AngularAvgPooling(keras.layers.Layer):
     """The implementation for angular max-pooling"""
 
     @tf.function
-    def call(self, inputs, training=None):
+    def call(self, inputs):
         """Averages over the results of a intrinsic surface convolution.
 
         Parameters

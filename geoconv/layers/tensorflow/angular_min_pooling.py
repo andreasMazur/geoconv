@@ -7,7 +7,7 @@ class AngularMinPooling(keras.layers.Layer):
     """The implementation for angular max-pooling"""
 
     @tf.function
-    def call(self, inputs, training=None):
+    def call(self, inputs):
         """Min-pools over the results of a intrinsic surface convolution.
 
         Parameters
