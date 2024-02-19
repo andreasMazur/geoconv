@@ -41,8 +41,8 @@ def exp_pdf(mean_rho, mean_theta, rho, theta, exp_lambda):
 class ConvExp(ConvIntrinsic):
     """Exponential vertex weighting"""
     def __init__(self, *args, exp_lambda=1, **kwargs):
-        super().__init__(*args, **kwargs)
         self.exp_lambda = exp_lambda
+        super().__init__(*args, **kwargs)
 
     def define_kernel_values(self, template_matrix):
         template_matrix[:, :, 0] = template_matrix[:, :, 0] / template_matrix[:, :, 0].max()
