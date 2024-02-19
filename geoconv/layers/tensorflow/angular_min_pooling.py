@@ -8,7 +8,7 @@ class AngularMinPooling(keras.layers.Layer):
 
     @tf.function
     def call(self, inputs, training=None):
-        """Min-pools over the results of a geodesic convolution.
+        """Min-pools over the results of a intrinsic surface convolution.
 
         Parameters
         ----------

@@ -7,7 +7,7 @@ class AngularMaxPooling(nn.Module):
     """The implementation for angular max-pooling"""
 
     def forward(self, inputs):
-        """Max-pools over the results of a geodesic convolution.
+        """Max-pools over the results of a intrinsic surface convolution.
 
         Parameters
         ----------

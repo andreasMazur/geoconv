@@ -7,7 +7,7 @@ class AngularAvgPooling(nn.Module):
     """The implementation for angular max-pooling"""
 
     def forward(self, inputs):
-        """Max-pools over the results of a geodesic convolution.
+        """Averages over the results of a intrinsic surface convolution.
 
         Parameters
         ----------
@@ -21,7 +21,7 @@ class AngularAvgPooling(nn.Module):
         -------
         tf.Tensor:
             A two-dimensional tensor of size (n_vertices, feature_dim), that contains a convolution results for each
-            vertex. Thereby, the convolution result has the largest Euclidean norm among the convolution results for
+            vertex. Thereby, the convolution result is the average results among the convolution results for
             all rotations.
         """
         return torch.mean(inputs, dim=1)

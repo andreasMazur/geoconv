@@ -7,7 +7,7 @@ class AngularMaxPooling(nn.Module):
     """The implementation for angular max-pooling"""
 
     def forward(self, inputs):
-        """Max-pools over the results of a geodesic convolution.
+        """Min-pools over the results of a intrinsic surface convolution.
 
         Parameters
         ----------
@@ -21,7 +21,7 @@ class AngularMaxPooling(nn.Module):
         -------
         tf.Tensor:
             A two-dimensional tensor of size (n_vertices, feature_dim), that contains a convolution results for each
-            vertex. Thereby, the convolution result has the largest Euclidean norm among the convolution results for
+            vertex. Thereby, the convolution result has the smallest Euclidean norm among the convolution results for
             all rotations.
         """
         maximal_response = torch.linalg.vector_norm(inputs, ord=2, dim=-1)

@@ -8,7 +8,7 @@ class AngularMaxPooling(keras.layers.Layer):
 
     @tf.function
     def call(self, inputs, training=None):
-        """Max-pools over the results of a geodesic convolution.
+        """Max-pools over the results of a intrinsic surface convolution.
 
         Parameters
         ----------
