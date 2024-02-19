@@ -1,4 +1,4 @@
-from geoconv.layers.conv_intrinsic import ConvIntrinsic
+from geoconv.layers.tensorflow.conv_intrinsic import ConvIntrinsic
 
 import numpy as np
 

@@ -1,8 +1,8 @@
 from geoconv.examples.mpi_faust.faust_data_set import load_preprocessed_faust
-from geoconv.layers.angular_max_pooling import AngularMaxPooling
-from geoconv.layers.conv_dirac import ConvDirac
-from geoconv.layers.conv_geodesic import ConvGeodesic
-from geoconv.layers.conv_zero import ConvZero
+from geoconv.layers.tensorflow.angular_max_pooling import AngularMaxPooling
+from geoconv.layers.tensorflow.conv_dirac import ConvDirac
+from geoconv.layers.tensorflow.conv_geodesic import ConvGeodesic
+from geoconv.layers.tensorflow.conv_zero import ConvZero
 from tensorflow import keras
 
 import keras_tuner
