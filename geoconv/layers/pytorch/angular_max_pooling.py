@@ -26,4 +26,4 @@ class AngularMaxPooling(nn.Module):
         """
         maximal_response = torch.linalg.vector_norm(inputs, ord=2, dim=-1)
         maximal_response = torch.argmax(maximal_response, dim=1).int()
-        return inputs[torch.range(0, inputs.shape[0] - 1).int(), maximal_response]
+        return inputs[torch.arange(0, inputs.shape[0]), maximal_response]

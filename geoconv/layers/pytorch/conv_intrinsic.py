@@ -134,7 +134,7 @@ class ConvIntrinsic(ABC, nn.Module):
         # Determine orientations
         if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
-            orientations = torch.range(start=0, end=self._all_rotations, step=self.rotation_delta).int()
+            orientations = torch.arange(start=0, end=self._all_rotations, step=self.rotation_delta)
 
         def fold_neighbor(o):
             # Weight              : (templates, radial, angular, input_dim)
