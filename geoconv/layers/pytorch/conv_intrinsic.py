@@ -86,7 +86,7 @@ class ConvIntrinsic(ABC, nn.Module):
         self._feature_dim = signal_shape[-1]
 
         # Configure trainable weights
-        parameter_tensor = torch.zeros(
+        parameter_tensor = torch.zeros(  # TODO
             size=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[1])
         )
         self._template_neighbor_weights = nn.Parameter(parameter_tensor)

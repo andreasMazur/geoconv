@@ -3,7 +3,7 @@ from torch import nn
 import torch
 
 
-class AngularMaxPooling(nn.Module):
+class AngularAvgPooling(nn.Module):
     """The implementation for angular max-pooling"""
 
     def forward(self, inputs):
@@ -24,6 +24,4 @@ class AngularMaxPooling(nn.Module):
             vertex. Thereby, the convolution result has the largest Euclidean norm among the convolution results for
             all rotations.
         """
-        maximal_response = torch.linalg.vector_norm(inputs, ord=2, dim=-1)
-        maximal_response = torch.argmax(maximal_response, dim=1).int()
-        return inputs[torch.range(0, inputs.shape[0] - 1).int(), maximal_response]
+        return torch.mean(inputs, dim=1)
