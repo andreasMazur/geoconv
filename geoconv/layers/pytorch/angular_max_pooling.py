@@ -9,7 +9,7 @@ class AngularMaxPooling(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, inputs, training=None):
+    def forward(self, inputs):
         """Max-pools over the results of a geodesic convolution.
 
         Parameters
