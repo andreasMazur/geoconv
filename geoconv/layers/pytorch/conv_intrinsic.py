@@ -59,7 +59,6 @@ class ConvIntrinsic(ABC, nn.Module):
                  initializer="xavier_uniform",
                  bias_initializer="uniform"):
         super().__init__()
-
         self.given_name = name
         self.activation_fn = activation
         self.rotation_delta = rotation_delta
@@ -164,7 +163,7 @@ class ConvIntrinsic(ABC, nn.Module):
             return torch.einsum(
                 "traf,kraf->kt",
                 self._template_neighbor_weights,
-                torch.roll(interpolations, shifts=orientation.item(), dims=2)
+                torch.roll(interpolations, shifts=orientation.item(), dims=2).float()
             ) + self._bias
 
         conv_neighbor = []

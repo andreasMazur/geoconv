@@ -1,14 +1,32 @@
-from geoconv.layers.tensorflow.angular_max_pooling import AngularMaxPooling
-from geoconv.layers.tensorflow.conv_geodesic import ConvGeodesic
-from geoconv.layers.tensorflow.conv_zero import ConvZero
-from geoconv.layers.tensorflow.conv_dirac import ConvDirac
-from tensorflow import keras
+from geoconv.layers.pytorch.angular_max_pooling import AngularMaxPooling
+from geoconv.layers.pytorch.conv_geodesic import ConvGeodesic
+from geoconv.layers.pytorch.conv_zero import ConvZero
+from geoconv.layers.pytorch.conv_dirac import ConvDirac
+from torch import nn
 
-import tensorflow as tf
+import torch
 
 
-class Imcnn(tf.keras.Model):
-    def __init__(self, signal_dim, kernel_size, template_radius, layer_conf=None, variant="dirac"):
+class Normalization(nn.Module):
+
+    def __init__(self, dataset):
+        super().__init__()
+        self.mean, self.var = 0, 0
+        n_samples = 0
+        for s in dataset:
+            s = torch.sum(s, dim=-2)
+            self.mean += s
+            self.var += (s - self.mean) ** 2
+            n_samples += 1
+        self.mean = self.mean / n_samples
+        self.var = self.var / n_samples
+
+    def forward(self, inputs):
+        return (inputs - self.mean) / self.var
+
+
+class Imcnn(nn.Module):
+    def __init__(self, signal_dim, kernel_size, template_radius, adapt_data, layer_conf=None, variant="dirac"):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
@@ -28,47 +46,52 @@ class Imcnn(tf.keras.Model):
             self.rotation_deltas = [1 for _ in range(len(self.output_dims))]
         else:
             self.output_dims, self.rotation_deltas = list(zip(*layer_conf))
+        self.downsize_dim = 64
+        self.input_dims = [self.downsize_dim]
+        self.input_dims.extend(self.output_dims)
 
         #################
         # Handling Input
         #################
-        self.normalize = keras.layers.Normalization(axis=-1, name="input_normalization")
-        self.downsize_dense = keras.layers.Dense(64, activation="relu", name="downsize")
-        self.downsize_bn = keras.layers.BatchNormalization(axis=-1, name="BN_downsize")
+        self.normalize = Normalization(adapt_data)
+        self.downsize_dense = nn.Linear(in_features=signal_dim, out_features=self.downsize_dim)
+        self.downsize_activation = nn.ReLU()
+        self.downsize_bn = nn.BatchNorm1d(num_features=self.downsize_dim)
 
         ##################
         # Global Features
         ##################
-        self.isc_layers = []
-        self.bn_layers = []
-        self.do_layers = []
-        self.amp_layers = []
+        self.do_layers = nn.ModuleList()
+        self.isc_layers = nn.ModuleList()
+        self.bn_layers = nn.ModuleList()
+        self.amp_layers = nn.ModuleList()
         for idx in range(len(self.output_dims)):
+            self.do_layers.append(nn.Dropout(p=0.2))
             self.isc_layers.append(
                 self.layer_type(
+                    input_shape=[(None, self.input_dims[idx]), (None, kernel_size[0], kernel_size[1], 3, 2)],
                     amt_templates=self.output_dims[idx],
                     template_radius=self.template_radius,
                     activation="relu",
-                    name=f"ISC_layer_{idx}",
                     rotation_delta=self.rotation_deltas[idx]
                 )
             )
-            self.bn_layers.append(keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}"))
-            self.do_layers.append(keras.layers.Dropout(rate=0.2, name=f"DO_layer_{idx}"))
+            self.bn_layers.append(nn.BatchNorm1d(num_features=self.output_dims[idx]))
             self.amp_layers.append(AngularMaxPooling())
 
         #########
         # Output
         #########
-        self.output_dense = keras.layers.Dense(6890, name="output")
+        self.output_dense = nn.Linear(in_features=self.output_dims[-1], out_features=6890)
 
-    def call(self, inputs, orientations=None, training=None, mask=None):
+    def forward(self, inputs, orientations=None):
         #################
         # Handling Input
         #################
         signal, bc = inputs
         signal = self.normalize(signal)
         signal = self.downsize_dense(signal)
+        signal = self.downsize_activation(signal)
         signal = self.downsize_bn(signal)
 
         ###############

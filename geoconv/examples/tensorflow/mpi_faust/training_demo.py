@@ -1,6 +1,6 @@
-from geoconv.examples.mpi_faust.faust_data_set import load_preprocessed_faust
-from geoconv.examples.mpi_faust.model import Imcnn
-from geoconv.examples.mpi_faust.preprocess_faust import preprocess_faust
+from geoconv.examples.tensorflow.mpi_faust.faust_data_set import load_preprocessed_faust
+from geoconv.examples.tensorflow.mpi_faust.model import Imcnn
+from geoconv.examples.tensorflow.mpi_faust.preprocess_faust import preprocess_faust
 from geoconv.utils.measures import princeton_benchmark
 
 from pathlib import Path

@@ -12,8 +12,8 @@ geoconv/examples/stanford_bunny/gpc_images/
 geoconv/examples/stanford_bunny/bun_zipper.ply
 geoconv/examples/stanford_bunny/bunny_gpc_systems.npy
 geoconv/examples/stanford_bunny/bunny_barycentric_coordinates.npy
-geoconv/examples/mpi_faust/data
-geoconv/examples/mpi_faust/data/*
+geoconv/examples/tensorflow/mpi_faust/data
+geoconv/examples/tensorflow/mpi_faust/data/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

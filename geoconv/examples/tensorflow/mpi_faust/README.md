@@ -7,7 +7,7 @@ Stanford-bunny example.
 You can call the demo, by writing a script that calls `training_demo`. E.g:
 
 ```python
-from geoconv.examples.mpi_faust.training_demo import train_model
+from geoconv.examples.tensorflow.mpi_faust import train_model
 
 if __name__ == "__main__":
     rp = "/home/user/geoconv/geoconv/examples/mpi_faust/data/MPI-FAUST/training/registrations"
@@ -20,7 +20,8 @@ if __name__ == "__main__":
         n_radial=5,
         n_angular=8,
         registration_path=rp,
-        compute_shot=True,  # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
+        compute_shot=True,
+        # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
         geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
         precomputed_gpc_radius=R,
         ### GENERAL ###
