@@ -1,3 +1,5 @@
+--extra-index-url https://download.pytorch.org/whl/cu118
+
 keras_tuner==1.1.3
 numpy==1.23.0
 tqdm==4.64.0
@@ -12,3 +14,6 @@ Pillow>=10.0.1
 setuptools>=65.5.1
 scipy>=1.10.0
 tensorflow[and-cuda]
+torch
+torchvision
+torchaudio

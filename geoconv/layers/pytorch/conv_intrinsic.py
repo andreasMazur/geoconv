@@ -8,9 +8,24 @@ import numpy as np
 
 
 ACTIVATIONS = {
+    "elu": nn.ELU(),
     "relu": nn.ReLU(),
+    "leaky_relu": nn.LeakyReLU(),
+    "selu": nn.SELU(),
     "sigmoid": nn.Sigmoid(),
     "tanh": nn.Tanh()
+}
+
+INITIALIZER = {
+    "uniform": nn.init.uniform_,
+    "normal": nn.init.normal_,
+    "constant": nn.init.constant_,
+    "xavier_uniform": nn.init.xavier_uniform_,
+    "xavier_normal": nn.init.xavier_normal_,
+    "kaiming_uniform": nn.init.kaiming_uniform_,
+    "kaiming_normal": nn.init.kaiming_normal_,
+    "trunc_normal": nn.init.trunc_normal_,
+    "sparse_": nn.init.sparse_
 }
 
 
@@ -41,7 +56,8 @@ class ConvIntrinsic(ABC, nn.Module):
                  name=None,
                  template_regularizer=None,
                  bias_regularizer=None,
-                 initializer="glorot_uniform"):
+                 initializer="xavier_uniform",
+                 bias_initializer="uniform"):
         super().__init__()
 
         self.given_name = name
@@ -52,10 +68,13 @@ class ConvIntrinsic(ABC, nn.Module):
         self.template_regularizer = template_regularizer
         self.bias_regularizer = bias_regularizer
         self.initializer = initializer
+        self.bias_initializer = bias_initializer
         self.include_prior = include_prior
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = ACTIVATIONS[self.activation_fn]
+        self._init_fn = INITIALIZER[initializer]
+        self._bias_init_fn = INITIALIZER[bias_initializer]
         self._bias = None
         self._all_rotations = None
         self._template_size = None  # (#radial, #angular)
@@ -86,14 +105,16 @@ class ConvIntrinsic(ABC, nn.Module):
         self._feature_dim = signal_shape[-1]
 
         # Configure trainable weights
-        parameter_tensor = torch.zeros(  # TODO
-            size=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[1])
+        self._template_neighbor_weights = nn.Parameter(
+            torch.zeros(size=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[1]))
         )
-        self._template_neighbor_weights = nn.Parameter(parameter_tensor)
-        parameter_tensor = torch.zeros(size=(self.amt_templates, 1, signal_shape[1]))
-        self._template_self_weights = nn.Parameter(parameter_tensor)
-        parameter_tensor = torch.zeros(size=(self.amt_templates,))
-        self._bias = nn.Parameter(parameter_tensor)
+        self._init_fn(self._template_neighbor_weights)
+
+        self._template_self_weights = nn.Parameter(torch.zeros(size=(self.amt_templates, 1, signal_shape[1])))
+        self._init_fn(self._template_self_weights)
+
+        self._bias = nn.Parameter(torch.zeros(size=(self.amt_templates,)))
+        self._bias_init_fn(self._bias)
 
         # Configure kernel
         self._configure_kernel()
@@ -136,14 +157,14 @@ class ConvIntrinsic(ABC, nn.Module):
             # No specific orientations given. Hence, compute for all orientations.
             orientations = torch.arange(start=0, end=self._all_rotations, step=self.rotation_delta)
 
-        def fold_neighbor(o):
+        def fold_neighbor(orientation):
             # Weight              : (templates, radial, angular, input_dim)
             # Mesh interpolations : (vertices, radial, angular, input_dim)
             # Result              : (vertices, templates)
             return torch.einsum(
                 "traf,kraf->kt",
                 self._template_neighbor_weights,
-                torch.roll(interpolations, shifts=o.item(), dims=2)
+                torch.roll(interpolations, shifts=orientation.item(), dims=2)
             ) + self._bias
 
         conv_neighbor = []
@@ -197,7 +218,7 @@ class ConvIntrinsic(ABC, nn.Module):
         """
         mesh_signal = mesh_signal[barycentric_coordinates[:, :, :, :, 0].int()]
         # (vertices, n_radial, n_angular, input_dim)
-        return torch.sum(barycentric_coordinates[:, :, :, :, 1].unsqueeze(-1) * mesh_signal, axis=-2)
+        return torch.sum(barycentric_coordinates[:, :, :, :, 1].unsqueeze(-1) * mesh_signal, dim=-2)
 
     def _configure_kernel(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
