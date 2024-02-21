@@ -17,3 +17,4 @@ tensorflow[and-cuda]
 torch
 torchvision
 torchaudio
+torcheval

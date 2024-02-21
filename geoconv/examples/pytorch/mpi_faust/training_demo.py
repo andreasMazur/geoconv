@@ -6,9 +6,13 @@ from geoconv.utils.measures import princeton_benchmark
 
 from pathlib import Path
 from torch import nn
+from torcheval.metrics.functional import multiclass_accuracy
 
 import torch
 import numpy as np
+import sys
+import json
+import os
 
 
 def train_model(reference_mesh_path,
@@ -99,6 +103,7 @@ def train_model(reference_mesh_path,
 
     seeds = [10, 20, 30, 40, 50]
     for exp_number in range(len(seeds)):
+        sys.stdout.write(f"\n### Experiment no. {exp_number}")
         # Set seeds
         torch.manual_seed(seeds[exp_number])
         np.random.seed(seeds[exp_number])
@@ -119,32 +124,80 @@ def train_model(reference_mesh_path,
         opt = torch.optim.AdamW(params=imcnn.parameters(), lr=init_lr, weight_decay=weight_decay)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=opt, gamma=0.95)
 
-        # TODO: Reduce memory consumption
+        # Create logging dir
+        if not os.path.exists(logging_dir):
+            os.makedirs(logging_dir)
+
         # Fit model
-        for step, ((signal, bc), gt) in enumerate(FaustDataset(preprocess_zip, set_type=0, device=device)):
-            opt.zero_grad()
-            pred = imcnn([signal, bc])
-            loss = loss_fn(pred, gt)
-            loss.backward()
-            opt.step()
-            if step % 500 == 0:
-                scheduler.step()
+        training_history = {}
+        best_loss = np.inf
+        val_loss = -1.
+        val_accuracy = -1.
+        for epoch in range(5):
+            sys.stdout.write("\n")  # pretty printing
+            epoch_loss = 0.
+            epoch_accuracy = 0.
 
-        # TODO: validation; FaustDataset(preprocess_zip, set_type=1, device=device)
+            # Training
+            train_data = FaustDataset(preprocess_zip, set_type=0, device=device)
+            imcnn.train()
+            for step, ((signal, bc), gt) in enumerate(train_data):
+                opt.zero_grad()
+                pred = imcnn([signal, bc])
+                loss = loss_fn(pred, gt)
+                # loss.backward()
+                # opt.step()
+                # if step % 500 == 0:
+                #     scheduler.step()
 
-        # TODO: Define callbacks
-        # csv = keras.callbacks.CSVLogger(f"{logging_dir}/training_{exp_number}.log")
-        # stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
-        # tb = keras.callbacks.TensorBoard(
-        #     log_dir=f"{logging_dir}/tensorboard_{exp_number}",
-        #     histogram_freq=1,
-        #     write_graph=False,
-        #     write_steps_per_second=True,
-        #     update_freq="epoch",
-        #     profile_batch=(1, 70)
-        # )
+                # Training Statistics
+                epoch_accuracy = (epoch_accuracy + multiclass_accuracy(pred, gt)) / (step + 1)
+                epoch_loss = (epoch_loss + loss) / (step + 1)
+                sys.stdout.write(
+                    f"\rEpoch: {epoch} - Training step: {step} - Loss {epoch_loss:.4f}"
+                    f" - Accuracy {epoch_accuracy:.4f} - Val.-Loss: {val_loss:.4f} - "
+                    f"Val.-Accuracy: {val_accuracy:.4f}"
+                )
 
-        # TODO: Evaluate model with Princeton benchmark
+            # Validation
+            with torch.no_grad():
+                val_loss = 0.
+                val_accuracy = 0.
+                val_data = FaustDataset(preprocess_zip, set_type=1, device=device)
+                imcnn.eval()
+                for val_step, ((signal, bc), gt) in enumerate(val_data):
+                    pred = imcnn([signal, bc])
+                    val_loss = val_loss + loss_fn(pred, gt)
+                    val_accuracy = val_accuracy + multiclass_accuracy(pred, gt)
+                val_loss = val_loss / (val_step + 1)
+                val_accuracy = val_accuracy / (val_step + 1)
+                sys.stdout.write(
+                    f"\rEpoch: {epoch} - Training step: {step} - Loss {epoch_loss:.4f}"
+                    f" - Accuracy {epoch_accuracy:.4f} - Val.-Loss: {val_loss:.4f} - "
+                    f"Val.-Accuracy: {val_accuracy:.4f}"
+                )
+
+            # Remember epoch statistics
+            training_history[f"epoch_{epoch}"] = {
+                "epoch": epoch,
+                "loss": epoch_loss.item(),
+                "Accuracy": epoch_accuracy.item(),
+                "Validation Loss": val_loss.item(),
+                "Validation Accuracy": val_accuracy.item()
+            }
+
+            # Log best model
+            if val_loss < best_loss:
+                best_loss = val_loss
+                imcnn_path = f"{logging_dir}/imcnn_exp_{exp_number}_epoch_{epoch}"
+                torch.save(imcnn.state_dict(), imcnn_path)
+            torch.cuda.empty_cache()
+
+        # Log training statistics
+        with open(f"{logging_dir}/training_history_{exp_number}.json", "w") as file:
+            json.dump(training_history, file)
+
+        # TODO: Princeton benchmark
         # test_dataset = FaustDataset(preprocess_zip, set_type=2, device=device)
         # princeton_benchmark(
         #     imcnn=imcnn,
