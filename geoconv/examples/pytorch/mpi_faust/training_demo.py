@@ -1,18 +1,22 @@
 from geoconv.examples.pytorch.mpi_faust.faust_data_set import FaustDataset
-from geoconv.examples.pytorch.mpi_faust.model import Imcnn, print_mem
+from geoconv.examples.pytorch.mpi_faust.model import Imcnn
 from geoconv.examples.tensorflow.mpi_faust.preprocess_faust import preprocess_faust
 from geoconv.utils.measures import princeton_benchmark
 
 from pathlib import Path
 from torch import nn
 from torcheval.metrics.functional import multiclass_accuracy
-from torch.utils.data import DataLoader
 
 import torch
 import numpy as np
 import sys
 import json
 import os
+
+
+def print_mem():
+    mem = torch.cuda.memory_allocated()
+    print(f"{mem / 1024 ** 2} MB / Max memory: {torch.cuda.max_memory_allocated() / 1024 ** 2} MB")
 
 
 def train_model(reference_mesh_path,
@@ -133,7 +137,7 @@ def train_model(reference_mesh_path,
         best_loss = np.inf
         val_loss = -1.
         val_accuracy = -1.
-        for epoch in range(5):
+        for epoch in range(200):
             sys.stdout.write("\n")  # pretty printing
             epoch_loss = 0.
             epoch_accuracy = 0.
@@ -156,7 +160,7 @@ def train_model(reference_mesh_path,
                 sys.stdout.write(
                     f"\rEpoch: {epoch} - Training step: {step} - Loss {epoch_loss:.4f}"
                     f" - Accuracy {epoch_accuracy:.4f} - Val.-Loss: {val_loss:.4f} - "
-                    f"Val.-Accuracy: {val_accuracy:.4f}"
+                    f"Val.-Accuracy: {val_accuracy:.4f} - Memory Consumption: {print_mem()}"
                 )
 
             # Validation
@@ -174,7 +178,7 @@ def train_model(reference_mesh_path,
                 sys.stdout.write(
                     f"\rEpoch: {epoch} - Training step: {step} - Loss {epoch_loss:.4f}"
                     f" - Accuracy {epoch_accuracy:.4f} - Val.-Loss: {val_loss:.4f} - "
-                    f"Val.-Accuracy: {val_accuracy:.4f}"
+                    f"Val.-Accuracy: {val_accuracy:.4f} - Memory Consumption: {print_mem()}"
                 )
 
             # Remember epoch statistics
