@@ -16,7 +16,7 @@ import os
 
 def print_mem():
     mem = torch.cuda.memory_allocated()
-    print(f"{mem / 1024 ** 2} MB / Max memory: {torch.cuda.max_memory_allocated() / 1024 ** 2} MB")
+    return f"{mem / 1024 ** 2} MB / Max memory: {torch.cuda.max_memory_allocated() / 1024 ** 2} MB"
 
 
 def train_model(reference_mesh_path,
