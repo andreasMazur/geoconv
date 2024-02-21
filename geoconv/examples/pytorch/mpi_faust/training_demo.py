@@ -152,7 +152,7 @@ def train_model(reference_mesh_path,
 
                 # Training Statistics
                 epoch_accuracy = (epoch_accuracy + multiclass_accuracy(pred, gt).detach()) / (step + 1)
-                epoch_loss = (epoch_loss + loss.detach()) / (step + 1)
+                epoch_loss = epoch_loss + loss.detach()
                 sys.stdout.write(
                     f"\rEpoch: {epoch} - Training step: {step} - Loss {epoch_loss:.4f}"
                     f" - Accuracy {epoch_accuracy:.4f} - Val.-Loss: {val_loss:.4f} - "
@@ -170,7 +170,6 @@ def train_model(reference_mesh_path,
                     val_loss = val_loss + loss_fn(pred, gt).detach()
                     val_accuracy = val_accuracy + multiclass_accuracy(pred, gt).detach()
 
-                val_loss = val_loss / (val_step + 1)
                 val_accuracy = val_accuracy / (val_step + 1)
                 sys.stdout.write(
                     f"\rEpoch: {epoch} - Training step: {step} - Loss {epoch_loss:.4f}"
