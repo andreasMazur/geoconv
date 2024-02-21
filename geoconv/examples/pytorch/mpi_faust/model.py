@@ -93,7 +93,6 @@ class Imcnn(nn.Module):
         signal = self.downsize_dense(signal)
         signal = self.downsize_activation(signal)
         signal = self.downsize_bn(signal)
-
         ###############
         # Forward pass
         ###############
@@ -107,3 +106,8 @@ class Imcnn(nn.Module):
         # Output
         #########
         return self.output_dense(signal)
+
+
+def print_mem(note=""):
+    mem = torch.cuda.memory_allocated()
+    print(f"{note}: {mem / 1024 ** 2} MB / Max memory: {torch.cuda.max_memory_allocated() / 1024 ** 2} MB")

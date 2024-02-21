@@ -1,12 +1,12 @@
 from geoconv.examples.pytorch.mpi_faust.faust_data_set import FaustDataset
-from geoconv.examples.tensorflow.mpi_faust.faust_data_set import load_preprocessed_faust
-from geoconv.examples.pytorch.mpi_faust.model import Imcnn
+from geoconv.examples.pytorch.mpi_faust.model import Imcnn, print_mem
 from geoconv.examples.tensorflow.mpi_faust.preprocess_faust import preprocess_faust
 from geoconv.utils.measures import princeton_benchmark
 
 from pathlib import Path
 from torch import nn
 from torcheval.metrics.functional import multiclass_accuracy
+from torch.utils.data import DataLoader
 
 import torch
 import numpy as np
@@ -145,14 +145,14 @@ def train_model(reference_mesh_path,
                 opt.zero_grad()
                 pred = imcnn([signal, bc])
                 loss = loss_fn(pred, gt)
-                # loss.backward()
-                # opt.step()
-                # if step % 500 == 0:
-                #     scheduler.step()
+                loss.backward()
+                opt.step()
+                if step % 500 == 0:
+                    scheduler.step()
 
                 # Training Statistics
-                epoch_accuracy = (epoch_accuracy + multiclass_accuracy(pred, gt)) / (step + 1)
-                epoch_loss = (epoch_loss + loss) / (step + 1)
+                epoch_accuracy = (epoch_accuracy + multiclass_accuracy(pred, gt).detach()) / (step + 1)
+                epoch_loss = (epoch_loss + loss.detach()) / (step + 1)
                 sys.stdout.write(
                     f"\rEpoch: {epoch} - Training step: {step} - Loss {epoch_loss:.4f}"
                     f" - Accuracy {epoch_accuracy:.4f} - Val.-Loss: {val_loss:.4f} - "
@@ -167,8 +167,9 @@ def train_model(reference_mesh_path,
                 imcnn.eval()
                 for val_step, ((signal, bc), gt) in enumerate(val_data):
                     pred = imcnn([signal, bc])
-                    val_loss = val_loss + loss_fn(pred, gt)
-                    val_accuracy = val_accuracy + multiclass_accuracy(pred, gt)
+                    val_loss = val_loss + loss_fn(pred, gt).detach()
+                    val_accuracy = val_accuracy + multiclass_accuracy(pred, gt).detach()
+
                 val_loss = val_loss / (val_step + 1)
                 val_accuracy = val_accuracy / (val_step + 1)
                 sys.stdout.write(
@@ -191,7 +192,6 @@ def train_model(reference_mesh_path,
                 best_loss = val_loss
                 imcnn_path = f"{logging_dir}/imcnn_exp_{exp_number}_epoch_{epoch}"
                 torch.save(imcnn.state_dict(), imcnn_path)
-            torch.cuda.empty_cache()
 
         # Log training statistics
         with open(f"{logging_dir}/training_history_{exp_number}.json", "w") as file:
