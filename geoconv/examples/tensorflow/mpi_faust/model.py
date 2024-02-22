@@ -2,12 +2,13 @@ from geoconv.layers.tensorflow.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.tensorflow.conv_geodesic import ConvGeodesic
 from geoconv.layers.tensorflow.conv_zero import ConvZero
 from geoconv.layers.tensorflow.conv_dirac import ConvDirac
-from geoconv.models.intrinsic_model import ImCNN
 
 from tensorflow import keras
 
+import tensorflow as tf
 
-class Imcnn(ImCNN):
+
+class Imcnn(keras.Model):
     def __init__(self, signal_dim, kernel_size, template_radius, layer_conf=None, variant="dirac", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.signal_dim = signal_dim
@@ -36,9 +37,9 @@ class Imcnn(ImCNN):
         self.downsize_dense = keras.layers.Dense(64, activation="relu", name="downsize")
         self.downsize_bn = keras.layers.BatchNormalization(axis=-1, name="BN_downsize")
 
-        ##################
-        # Global Features
-        ##################
+        #############
+        # ISC Layers
+        #############
         self.isc_layers = []
         self.bn_layers = []
         self.do_layers = []
@@ -62,6 +63,12 @@ class Imcnn(ImCNN):
         #########
         self.output_dense = keras.layers.Dense(6890, name="output")
 
+        ###################
+        # Training metrics
+        ###################
+        self.loss_tracker = keras.metrics.Mean(name="loss")
+        self.accuracy = keras.metrics.SparseCategoricalAccuracy()
+
     def call(self, inputs, orientations=None):
         #################
         # Handling Input
@@ -84,3 +91,37 @@ class Imcnn(ImCNN):
         # Output
         #########
         return self.output_dense(signal)
+
+    def test_step(self, data):
+        (signal, bc), gt = data
+        pred = self([signal, bc], training=False)
+        loss = self.compute_loss(y=gt, y_pred=pred)
+
+        # Statistics
+        self.loss_tracker.update_state(loss)
+        for metric in self.metrics[1:]:  # skip loss
+            metric.update_state(gt, pred)
+        return {m.name: m.result() for m in self.metrics}
+
+    def train_step(self, data):
+        (signal, bc), gt = data
+
+        with tf.GradientTape() as tape:
+            pred = self([signal, bc], training=True)
+            loss = self.compute_loss(y=gt, y_pred=pred)
+
+        # trainable_vars = self.trainable_variables
+        # gradients = tape.gradient(loss, trainable_vars)
+        # self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+
+        # Statistics
+        self.loss_tracker.update_state(loss)
+        for metric in self.metrics[1:]:  # skip loss
+            metric.update_state(gt, pred)
+
+        return {m.name: m.result() for m in self.metrics}
+
+    @property
+    def metrics(self):
+        # 'reset_states()' called automatically at the start of each training epoch or evaluation
+        return [self.loss_tracker, self.accuracy]
