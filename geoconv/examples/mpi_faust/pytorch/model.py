@@ -12,7 +12,8 @@ import sys
 
 def print_mem():
     mem = torch.cuda.memory_allocated()
-    return f"{mem / 1024 ** 2:.3f} MB / Max memory: {torch.cuda.max_memory_allocated() / 1024 ** 2:.3f} MB"
+    max_mem = torch.cuda.max_memory_allocated()
+    return f"{mem / 1024 ** 2:.3f} MB / Max memory: {max_mem / 1024 ** 2:.3f} MB"
 
 
 class Normalization(nn.Module):
