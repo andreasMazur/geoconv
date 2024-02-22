@@ -2,14 +2,14 @@ from geoconv.layers.tensorflow.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.tensorflow.conv_geodesic import ConvGeodesic
 from geoconv.layers.tensorflow.conv_zero import ConvZero
 from geoconv.layers.tensorflow.conv_dirac import ConvDirac
+from geoconv.models.intrinsic_model import ImCNN
+
 from tensorflow import keras
 
-import tensorflow as tf
 
-
-class Imcnn(tf.keras.Model):
-    def __init__(self, signal_dim, kernel_size, template_radius, layer_conf=None, variant="dirac"):
-        super().__init__()
+class Imcnn(ImCNN):
+    def __init__(self, signal_dim, kernel_size, template_radius, layer_conf=None, variant="dirac", *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
         self.template_radius = template_radius

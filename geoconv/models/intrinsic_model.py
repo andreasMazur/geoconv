@@ -5,62 +5,41 @@ import tensorflow as tf
 
 class ImCNN(keras.Model):
 
-    def __init__(self, *args, max_rotations, splits=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.splits = splits if splits is not None else 1
-        self.concurrent_rotations = tf.split(tf.range(max_rotations), self.splits)
+        self.loss_tracker = keras.metrics.Mean(name="loss")
+        self.accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
 
     def test_step(self, data):
-        x, y = data
-        y_pred = self(x, training=False)
-        loss = self.compute_loss(y=y, y_pred=y_pred)
+        (signal, bc), gt = data
+        pred = self([signal, bc], training=False)
+        loss = self.compute_loss(y=gt, y_pred=pred)
 
-        # Update evaluation metrics
-        for metric in self.metrics:
-            if metric.name == "loss":
-                metric.update_state(loss)
-            elif metric.name in self.gradient_stat_names:
-                pass
-            else:
-                metric.update_state(y, y_pred)
-
-        return {m.name: m.result() for m in self.metrics if m.name not in self.gradient_stat_names}
+        # Statistics
+        self.loss_tracker.update_state(loss)
+        for metric in self.metrics[1:]:
+            metric.update_state(gt, pred)
+        return {m.name: m.result() for m in self.metrics}
 
     def train_step(self, data):
-        x, y = data
-        y_pred, loss = self.gradient_step(x, y)
+        (signal, bc), gt = data
 
-        # Initialize metrics with first observation
-        if not self.compiled_metrics.built:
-            self.compiled_metrics.build(y, y_pred)
+        with tf.GradientTape() as tape:
+            pred = self([signal, bc], training=True)
+            loss = self.compute_loss(y=gt, y_pred=pred)
 
-        # Update metrics
-        for metric in self.metrics:
-            if metric.name == "loss":
-                metric.update_state(loss)
-            else:
-                metric.update_state(y, y_pred)
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+
+        # Statistics
+        self.loss_tracker.update_state(loss)
+        for metric in self.metrics[1:]:
+            metric.update_state(gt, pred)
 
         return {m.name: m.result() for m in self.metrics}
 
-    # @tf.function
-    def gradient_step(self, x, y):
-        """Compute multiple gradients per mesh"""
-        total_loss = tf.constant(0.)
-
-        # Average over subset of gradients which were computed for subsets of orientations
-        gradients = None
-        for rot in self.concurrent_rotations:
-            with tf.GradientTape() as tape:
-                y_pred = self(x, orientations=rot, training=True)
-                loss = self.compute_loss(y=y, y_pred=y_pred)
-            if gradients is None:
-                gradients = tape.gradient(loss, self.trainable_variables)
-            else:
-                gradients = [
-                    tf.reduce_sum(g, axis=0) for g in zip(gradients, tape.gradient(loss, self.trainable_variables))
-                ]
-            total_loss = total_loss + loss
-        gradients = [g / self.splits for g in gradients]
-        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-        return y_pred, total_loss
+    @property
+    def metrics(self):
+        # 'reset_states()' called automatically at the start of each epoch
+        return [self.loss_tracker, self.accuracy]
