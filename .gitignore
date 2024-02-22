@@ -6,14 +6,11 @@ training/
 misc/
 test_scripts/
 sutherland_hodgman/
-geoconv/examples/stanford_bunny/gpc_images/
 
 # Examples
-geoconv/examples/stanford_bunny/bun_zipper.ply
-geoconv/examples/stanford_bunny/bunny_gpc_systems.npy
-geoconv/examples/stanford_bunny/bunny_barycentric_coordinates.npy
-geoconv/examples/tensorflow/mpi_faust/data
-geoconv/examples/tensorflow/mpi_faust/data/*
+geoconv/examples/stanford_bunny/data/
+geoconv/examples/mpi_faust/data/MPI-FAUST/
+geoconv/examples/mpi_faust/data/preprocessed_dataset_5_8.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

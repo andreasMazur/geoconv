@@ -1,4 +1,3 @@
-from geoconv.preprocessing.gpc_system import GPCSystem
 from geoconv.utils.misc import get_faces_of_edge, compute_vector_angle
 
 from scipy.linalg import blas

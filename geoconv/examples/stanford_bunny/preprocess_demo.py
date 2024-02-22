@@ -1,8 +1,8 @@
-from geoconv.preprocessing.barycentric_coordinates import create_template_matrix, polar_to_cart, compute_barycentric_coordinates
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
-from geoconv.utils.visualization import draw_gpc_triangles, draw_gpc_on_mesh, draw_triangles, \
-    draw_barycentric_coordinates
+from geoconv.utils.visualization import draw_gpc_triangles, draw_gpc_on_mesh, draw_barycentric_coordinates
 from geoconv.utils.misc import reconstruct_template, find_largest_one_hop_dist, normalize_mesh
+from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates, create_template_matrix, \
+    polar_to_cart
 
 import open3d as o3d
 import trimesh

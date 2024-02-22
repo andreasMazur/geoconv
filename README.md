@@ -64,8 +64,8 @@ with Tensorflow.
 ### Define a GCNN with geoconv:
 
 ```python
-from geoconv.layers.tensorflow.conv_geodesic import ConvGeodesic
-from geoconv.layers.tensorflow.angular_max_pooling import AngularMaxPooling
+from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
+from geoconv.tensorflow.layers.angular_max_pooling import AngularMaxPooling
 from tensorflow import keras
 
 
