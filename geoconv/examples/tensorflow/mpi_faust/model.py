@@ -110,9 +110,9 @@ class Imcnn(keras.Model):
             pred = self([signal, bc], training=True)
             loss = self.compute_loss(y=gt, y_pred=pred)
 
-        # trainable_vars = self.trainable_variables
-        # gradients = tape.gradient(loss, trainable_vars)
-        # self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
         # Statistics
         self.loss_tracker.update_state(loss)
