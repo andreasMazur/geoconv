@@ -1,8 +1,7 @@
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.utils.visualization import draw_gpc_triangles, draw_gpc_on_mesh, draw_barycentric_coordinates
 from geoconv.utils.misc import reconstruct_template, find_largest_one_hop_dist, normalize_mesh
-from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates, create_template_matrix, \
-    polar_to_cart
+from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates, create_template_matrix
 
 import open3d as o3d
 import trimesh
@@ -61,6 +60,8 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
         The amount of radial coordinates for the template in your geodesic convolution.
     n_angular: int
         The amount of angular coordinates for the template in your geodesic convolution.
+    processes: int
+        The amount of processes that shall compute the GPC-systems.
     """
 
     target_dir = "./preprocess_demo_plots"
@@ -96,17 +97,17 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     ####################################################################
     # Visualization of the GPC-systems and the barycentric coordinates
     ####################################################################
-    for gpc_system_idx in range(10):  # select which GPC-systems you want to visualize by altering the list
-        # Original template
-        template_matrix = create_template_matrix(n_radial=n_radial, n_angular=n_angular, radius=template_radius)
-        for rc in range(template_matrix.shape[0]):
-            for ac in range(template_matrix.shape[1]):
-                template_matrix[rc, ac] = polar_to_cart(template_matrix[rc, ac, 1], template_matrix[rc, ac, 0])
+    for gpc_system_idx in range(3):  # select which GPC-systems you want to visualize by altering the list
 
-        # Template depicted via barycentric coordinates
+        # Original template
+        template_matrix = create_template_matrix(
+            n_radial=n_radial, n_angular=n_angular, radius=template_radius, in_cart=True
+        )
+        # Create template with barycentric coordinates
         reconstructed_template = reconstruct_template(
             gpc_systems.object_mesh_gpc_systems[gpc_system_idx].get_gpc_system(), bc[gpc_system_idx]
         )
+
         for radial_coordinate in range(bc.shape[1]):
             for angular_coordinate in range(bc.shape[2]):
                 print(

@@ -44,6 +44,8 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None):
         > Jonathan Masci and Davide Boscaini et al.
     only_signal: bool
         Return only the signal matrices. Helpful for tf.keras.Normalization(axis=-1).adapt(data)
+    device:
+        The device to put the data on.
 
     Returns
     -------
