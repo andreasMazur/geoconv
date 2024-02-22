@@ -2,9 +2,17 @@ from geoconv.layers.pytorch.angular_max_pooling import AngularMaxPooling
 from geoconv.layers.pytorch.conv_geodesic import ConvGeodesic
 from geoconv.layers.pytorch.conv_zero import ConvZero
 from geoconv.layers.pytorch.conv_dirac import ConvDirac
+
 from torch import nn
+from torcheval.metrics.functional import multiclass_accuracy
 
 import torch
+import sys
+
+
+def print_mem():
+    mem = torch.cuda.memory_allocated()
+    return f"{mem / 1024 ** 2:.3f} MB / Max memory: {torch.cuda.max_memory_allocated() / 1024 ** 2:.3f} MB"
 
 
 class Normalization(nn.Module):
@@ -106,3 +114,50 @@ class Imcnn(nn.Module):
         # Output
         #########
         return self.output_dense(signal)
+
+    def train_loop(self, dataset, loss_fn, opt, scheduler, scheduler_step=500, verbose=True, epoch=None):
+        self.train()
+        epoch_accuracy = 0.
+        epoch_loss = 0.
+
+        for step, ((signal, bc), gt) in enumerate(dataset):
+            opt.zero_grad()
+            pred = self([signal, bc])
+            loss = loss_fn(pred, gt)
+            loss.backward()
+            opt.step()
+            if step % (scheduler_step - 1) == 0:
+                scheduler.step()
+
+            # Statistics
+            epoch_accuracy = (epoch_accuracy + multiclass_accuracy(pred, gt).detach()) / (step + 1)
+            epoch_loss = epoch_loss + loss.detach()
+
+            # I/O
+            if verbose:
+                sys.stdout.write(
+                    f"\rEpoch: {epoch} - Training step: {step} - Loss {epoch_loss:.4f} - Accuracy {epoch_accuracy:.4f}"
+                    f" - Memory: {print_mem()}"
+                )
+        return {"epoch_loss": epoch_loss, "epoch_accuracy": epoch_accuracy}
+
+    def validation_loop(self, dataset, loss_fn, verbose=True):
+        self.eval()
+
+        with torch.no_grad():
+            val_loss = 0.
+            val_accuracy = 0.
+
+            for step, ((signal, bc), gt) in enumerate(dataset):
+                pred = self([signal, bc])
+
+                # Statistics
+                val_loss = val_loss + loss_fn(pred, gt).detach()
+                val_accuracy = (val_accuracy + multiclass_accuracy(pred, gt).detach()) / (step + 1)
+
+            # I/O
+            if verbose:
+                sys.stdout.write(
+                    f" - Val.-Loss: {val_loss:.4f} - Val.-Accuracy: {val_accuracy:.4f}"
+                )
+        return {"epoch_val_loss": val_loss, "epoch_val_accuracy": val_accuracy}

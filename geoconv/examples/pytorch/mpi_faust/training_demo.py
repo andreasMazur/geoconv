@@ -5,18 +5,12 @@ from geoconv.utils.measures import princeton_benchmark
 
 from pathlib import Path
 from torch import nn
-from torcheval.metrics.functional import multiclass_accuracy
 
 import torch
 import numpy as np
 import sys
 import json
 import os
-
-
-def print_mem():
-    mem = torch.cuda.memory_allocated()
-    return f"{mem / 1024 ** 2} MB / Max memory: {torch.cuda.max_memory_allocated() / 1024 ** 2} MB"
 
 
 def train_model(reference_mesh_path,
@@ -86,6 +80,10 @@ def train_model(reference_mesh_path,
     add_noise: bool
         [OPTIONAL] Adds Gaussian noise to the mesh data.
     """
+    # Create logging dir
+    if not os.path.exists(logging_dir):
+        os.makedirs(logging_dir)
+
     # Load data
     preprocess_zip = f"{preprocessed_data}.zip"
     if not Path(preprocess_zip).is_file():
@@ -103,14 +101,15 @@ def train_model(reference_mesh_path,
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
 
+    # Check for GPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     seeds = [10, 20, 30, 40, 50]
     for exp_number in range(len(seeds)):
-        sys.stdout.write(f"\n### Experiment no. {exp_number}")
         # Set seeds
         torch.manual_seed(seeds[exp_number])
         np.random.seed(seeds[exp_number])
+        sys.stdout.write(f"\n### Experiment no. {exp_number}")
 
         # Define model
         imcnn = Imcnn(
@@ -128,66 +127,30 @@ def train_model(reference_mesh_path,
         opt = torch.optim.AdamW(params=imcnn.parameters(), lr=init_lr, weight_decay=weight_decay)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=opt, gamma=0.95)
 
-        # Create logging dir
-        if not os.path.exists(logging_dir):
-            os.makedirs(logging_dir)
-
         # Fit model
         training_history = {}
         best_loss = np.inf
-        val_loss = -1.
-        val_accuracy = -1.
         for epoch in range(200):
             sys.stdout.write("\n")  # pretty printing
-            epoch_loss = 0.
-            epoch_accuracy = 0.
 
             # Training
             train_data = FaustDataset(preprocess_zip, set_type=0, device=device)
-            imcnn.train()
-            for step, ((signal, bc), gt) in enumerate(train_data):
-                opt.zero_grad()
-                pred = imcnn([signal, bc])
-                loss = loss_fn(pred, gt)
-                loss.backward()
-                opt.step()
-                if step % 500 == 0:
-                    scheduler.step()
-
-                # Training Statistics
-                epoch_accuracy = (epoch_accuracy + multiclass_accuracy(pred, gt).detach()) / (step + 1)
-                epoch_loss = epoch_loss + loss.detach()
-                sys.stdout.write(
-                    f"\rEpoch: {epoch} - Training step: {step} - Loss {epoch_loss:.4f}"
-                    f" - Accuracy {epoch_accuracy:.4f} - Val.-Loss: {val_loss:.4f} - "
-                    f"Val.-Accuracy: {val_accuracy:.4f} - Memory Consumption: {print_mem()}"
-                )
+            train_dict = imcnn.train_loop(
+                train_data, loss_fn, opt, scheduler, scheduler_step=500, verbose=True, epoch=epoch
+            )
 
             # Validation
-            with torch.no_grad():
-                val_loss = 0.
-                val_accuracy = 0.
-                val_data = FaustDataset(preprocess_zip, set_type=1, device=device)
-                imcnn.eval()
-                for val_step, ((signal, bc), gt) in enumerate(val_data):
-                    pred = imcnn([signal, bc])
-                    val_loss = val_loss + loss_fn(pred, gt).detach()
-                    val_accuracy = val_accuracy + multiclass_accuracy(pred, gt).detach()
-
-                val_accuracy = val_accuracy / (val_step + 1)
-                sys.stdout.write(
-                    f"\rEpoch: {epoch} - Training step: {step} - Loss {epoch_loss:.4f}"
-                    f" - Accuracy {epoch_accuracy:.4f} - Val.-Loss: {val_loss:.4f} - "
-                    f"Val.-Accuracy: {val_accuracy:.4f} - Memory Consumption: {print_mem()}"
-                )
+            val_data = FaustDataset(preprocess_zip, set_type=1, device=device)
+            val_dict = imcnn.validation_loop(val_data, loss_fn, verbose=True)
+            val_loss = val_dict["epoch_val_loss"].item()
 
             # Remember epoch statistics
             training_history[f"epoch_{epoch}"] = {
                 "epoch": epoch,
-                "loss": epoch_loss.item(),
-                "Accuracy": epoch_accuracy.item(),
-                "Validation Loss": val_loss.item(),
-                "Validation Accuracy": val_accuracy.item()
+                "loss": train_dict["epoch_loss"].item(),
+                "Accuracy": train_dict["epoch_accuracy"].item(),
+                "Validation Loss": val_loss,
+                "Validation Accuracy": val_dict["epoch_val_accuracy"].item()
             }
 
             # Log best model
@@ -198,7 +161,7 @@ def train_model(reference_mesh_path,
 
         # Log training statistics
         with open(f"{logging_dir}/training_history_{exp_number}.json", "w") as file:
-            json.dump(training_history, file)
+            json.dump(training_history, file, indent=4)
 
         # TODO: Princeton benchmark
         # test_dataset = FaustDataset(preprocess_zip, set_type=2, device=device)
