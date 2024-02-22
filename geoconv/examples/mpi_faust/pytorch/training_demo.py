@@ -143,7 +143,7 @@ def train_model(reference_mesh_path,
             # Validation
             val_data = FaustDataset(preprocess_zip, set_type=1, device=device)
             val_dict = imcnn.validation_loop(val_data, loss_fn, verbose=True)
-            val_loss = val_dict["epoch_val_loss"].item()
+            val_loss = val_dict["val_epoch_loss"].item()
 
             # Remember epoch statistics
             training_history[f"epoch_{epoch}"] = {
@@ -151,7 +151,7 @@ def train_model(reference_mesh_path,
                 "loss": train_dict["epoch_loss"].item(),
                 "Accuracy": train_dict["epoch_accuracy"].item(),
                 "Validation Loss": val_loss,
-                "Validation Accuracy": val_dict["epoch_val_accuracy"].item()
+                "Validation Accuracy": val_dict["val_epoch_accuracy"].item()
             }
 
             # Log best model
