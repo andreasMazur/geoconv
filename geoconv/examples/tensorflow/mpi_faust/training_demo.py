@@ -122,7 +122,7 @@ def train_model(reference_mesh_path,
             ),
             weight_decay=weight_decay
         )
-        imcnn.compile(optimizer=opt, loss=loss, metrics=["sparse_categorical_accuracy"])
+        imcnn.compile(optimizer=opt, loss=loss)
 
         # Adapt normalization
         print("Initializing normalization layer..")

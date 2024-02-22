@@ -17,7 +17,7 @@ class ImCNN(keras.Model):
 
         # Statistics
         self.loss_tracker.update_state(loss)
-        for metric in self.metrics[1:]:
+        for metric in self.metrics[1:]:  # skip loss
             metric.update_state(gt, pred)
         return {m.name: m.result() for m in self.metrics}
 
@@ -34,12 +34,12 @@ class ImCNN(keras.Model):
 
         # Statistics
         self.loss_tracker.update_state(loss)
-        for metric in self.metrics[1:]:
+        for metric in self.metrics[1:]:  # skip loss
             metric.update_state(gt, pred)
 
         return {m.name: m.result() for m in self.metrics}
 
     @property
     def metrics(self):
-        # 'reset_states()' called automatically at the start of each epoch
+        # 'reset_states()' called automatically at the start of each training epoch or evaluation
         return [self.loss_tracker, self.accuracy]
