@@ -22,7 +22,7 @@ class Normalization(nn.Module):
         self.mean, self.var = 0, 0
         n_samples = 0
         for s in dataset:
-            s = torch.sum(s, dim=-2)
+            # s = torch.sum(s, dim=-2)
             self.mean += s
             self.var += (s - self.mean) ** 2
             n_samples += 1
@@ -119,6 +119,8 @@ class Imcnn(nn.Module):
         self.train()
         epoch_accuracy = 0.
         epoch_loss = 0.
+        mean_accuracy = 0.
+        mean_loss = 0.
 
         for step, ((signal, bc), gt) in enumerate(dataset):
             opt.zero_grad()
@@ -130,16 +132,22 @@ class Imcnn(nn.Module):
                 scheduler.step()
 
             # Statistics
-            epoch_accuracy = (epoch_accuracy + multiclass_accuracy(pred, gt).detach()) / (step + 1)
+            epoch_accuracy = epoch_accuracy + multiclass_accuracy(pred, gt).detach()
             epoch_loss = epoch_loss + loss.detach()
+            mean_accuracy = epoch_accuracy / (step + 1)
+            mean_loss = epoch_loss / (step + 1)
 
             # I/O
             if verbose:
                 sys.stdout.write(
-                    f"\rEpoch: {epoch} - Training step: {step} - Loss {epoch_loss:.4f} - Accuracy {epoch_accuracy:.4f}"
+                    f"\rEpoch: {epoch} - "
+                    f"Training step: {step} - "
+                    f"Loss {mean_loss:.4f} - "
+                    f"Accuracy {mean_accuracy:.4f}"
                     f" - Memory: {print_mem()}"
                 )
-        return {"epoch_loss": epoch_loss, "epoch_accuracy": epoch_accuracy}
+
+        return {"epoch_loss": mean_loss, "epoch_accuracy": mean_accuracy}
 
     def validation_loop(self, dataset, loss_fn, verbose=True):
         self.eval()
@@ -147,17 +155,22 @@ class Imcnn(nn.Module):
         with torch.no_grad():
             val_loss = 0.
             val_accuracy = 0.
+            mean_accuracy = 0.
+            mean_loss = 0.
 
             for step, ((signal, bc), gt) in enumerate(dataset):
                 pred = self([signal, bc])
 
                 # Statistics
+                val_accuracy = val_accuracy + multiclass_accuracy(pred, gt).detach()
                 val_loss = val_loss + loss_fn(pred, gt).detach()
-                val_accuracy = (val_accuracy + multiclass_accuracy(pred, gt).detach()) / (step + 1)
+                mean_accuracy = val_accuracy / (step + 1)
+                mean_loss = val_loss / (step + 1)
 
             # I/O
             if verbose:
                 sys.stdout.write(
-                    f" - Val.-Loss: {val_loss:.4f} - Val.-Accuracy: {val_accuracy:.4f}"
+                    f" - Val.-Loss: {mean_loss:.4f} - "
+                    f"Val.-Accuracy: {mean_accuracy:.4f}"
                 )
-        return {"epoch_val_loss": val_loss, "epoch_val_accuracy": val_accuracy}
+        return {"epoch_val_loss": mean_loss, "epoch_val_accuracy": mean_accuracy}
