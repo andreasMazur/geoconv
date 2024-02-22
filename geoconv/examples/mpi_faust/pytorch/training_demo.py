@@ -11,6 +11,8 @@ import sys
 import json
 import os
 
+from geoconv.utils.measures import princeton_benchmark
+
 
 def train_model(reference_mesh_path,
                 signal_dim,
@@ -162,13 +164,13 @@ def train_model(reference_mesh_path,
         with open(f"{logging_dir}/training_history_{exp_number}.json", "w") as file:
             json.dump(training_history, file, indent=4)
 
-        # TODO: Princeton benchmark
-        # test_dataset = FaustDataset(preprocess_zip, set_type=2, device=device)
-        # princeton_benchmark(
-        #     imcnn=imcnn,
-        #     test_dataset=test_dataset,
-        #     ref_mesh_path=reference_mesh_path,
-        #     file_name=f"{logging_dir}/model_benchmark_{exp_number}",
-        #     processes=processes,
-        #     geodesic_diameter=reference_mesh_diameter
-        # )
+        test_dataset = FaustDataset(preprocess_zip, set_type=2, device=device)
+        with torch.no_grad():
+            princeton_benchmark(
+                imcnn=imcnn,
+                test_dataset=test_dataset,
+                ref_mesh_path=reference_mesh_path,
+                file_name=f"{logging_dir}/model_benchmark_{exp_number}",
+                processes=processes,
+                geodesic_diameter=reference_mesh_diameter
+            )

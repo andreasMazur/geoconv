@@ -27,7 +27,7 @@ def princeton_benchmark(imcnn,
 
     Parameters
     ----------
-    imcnn: tf.keras.Model
+    imcnn:
         The Intrinsic Mesh CNN
     test_dataset: tf.data.Dataset
         The test dataset on which to evaluate the Intrinsic Mesh CNN
@@ -55,7 +55,7 @@ def princeton_benchmark(imcnn,
 
     mesh_number = 0
     for ((signal, barycentric), ground_truth) in test_dataset:
-        prediction = imcnn([signal, barycentric]).numpy().argmax(axis=1)
+        prediction = np.array(imcnn([signal, barycentric])).argmax(axis=1)
         batched = [(data, reference_mesh) for data in np.stack([ground_truth, prediction], axis=-1)]
         with Pool(processes) as p:
             geodesic_errors = p.starmap(
