@@ -1,6 +1,7 @@
 from geoconv.examples.mpi_faust.pytorch.faust_data_set import FaustDataset
 from geoconv.examples.mpi_faust.pytorch.model import Imcnn
 from geoconv.examples.mpi_faust.data.preprocess_faust import preprocess_faust
+from geoconv.utils.measures import princeton_benchmark
 
 from pathlib import Path
 from torch import nn
@@ -10,8 +11,6 @@ import numpy as np
 import sys
 import json
 import os
-
-from geoconv.utils.measures import princeton_benchmark
 
 
 def train_model(reference_mesh_path,

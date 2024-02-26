@@ -32,10 +32,14 @@ INITIALIZER = {
 class ConvIntrinsic(ABC, nn.Module):
     """A metaclass for intrinsic surface convolutions on Riemannian manifolds.
 
+
+
+
+
+include_prior
+
     Attributes
     ----------
-    amt_templates: int
-        The amount of templates to apply during one convolution.
     activation_fn: str
         The activation function to use.
     rotation_delta: int
@@ -44,6 +48,14 @@ class ConvIntrinsic(ABC, nn.Module):
         coordinate.
         If `rotation_delta = 2`, then the shift increases to 2 and the total amount of rotations reduces to
         ceil(n / rotation_delta). This gives a speed-up and saves memory. However, quality of results might worsen.
+    amt_templates: int
+        The amount of templates to apply during one convolution.
+    template_radius: float
+        The maximal geodesic extension of the template.
+    initializer: str
+        The initializer for the template weights.
+    bias_initializer: str
+        The initializer for the bias weights.
     """
 
     def __init__(self,
@@ -53,27 +65,21 @@ class ConvIntrinsic(ABC, nn.Module):
                  include_prior=True,
                  activation="relu",
                  rotation_delta=1,
-                 name=None,
-                 template_regularizer=None,
-                 bias_regularizer=None,
                  initializer="xavier_uniform",
                  bias_initializer="uniform"):
         super().__init__()
-        self.given_name = name
         self.activation_fn = activation
         self.rotation_delta = rotation_delta
         self.amt_templates = amt_templates
         self.template_radius = template_radius
-        self.template_regularizer = template_regularizer
-        self.bias_regularizer = bias_regularizer
         self.initializer = initializer
         self.bias_initializer = bias_initializer
         self.include_prior = include_prior
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = ACTIVATIONS[self.activation_fn]
-        self._init_fn = INITIALIZER[initializer]
-        self._bias_init_fn = INITIALIZER[bias_initializer]
+        self._init_fn = INITIALIZER[self.initializer]
+        self._bias_init_fn = INITIALIZER[self.bias_initializer]
         self._bias = None
         self._all_rotations = None
         self._template_size = None  # (#radial, #angular)

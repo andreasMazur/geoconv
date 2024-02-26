@@ -11,7 +11,7 @@ class AngularMaxPooling(nn.Module):
 
         Parameters
         ----------
-        inputs: tf.Tensor
+        inputs: torch.Tensor
             The result tensor of an intrinsic surface convolution.
             It has a size of: (n_vertices, n_rotations, feature_dim), where 'n_vertices' references to the total amount
             of vertices in the triangle mesh, 'n_rotations' to the amount of rotations considered during the intrinsic
@@ -19,7 +19,7 @@ class AngularMaxPooling(nn.Module):
 
         Returns
         -------
-        tf.Tensor:
+        torch.Tensor:
             A two-dimensional tensor of size (n_vertices, feature_dim), that contains a convolution results for each
             vertex. Thereby, the convolution result has the smallest Euclidean norm among the convolution results for
             all rotations.
