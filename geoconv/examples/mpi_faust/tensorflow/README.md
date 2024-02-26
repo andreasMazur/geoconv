@@ -7,7 +7,7 @@ Stanford-bunny example.
 You can call the demo, by writing a script that calls `training_demo`. E.g:
 
 ```python
-from examples.mpi_faust import train_model
+from geoconv.examples.mpi_faust.tensorflow.training_demo import train_model
 
 if __name__ == "__main__":
     rp = "/home/user/geoconv/geoconv/examples/mpi_faust/data/MPI-FAUST/training/registrations"
@@ -15,25 +15,24 @@ if __name__ == "__main__":
     train_model(
         reference_mesh_path=f"{rp}/tr_reg_000.ply",
         signal_dim=544,  # Set it to 3 if `compute_shot=False`
-        preprocessed_data="./preprocessed_data",
+        preprocessed_data="/home/user/geoconv/geoconv/examples/mpi_faust/data/preprocessed_dataset_5_8",
         ### PRE-PROCESSING ###
         n_radial=5,
         n_angular=8,
         registration_path=rp,
         compute_shot=True,
         # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
-        geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/geodesic_diameters.npy",
+        geodesic_diameters_path="/home/user/geoconv/geoconv/examples/mpi_faust/data/geodesic_diameters.npy",
         precomputed_gpc_radius=R,
         ### GENERAL ###
         template_radius=R * 0.75,
-        logging_dir="./imcnn_training_logs",
+        logging_dir="./tensorflow_demo_logging",
         processes=1,
-        layer_conf=[(96, 1), (256, 1), (384, 1), (384, 1)],  # (n_templates, rotation_delta) for each layer
+        layer_conf=[(96, 1), (256, 1), (384, 1), (384, 1)],
         init_lr=0.00165,
         weight_decay=0.005,
         model="dirac"
     )
-
 ```
 
 ## Installing pyshot
