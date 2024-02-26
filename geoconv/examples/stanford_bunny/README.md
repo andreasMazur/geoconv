@@ -3,7 +3,7 @@
 This demo is meant to illustrate a quick insight into intermediate pre-processing results, at the hand of the 
 Stanford-bunny.
 
-You can call the demo, by writing a script that calls `preprocess_demo`. E.g:
+You can call the demo by writing a script that calls `preprocess_demo`. E.g:
 
 ```python
 from geoconv.examples.stanford_bunny.preprocess_demo import preprocess_demo
