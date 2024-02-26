@@ -56,6 +56,8 @@ include_prior
         The initializer for the template weights.
     bias_initializer: str
         The initializer for the bias weights.
+    include_prior: bool
+        Whether to weight the interpolations according to a pre-defined kernel.
     """
 
     def __init__(self,

@@ -11,8 +11,8 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
 
     Attributes
     ----------
-    amt_templates: int
-        The amount of templates to apply during one convolution.
+    given_name: str
+
     activation_fn: str
         The activation function to use.
     rotation_delta: int
@@ -21,6 +21,18 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         coordinate.
         If `rotation_delta = 2`, then the shift increases to 2 and the total amount of rotations reduces to
         ceil(n / rotation_delta). This gives a speed-up and saves memory. However, quality of results might worsen.
+    amt_templates: int
+        The amount of templates to apply during one convolution.
+    template_radius: float
+        The maximal geodesic extension of the template.
+    template_regularizer: str or callable
+        A regularizer for the template.
+    bias_regularizer: str or callable
+        A regularizer for the bias.
+    initializer: str or callable
+        An initializer for the template and bias.
+    include_prior: bool
+        Whether to weight the interpolations according to a pre-defined kernel.
     """
 
     def __init__(self,
