@@ -32,12 +32,6 @@ INITIALIZER = {
 class ConvIntrinsic(ABC, nn.Module):
     """A metaclass for intrinsic surface convolutions on Riemannian manifolds.
 
-
-
-
-
-include_prior
-
     Attributes
     ----------
     activation_fn: str
