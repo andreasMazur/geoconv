@@ -179,13 +179,13 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
                 "traf,kraf->kt",
                 self._template_neighbor_weights,
                 tf.roll(interpolations, shift=o, axis=2)
-            ) + self._bias
+            )
 
         # conv_neighbor: (vertices, n_rotations, templates)
         conv_neighbor = tf.transpose(
             tf.map_fn(fold_neighbor, orientations, fn_output_signature=tf.float32), perm=[1, 0, 2]
         )
-        return self._activation(conv_center + conv_neighbor)
+        return self._activation(conv_center + conv_neighbor + self._bias)
 
     @tf.function
     def _patch_operator(self, mesh_signal, barycentric_coordinates):

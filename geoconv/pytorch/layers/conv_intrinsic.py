@@ -47,9 +47,7 @@ class ConvIntrinsic(ABC, nn.Module):
     template_radius: float
         The maximal geodesic extension of the template.
     initializer: str
-        The initializer for the template weights.
-    bias_initializer: str
-        The initializer for the bias weights.
+        The initializer for the weights.
     include_prior: bool
         Whether to weight the interpolations according to a pre-defined kernel.
     """
@@ -61,21 +59,18 @@ class ConvIntrinsic(ABC, nn.Module):
                  include_prior=True,
                  activation="relu",
                  rotation_delta=1,
-                 initializer="xavier_uniform",
-                 bias_initializer="uniform"):
+                 initializer="xavier_uniform"):
         super().__init__()
         self.activation_fn = activation
         self.rotation_delta = rotation_delta
         self.amt_templates = amt_templates
         self.template_radius = template_radius
         self.initializer = initializer
-        self.bias_initializer = bias_initializer
         self.include_prior = include_prior
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = ACTIVATIONS[self.activation_fn]
         self._init_fn = INITIALIZER[self.initializer]
-        self._bias_init_fn = INITIALIZER[self.bias_initializer]
         self._bias = None
         self._all_rotations = None
         self._template_size = None  # (#radial, #angular)
@@ -114,8 +109,8 @@ class ConvIntrinsic(ABC, nn.Module):
         self._template_self_weights = nn.Parameter(torch.zeros(size=(self.amt_templates, 1, signal_shape[1])))
         self._init_fn(self._template_self_weights)
 
-        self._bias = nn.Parameter(torch.zeros(size=(self.amt_templates,)))
-        self._bias_init_fn(self._bias)
+        self._bias = nn.Parameter(torch.zeros(size=(1, self.amt_templates)))
+        self._init_fn(self._bias)
 
         # Configure kernel
         self._configure_kernel()
@@ -166,16 +161,14 @@ class ConvIntrinsic(ABC, nn.Module):
                 "traf,kraf->kt",
                 self._template_neighbor_weights,
                 torch.roll(interpolations, shifts=orientation.item(), dims=2).float()
-            ) + self._bias
+            )
 
-        conv_neighbor = []
-        for o in orientations:
-            conv_neighbor.append(fold_neighbor(o))
         # Result: (vertices, n_rotations, templates)
-        conv_neighbor = torch.permute(torch.stack(conv_neighbor), dims=[1, 0, 2])
-
+        conv_neighbor = torch.permute(
+            torch.stack(list(map(fold_neighbor, orientations))), dims=[1, 0, 2]
+        )
         # conv_neighbor: (vertices, n_rotations, templates)
-        return self._activation(conv_center + conv_neighbor)
+        return self._activation(conv_center + conv_neighbor + self._bias)
 
     def _patch_operator(self, mesh_signal, barycentric_coordinates):
         """Interpolates and weights mesh signal

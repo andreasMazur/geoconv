@@ -124,8 +124,10 @@ def train_model(reference_mesh_path,
 
         # Define loss, optimizer and scheduler
         loss_fn = nn.CrossEntropyLoss()
-        opt = torch.optim.AdamW(params=imcnn.parameters(), lr=init_lr, weight_decay=weight_decay)
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=opt, gamma=0.95)
+        opt = torch.optim.AdamW(
+            params=imcnn.parameters(), lr=init_lr, weight_decay=weight_decay, eps=1e-07
+        )
+        opt.param_groups[0]["initial_lr"] = init_lr
 
         # Fit model
         training_history = {}
@@ -139,8 +141,8 @@ def train_model(reference_mesh_path,
                 train_data,
                 loss_fn,
                 opt,
-                scheduler,
-                scheduler_step=500,
+                decay_rate=weight_decay,
+                decay_steps=500,
                 verbose=True,
                 epoch=epoch,
                 prev_steps=epoch * 70

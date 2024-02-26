@@ -103,7 +103,18 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None):
 class FaustDataset(IterableDataset):
     def __init__(self, path_to_zip, set_type=0, only_signal=False, device=None):
         self.only_signal = only_signal
-        self.dataset = faust_generator(path_to_zip, set_type=set_type, only_signal=only_signal, device=device)
+        self.path_to_zip = path_to_zip
+        self.set_type = set_type
+        self.only_signal = only_signal
+        self.device = device
+        self.dataset = faust_generator(
+            self.path_to_zip, set_type=self.set_type, only_signal=self.only_signal, device=self.device
+        )
 
     def __iter__(self):
         return self.dataset
+
+    def reset(self):
+        self.dataset = faust_generator(
+            self.path_to_zip, set_type=self.set_type, only_signal=self.only_signal, device=self.device
+        )

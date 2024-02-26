@@ -10,6 +10,11 @@ import torch
 import sys
 
 
+def custom_exp_scheduler(opt, step, decay_rate=0.95, decay_steps=500):
+    """Smooth exponential scheduler"""
+    opt.param_groups[0]["lr"] = opt.param_groups[0]["initial_lr"] * decay_rate ** (step / decay_steps)
+
+
 def print_mem():
     mem = torch.cuda.memory_allocated()
     max_mem = torch.cuda.max_memory_allocated()
@@ -22,13 +27,18 @@ class Normalization(nn.Module):
         super().__init__()
         self.mean, self.var = 0, 0
         n_samples = 0
+
         for s in dataset:
-            # s = torch.sum(s, dim=-2)
+            n_samples += s.shape[0]
+            s = torch.sum(s, dim=-2)
             self.mean += s
-            self.var += (s - self.mean) ** 2
-            n_samples += 1
+
+        dataset.reset()
+        for s in dataset:
+            self.var += torch.sum((s - self.mean) ** 2, dim=-2)
+
         self.mean = self.mean / n_samples
-        self.var = self.var / n_samples
+        self.var = self.var / (n_samples - 1)
 
     def forward(self, inputs):
         return (inputs - self.mean) / self.var
@@ -121,8 +131,8 @@ class Imcnn(nn.Module):
                    dataset,
                    loss_fn,
                    opt,
-                   scheduler,
-                   scheduler_step=500,
+                   decay_rate,
+                   decay_steps,
                    verbose=True,
                    epoch=None,
                    prev_steps=None):
@@ -133,22 +143,21 @@ class Imcnn(nn.Module):
         mean_loss = 0.
 
         for step, ((signal, bc), gt) in enumerate(dataset):
-            opt.zero_grad()
             pred = self([signal, bc])
             loss = loss_fn(pred, gt)
+            opt.zero_grad()
             loss.backward()
             opt.step()
 
-            if (prev_steps + step) % (scheduler_step - 1) == 0:
-                scheduler.step()
+            custom_exp_scheduler(opt, prev_steps + step, decay_rate=decay_rate, decay_steps=decay_steps)
 
             # Statistics
             epoch_accuracy = epoch_accuracy + multiclass_accuracy(pred, gt).detach()
             epoch_loss = epoch_loss + loss.detach()
-            mean_accuracy = epoch_accuracy / (step + 1)
-            mean_loss = epoch_loss / (step + 1)
 
             # I/O
+            mean_accuracy = epoch_accuracy / (step + 1)
+            mean_loss = epoch_loss / (step + 1)
             if verbose:
                 sys.stdout.write(
                     f"\rEpoch: {epoch} - "
@@ -166,8 +175,6 @@ class Imcnn(nn.Module):
         with torch.no_grad():
             val_loss = 0.
             val_accuracy = 0.
-            mean_accuracy = 0.
-            mean_loss = 0.
 
             for step, ((signal, bc), gt) in enumerate(dataset):
                 pred = self([signal, bc])
@@ -175,10 +182,10 @@ class Imcnn(nn.Module):
                 # Statistics
                 val_accuracy = val_accuracy + multiclass_accuracy(pred, gt).detach()
                 val_loss = val_loss + loss_fn(pred, gt).detach()
-                mean_accuracy = val_accuracy / (step + 1)
-                mean_loss = val_loss / (step + 1)
 
             # I/O
+            mean_accuracy = val_accuracy / (step + 1)
+            mean_loss = val_loss / (step + 1)
             if verbose:
                 sys.stdout.write(
                     f" - Val.-Loss: {mean_loss:.4f} - "

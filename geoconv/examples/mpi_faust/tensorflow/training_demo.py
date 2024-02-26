@@ -133,9 +133,7 @@ def train_model(reference_mesh_path,
         print("Done.")
 
         # Build model
-        imcnn.predict(
-            [tf.random.uniform(shape=(6890, signal_dim)), tf.random.uniform(shape=(6890,) + kernel_size + (3, 2))]
-        )
+        imcnn([tf.random.uniform(shape=(6890, signal_dim)), tf.random.uniform(shape=(6890,) + kernel_size + (3, 2))])
         imcnn.summary()
 
         # Define callbacks
