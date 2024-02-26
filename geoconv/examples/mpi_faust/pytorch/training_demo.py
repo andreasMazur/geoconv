@@ -136,7 +136,14 @@ def train_model(reference_mesh_path,
             # Training
             train_data = FaustDataset(preprocess_zip, set_type=0, device=device)
             train_dict = imcnn.train_loop(
-                train_data, loss_fn, opt, scheduler, scheduler_step=500, verbose=True, epoch=epoch
+                train_data,
+                loss_fn,
+                opt,
+                scheduler,
+                scheduler_step=500,
+                verbose=True,
+                epoch=epoch,
+                prev_steps=epoch * 70
             )
 
             # Validation

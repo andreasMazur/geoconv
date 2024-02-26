@@ -117,7 +117,15 @@ class Imcnn(nn.Module):
         #########
         return self.output_dense(signal)
 
-    def train_loop(self, dataset, loss_fn, opt, scheduler, scheduler_step=500, verbose=True, epoch=None):
+    def train_loop(self,
+                   dataset,
+                   loss_fn,
+                   opt,
+                   scheduler,
+                   scheduler_step=500,
+                   verbose=True,
+                   epoch=None,
+                   prev_steps=None):
         self.train()
         epoch_accuracy = 0.
         epoch_loss = 0.
@@ -130,7 +138,8 @@ class Imcnn(nn.Module):
             loss = loss_fn(pred, gt)
             loss.backward()
             opt.step()
-            if step % (scheduler_step - 1) == 0:
+
+            if (prev_steps + step) % (scheduler_step - 1) == 0:
                 scheduler.step()
 
             # Statistics
