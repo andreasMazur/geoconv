@@ -84,7 +84,7 @@ def define_model(signal_shape, barycentric_shape, output_dim):
     return model
 ```
 
-### Minimal Example (Pytorch)
+### Minimal Example (PyTorch)
 
 ```python
 from geoconv.pytorch.layers.conv_geodesic import ConvGeodesic
