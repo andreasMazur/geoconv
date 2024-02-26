@@ -61,15 +61,13 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     n_angular: int
         The amount of angular coordinates for the template in your geodesic convolution.
     processes: int
-        The amount of processes that shall compute the GPC-systems.
+        The amount of concurrent processes that shall compute the GPC-systems.
     """
-
     target_dir = "./preprocess_demo_plots"
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
-    # Load the stanford bunny in '.ply'-format as a trimesh-object. Set your path 'PATH_TO_STANFORD_BUNNY' correctly in
-    # this script below.
+    # Load the stanford bunny in '.ply'-format as a trimesh-object.
     bunny = load_bunny(path_to_stanford_bunny)
 
     # Find the smallest distance from a center vertex in the bunny mesh to one of its one-hop neighbors.
