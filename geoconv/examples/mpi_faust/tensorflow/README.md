@@ -4,6 +4,9 @@ Be aware that the demo script can compute for a while. We strongly recommend to 
 on a GPU-cluster. For a quick insight into intermediate pre-processing results, please take a look into the
 Stanford-bunny example.
 
+For this script to run, you will need to download the FAUST dataset:
+https://faust-leaderboard.is.tuebingen.mpg.de/
+
 You can call the demo, by writing a script that calls `training_demo`. E.g:
 
 ```python
