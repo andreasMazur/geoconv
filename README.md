@@ -107,8 +107,8 @@ class GCNN(nn.Module):
         self.output = nn.Linear(in_features=32, out_features=10)
     
     def forward(self, x):
-        signal, bc = x
-        signal = self.geodesic_conv([signal, bc])
+        signal, barycentric = x
+        signal = self.geodesic_conv([signal, barycentric])
         signal = self.amp(signal)
         return self.output(signal)
 ```
