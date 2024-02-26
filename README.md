@@ -66,11 +66,11 @@ from geoconv.tensorflow.layers.angular_max_pooling import AngularMaxPooling
 import tensorflow as tf
 
 
-def define_model(signal_shape, barycentric_shape, output_dim):
+def define_model(output_dim):
     """Define a geodesic convolutional neural network"""
 
-    signal_input = tf.keras.layers.InputLayer(shape=signal_shape)
-    barycentric = tf.keras.layers.InputLayer(shape=barycentric_shape)
+    signal_input = tf.keras.layers.InputLayer(shape=(3,))
+    barycentric = tf.keras.layers.InputLayer(shape=(5, 8, 3, 2))
     signal = ConvGeodesic(
         amt_templates=32,  # 32-dimensional output
         template_radius=0.03,  # maximal geodesic template distance 
@@ -94,7 +94,7 @@ from torch import nn
 
 
 class GCNN(nn.Module):
-    def __init__(self):
+    def __init__(self, output_dim):
         super().__init__()
         self.geodesic_conv = ConvGeodesic(
             input_shape=[(None, 3), (None, 5, 8, None, None)],  # 3-dimensional signal and 5 x 8 template
@@ -104,7 +104,7 @@ class GCNN(nn.Module):
             rotation_delta=1  # Delta in between template rotations
         )
         self.amp = AngularMaxPooling()
-        self.output = nn.Linear(in_features=32, out_features=10)
+        self.output = nn.Linear(in_features=32, out_features=output_dim)
     
     def forward(self, x):
         signal, barycentric = x
