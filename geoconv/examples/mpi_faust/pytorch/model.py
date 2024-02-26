@@ -32,12 +32,11 @@ class Normalization(nn.Module):
             n_samples += s.shape[0]
             s = torch.sum(s, dim=-2)
             self.mean += s
+        self.mean = self.mean / n_samples
 
         dataset.reset()
         for s in dataset:
             self.var += torch.sum((s - self.mean) ** 2, dim=-2)
-
-        self.mean = self.mean / n_samples
         self.var = self.var / (n_samples - 1)
 
     def forward(self, inputs):
