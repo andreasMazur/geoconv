@@ -92,6 +92,7 @@ from geoconv.pytorch.layers.angular_max_pooling import AngularMaxPooling
 
 from torch import nn
 
+
 class GCNN(nn.Module):
     def __init__(self):
         super().__init__()
