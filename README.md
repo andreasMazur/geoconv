@@ -97,7 +97,7 @@ class GCNN(nn.Module):
     def __init__(self):
         super().__init__()
         self.geodesic_conv = ConvGeodesic(
-            input_shape=[(None, 3), (None, 5, 8, 3, 2)],  # 3-dimensional signal and 5 x 8 template
+            input_shape=[(None, 3), (None, 5, 8, None, None)],  # 3-dimensional signal and 5 x 8 template
             amt_templates=32,  # 32-dimensional output
             template_radius=0.03,  # maximal geodesic template distance 
             activation="relu",
