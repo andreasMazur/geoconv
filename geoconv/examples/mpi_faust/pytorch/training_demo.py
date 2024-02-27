@@ -30,7 +30,8 @@ def train_model(reference_mesh_path,
                 layer_conf=None,
                 model="dirac",
                 add_noise=False,
-                reference_mesh_diameter=2.2093810817030244):
+                reference_mesh_diameter=2.2093810817030244,
+                early_stop=20):
     """Trains one singular IMCNN
 
     Parameters
@@ -79,6 +80,8 @@ def train_model(reference_mesh_path,
         [OPTIONAL] Which model variant (['dirac', 'geodesic', 'zero']) shall be tuned.
     add_noise: bool
         [OPTIONAL] Adds Gaussian noise to the mesh data.
+    early_stop: int
+        [OPTIONAL] The amount of epochs for early stopping.
     """
     # Create logging dir
     if not os.path.exists(logging_dir):
@@ -132,6 +135,7 @@ def train_model(reference_mesh_path,
         # Fit model
         training_history = {}
         best_loss = np.inf
+        stale_counter = 0
         for epoch in range(200):
             sys.stdout.write("\n")  # pretty printing
 
@@ -167,6 +171,15 @@ def train_model(reference_mesh_path,
                 best_loss = val_loss
                 imcnn_path = f"{logging_dir}/imcnn_exp_{exp_number}_epoch_{epoch}"
                 torch.save(imcnn.state_dict(), imcnn_path)
+
+            # Early stopping
+            if val_loss >= best_loss:
+                stale_counter += 1
+            else:
+                stale_counter = 0
+            if stale_counter >= (early_stop - 1):
+                sys.stdout.write("Early stopping.")
+                break
 
         # Log training statistics
         with open(f"{logging_dir}/training_history_{exp_number}.json", "w") as file:
