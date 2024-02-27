@@ -178,7 +178,7 @@ def train_model(reference_mesh_path,
 
             # Early stopping
             if stale_counter >= early_stop:
-                sys.stdout.write("Early stopping.")
+                sys.stdout.write("\nEarly stopping.")
                 break
 
         print("\n")  # pretty printing
