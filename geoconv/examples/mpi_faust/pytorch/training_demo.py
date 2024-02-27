@@ -193,5 +193,6 @@ def train_model(reference_mesh_path,
                 ref_mesh_path=reference_mesh_path,
                 file_name=f"{logging_dir}/model_benchmark_{exp_number}",
                 processes=processes,
-                geodesic_diameter=reference_mesh_diameter
+                geodesic_diameter=reference_mesh_diameter,
+                pytorch_model=True
             )

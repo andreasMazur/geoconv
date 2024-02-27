@@ -18,7 +18,8 @@ def princeton_benchmark(imcnn,
                         curve_label=None,
                         plot=True,
                         processes=1,
-                        geodesic_diameter=None):
+                        geodesic_diameter=None,
+                        pytorch_model=False):
     """Plots the accuracy w.r.t. a gradually changing geodesic error
 
     Princeton benchmark has been introduced in:
@@ -47,6 +48,8 @@ def princeton_benchmark(imcnn,
         The amount of concurrent processes.
     geodesic_diameter: float
         The geodesic diameter of the reference mesh
+    pytorch_model: bool
+        Whether a pytorch model is given.
     """
 
     reference_mesh = trimesh.load_mesh(ref_mesh_path)
@@ -55,7 +58,10 @@ def princeton_benchmark(imcnn,
 
     mesh_number = 0
     for ((signal, barycentric), ground_truth) in test_dataset:
-        prediction = np.array(imcnn([signal, barycentric])).argmax(axis=1)
+        if pytorch_model:
+            prediction = np.array(imcnn([signal, barycentric]).cpu()).argmax(axis=1)
+        else:
+            prediction = np.array(imcnn([signal, barycentric])).argmax(axis=1)
         batched = [(data, reference_mesh) for data in np.stack([ground_truth, prediction], axis=-1)]
         with Pool(processes) as p:
             geodesic_errors = p.starmap(
