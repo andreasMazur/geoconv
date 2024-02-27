@@ -173,13 +173,12 @@ def train_model(reference_mesh_path,
                 torch.save(imcnn.state_dict(), imcnn_path)
 
             # Early stopping
-            if val_loss >= best_loss:
-                stale_counter += 1
-            else:
-                stale_counter = 0
-            if stale_counter >= (early_stop - 1):
+            stale_counter = stale_counter + 1 if val_loss >= best_loss else 0
+            if stale_counter >= early_stop:
                 sys.stdout.write("Early stopping.")
                 break
+
+        print("\n")  # pretty printing
 
         # Log training statistics
         with open(f"{logging_dir}/training_history_{exp_number}.json", "w") as file:
