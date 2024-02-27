@@ -124,7 +124,7 @@ def train_model(reference_mesh_path,
             variant=model
         )
         imcnn.to(device)
-        imcnn = torch.compile(imcnn)
+        # imcnn = torch.compile(imcnn)
 
         # Define loss, optimizer and scheduler
         loss_fn = nn.CrossEntropyLoss()
@@ -172,9 +172,11 @@ def train_model(reference_mesh_path,
                 best_loss = val_loss
                 imcnn_path = f"{logging_dir}/imcnn_exp_{exp_number}_epoch_{epoch}"
                 torch.save(imcnn.state_dict(), imcnn_path)
+                stale_counter = 0
+            else:
+                stale_counter += 1
 
             # Early stopping
-            stale_counter = stale_counter + 1 if val_loss >= best_loss else 0
             if stale_counter >= early_stop:
                 sys.stdout.write("Early stopping.")
                 break
