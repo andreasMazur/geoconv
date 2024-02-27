@@ -60,6 +60,7 @@ def princeton_benchmark(imcnn,
     for ((signal, barycentric), ground_truth) in test_dataset:
         if pytorch_model:
             prediction = np.array(imcnn([signal, barycentric]).cpu()).argmax(axis=1)
+            ground_truth = ground_truth.cpu()
         else:
             prediction = np.array(imcnn([signal, barycentric])).argmax(axis=1)
         batched = [(data, reference_mesh) for data in np.stack([ground_truth, prediction], axis=-1)]
