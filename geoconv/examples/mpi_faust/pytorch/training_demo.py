@@ -124,7 +124,7 @@ def train_model(reference_mesh_path,
             variant=model
         )
         imcnn.to(device)
-        # imcnn = torch.compile(imcnn)
+        imcnn = torch.compile(imcnn)
 
         # Define loss, optimizer and scheduler
         loss_fn = nn.CrossEntropyLoss()
