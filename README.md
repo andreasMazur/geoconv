@@ -28,7 +28,7 @@ minimal example below or the examples folder for how you configure Intrinsic Mes
 
 In addition to neural network layers, GeoConv provides you with visualization and benchmark tools to check and verify
 your layer configuration, your pre-processing results and your trained models. These tools shall help you to understand 
-what happens in every step of the pre-processing pipeline.
+what happens in every step of the pre-processing and training pipeline.
 
 ## Note
 
