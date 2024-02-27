@@ -122,7 +122,7 @@ the vertices).
 2. Barycentric coordinates for signal interpolation in the format specified by the output of
 ``compute_barycentric_coordinates``.
 
-For the latter: **geoconv** supplies you with the necessary preprocessing functions:
+For the latter: **GeoConv** supplies you with the necessary preprocessing functions:
 1. Use ``GPCSystemGroup(mesh).compute(u_max=u_max)`` on your triangle meshes (which are stored in a format that is
 supported by **[Trimesh](https://trimsh.org/index.html)**, e.g. 'ply') to compute local geodesic polar coordinate systems with the algorithm
 of [4].
