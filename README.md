@@ -24,7 +24,7 @@ convolutions and thereby allows you to focus on your ideas, that you actually wa
 
 GeoConv provides the base layer `ConvIntrinsic` as a Tensorflow or Pytorch layer. Both implementations are equivalent.
 Only the ways in how they are configured slightly differ due to differences regarding Tensorflow and Pytorch. Check the
-minimal example below or the examples folder for how you configure Intrinsic Mesh CNNs.
+minimal example below or the `geoconv_examples`-package for how you configure Intrinsic Mesh CNNs.
 
 In addition to neural network layers, GeoConv provides you with visualization and benchmark tools to check and verify
 your layer configuration, your pre-processing results and your trained models. These tools shall help you to understand 
