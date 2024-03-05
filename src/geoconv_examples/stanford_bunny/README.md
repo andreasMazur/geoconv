@@ -6,7 +6,7 @@ Stanford-bunny.
 You can call the demo by writing a script that calls `preprocess_demo`. E.g:
 
 ```python
-from src.geoconv_examples.stanford_bunny.preprocess_demo import preprocess_demo
+from geoconv_examples.stanford_bunny.preprocess_demo import preprocess_demo
 
 if __name__ == "__main__":
     # Example path to Stanford-bunny:
