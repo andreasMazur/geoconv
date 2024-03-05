@@ -40,10 +40,8 @@ if __name__ == "__main__":
 
 ## Installing pyshot
 
-If you want `training_demo` to compute SHOT-descriptors, you need to install `pyshot` into your environment from:
-https://github.com/uhlmanngroup/pyshot
-
-This repository raises additional dependencies, which you can install with the following command:
+Running this example requires you to install pyshot:
 ```bash
-    sudo apt install libflann-dev libeigen3-dev lz4
+sudo apt install libflann-dev libeigen3-dev lz4
+pip install cython==0.29.37 pyshot@git+https://github.com/uhlmanngroup/pyshot@master
 ```
