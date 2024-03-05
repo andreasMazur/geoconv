@@ -49,7 +49,8 @@ what happens in every step of the pre-processing and training pipeline.
 3. If you want to run the FAUST example you also need to install:
     ```bash
     sudo apt install libflann-dev libeigen3-dev lz4
-    pip install cython==0.29.37 pyshot@git+https://github.com/uhlmanngroup/pyshot@master
+    pip install cython==0.29.37
+    pip install pyshot@git+https://github.com/uhlmanngroup/pyshot@master
     ```
 
 ### Minimal Example (TensorFlow)
