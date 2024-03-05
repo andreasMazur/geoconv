@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=68.2.2", "numpy>=1.23.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+version = "0.0.2"
+authors = [{name = "Andreas Mazur"}]
+maintainers = [{name = "Andreas Mazur"}]
+name = "geoconv"
+description = "Intrinsic Surface Convolutions for everyone!"
+license = {file = "LICENSE"}
+readme = "README.md"
+keywords = [
+    "surface",
+    "surface-convolution",
+    "convolution",
+    "intrinsic-surface-convolution",
+    "machine-learning",
+    "deep-learning",
+    "neural-network",
+    "convolutional-neural-networks",
+    "deep-neural-network",
+    "tensorflow",
+    "keras",
+    "pytorch",
+    "geometry",
+    "geometry-processing",
+    "geodesic",
+    "geodesic-algorithm",
+    "geometric",
+    "geometric-deep-learning",
+    "visualization",
+    "benchmarking"
+]
+requires-python = ">= 3.10"
+dependencies = [
+    "numpy>=1.23.0",
+    "tqdm>=4.64.0",
+    "trimesh>=3.12.6",
+    "pyglet>=1.5.27",
+    "matplotlib>=3.5.2",
+    "open3d>=0.17.0",
+    "networkx>=2.8.6",
+    "pygeodesic>=0.1.7",
+    "Pillow>=10.0.1",
+    "scipy>=1.10.0"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+[project.optional-dependencies]
+pytorch = [
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "torcheval"
+]
+tensorflow = ["tensorflow"]
+tensorflow_gpu = ["tensorflow[and-cuda]"]
+
+[project.urls]
+Repository = "https://github.com/andreasMazur/geoconv"
+Issues = "https://github.com/andreasMazur/geoconv/issues"

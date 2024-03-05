@@ -30,32 +30,27 @@ In addition to neural network layers, GeoConv provides you with visualization an
 your layer configuration, your pre-processing results and your trained models. These tools shall help you to understand 
 what happens in every step of the pre-processing and training pipeline.
 
-## Note
-
-This repository is still in development. It was tested using **Python 3.10.13**.
-
 ## Installation
 1. Install **[BLAS](https://netlib.org/blas/#_reference_blas_version_3_10_0)** and **[CBLAS](https://netlib.org/blas/#_cblas)**:
-     ```bash
-     sudo apt install libatlas-base-dev
-     ```
+    ```bash
+    sudo apt install libatlas-base-dev
+    ```
+
 2. Install **geoconv**:
-     ```bash
-     conda create -n geoconv python=3.10.*
-     conda activate geoconv
-     git clone https://github.com/andreasMazur/geoconv.git
-     cd ./geoconv
-     pip install -r requirements.txt
-     pip install protobuf==3.20.*
-     pip install .
-     ```
+    
+    | Installation Variant                 | Command                                                                                 |
+    |--------------------------------------|-----------------------------------------------------------------------------------------|
+    | GeoConv                              | `pip install geoconv`                                                                   |
+    | GeoConv + Tensorflow/Keras (**CPU**) | `pip install geoconv[tensorflow]`                                                       |
+    | GeoConv + Tensorflow/Keras (**GPU**) | `pip install geoconv[tensorflow_gpu]`                                                   |
+    | GeoConv + Pytorch (**CPU**)          | `pip install geoconv[pytorch] --extra-index-url https://download.pytorch.org/whl/cpu`   |
+    | GeoConv + Pytorch (**GPU**)          | `pip install geoconv[pytorch] --extra-index-url https://download.pytorch.org/whl/cu118` |
 
-### Hint:
-
-In case you cannot install **BLAS** or **CBLAS** you have the option to remove the ``ext_modules``-argument within
-``setup.py``. This will prohibit you from taking advantage of the c-extension module that accelerates GPC-system
-computation (required during pre-processing mesh files). This, in turn, implies that you have to set the ``use_c``-flag
-in the respective functions to ``False`` such that the Python-alternative implementation is used.
+3. If you want to run the FAUST example you also need to install:
+    ```bash
+    sudo apt install libflann-dev libeigen3-dev lz4
+    pip install cython==0.29.37 pyshot@git+https://github.com/uhlmanngroup/pyshot@master
+    ```
 
 ### Minimal Example (TensorFlow)
 
@@ -63,25 +58,25 @@ in the respective functions to ``False`` such that the Python-alternative implem
 from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
 from geoconv.tensorflow.layers.angular_max_pooling import AngularMaxPooling
 
-import tensorflow as tf
+import keras
 
 
 def define_model(input_dim, output_dim, n_radial, n_angular):
-    """Define a geodesic convolutional neural network"""
+     """Define a geodesic convolutional neural network"""
 
-    signal_input = tf.keras.layers.InputLayer(shape=(input_dim,))
-    barycentric = tf.keras.layers.InputLayer(shape=(n_radial, n_angular, 3, 2))
-    signal = ConvGeodesic(
-        amt_templates=32,  # 32-dimensional output
-        template_radius=0.03,  # maximal geodesic template distance 
-        activation="relu",
-        rotation_delta=1  # Delta in between template rotations
-    )([signal_input, barycentric])
-    signal = AngularMaxPooling()(signal)
-    logits = tf.keras.layers.Dense(output_dim)(signal)
+     signal_input = keras.layers.InputLayer(shape=(input_dim,))
+     barycentric = keras.layers.InputLayer(shape=(n_radial, n_angular, 3, 2))
+     signal = ConvGeodesic(
+          amt_templates=32,  # 32-dimensional output
+          template_radius=0.03,  # maximal geodesic template distance 
+          activation="relu",
+          rotation_delta=1  # Delta in between template rotations
+     )([signal_input, barycentric])
+     signal = AngularMaxPooling()(signal)
+     logits = keras.layers.Dense(output_dim)(signal)
 
-    model = tf.keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
-    return model
+     model = keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
+     return model
 ```
 
 ### Minimal Example (PyTorch)
@@ -94,23 +89,23 @@ from torch import nn
 
 
 class GCNN(nn.Module):
-    def __init__(self, input_dim, output_dim, n_radial, n_angular):
-        super().__init__()
-        self.geodesic_conv = ConvGeodesic(
-            input_shape=[(None, input_dim), (None, n_radial, n_angular, 3, 2)],
-            amt_templates=32,  # 32-dimensional output
-            template_radius=0.03,  # maximal geodesic template distance 
-            activation="relu",
-            rotation_delta=1  # Delta in between template rotations
-        )
-        self.amp = AngularMaxPooling()
-        self.output = nn.Linear(in_features=32, out_features=output_dim)
-    
-    def forward(self, x):
-        signal, barycentric = x
-        signal = self.geodesic_conv([signal, barycentric])
-        signal = self.amp(signal)
-        return self.output(signal)
+     def __init__(self, input_dim, output_dim, n_radial, n_angular):
+          super().__init__()
+          self.geodesic_conv = ConvGeodesic(
+               input_shape=[(None, input_dim), (None, n_radial, n_angular, 3, 2)],
+               amt_templates=32,  # 32-dimensional output
+               template_radius=0.03,  # maximal geodesic template distance 
+               activation="relu",
+               rotation_delta=1  # Delta in between template rotations
+          )
+          self.amp = AngularMaxPooling()
+          self.output = nn.Linear(in_features=32, out_features=output_dim)
+
+     def forward(self, x):
+          signal, barycentric = x
+          signal = self.geodesic_conv([signal, barycentric])
+          signal = self.amp(signal)
+          return self.output(signal)
 ```
 
 ### Inputs and preprocessing
@@ -129,7 +124,7 @@ of [4].
 2. Use those GPC-systems and ``compute_barycentric_coordinates`` to compute the barycentric coordinates for the kernel 
 vertices. The result can without further effort directly be fed into the layer.
 
-**For more thorough explanations on how GeoConv operates check out the `examples`-folder!**
+**For more thorough explanations on how GeoConv operates check out the `geoconv_examples`-package!**
 
 ## Cite
 

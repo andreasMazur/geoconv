@@ -8,9 +8,9 @@ test_scripts/
 sutherland_hodgman/
 
 # Examples
-geoconv/examples/stanford_bunny/data/
-geoconv/examples/mpi_faust/data/MPI-FAUST/
-geoconv/examples/mpi_faust/data/preprocessed_dataset_5_8.zip
+src/geoconv_examples/stanford_bunny/data/
+src/geoconv_examples/mpi_faust/data/MPI-FAUST/
+src/geoconv_examples/mpi_faust/data/preprocessed_dataset_5_8.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
