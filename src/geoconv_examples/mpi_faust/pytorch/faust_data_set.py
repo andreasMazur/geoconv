@@ -1,29 +1,11 @@
+from geoconv_examples.mpi_faust.data.preprocess_faust import get_file_number
+
 from torch.utils.data import IterableDataset
 
 import torch
 import random
 import numpy as np
 import os
-
-
-def get_file_number(file_name):
-    """Extracts the file number contained in the file name
-
-    Parameters
-    ----------
-    file_name: str
-        The file name
-
-    Returns
-    -------
-    int:
-        The file number contained in the file name
-    """
-    # file_name.split(".")[0] -> Without file ending
-    for elem in file_name.split(".")[0].split("_"):
-        if elem.isdigit():
-            return int(elem)
-    raise RuntimeError(f"Filename '{file_name}' has no digit.")
 
 
 def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None):

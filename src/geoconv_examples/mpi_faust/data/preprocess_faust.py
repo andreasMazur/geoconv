@@ -1,4 +1,3 @@
-from geoconv_examples.mpi_faust.tensorflow.faust_data_set import get_file_number
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.utils.misc import shuffle_mesh_vertices, normalize_mesh, find_largest_one_hop_dist
@@ -11,6 +10,26 @@ import trimesh
 import numpy as np
 import shutil
 import json
+
+
+def get_file_number(file_name):
+    """Extracts the file number contained in the file name
+
+    Parameters
+    ----------
+    file_name: str
+        The file name
+
+    Returns
+    -------
+    int:
+        The file number contained in the file name
+    """
+    # file_name.split(".")[0] -> Without file ending
+    for elem in file_name.split(".")[0].split("_"):
+        if elem.isdigit():
+            return int(elem)
+    raise RuntimeError(f"Filename '{file_name}' has no digit.")
 
 
 def preprocess_faust(n_radial,
