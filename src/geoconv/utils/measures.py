@@ -1,4 +1,4 @@
-from src.geoconv.utils.misc import get_included_faces, normalize_mesh
+from geoconv.utils.misc import get_included_faces, normalize_mesh
 
 from matplotlib import pyplot as plt
 from multiprocessing import Pool

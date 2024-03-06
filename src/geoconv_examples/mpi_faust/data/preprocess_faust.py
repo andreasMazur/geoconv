@@ -1,7 +1,7 @@
-from src.geoconv_examples.mpi_faust.tensorflow.faust_data_set import get_file_number
-from src.geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
-from src.geoconv.preprocessing.gpc_system_group import GPCSystemGroup
-from src.geoconv.utils.misc import shuffle_mesh_vertices, normalize_mesh, find_largest_one_hop_dist
+from geoconv_examples.mpi_faust.tensorflow.faust_data_set import get_file_number
+from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
+from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
+from geoconv.utils.misc import shuffle_mesh_vertices, normalize_mesh, find_largest_one_hop_dist
 
 from pathlib import Path
 

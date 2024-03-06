@@ -1,5 +1,5 @@
-from src.geoconv.preprocessing.barycentric_coordinates import polar_to_cart
-from src.geoconv.utils.misc import get_neighbors, get_faces_of_edge, compute_vector_angle, gpc_systems_into_cart
+from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
+from geoconv.utils.misc import get_neighbors, get_faces_of_edge, compute_vector_angle, gpc_systems_into_cart
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Polygon

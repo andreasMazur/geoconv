@@ -1,7 +1,7 @@
-from src.geoconv.pytorch.layers.angular_max_pooling import AngularMaxPooling
-from src.geoconv.pytorch.layers.conv_dirac import ConvDirac
-from src.geoconv.pytorch.layers import ConvGeodesic
-from src.geoconv.pytorch.layers.conv_zero import ConvZero
+from geoconv.pytorch.layers.angular_max_pooling import AngularMaxPooling
+from geoconv.pytorch.layers.conv_dirac import ConvDirac
+from geoconv.pytorch.layers import ConvGeodesic
+from geoconv.pytorch.layers.conv_zero import ConvZero
 
 from torch import nn
 from torcheval.metrics.functional import multiclass_accuracy

@@ -1,5 +1,5 @@
-from src.geoconv.pytorch.layers.conv_geodesic import angle_distance
-from src.geoconv.pytorch.layers.conv_intrinsic import ConvIntrinsic
+from geoconv.pytorch.layers.conv_geodesic import angle_distance
+from geoconv.pytorch.layers.conv_intrinsic import ConvIntrinsic
 
 import math
 import numpy as np

@@ -1,4 +1,4 @@
-from src.geoconv.pytorch.layers.conv_intrinsic import ConvIntrinsic
+from geoconv.pytorch.layers.conv_intrinsic import ConvIntrinsic
 
 import numpy as np
 import scipy as sp

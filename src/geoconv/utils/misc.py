@@ -1,4 +1,4 @@
-from src.geoconv.preprocessing.barycentric_coordinates import polar_to_cart
+from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
 
 from tqdm import tqdm
 from scipy.linalg import blas

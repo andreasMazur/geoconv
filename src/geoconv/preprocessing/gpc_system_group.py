@@ -1,6 +1,6 @@
-from src.geoconv.preprocessing.gpc_system import GPCSystem
-from src.geoconv.preprocessing.gpc_system_utils import compute_distance_and_angle
-from src.geoconv.utils.misc import get_neighbors
+from geoconv.preprocessing.gpc_system import GPCSystem
+from geoconv.preprocessing.gpc_system_utils import compute_distance_and_angle
+from geoconv.utils.misc import get_neighbors
 
 from multiprocessing import Pool
 from tqdm import tqdm

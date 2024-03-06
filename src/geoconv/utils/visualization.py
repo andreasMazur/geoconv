@@ -1,4 +1,4 @@
-from src.geoconv.preprocessing.barycentric_coordinates import polar_to_cart
+from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
 
 from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection
