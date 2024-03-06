@@ -10,7 +10,7 @@ https://faust-leaderboard.is.tuebingen.mpg.de/
 You can call the demo, by writing a script that calls `training_demo`. E.g:
 
 ```python
-from src.geoconv_examples.mpi_faust.pytorch.training_demo import train_model
+from geoconv_examples.mpi_faust.pytorch.training_demo import train_model
 
 if __name__ == "__main__":
     rp = "/home/user/src/src/geoconv_examples/mpi_faust/data/MPI-FAUST/training/registrations"
