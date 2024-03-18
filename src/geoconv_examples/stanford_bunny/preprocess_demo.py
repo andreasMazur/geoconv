@@ -15,8 +15,7 @@ def load_bunny(path, target_triangles_amount=6000):
     Download the Stanford bunny from here:
     https://github.com/alecjacobson/common-3d-test-models/blob/master/data/stanford-bunny.zip
 
-    Unzip the .zip-file and move the 'bun_zipper.ply'-file into the folder where this demo-file
-    is saved.
+    Unzip the .zip-file and move the 'bun_zipper.ply'-file to your where your 'path' points to.
 
     Parameters
     ----------
