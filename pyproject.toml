@@ -37,7 +37,7 @@ dependencies = [
     "numpy>=1.23.0",
     "tqdm>=4.64.0",
     "trimesh>=3.12.6",
-    "pyglet>=1.5.27",
+    "pyglet<2",
     "matplotlib>=3.5.2",
     "open3d>=0.17.0",
     "networkx>=2.8.6",
