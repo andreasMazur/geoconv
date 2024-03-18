@@ -45,12 +45,6 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
                     processes=1):
     """Demonstrates and visualizes GeoConv's preprocessing at the hand of the stanford bunny.
 
-    Download the Stanford bunny from here:
-    https://github.com/alecjacobson/common-3d-test-models/blob/master/data/stanford-bunny.zip
-
-    Unzip the .zip-file and move the 'bun_zipper.ply'-file into the folder where this demo-file
-    is saved.
-
     Parameters
     ----------
     path_to_stanford_bunny: str
