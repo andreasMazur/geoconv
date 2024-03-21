@@ -8,7 +8,15 @@ import keras
 
 
 class Imcnn(keras.Model):
-    def __init__(self, signal_dim, kernel_size, template_radius, layer_conf=None, variant="dirac", *args, **kwargs):
+    def __init__(self,
+                 signal_dim,
+                 kernel_size,
+                 template_radius,
+                 layer_conf=None,
+                 variant="dirac",
+                 segmentation=False,
+                 *args,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
@@ -60,7 +68,10 @@ class Imcnn(keras.Model):
         #########
         # Output
         #########
-        self.output_dense = keras.layers.Dense(6890, name="output")
+        if segmentation:
+            self.output_dense = keras.layers.Dense(10, name="output")
+        else:
+            self.output_dense = keras.layers.Dense(6890, name="output")
 
         ###################
         # Training metrics

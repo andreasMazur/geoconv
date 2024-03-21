@@ -18,6 +18,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
             - 0 -> "train"
             - 1 -> "validation"
             - 2 -> "test"
+            - 3 -> "all meshes"
         Depending on the choice, the training-, validation or testing data set will be returned. The split is equal to
         the one given in:
         > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
@@ -31,6 +32,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
         A generator yielding the preprocessed data. I.e. the signal defined on the vertices, the barycentric coordinates
         and the ground truth correspondences.
     """
+    # Initialize and sort file names
     kernel_size = None
     dataset = np.load(path_to_zip, allow_pickle=True)
     file_names = [os.path.basename(fn) for fn in dataset.files]
@@ -39,6 +41,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
     GT = [file_name for file_name in file_names if file_name.startswith("GT")]
     SIGNAL.sort(key=get_file_number), BC.sort(key=get_file_number), GT.sort(key=get_file_number)
 
+    # Set iteration indices according to set type
     if set_type == 0:
         indices = list(range(70))
         random.shuffle(indices)
@@ -46,8 +49,12 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
         indices = range(70, 80)
     elif set_type == 2:
         indices = range(80, 100)
+    elif set_type == 3:
+        indices = range(100)
     else:
-        raise RuntimeError(f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test'].")
+        raise RuntimeError(
+            f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test', 3: 'all']."
+        )
 
     for idx in indices:
         # Read signal
@@ -95,6 +102,7 @@ def load_preprocessed_faust(path_to_zip,
             - 0 -> "train"
             - 1 -> "validation"
             - 2 -> "test"
+            - 3 -> "all meshes"
         Depending on the choice, the training-, validation or testing data set will be returned. The split is equal to
         the one given in:
         > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)

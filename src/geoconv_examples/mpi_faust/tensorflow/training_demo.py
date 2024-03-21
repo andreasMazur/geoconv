@@ -27,7 +27,8 @@ def train_model(reference_mesh_path,
                 layer_conf=None,
                 model="dirac",
                 add_noise=False,
-                reference_mesh_diameter=2.2093810817030244):
+                reference_mesh_diameter=2.2093810817030244,
+                segmentation=False):
     """Trains one singular IMCNN
 
     Parameters
@@ -76,6 +77,9 @@ def train_model(reference_mesh_path,
         [OPTIONAL] Which model variant (['dirac', 'geodesic', 'zero']) shall be tuned.
     add_noise: bool
         [OPTIONAL] Adds Gaussian noise to the mesh data.
+    segmentation: bool
+        [OPTIONAL] Whether to train the IMCNN for a shape segmentation problem instead of the shape correspondence
+        problem.
     """
     # Load data
     preprocess_zip = f"{preprocessed_data}.zip"
@@ -111,7 +115,8 @@ def train_model(reference_mesh_path,
             kernel_size=kernel_size,
             template_radius=template_radius,
             layer_conf=layer_conf,
-            variant=model
+            variant=model,
+            segmentation=segmentation
         )
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = keras.optimizers.AdamW(
