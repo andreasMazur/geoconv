@@ -1,6 +1,7 @@
 import trimesh
 import numpy as np
 import os
+import shutil
 
 
 class BoundingBox:
@@ -228,10 +229,11 @@ def compute_seg_labels(registration_path, label_path, verbose=False):
         else:
             colors.append([0, 0, 0, 255])
 
-    file_numbers = ["".join(["0" for _ in range(3 - len(f"{i}"))]) + f"{i}" for i in range(100)]
-    for fo in file_numbers[0:100:10]:
-        mesh = trimesh.load_mesh(f"{registration_path}/tr_reg_{fo}.ply")
-        pc = trimesh.PointCloud(vertices=mesh.vertices, colors=colors)
-        pc.show()
+    if verbose:
+        file_numbers = ["".join(["0" for _ in range(3 - len(f"{i}"))]) + f"{i}" for i in range(100)]
+        for fo in file_numbers[0:100:10]:
+            mesh = trimesh.load_mesh(f"{registration_path}/tr_reg_{fo}.ply")
+            pc = trimesh.PointCloud(vertices=mesh.vertices, colors=colors)
+            pc.show()
 
     return vertex_segments_relation

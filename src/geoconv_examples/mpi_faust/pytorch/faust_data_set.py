@@ -20,6 +20,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None):
             - 0 -> "train"
             - 1 -> "validation"
             - 2 -> "test"
+            - 3 -> "all meshes"
         Depending on the choice, the training-, validation or testing data set will be returned. The split is equal to
         the one given in:
         > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
@@ -50,6 +51,8 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None):
         indices = range(70, 80)
     elif set_type == 2:
         indices = range(80, 100)
+    elif set_type == 3:
+        indices = range(100)
     else:
         raise RuntimeError(f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test'].")
 
