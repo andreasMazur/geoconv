@@ -10,6 +10,6 @@ from geoconv_examples.stanford_bunny.preprocess_demo import preprocess_demo
 
 if __name__ == "__main__":
     # Example path to Stanford-bunny:
-    path_to_stanford_bunny = "/home/user/src/src/geoconv_examples/stanford_bunny/data/bun_zipper.ply"
+    path_to_stanford_bunny = "/home/user/geoconv/src/geoconv_examples/stanford_bunny/data/bun_zipper.ply"
     preprocess_demo(path_to_stanford_bunny, n_radial=5, n_angular=8, processes=1)
 ```
