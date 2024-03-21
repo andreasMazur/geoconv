@@ -1,5 +1,6 @@
 import trimesh
 import numpy as np
+import os
 
 
 class BoundingBox:
@@ -119,13 +120,22 @@ def segment_mesh(mesh, bb_configurations, verbose=False):
     return vertex_segments_relation
 
 
-def compute_seg_labels(registration_path, verbose=False):
-    """Determine the vertex labels in the context of
+def compute_seg_labels(registration_path, label_path, verbose=False):
+    """Determine the vertex labels in the context of FAUST segmentation.
+
+    The FAUST-data set has to be downloaded from: https://faust-leaderboard.is.tuebingen.mpg.de/
+
+    It was published in:
+    > [FAUST: Dataset and evaluation for 3D mesh registration.]
+    (https://www.cv-foundation.org/openaccess/content_cvpr_2014/html/Bogo_FAUST_Dataset_and_2014_CVPR_paper.html)
+    > Bogo, Federica, et al.
 
     Parameters
     ----------
     registration_path: str
         The path to the registrations folder of the FAUST dataset.
+    label_path: str
+        A path in which the segmentation labels shall be saved.
     verbose: bool
         Whether to plot the segments.
 
@@ -184,7 +194,11 @@ def compute_seg_labels(registration_path, verbose=False):
             classes.append(9)
         else:
             raise RuntimeError(f"Vertex {idx} has no class!")
-    np.save("../src/geoconv_examples/mpi_faust/data/segmentation_labels.npy", classes)
+
+    # Save labels
+    if not os.path.exists(label_path):
+        os.makedirs(label_path)
+    np.save(f"{label_path}/segmentation_labels.npy", classes)
 
     ################
     # Vertex colors
