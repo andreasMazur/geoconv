@@ -1,5 +1,7 @@
 # GeoConv
 
+<img style="float: right; margin-left: 10px; padding-top: 30px; padding-bottom: 10px; width: 200px;" src="geoconv_cartoon.png">
+
 ## Let's bend planes to curved surfaces.
 
 Intrinsic mesh CNNs [1] operate directly on object surfaces, therefore expanding the application of convolutions to
@@ -9,26 +11,15 @@ non-Euclidean data.
 That is, whether it is pre-processing your mesh files into a format that can be fed into neural networks, or the
 implementation of the **intrinsic surface convolutions** [1] themselves, GeoConv has you covered.
 
-## Background
-
-**Geo**desic **conv**olutional neural networks [2] belong to the category of Intrinsic mesh CNNs. While they portray the
-first approach, they are not the only approach to convolution on surfaces. This library implements a **general
-parametric framework** for intrinsic surface convolutions, following the ideas of [3] while paying special attention to
-the theory for Intrinsic Mesh CNNs described in [1].
-That is, while GeoConv provides a theoretically substantiated and elaborated class for the intrinsic surface convolution
-(`ConvIntrinsic`), you can easily define new ones by subclassing it. This alleviates you from thinking about the
-smallest details of every single aspect which you have to consider when you want to calculate intrinsic surface 
-convolutions and thereby allows you to focus on your ideas, that you actually want to realize.
-
 ## Implementation
+
+While this library is theoretically motivated by the work of [1], [2] and [3] it also adds additional functionalities
+such as the freedom of specifying new kernels, preprocessing algorithms like the one from [4], visualization and
+benchmark tools to check and verify your layer configuration, your pre-processing results and your trained models.
 
 GeoConv provides the base layer `ConvIntrinsic` as a Tensorflow or Pytorch layer. Both implementations are equivalent.
 Only the ways in how they are configured slightly differ due to differences regarding Tensorflow and Pytorch. Check the
 minimal example below or the `geoconv_examples`-package for how you configure Intrinsic Mesh CNNs.
-
-In addition to neural network layers, GeoConv provides you with visualization and benchmark tools to check and verify
-your layer configuration, your pre-processing results and your trained models. These tools shall help you to understand 
-what happens in every step of the pre-processing and training pipeline.
 
 ## Installation
 1. Install **[BLAS](https://netlib.org/blas/#_reference_blas_version_3_10_0)** and **[CBLAS](https://netlib.org/blas/#_cblas)**:
@@ -137,11 +128,12 @@ in the right panel.
 [1]: Bronstein, Michael M., et al. "Geometric deep learning: Grids, groups, graphs, geodesics, and gauges." 
      arXiv preprint arXiv:2104.13478 (2021).
 
-[2]: Masci, Jonathan, et al. "Geodesic convolutional neural networks on riemannian manifolds." Proceedings of the IEEE
-     international conference on computer vision workshops. 2015.
-
-[3]: Monti, Federico, et al. "Geometric deep learning on graphs and manifolds using mixture model cnns." Proceedings
+[2]: Monti, Federico, et al. "Geometric deep learning on graphs and manifolds using mixture model cnns." Proceedings
      of the IEEE conference on computer vision and pattern recognition. 2017.
+
+[3]: Poulenard, Adrien, and Maks Ovsjanikov. "Multi-directional geodesic neural networks via equivariant convolution."
+     ACM Transactions on Graphics (TOG) 37.6 (2018): 1-14.
+
 
 [4]: Melvær, Eivind Lyche, and Martin Reimers. "Geodesic polar coordinates on polygonal meshes." Computer Graphics 
      Forum. Vol. 31. No. 8. Oxford, UK: Blackwell Publishing Ltd, 2012.
