@@ -2,7 +2,7 @@
 
 ## Let's bend planes to curved surfaces.
 
-<img align="right" style="margin-left: 10px; width: 180px;" src="geoconv_cartoon_border.png">
+<img align="right" style="margin-left: 10px; width: 180px;" src="geoconv_cartoon.png">
 
 Intrinsic mesh CNNs [1] operate directly on object surfaces, therefore expanding the application of convolutions to
 non-Euclidean data.
