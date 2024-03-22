@@ -14,8 +14,8 @@ implementation of the **intrinsic surface convolutions** [1] themselves, GeoConv
 ## Implementation
 
 While this library is theoretically motivated by the work of [1], [2] and [3] it also adds additional functionalities
-such as the freedom of specifying new kernels, preprocessing algorithms like the one from [4], visualization and
-benchmark tools to check and verify your layer configuration, your pre-processing results and your trained models.
+such as the freedom of specifying new kernels, preprocessing algorithms like the one from [4], as well as visualization 
+and benchmark tools to verify your layer configuration, your pre-processing results or your trained models.
 
 GeoConv provides the base layer `ConvIntrinsic` as a Tensorflow or Pytorch layer. Both implementations are equivalent.
 Only the ways in how they are configured slightly differ due to differences regarding Tensorflow and Pytorch. Check the
