@@ -1,7 +1,5 @@
 # GeoConv
 
-<img style="float: right; margin-left: 10px; padding-top: 30px; padding-bottom: 10px; width: 200px;" src="geoconv_cartoon_border.png">
-
 ## Let's bend planes to curved surfaces.
 
 Intrinsic mesh CNNs [1] operate directly on object surfaces, therefore expanding the application of convolutions to
@@ -10,6 +8,8 @@ non-Euclidean data.
 **GeoConv** is a library that provides end-to-end tools for deep learning on surfaces.
 That is, whether it is pre-processing your mesh files into a format that can be fed into neural networks, or the
 implementation of the **intrinsic surface convolutions** [1] themselves, GeoConv has you covered.
+
+<img style="margin-left: 10px; padding-top: 30px; padding-bottom: 10px; width: 400px;" src="geoconv_cartoon_border.png">
 
 ## Implementation
 
