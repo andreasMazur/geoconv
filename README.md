@@ -1,6 +1,6 @@
 # GeoConv
 
-<img style="float: right; margin-left: 10px; padding-top: 30px; padding-bottom: 10px; width: 200px;" src="geoconv_cartoon.png">
+<img style="float: right; margin-left: 10px; padding-top: 30px; padding-bottom: 10px; width: 200px;" src="geoconv_cartoon_border.png">
 
 ## Let's bend planes to curved surfaces.
 
