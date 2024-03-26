@@ -7,7 +7,7 @@ non-Euclidean data.
 
 **GeoConv** is a library that provides end-to-end tools for deep learning on surfaces.
 That is, whether it is pre-processing your mesh files into a format that can be fed into neural networks, or the
-implementation of the **intrinsic surface convolutions** [1] themselves, GeoConv has you covered.
+implementation of the **intrinsic surface convolution** [1] itself, GeoConv has you covered.
 
 ## Background
 
