@@ -159,14 +159,15 @@ def train_model(reference_mesh_path,
         imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
 
         # Evaluate model with Princeton benchmark
-        test_dataset = load_preprocessed_faust(
-            preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=2
-        )
-        princeton_benchmark(
-            imcnn=imcnn,
-            test_dataset=test_dataset,
-            ref_mesh_path=reference_mesh_path,
-            file_name=f"{logging_dir}/model_benchmark_{exp_number}",
-            processes=processes,
-            geodesic_diameter=reference_mesh_diameter
-        )
+        if not segmentation:
+            test_dataset = load_preprocessed_faust(
+                preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=2
+            )
+            princeton_benchmark(
+                imcnn=imcnn,
+                test_dataset=test_dataset,
+                ref_mesh_path=reference_mesh_path,
+                file_name=f"{logging_dir}/model_benchmark_{exp_number}",
+                processes=processes,
+                geodesic_diameter=reference_mesh_diameter
+            )
