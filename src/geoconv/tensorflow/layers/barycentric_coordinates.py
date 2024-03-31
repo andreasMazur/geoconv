@@ -220,7 +220,6 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             #################################
             # UPDATE BARYCENTRIC COORDINATES
             #################################
-
             # Indices
             barycentric_coordinates = tf.tensor_scatter_nd_update(
                 barycentric_coordinates,
