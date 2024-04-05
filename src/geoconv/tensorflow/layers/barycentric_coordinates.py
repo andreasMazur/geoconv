@@ -47,8 +47,8 @@ def disambiguate_axes(neighborhood_vertices, eigen_vectors):
     """Disambiguate axes returned by local Eigenvalue analysis.
 
     Disambiguation follows the formal procedure as described in:
-    > [Salti, Samuele, Federico Tombari, and Luigi Di Stefano. "SHOT: Unique signatures of histograms for surface and
-     texture description.](https://doi.org/10.1016/j.cviu.2014.04.011)
+    > [SHOT: Unique signatures of histograms for surface and texture
+     description.](https://doi.org/10.1016/j.cviu.2014.04.011)
     > Salti, Samuele, Federico Tombari, and Luigi Di Stefano.
 
     Parameters
@@ -77,8 +77,8 @@ def shot_lrf(neighborhood_vertices, neighborhood_origins, radius):
     """Computes SHOT local reference frames.
 
     SHOT computation was introduced in:
-    > [Salti, Samuele, Federico Tombari, and Luigi Di Stefano. "SHOT: Unique signatures of histograms for surface and
-     texture description.](https://doi.org/10.1016/j.cviu.2014.04.011)
+    > [SHOT: Unique signatures of histograms for surface and texture
+     description.](https://doi.org/10.1016/j.cviu.2014.04.011)
     > Salti, Samuele, Federico Tombari, and Luigi Di Stefano.
 
     Parameters
