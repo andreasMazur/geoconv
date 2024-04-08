@@ -6,7 +6,7 @@ import os
 import random
 
 
-def faust_generator(path_to_zip, set_type=0, only_signal=False):
+def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinates=False):
     """Reads one element of preprocessed FAUST-geoconv_examples into memory per 'next'-call.
 
     Parameters
@@ -25,6 +25,9 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
         > Jonathan Masci and Davide Boscaini et al.
     only_signal: bool
         Return only the signal matrices. Helpful for keras.Normalization(axis=-1).adapt(data)
+    return_coordinates: bool
+        Whether to return the coordinates of the mesh vertices. Requires coordinates to be contained in preprocessed
+        dataset.
 
     Returns
     -------
@@ -39,6 +42,8 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
     SIGNAL = [file_name for file_name in file_names if file_name.startswith("SIGNAL")]
     BC = [file_name for file_name in file_names if file_name.startswith("BC")]
     GT = [file_name for file_name in file_names if file_name.startswith("GT")]
+    if return_coordinates:
+        COORD = [file_name for file_name in file_names if file_name.startswith("COORD")]
     SIGNAL.sort(key=get_file_number), BC.sort(key=get_file_number), GT.sort(key=get_file_number)
 
     # Set iteration indices according to set type
@@ -77,7 +82,11 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
         if only_signal:
             yield signal
         else:
-            yield (signal, bc), gt
+            if return_coordinates:
+                coord = tf.cast(dataset[COORD[idx]], tf.float32)
+                yield (signal, bc, coord), gt
+            else:
+                yield (signal, bc), gt
 
 
 def load_preprocessed_faust(path_to_zip,
