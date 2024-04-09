@@ -82,6 +82,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinat
         if only_signal:
             yield signal
         else:
+            # Coordinates are not required during training. However, other applications might need them.
             if return_coordinates:
                 coord = tf.cast(dataset[COORD[idx]], tf.float32)
                 yield (signal, bc, coord), gt

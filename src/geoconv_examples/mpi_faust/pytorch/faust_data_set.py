@@ -8,7 +8,7 @@ import numpy as np
 import os
 
 
-def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None):
+def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None, return_coordinates=False):
     """Reads one element of preprocessed FAUST-geoconv_examples into memory per 'next'-call.
 
     Parameters
@@ -29,6 +29,9 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None):
         Return only the signal matrices. Helpful for tensorflow.keras.Normalization(axis=-1).adapt(data)
     device:
         The device to put the data on.
+    return_coordinates: bool
+        Whether to return the coordinates of the mesh vertices. Requires coordinates to be contained in preprocessed
+        dataset.
 
     Returns
     -------
@@ -43,6 +46,8 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None):
     BC = [file_name for file_name in file_names if file_name.startswith("BC")]
     GT = [file_name for file_name in file_names if file_name.startswith("GT")]
     SIGNAL.sort(key=get_file_number), BC.sort(key=get_file_number), GT.sort(key=get_file_number)
+    if return_coordinates:
+        COORD = [file_name for file_name in file_names if file_name.startswith("COORD")]
 
     if set_type == 0:
         indices = list(range(70))
@@ -82,8 +87,12 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None):
             if only_signal:
                 yield signal
             else:
-                yield (signal, bc), gt
-
+                # Coordinates are not required during training. However, other applications might need them.
+                if return_coordinates:
+                    coord = torch.tensor(dataset[COORD[idx]], dtype=torch.float32)
+                    yield (signal, bc, coord), gt
+                else:
+                    yield (signal, bc), gt
 
 class FaustDataset(IterableDataset):
     def __init__(self, path_to_zip, set_type=0, only_signal=False, device=None):
