@@ -40,7 +40,8 @@ def preprocess_faust(n_radial,
                      geodesic_diameters_path="",
                      precomputed_gpc_radius=-1.,
                      processes=1,
-                     add_noise=False):
+                     add_noise=False,
+                     save_coordinates=False):
     """Preprocesses the FAUST-data set
 
     The FAUST-data set has to be downloaded from: https://faust-leaderboard.is.tuebingen.mpg.de/
@@ -71,6 +72,8 @@ def preprocess_faust(n_radial,
         The amount of concurrent processes that compute GPC-systems.
     add_noise: bool
         Adds Gaussian noise to the mesh data.
+    save_coordinates: bool
+        Whether to save the vertex coordinates in the dataset.
 
     Returns
     -------
@@ -106,32 +109,32 @@ def preprocess_faust(n_radial,
         reg_file_name = f"{registration_path}/{paths_reg_meshes[file_idx]}"
         normalized_v_name = f"{temp_dir}/vertices_{file_idx}.npy"
         normalized_f_name = f"{temp_dir}/faces_{file_idx}.npy"
-        reg_mesh = trimesh.load_mesh(reg_file_name)
+        normed_mesh = trimesh.load_mesh(reg_file_name)
 
         # Check whether normalized meshes already exist
         if not (Path(normalized_v_name).is_file() and Path(normalized_f_name).is_file()):
             # Center and normalize mesh to unit geodesic diameter
             if geodesic_diameters[file_idx] == -1.:
-                reg_mesh, geodesic_diameter = normalize_mesh(reg_mesh)
+                normed_mesh, geodesic_diameter = normalize_mesh(normed_mesh)
                 geodesic_diameters[file_idx] = geodesic_diameter
             else:
-                reg_mesh, geodesic_diameter = normalize_mesh(reg_mesh, geodesic_diameters[file_idx])
+                normed_mesh, geodesic_diameter = normalize_mesh(normed_mesh, geodesic_diameters[file_idx])
 
             # Add noise
             if add_noise:
-                reg_mesh.vertices = reg_mesh.vertices + np.random.normal(size=(6890, 3), loc=0, scale=0.0005)
+                normed_mesh.vertices = normed_mesh.vertices + np.random.normal(size=(6890, 3), loc=0, scale=0.0005)
 
             # Save normalized mesh
-            np.save(normalized_v_name, np.asarray(reg_mesh.vertices))
-            np.save(normalized_f_name, np.asarray(reg_mesh.faces))
+            np.save(normalized_v_name, np.asarray(normed_mesh.vertices))
+            np.save(normalized_f_name, np.asarray(normed_mesh.faces))
         else:
             vertices = np.load(normalized_v_name)
             faces = np.load(normalized_f_name)
-            reg_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+            normed_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
             print(f"Found temp-files:\n{normalized_v_name}\n{normalized_f_name}\nSkipping to next normalization..")
 
         if precomputed_gpc_radius == -1.:
-            new_candidate = find_largest_one_hop_dist(reg_mesh)
+            new_candidate = find_largest_one_hop_dist(normed_mesh)
             gpc_radius = new_candidate if new_candidate > gpc_radius else gpc_radius
     if precomputed_gpc_radius > 0:
         gpc_radius = precomputed_gpc_radius
@@ -155,28 +158,31 @@ def preprocess_faust(n_radial,
         bc_name = f"{target_dir}/BC_{paths_reg_meshes[file_idx][:-4]}.npy"
         gt_name = f"{target_dir}/GT_{paths_reg_meshes[file_idx][:-4]}.npy"
         signal_name = f"{target_dir}/SIGNAL_{paths_reg_meshes[file_idx][:-4]}.npy"
+        coords_name = f"{target_dir}/COORD_{paths_reg_meshes[file_idx][:-4]}.npy"
 
         # Load normalized mesh
         vertices = np.load(f"{temp_dir}/vertices_{file_idx}.npy")
         faces = np.load(f"{temp_dir}/faces_{file_idx}.npy")
-        reg_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+        normed_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
 
         # Check whether preprocessed files already exist
         if not (Path(bc_name).is_file() and Path(gt_name).is_file() and Path(signal_name).is_file()):
             #######################################################
             # Shuffle vertices of query mesh and save ground truth
             #######################################################
-            reg_mesh, _, ground_truth = shuffle_mesh_vertices(reg_mesh)
+            normed_mesh, _, ground_truth = shuffle_mesh_vertices(normed_mesh)
             np.save(gt_name, ground_truth)
+            if save_coordinates:
+                np.save(coords_name, normed_mesh.vertices)
 
             ####################
             # Store mesh signal
             ####################
             if shot:
-                radius = find_largest_one_hop_dist(reg_mesh) * 2.5
+                radius = find_largest_one_hop_dist(normed_mesh) * 2.5
                 shot_descrs = pyshot.get_descriptors(
-                    reg_mesh.vertices,
-                    reg_mesh.faces,
+                    normed_mesh.vertices,
+                    normed_mesh.faces,
                     radius=radius,
                     local_rf_radius=radius,
                     min_neighbors=10,
@@ -187,12 +193,12 @@ def preprocess_faust(n_radial,
                 )
                 np.save(signal_name, shot_descrs)
             else:
-                np.save(signal_name, np.asarray(reg_mesh.vertices))
+                np.save(signal_name, np.asarray(normed_mesh.vertices))
 
             ############################
             # Compute local GPC-systems
             ############################
-            gpc_systems = GPCSystemGroup(reg_mesh, processes=processes)
+            gpc_systems = GPCSystemGroup(normed_mesh, processes=processes)
             gpc_systems.compute(u_max=gpc_radius)
 
             ##################################

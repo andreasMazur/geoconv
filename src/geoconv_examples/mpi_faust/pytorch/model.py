@@ -44,7 +44,14 @@ class Normalization(nn.Module):
 
 
 class Imcnn(nn.Module):
-    def __init__(self, signal_dim, kernel_size, template_radius, adapt_data, layer_conf=None, variant="dirac"):
+    def __init__(self,
+                 signal_dim,
+                 kernel_size,
+                 template_radius,
+                 adapt_data,
+                 layer_conf=None,
+                 variant="dirac",
+                 segmentation=False):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
@@ -100,7 +107,10 @@ class Imcnn(nn.Module):
         #########
         # Output
         #########
-        self.output_dense = nn.Linear(in_features=self.output_dims[-1], out_features=6890)
+        if segmentation:
+            self.output_dense = nn.Linear(in_features=self.output_dims[-1], out_features=10)
+        else:
+            self.output_dense = nn.Linear(in_features=self.output_dims[-1], out_features=6890)
 
     def forward(self, inputs):
         #################

@@ -27,7 +27,8 @@ def train_model(reference_mesh_path,
                 model="dirac",
                 add_noise=False,
                 reference_mesh_diameter=2.2093810817030244,
-                segmentation=False):
+                segmentation=False,
+                save_coordinates=False):
     """Trains one singular IMCNN
 
     Parameters
@@ -77,6 +78,9 @@ def train_model(reference_mesh_path,
     segmentation: bool
         [OPTIONAL] Whether to train the IMCNN for a shape segmentation problem instead of the shape correspondence
         problem.
+    save_coordinates: bool
+        [OPTIONAL] Whether to save the vertex coordinates in the dataset.
+
     """
     # Load data
     preprocess_zip = f"{preprocessed_data}.zip"
@@ -90,7 +94,8 @@ def train_model(reference_mesh_path,
             geodesic_diameters_path=geodesic_diameters_path,
             precomputed_gpc_radius=precomputed_gpc_radius,
             processes=processes,
-            add_noise=add_noise
+            add_noise=add_noise,
+            save_coordinates=save_coordinates
         )
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
