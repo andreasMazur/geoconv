@@ -1,4 +1,3 @@
-import trimesh
 from geoconv_examples.mpi_faust.tensorflow.faust_data_set import faust_generator
 
 from tqdm import tqdm
@@ -8,7 +7,7 @@ import os
 import shutil
 
 
-def sc_to_seg_converter(dataset_path, new_dataset_path, segmentation_labels_path, registration_path):
+def sc_to_seg_converter(dataset_path, new_dataset_path, segmentation_labels_path):
     new_dataset_path = os.path.normpath(new_dataset_path)
     if not os.path.exists(new_dataset_path):
         os.makedirs(new_dataset_path)
@@ -21,12 +20,10 @@ def sc_to_seg_converter(dataset_path, new_dataset_path, segmentation_labels_path
         signal = np.array(signal)
         bc = np.array(bc)
         gt_seg = segmentation_labels[np.array(gt)]
-        mesh = trimesh.load_mesh(f"{registration_path}/tr_reg_{file_numbers[idx]}.ply")
 
         np.save(f"{new_dataset_path}/SIGNAL_tr_reg_{file_numbers[idx]}.npy", signal)
         np.save(f"{new_dataset_path}/BC_tr_reg_{file_numbers[idx]}.npy", bc)
         np.save(f"{new_dataset_path}/GT_tr_reg_{file_numbers[idx]}.npy", gt_seg)
-        np.save(f"{new_dataset_path}/COORD_tr_reg_{file_numbers[idx]}.npy", mesh.vertices[gt])
 
     print("Compress converted dataset...")
     shutil.make_archive(new_dataset_path, "zip", new_dataset_path)

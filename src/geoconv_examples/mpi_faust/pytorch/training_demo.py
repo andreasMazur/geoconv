@@ -14,7 +14,6 @@ import os
 
 
 def train_model(reference_mesh_path,
-                signal_dim,
                 preprocessed_data,
                 n_radial=5,
                 n_angular=8,
@@ -38,8 +37,6 @@ def train_model(reference_mesh_path,
     ----------
     reference_mesh_path: str
         The path to the reference mesh file.
-    signal_dim: int
-        The dimensionality of the mesh signal
     preprocessed_data: str
         The path to the pre-processed data. If you have not pre-processed your data so far and saved it under the given
         path, this script will execute pre-processing for you. For this to work, you need to pass the arguments which
@@ -103,6 +100,9 @@ def train_model(reference_mesh_path,
         )
     else:
         print(f"Found preprocess-results: '{preprocess_zip}'. Skipping preprocessing.")
+
+    # Set signal dim
+    signal_dim = 544 if compute_shot else 3
 
     # Check for GPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

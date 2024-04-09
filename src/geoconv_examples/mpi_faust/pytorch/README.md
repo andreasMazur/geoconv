@@ -17,7 +17,6 @@ if __name__ == "__main__":
     R = 0.036993286759038686
     train_model(
         reference_mesh_path=f"{rp}/tr_reg_000.ply",
-        signal_dim=544,  # Set it to 3 if `compute_shot=False`
         preprocessed_data="/home/user/geoconv/src/geoconv_examples/mpi_faust/data/preprocessed_dataset_5_8",
         ### PRE-PROCESSING ###
         n_radial=5,
