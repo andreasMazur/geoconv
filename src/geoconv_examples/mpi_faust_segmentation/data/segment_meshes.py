@@ -4,7 +4,7 @@ import os
 
 
 class BoundingBox:
-    """A class for bounding boxes.
+    """A class for axis-aligned bounding boxes.
 
     Attributes
     ----------
