@@ -11,7 +11,6 @@ if __name__ == "__main__":
     # Configure paths
     ##################
     registration_path = "/home/user/datasets/MPI-FAUST/training/registrations"
-    geodesic_diameters_path = "/home/user/geoconv/src/geoconv_examples/mpi_faust/data/geodesic_diameters.npy"
     labels_path = "./segmentation_labels"  # Where shall the segmentation labels be stored?
     old_dataset_path = "/home/user/datasets/preprocessed_faust_5_8.zip"  # Where is the preprocessed FAUST dataset?
     new_dataset_path = "/home/user/datasets/preprocessed_faust_5_8_seg"  # Where shall the dataset for segmenting be stored?
@@ -27,15 +26,13 @@ if __name__ == "__main__":
     R = 0.036993286759038686
     train_model(
         reference_mesh_path=f"{registration_path}/tr_reg_000.ply",
-        signal_dim=544,  # Set it to 3 if `compute_shot=False`
         preprocessed_data=new_dataset_path,
         ### PRE-PROCESSING ###
         n_radial=5,
         n_angular=8,
         registration_path=registration_path,
-        compute_shot=True,
         # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
-        geodesic_diameters_path=geodesic_diameters_path,
+        compute_shot=True,
         precomputed_gpc_radius=R,
         ### GENERAL ###
         template_radius=R * 0.75,

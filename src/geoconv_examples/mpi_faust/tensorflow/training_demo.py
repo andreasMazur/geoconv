@@ -16,7 +16,6 @@ def train_model(reference_mesh_path,
                 n_angular=8,
                 registration_path="",
                 compute_shot=True,
-                geodesic_diameters_path="",
                 precomputed_gpc_radius=0.037,
                 template_radius=0.027744965069279016,
                 logging_dir="./imcnn_training_logs",
@@ -52,8 +51,6 @@ def train_model(reference_mesh_path,
         [REQUIRED FOR PRE-PROCESSING] The path of the training-registration files in the FAUST data set.
     compute_shot: bool
         [REQUIRED FOR PRE-PROCESSING] Whether to compute SHOT-descriptors during preprocessing as the mesh signal
-    geodesic_diameters_path: str
-        [REQUIRED FOR PRE-PROCESSING] The path to pre-computed geodesic diameters for the FAUST-registration meshes.
     precomputed_gpc_radius: float
         [REQUIRED FOR PRE-PROCESSING] The GPC-system radius to use for GPC-system computation. If not provided, the
         script will calculate it.
@@ -91,7 +88,6 @@ def train_model(reference_mesh_path,
             target_dir=preprocess_zip[:-4],
             registration_path=registration_path,
             shot=compute_shot,
-            geodesic_diameters_path=geodesic_diameters_path,
             precomputed_gpc_radius=precomputed_gpc_radius,
             processes=processes,
             add_noise=add_noise,

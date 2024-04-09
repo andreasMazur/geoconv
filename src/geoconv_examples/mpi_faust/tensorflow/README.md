@@ -22,9 +22,8 @@ if __name__ == "__main__":
         n_radial=5,
         n_angular=8,
         registration_path=rp,
-        compute_shot=True,
         # Make sure you have installed: https://github.com/uhlmanngroup/pyshot (do not use `pip install pyshot`!)
-        geodesic_diameters_path="/home/user/geoconv/src/geoconv_examples/mpi_faust/data/geodesic_diameters.npy",
+        compute_shot=True,
         precomputed_gpc_radius=R,
         ### GENERAL ###
         template_radius=R * 0.75,

@@ -1,6 +1,7 @@
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.utils.misc import shuffle_mesh_vertices, normalize_mesh, find_largest_one_hop_dist
+from src.geoconv_examples.mpi_faust.data.geodesic_diameters import GEODESIC_DIAMETERS
 
 from pathlib import Path
 
@@ -37,7 +38,6 @@ def preprocess_faust(n_radial,
                      target_dir,
                      registration_path,
                      shot=True,
-                     geodesic_diameters_path="",
                      precomputed_gpc_radius=-1.,
                      processes=1,
                      add_noise=False,
@@ -64,8 +64,6 @@ def preprocess_faust(n_radial,
         The path to the training-registration meshes of the FAUST-data set.
     shot: bool
         Whether to compute SHOT-descriptors as mesh signal.
-    geodesic_diameters_path: str
-        Path, which points to *.npy file, that contains the geodesic diameters for all the meshes in the dataset.
     precomputed_gpc_radius: float
         The GPC-system radius to use for GPC-system computation. If not provided, the script will calculate it.
     processes: int
@@ -95,13 +93,6 @@ def preprocess_faust(n_radial,
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
 
-    # Check whether geodesic diameters have already been computed
-    if Path(geodesic_diameters_path).is_file():
-        geodesic_diameters = np.load(geodesic_diameters_path)
-        print(f"\n\nLoaded geodesic diameters from: '{geodesic_diameters_path}'\n\n")
-    else:
-        geodesic_diameters = np.full(len(paths_reg_meshes), -1.)
-
     # Determine GPC-system-radius
     gpc_radius = .0
     for file_idx in range(len(paths_reg_meshes)):
@@ -114,11 +105,7 @@ def preprocess_faust(n_radial,
         # Check whether normalized meshes already exist
         if not (Path(normalized_v_name).is_file() and Path(normalized_f_name).is_file()):
             # Center and normalize mesh to unit geodesic diameter
-            if geodesic_diameters[file_idx] == -1.:
-                normed_mesh, geodesic_diameter = normalize_mesh(normed_mesh)
-                geodesic_diameters[file_idx] = geodesic_diameter
-            else:
-                normed_mesh, geodesic_diameter = normalize_mesh(normed_mesh, geodesic_diameters[file_idx])
+            normed_mesh, geodesic_diameter = normalize_mesh(normed_mesh, GEODESIC_DIAMETERS[file_idx])
 
             # Add noise
             if add_noise:
@@ -142,11 +129,6 @@ def preprocess_faust(n_radial,
         gpc_radius = gpc_radius + gpc_radius * .1
     kernel_radius = gpc_radius * 0.75
     print(f"GPC-system radius: {gpc_radius:.3f} | Kernel radius: {kernel_radius:.3f}")
-
-    # Save computed geodesic diameters
-    if not Path(geodesic_diameters_path).is_file():
-        geodesic_diameters_name = f"{target_dir}/geodesic_diameters.npy"
-        np.save(geodesic_diameters_name, geodesic_diameters)
 
     # Log GPC-system radius and kernel radius
     properties_file = open(f"{target_dir}/gpc_kernel_properties.json", "w")
