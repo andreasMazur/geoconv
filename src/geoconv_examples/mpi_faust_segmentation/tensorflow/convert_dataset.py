@@ -8,6 +8,17 @@ import shutil
 
 
 def sc_to_seg_converter(dataset_path, new_dataset_path, segmentation_labels_path):
+    """Converts the ground truth labels of the shape-correspondence problem to segmentation labels.
+
+    Parameters
+    ----------
+    dataset_path: str
+        Path to the shape-correspondence dataset.
+    new_dataset_path: str
+        Path to where the segmentation dataset shall be stored.
+    segmentation_labels_path:
+        Path to where the segmentation-labels-array is stored.
+    """
     new_dataset_path = os.path.normpath(new_dataset_path)
     if not os.path.exists(new_dataset_path):
         os.makedirs(new_dataset_path)

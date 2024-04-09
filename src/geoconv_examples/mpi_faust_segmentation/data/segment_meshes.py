@@ -5,6 +5,20 @@ import shutil
 
 
 class BoundingBox:
+    """A class for bounding boxes.
+
+    Attributes
+    ----------
+    anchor: tuple
+        The anchor point of the bounding box (low, left, deep) corner.
+    width: float
+        The width of the bounding box.
+    height: float
+        The height of the bounding box.
+    depth: float
+        The depth of the bounding box.
+    """
+
     def __init__(self, anchor, width, height, depth):
         self.anchor = anchor
         self.width = width
@@ -21,12 +35,31 @@ class BoundingBox:
         self.z_max = anchor[2] + depth
 
     def is_within(self, query_point):
+        """Checks whether the given query point is within the bounding box.
+
+        Parameters
+        ----------
+        query_point: np.ndarray
+            The point to check.
+
+        Returns
+        -------
+        bool:
+            Whether the query-point is within the bounding box.
+        """
         x_okay = self.x_min <= query_point[0] <= self.x_max
         y_okay = self.y_min <= query_point[1] <= self.y_max
         z_okay = self.z_min <= query_point[2] <= self.z_max
         return x_okay and y_okay and z_okay
 
     def corners(self):
+        """Returns the 3D coordinates of the bounding box.
+
+        Returns
+        -------
+        np.ndarray:
+            Returns the 3D coordinates of the bounding box.
+        """
         return np.array([
             [self.x_min, self.y_min, self.z_min],  # lower left
             [self.x_max, self.y_min, self.z_min],  # lower right
