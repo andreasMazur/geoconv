@@ -94,6 +94,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None, ret
                 else:
                     yield (signal, bc), gt
 
+
 class FaustDataset(IterableDataset):
     def __init__(self, path_to_zip, set_type=0, only_signal=False, device=None):
         self.only_signal = only_signal
