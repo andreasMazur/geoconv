@@ -27,7 +27,7 @@ def train_model(reference_mesh_path,
                 add_noise=False,
                 reference_mesh_diameter=2.2093810817030244,
                 segmentation=False,
-                save_coordinates=False):
+                save_coordinates=True):
     """Trains one singular IMCNN
 
     Parameters
