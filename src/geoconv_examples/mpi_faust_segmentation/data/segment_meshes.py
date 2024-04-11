@@ -153,7 +153,7 @@ def segment_mesh(mesh, bb_configurations, verbose=False):
     return vertex_segments_relation
 
 
-def compute_seg_labels(registration_path, label_path, verbose=False):
+def compute_seg_labels(registration_path, verbose=False):
     """Determine the vertex labels in the context of FAUST segmentation.
 
     The FAUST-data set has to be downloaded from: https://faust-leaderboard.is.tuebingen.mpg.de/
@@ -167,8 +167,6 @@ def compute_seg_labels(registration_path, label_path, verbose=False):
     ----------
     registration_path: str
         The path to the registrations folder of the FAUST dataset.
-    label_path: str
-        A path in which the segmentation labels shall be saved.
     verbose: bool
         Whether to plot the segments.
 
@@ -232,44 +230,39 @@ def compute_seg_labels(registration_path, label_path, verbose=False):
         else:
             raise RuntimeError(f"Vertex {idx} has no class!")
 
-    # Save labels
-    if not os.path.exists(label_path):
-        os.makedirs(label_path)
-    np.save(f"{label_path}/segmentation_labels.npy", classes)
-
-    ################
-    # Vertex colors
-    ################
-    colors = []
-    for idx, _ in enumerate(mesh.vertices):
-        if idx in vertex_segments_relation["right_arm"]:
-            colors.append([255, 0, 0, 255])
-        elif idx in vertex_segments_relation["left_arm"]:
-            colors.append([0, 255, 0, 255])
-        elif idx in vertex_segments_relation["torso"]:
-            colors.append([0, 0, 255, 255])
-        elif idx in vertex_segments_relation["head"]:
-            colors.append([255, 255, 0, 255])
-        elif idx in vertex_segments_relation["left_foot"]:
-            colors.append([100, 255, 0, 255])
-        elif idx in vertex_segments_relation["right_foot"]:
-            colors.append([100, 0, 255, 255])
-        elif idx in vertex_segments_relation["left_leg"]:
-            colors.append([255, 0, 255, 255])
-        elif idx in vertex_segments_relation["right_leg"]:
-            colors.append([0, 255, 255, 255])
-        elif idx in vertex_segments_relation["left_hand"]:
-            colors.append([255, 255, 255, 255])
-        elif idx in vertex_segments_relation["right_hand"]:
-            colors.append([100, 0, 0, 255])
-        else:
-            colors.append([0, 0, 0, 255])
-
     if verbose:
+        ################
+        # Vertex colors
+        ################
+        colors = []
+        for idx, _ in enumerate(mesh.vertices):
+            if idx in vertex_segments_relation["right_arm"]:
+                colors.append([255, 0, 0, 255])
+            elif idx in vertex_segments_relation["left_arm"]:
+                colors.append([0, 255, 0, 255])
+            elif idx in vertex_segments_relation["torso"]:
+                colors.append([0, 0, 255, 255])
+            elif idx in vertex_segments_relation["head"]:
+                colors.append([255, 255, 0, 255])
+            elif idx in vertex_segments_relation["left_foot"]:
+                colors.append([100, 255, 0, 255])
+            elif idx in vertex_segments_relation["right_foot"]:
+                colors.append([100, 0, 255, 255])
+            elif idx in vertex_segments_relation["left_leg"]:
+                colors.append([255, 0, 255, 255])
+            elif idx in vertex_segments_relation["right_leg"]:
+                colors.append([0, 255, 255, 255])
+            elif idx in vertex_segments_relation["left_hand"]:
+                colors.append([255, 255, 255, 255])
+            elif idx in vertex_segments_relation["right_hand"]:
+                colors.append([100, 0, 0, 255])
+            else:
+                colors.append([0, 0, 0, 255])
+
         file_numbers = ["".join(["0" for _ in range(3 - len(f"{i}"))]) + f"{i}" for i in range(100)]
         for fo in file_numbers[0:100:10]:
             mesh = trimesh.load_mesh(f"{registration_path}/tr_reg_{fo}.ply")
             pc = trimesh.PointCloud(vertices=mesh.vertices, colors=colors)
             pc.show()
 
-    return vertex_segments_relation
+    return np.array(classes)

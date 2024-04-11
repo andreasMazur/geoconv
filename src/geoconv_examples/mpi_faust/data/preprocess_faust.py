@@ -97,10 +97,10 @@ def preprocess_faust(n_radial,
     gpc_radius = .0
     for file_idx in range(len(paths_reg_meshes)):
         # Define file names for normalized vertices and faces (=temp.-meshes)
-        reg_file_name = f"{registration_path}/{paths_reg_meshes[file_idx]}"
+        mesh_file_name = f"{registration_path}/{paths_reg_meshes[file_idx]}"
         normalized_v_name = f"{temp_dir}/vertices_{file_idx}.npy"
         normalized_f_name = f"{temp_dir}/faces_{file_idx}.npy"
-        normed_mesh = trimesh.load_mesh(reg_file_name)
+        normed_mesh = trimesh.load_mesh(mesh_file_name)
 
         # Check whether normalized meshes already exist
         if not (Path(normalized_v_name).is_file() and Path(normalized_f_name).is_file()):
