@@ -65,7 +65,7 @@ def interactive_seg_correction(shape_idx, coordinates, ground_truth, query_idx, 
 
                 # Write class label given by user to file
                 with open(file_name, "a") as f:
-                    f.write(str(shape_idx) + "," + str(query_idx) + "," + real_class)
+                    f.write(str(shape_idx) + "," + str(query_idx) + "," + real_class + "\n")
             elif prompt_1 == "n":
                 print("okay :(")
 

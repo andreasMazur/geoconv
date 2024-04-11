@@ -155,7 +155,7 @@ def preprocess_faust(n_radial,
             normed_mesh, _, ground_truth = shuffle_mesh_vertices(normed_mesh)
             np.save(gt_name, ground_truth)
             if save_coordinates:
-                np.save(coords_name, normed_mesh.vertices)
+                np.save(coords_name, np.asarray(normed_mesh.vertices))
 
             ####################
             # Store mesh signal
