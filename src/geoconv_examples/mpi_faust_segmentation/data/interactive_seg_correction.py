@@ -18,6 +18,8 @@ def interactive_seg_correction(shape_idx, coordinates, ground_truth, query_idx, 
     file_name: str
         The file name in which to write corrections.
     """
+    coordinates, ground_truth = np.array(coordinates), np.array(ground_truth)
+
     # Define class names
     class_dict = {
         0: "right_arm",

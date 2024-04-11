@@ -204,29 +204,30 @@ def shuffle_mesh_vertices(mesh, given_shuffle=None):
         The same mesh but with a different vertices order. Additionally, two arrays are returned. Both contain vertex
         indices. Given a vertex index 'idx', it holds that:
 
-        mesh.vertices[idx] == shuffled_mesh.vertices[shuffle_map[idx]] == mesh.vertices[ground_truth[shuffle_map[idx]]]
+        mesh.vertices == shuffled_mesh.vertices[back_permutation]
+        np.arange[mesh.vertices.shape[0] == permutation[back_permutation] == back_permutation[permutation]
     """
-    ground_truth = np.arange(mesh.vertices.shape[0])
+    permutation = np.arange(mesh.vertices.shape[0])
     if given_shuffle is None:
-        np.random.shuffle(ground_truth)
+        np.random.shuffle(permutation)
     else:
-        ground_truth = np.copy(given_shuffle)
-    mesh_vertices = np.copy(mesh.vertices)[ground_truth]
+        permutation = np.copy(given_shuffle)
+    mesh_vertices = np.copy(mesh.vertices)[permutation]
 
-    shuffle_map = []
+    back_permutation = []
     for vertex_idx in range(mesh.vertices.shape[0]):
-        shuffle_map.append(np.where(ground_truth == vertex_idx)[0])
-    shuffle_map = np.array(shuffle_map).flatten()
+        back_permutation.append(np.where(permutation == vertex_idx)[0])
+    back_permutation = np.array(back_permutation).flatten()
 
     mesh_faces = np.copy(mesh.faces)
     for face_idx in range(mesh.faces.shape[0]):
-        mesh_faces[face_idx, 0] = shuffle_map[mesh.faces[face_idx, 0]]
-        mesh_faces[face_idx, 1] = shuffle_map[mesh.faces[face_idx, 1]]
-        mesh_faces[face_idx, 2] = shuffle_map[mesh.faces[face_idx, 2]]
+        mesh_faces[face_idx, 0] = back_permutation[mesh.faces[face_idx, 0]]
+        mesh_faces[face_idx, 1] = back_permutation[mesh.faces[face_idx, 1]]
+        mesh_faces[face_idx, 2] = back_permutation[mesh.faces[face_idx, 2]]
 
     shuffled_mesh = trimesh.Trimesh(vertices=mesh_vertices, faces=mesh_faces)
 
-    return shuffled_mesh, shuffle_map, ground_truth
+    return shuffled_mesh, back_permutation, permutation
 
 
 def get_included_faces(object_mesh, gpc_system):
