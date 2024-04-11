@@ -205,7 +205,7 @@ def shuffle_mesh_vertices(mesh, given_shuffle=None):
         indices. Given a vertex index 'idx', it holds that:
 
         mesh.vertices == shuffled_mesh.vertices[back_permutation]
-        np.arange[mesh.vertices.shape[0] == permutation[back_permutation] == back_permutation[permutation]
+        np.arange(permutation.shape[0]) == permutation[back_permutation] == back_permutation[permutation]
     """
     permutation = np.arange(mesh.vertices.shape[0])
     if given_shuffle is None:
@@ -214,10 +214,7 @@ def shuffle_mesh_vertices(mesh, given_shuffle=None):
         permutation = np.copy(given_shuffle)
     mesh_vertices = np.copy(mesh.vertices)[permutation]
 
-    back_permutation = []
-    for vertex_idx in range(mesh.vertices.shape[0]):
-        back_permutation.append(np.where(permutation == vertex_idx)[0])
-    back_permutation = np.array(back_permutation).flatten()
+    back_permutation = compute_back_permutation(permutation)
 
     mesh_faces = np.copy(mesh.faces)
     for face_idx in range(mesh.faces.shape[0]):
@@ -228,6 +225,13 @@ def shuffle_mesh_vertices(mesh, given_shuffle=None):
     shuffled_mesh = trimesh.Trimesh(vertices=mesh_vertices, faces=mesh_faces)
 
     return shuffled_mesh, back_permutation, permutation
+
+
+def compute_back_permutation(permutation):
+    back_permutation = []
+    for idx in range(permutation.shape[0]):
+        back_permutation.append(np.where(permutation == idx)[0])
+    return np.array(back_permutation).flatten()
 
 
 def get_included_faces(object_mesh, gpc_system):
