@@ -45,6 +45,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinat
     SIGNAL.sort(key=get_file_number), BC.sort(key=get_file_number), GT.sort(key=get_file_number)
     if return_coordinates:
         COORD = [file_name for file_name in file_names if file_name.startswith("COORD")]
+        COORD.sort(key=get_file_number)
 
     # Set iteration indices according to set type
     if set_type == 0:
