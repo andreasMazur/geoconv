@@ -3,15 +3,19 @@
 ```python
 from geoconv_examples.mpi_faust.tensorflow.faust_data_set import faust_generator
 from geoconv_examples.mpi_faust_segmentation.deepview.DeepView import DeepViewSubClass
-
-import numpy as np
 from geoconv_examples.mpi_faust_segmentation.deepview.viz_imcnn import load_model, get_embeddings, \
     interactive_seg_correction, pred_wrapper
 
 
+import numpy as np
+import matplotlib as mpl
+
 if __name__ == "__main__":
-    model = load_model(model_path="path/to/model")
-    dataset_path = "path/to/dataset"
+    mpl.use("Qt5Agg")
+    model = load_model(
+        model_path="/home/iroberts/projects/geo_deepview/tensorflow_seg_demo_logging/saved_imcnn_1",  # TODO
+    )
+    dataset_path = "/home/iroberts/projects/geo_deepview/deepview_geoconv.zip"
     dataset = faust_generator(dataset_path, set_type=3, only_signal=False, return_coordinates=True)
 
     shape_idx = 0
@@ -20,21 +24,25 @@ if __name__ == "__main__":
     X, Y, coord = get_embeddings(dataset, model, shape=shape_idx)
     coord = coord[0]
 
-    X1 = np.array(X[0])[:100]
-    Y1 = np.array(Y[:100])
+    limit = 6890
+    X1 = np.array(X[0])[:limit]
+    Y1 = np.array(Y[:limit])
 
-    coordinates = np.array(coord[:100])
+    coordinates = np.array(coord[:limit])
 
     # Determine segments by binning the vertices by their class labels
     all_segments = [coordinates[np.where(Y1 == x)[0]] for x in range(10)]
 
     # loading the values needed for visualizing the mesh segment
-    dv_show_seg = lambda vertex_idx, point, pred, gt: interactive_seg_correction(
+    dv_show_seg = lambda vertex_idx, pred, gt, cmap: interactive_seg_correction(
         shape_idx=shape_idx,
         coordinates=coordinates,
         all_segments=all_segments,
         ground_truth=gt,
-        query_idx=vertex_idx,
+        query_idxs=vertex_idx,
+        idxs_preds=pred,
+        idxs_labels=gt,
+        cmap=cmap,
         file_name="corrected_labels.csv"
     )
 
@@ -67,4 +75,5 @@ if __name__ == "__main__":
     imcnn_deepview.add_samples(X1, Y1)
 
     imcnn_deepview.show()
+
 ```

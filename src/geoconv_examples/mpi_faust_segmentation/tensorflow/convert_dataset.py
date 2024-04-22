@@ -4,6 +4,10 @@ from geoconv_examples.mpi_faust_segmentation.data.segment_meshes import compute_
 import os
 import numpy as np
 import shutil
+import sys
+
+
+LOADING_CHARS = ["|", "/", "-", "\\"]
 
 
 def convert_dataset(registration_path, old_dataset_path, new_dataset_path):
@@ -22,6 +26,8 @@ def convert_dataset(registration_path, old_dataset_path, new_dataset_path):
     )
 
     for idx, ((signal, bc, coord), gt) in enumerate(dataset):
+        sys.stdout.write(f"\rTranslating ground truth labels.. {LOADING_CHARS[idx % len(LOADING_CHARS)]}")
+        
         signal, bc, coord, gt = np.array(signal), np.array(bc), np.array(coord), np.array(gt)
         gt_mesh_segmentation = vertex_segments_relation[gt]
 
@@ -32,7 +38,7 @@ def convert_dataset(registration_path, old_dataset_path, new_dataset_path):
         np.save(f"{new_dataset_path}/GT_tr_reg_{file_number}.npy", gt_mesh_segmentation)
         np.save(f"{new_dataset_path}/COORD_tr_reg_{file_number}.npy", coord)
 
-    print("Compress converted dataset...")
+    print("\nCompress converted dataset...")
     shutil.make_archive(new_dataset_path, "zip", new_dataset_path)
     shutil.rmtree(new_dataset_path)
     print("Converting finished.")

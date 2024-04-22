@@ -27,7 +27,9 @@ def train_model(reference_mesh_path,
                 add_noise=False,
                 reference_mesh_diameter=2.2093810817030244,
                 segmentation=False,
-                save_coordinates=True):
+                save_coordinates=True,
+                epochs=200,
+                seeds=None):
     """Trains one singular IMCNN
 
     Parameters
@@ -77,7 +79,11 @@ def train_model(reference_mesh_path,
         problem.
     save_coordinates: bool
         [OPTIONAL] Whether to save the vertex coordinates in the dataset.
-
+    epochs: int
+        [OPTIONAL] Maximal amount of training epochs.
+    seeds: list
+        [OPTIONAL] List of integers that represent seeds to be used for the experiments. The amount of seeds also
+        determine how often the experiment is repeated.
     """
     # Load data
     preprocess_zip = f"{preprocessed_data}.zip"
@@ -99,7 +105,10 @@ def train_model(reference_mesh_path,
     # Set signal dim
     signal_dim = 544 if compute_shot else 3
 
-    seeds = [10, 20, 30, 40, 50]
+    # Set seeds
+    if seeds is None:
+        seeds = [10, 20, 30, 40, 50]
+
     for exp_number in range(len(seeds)):
         # Set seeds
         tf.random.set_seed(seeds[exp_number])
@@ -156,7 +165,7 @@ def train_model(reference_mesh_path,
         )
 
         # Train and save model
-        imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=val_data, epochs=200)
+        imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=val_data, epochs=epochs)
         imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
 
         # Evaluate model with Princeton benchmark
