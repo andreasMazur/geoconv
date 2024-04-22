@@ -1,5 +1,5 @@
+from geoconv_examples.mpi_faust_segmentation.deepview.select_collection import SelectFromCollection
 from deepview.DeepView import DeepView
-from .viz_imcnn import SelectFromCollection
 
 import numpy as np
 import matplotlib as mpl
@@ -96,9 +96,22 @@ class DeepViewSubClass(DeepView):
 
         self.sample_plots = []
 
+        class_dict = {
+            0: "right_arm",
+            1: "left_arm",
+            2: "torso",
+            3: "head",
+            4: "left_foot",
+            5: "right_foot",
+            6: "left_leg",
+            7: "right_leg",
+            8: "left_hand",
+            9: "right_hand"
+        }
+
         for c in range(self.n_classes):
             color = self.cmap(c / (self.n_classes - 1))
-            plot = self.ax.plot([], [], 'o', label=self.classes[c],
+            plot = self.ax.plot([], [], 'o', label=class_dict[c],
                                 color=color, zorder=2, picker=mpl.rcParams['lines.markersize'])
             self.sample_plots.append(plot[0])
 
@@ -109,20 +122,10 @@ class DeepViewSubClass(DeepView):
             self.sample_plots.append(plot[0])
 
         # set the mouse-event listeners
-        # self.fig.canvas.mpl_connect("key_press_event", self.show_sample)
-
-        # self.fig.canvas.mpl_connect('pick_event', self.show_sample)
         self.fig.canvas.mpl_connect('key_press_event', self.show_sample)
         self.disable_synth = False
         self.ax.legend()
 
-    # def accept(self, event, selector):
-    #     if event.key == "enter":
-    #         print("Selected points:")
-    #         print(selector.xys[selector.ind])
-    #         selector.disconnect()
-    #         # seldax.set_title("")
-    #         self.fig.canvas.draw()
 
     def show_sample(self, event):
         '''
@@ -136,11 +139,6 @@ class DeepViewSubClass(DeepView):
         # concrete sample was clicked, otherwise
         # show the according synthesised image
 
-
-        # print(event)
-        # print(event.ind)
-
-        # if hasattr(event, 'artist'):
         if event.key == "enter":
             indices = self.selector.ind
             sample, p, t = self.get_artist_sample(indices)
@@ -165,25 +163,11 @@ class DeepViewSubClass(DeepView):
             self.disable_synth = False
             return
 
-        is_image = self.is_image(sample)
-        rank_perm = np.roll(range(len(sample.shape)), -1)
-        sample_T = sample.transpose(rank_perm)
-        is_transformed_image = self.is_image(sample_T)
-
         if self.data_viz is not None:
             self.data_viz(sample, p, t, self.cmap)
             return
-        # try to show the image, if the shape allows it
-        elif is_image:
-            img = sample - sample.min()
-        elif is_transformed_image:
-            img = sample_T - sample_T.min()
         else:
             warnings.warn("Data visualization not possible, as the data points have"
                           "no image shape. Pass a function in the data_viz argument,"
                           "to enable custom data visualization.")
             return
-
-        f, a = plt.subplots(1, 1)
-        a.imshow(img / img.max())
-        a.set_title(title)
