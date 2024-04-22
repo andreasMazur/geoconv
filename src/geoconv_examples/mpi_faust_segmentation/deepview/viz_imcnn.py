@@ -4,6 +4,7 @@ from geoconv_examples.mpi_faust_segmentation.deepview.DeepView import DeepViewSu
 import tensorflow as tf
 import numpy as np
 import trimesh
+from matplotlib import pyplot as plt
 
 
 def embed(model, inputs):
@@ -130,21 +131,7 @@ def correction_pipeline(model_path, dataset_path, amount_classes=10):
     interactive = False
     title = 'movie-reviews BERT'
 
-    imcnn_deepview = DeepViewSubClass(
-        lambda x: pred_wrapper(x, model),
-        classes,
-        max_samples,
-        batch_size,
-        data_shape,
-        N,
-        lam,
-        resolution,
-        cmap,
-        interactive,
-        title,
-        metric=metric,
-        disc_dist=disc_dist
-    )
+
 
     for idx, ((signal, bc, coordinates), labels) in enumerate(dataset):
         coordinates = np.array(coordinates)
@@ -168,7 +155,22 @@ def correction_pipeline(model_path, dataset_path, amount_classes=10):
                 file_name="corrected_labels.csv"
             )
 
-        imcnn_deepview.data_viz = dv_show_seg
+        imcnn_deepview = DeepViewSubClass(
+            lambda x: pred_wrapper(x, model),
+            classes,
+            max_samples,
+            batch_size,
+            data_shape,
+            N,
+            lam,
+            resolution,
+            cmap,
+            interactive,
+            title,
+            metric=metric,
+            disc_dist=disc_dist,
+            data_viz=dv_show_seg
+        )
         imcnn_deepview.add_samples(embeddings, labels)
         imcnn_deepview.show()
-
+        imcnn_deepview.close()
