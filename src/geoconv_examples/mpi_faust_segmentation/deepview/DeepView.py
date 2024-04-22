@@ -1,26 +1,31 @@
 from deepview.DeepView import DeepView
 from .viz_imcnn import SelectFromCollection
+
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
 import warnings
 
+
 class DeepViewSubClass(DeepView):
 
     def __init__(self,*args, selector=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.selector = selector
+
     @property
     def distances(self):
-        '''
-        Combines euclidian with discriminative fisher distances.
+        """Combines euclidian with discriminative fisher distances.
+
         Here the two distance measures are weighted with lambda
         to emphasise structural properties (lambda > 0.5) or
         to emphasise prediction properties (lambda < 0.5).
-        '''
+        """
         eucl_scale = 1. / self.eucl_distances.max()
-        discr_dist_max = (self.discr_distances.max() + 1 if self.discr_distances.max() == 0 else self.discr_distances.max())
+        discr_dist_max = (
+            self.discr_distances.max() + 1 if self.discr_distances.max() == 0 else self.discr_distances.max()
+        )
         fisher_scale = 1. / discr_dist_max
         eucl = self.eucl_distances * eucl_scale * self.lam
         fisher = self.discr_distances * fisher_scale * (1. - self.lam)
@@ -30,11 +35,10 @@ class DeepViewSubClass(DeepView):
     def get_artist_sample(self, sample_ids):
         """Maps the location of embedded points to their image.
 
-
         Parameters
         ----------
-        point: tuple
-        	Coorinates of click in image
+        sample_ids: tuple
+            The ids of selected vertices.
         """
         # sample_id = np.argmin(np.linalg.norm(self.embedded - point, axis=1))
         yps = []
@@ -46,9 +50,7 @@ class DeepViewSubClass(DeepView):
         return sample_ids, yps, yts
 
     def show(self):
-        '''
-        Shows the current plot.
-        '''
+        """Shows the current plot."""
         if not hasattr(self, 'fig'):
             self._init_plots()
 
