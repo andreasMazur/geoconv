@@ -155,22 +155,21 @@ def interactive_seg_correction(shape_idx, coordinates, all_segments, ground_trut
     # print(f"Current class name: {class_dict[ground_truth]} / {ground_truth}")
     mesh.show()
 
-    #         # User interactions
-    #     prompt_1 = input("Write this to the output file? [y/n]:").lower()
-    #     if prompt_1 == "y":
-    #         # Ask for class label
-    #         prompt_2 = input("What is the correct class? Give a number 0-9:").lower()
-    #         real_class = class_dict[int(prompt_2)]
-    #
-    #             # Write class label given by user to file
-    #         with open(file_name, "a") as f:
-    #             f.write(str(shape_idx) + "," + str(query_idx) + "," + real_class + "\n")
-    #     elif prompt_1 == "n":
-    #         print("okay :(")
-    #
-    #     # End loop if query was found
-    #     break
-    #
+            # User interactions
+    prompt_1 = input("Write these points to the output file? [y/n]:").lower()
+    if prompt_1 == "y":# Ask for class label
+        prompt_2 = input("What is the correct class for this set of points? Give a number 0-9:").lower()
+        real_class = class_dict[int(prompt_2)]
+
+                # Write class label given by user to file
+        with open(file_name, "a") as f:
+            for query_idx in query_idxs:
+                f.write(str(shape_idx) + "," + str(query_idx) + "," + str(prompt_2) + "," +  real_class + "\n")
+    elif prompt_1 == "n":
+        print("okay. Continue selecting. ")
+
+
+
     # # Raise error if query vertex is in no segment
     # if not query_found:
     #     raise RuntimeError("Query vertex could not be found.")

@@ -94,9 +94,22 @@ class DeepViewSubClass(DeepView):
 
         self.sample_plots = []
 
+        class_dict = {
+            0: "right_arm",
+            1: "left_arm",
+            2: "torso",
+            3: "head",
+            4: "left_foot",
+            5: "right_foot",
+            6: "left_leg",
+            7: "right_leg",
+            8: "left_hand",
+            9: "right_hand"
+        }
+
         for c in range(self.n_classes):
             color = self.cmap(c / (self.n_classes - 1))
-            plot = self.ax.plot([], [], 'o', label=self.classes[c],
+            plot = self.ax.plot([], [], 'o', label=class_dict[c],
                                 color=color, zorder=2, picker=mpl.rcParams['lines.markersize'])
             self.sample_plots.append(plot[0])
 
