@@ -1,4 +1,6 @@
 from geoconv_examples.mpi_faust_segmentation.deepview.select_collection import SelectFromCollection
+from geoconv_examples.mpi_faust_segmentation.data.segment_meshes import MESH_SEGMENTS
+
 from deepview.DeepView import DeepView
 
 import numpy as np
@@ -10,7 +12,7 @@ import warnings
 
 class DeepViewSubClass(DeepView):
 
-    def __init__(self,*args, selector=None, **kwargs):
+    def __init__(self, *args, selector=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.selector = selector
 
@@ -96,22 +98,9 @@ class DeepViewSubClass(DeepView):
 
         self.sample_plots = []
 
-        class_dict = {
-            0: "right_arm",
-            1: "left_arm",
-            2: "torso",
-            3: "head",
-            4: "left_foot",
-            5: "right_foot",
-            6: "left_leg",
-            7: "right_leg",
-            8: "left_hand",
-            9: "right_hand"
-        }
-
         for c in range(self.n_classes):
             color = self.cmap(c / (self.n_classes - 1))
-            plot = self.ax.plot([], [], 'o', label=class_dict[c],
+            plot = self.ax.plot([], [], 'o', label=MESH_SEGMENTS[c],
                                 color=color, zorder=2, picker=mpl.rcParams['lines.markersize'])
             self.sample_plots.append(plot[0])
 
@@ -125,7 +114,6 @@ class DeepViewSubClass(DeepView):
         self.fig.canvas.mpl_connect('key_press_event', self.show_sample)
         self.disable_synth = False
         self.ax.legend()
-
 
     def show_sample(self, event):
         '''
@@ -142,8 +130,8 @@ class DeepViewSubClass(DeepView):
         if event.key == "enter":
             indices = self.selector.ind
             sample, p, t = self.get_artist_sample(indices)
-            title = '%s <-> %s' if p != t else '%s --- %s'
-            title = title % (self.classes[p], self.classes[t])
+            # title = '%s <-> %s' if p != t else '%s --- %s'
+            # title = title % (self.classes[p], self.classes[t])
             self.disable_synth = True
         elif not self.disable_synth:
             # workaraound: inverse embedding needs more points
@@ -157,7 +145,7 @@ class DeepViewSubClass(DeepView):
             sample = self.inverse(point)[0]
             sample += abs(sample.min())
             sample /= sample.max()
-            title = 'Synthesised at [%.1f, %.1f]' % tuple(point[0])
+            # title = 'Synthesised at [%.1f, %.1f]' % tuple(point[0])
             p, t = self.get_mesh_prediction_at(*point[0]), None
         else:
             self.disable_synth = False

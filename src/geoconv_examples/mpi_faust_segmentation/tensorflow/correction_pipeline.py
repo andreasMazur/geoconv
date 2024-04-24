@@ -1,13 +1,23 @@
-from geoconv_examples.mpi_faust.tensorflow.faust_data_set import faust_generator
-from geoconv_examples.mpi_faust_segmentation.deepview.DeepView import DeepViewSubClass
+from src.geoconv_examples.mpi_faust.tensorflow.faust_data_set import faust_generator
+from src.geoconv_examples.mpi_faust_segmentation.deepview.deepview import DeepViewSubClass
 
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 import trimesh
-from matplotlib import pyplot as plt
 
 
 def embed(model, inputs):
+    """TODO: Add docstring for embed function.
+
+    Parameters
+    ----------
+    model
+    inputs
+
+    Returns
+    -------
+
+    """
     #################
     # Handling Input
     #################
@@ -32,10 +42,19 @@ def embed(model, inputs):
 
 
 def pred_wrapper(x, model):
-    """
-    Model classifier over the sample given to deepview. This function will be pass to Deepview.
-    :param x: sample
-    :return: Probability vector
+    """Model classifier over the sample given to deepview. This function will be pass to Deepview.
+
+    Parameters
+    ----------
+    x: TODO: data type
+        sample
+    model: TODO: add description
+
+
+    Returns
+    -------
+    TODO:
+        Probability vector:
     """
     logits = model.output_dense(x)
     output = tf.nn.softmax(logits)
@@ -52,7 +71,27 @@ def interactive_seg_correction(shape_idx,
                                idxs_labels,
                                amount_classes=10,
                                file_name="corrected_labels.csv"):
-    """Interactively correct the segmentation label."""
+    """Interactively correct the segmentation label.
+
+    TODO: Add docstring for interactive_seg_correction
+
+    Parameters
+    ----------
+    shape_idx
+    coordinates
+    all_segments
+    ground_truth
+    query_idxs
+    cmap
+    idxs_preds
+    idxs_labels
+    amount_classes
+    file_name
+
+    Returns
+    -------
+
+    """
 
     ##########
     # 3D Plot
@@ -110,10 +149,18 @@ def interactive_seg_correction(shape_idx,
 
 
 def correction_pipeline(model_path, dataset_path, amount_classes=10):
-    # Load model and dataset
-    model = tf.keras.models.load_model(model_path)
-    dataset = faust_generator(dataset_path, set_type=3, only_signal=False, return_coordinates=True)
+    """TODO: Docstring for correction_pipeline
 
+    Parameters
+    ----------
+    model_path
+    dataset_path
+    amount_classes
+
+    Returns
+    -------
+
+    """
     # --- Deep View Parameters ----
     classes = np.arange(amount_classes)
     batch_size = 64
@@ -129,9 +176,12 @@ def correction_pipeline(model_path, dataset_path, amount_classes=10):
     # to make sure deepview.show is blocking,
     # disable interactive mode
     interactive = False
-    title = 'movie-reviews BERT'
+    title = 'movie-reviews BERT'  # TODO
+    # -----------------------------
 
-
+    # Load model and dataset
+    model = tf.keras.models.load_model(model_path)
+    dataset = faust_generator(dataset_path, set_type=3, only_signal=False, return_coordinates=True)
 
     for idx, ((signal, bc, coordinates), labels) in enumerate(dataset):
         coordinates = np.array(coordinates)

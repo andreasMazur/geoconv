@@ -1,120 +1,22 @@
-import trimesh
+from geoconv_examples.mpi_faust_segmentation.data.bounding_box import BoundingBox
+from geoconv_examples.mpi_faust_segmentation.data.bounding_box_utils import visualize_bbs
+
 import numpy as np
-import os
+import trimesh
 
 
-class BoundingBox:
-    """A class for axis-aligned bounding boxes.
-
-    Attributes
-    ----------
-    anchor: tuple
-        The anchor point of the bounding box (low, left, deep) corner.
-    width: float
-        The width of the bounding box.
-    height: float
-        The height of the bounding box.
-    depth: float
-        The depth of the bounding box.
-    """
-
-    def __init__(self, anchor, width, height, depth):
-        self.anchor = anchor
-        self.width = width
-        self.height = height
-        self.depth = depth
-
-        self.x_min = anchor[0]
-        self.x_max = anchor[0] + width
-
-        self.y_min = anchor[1]
-        self.y_max = anchor[1] + height
-
-        self.z_min = anchor[2]
-        self.z_max = anchor[2] + depth
-
-    def is_within(self, query_point):
-        """Checks whether the given query point is within the bounding box.
-
-        Parameters
-        ----------
-        query_point: np.ndarray
-            The point to check.
-
-        Returns
-        -------
-        bool:
-            Whether the query-point is within the bounding box.
-        """
-        x_okay = self.x_min <= query_point[0] <= self.x_max
-        y_okay = self.y_min <= query_point[1] <= self.y_max
-        z_okay = self.z_min <= query_point[2] <= self.z_max
-        return x_okay and y_okay and z_okay
-
-    def corners(self):
-        """Returns the 3D coordinates of the bounding box.
-
-        Returns
-        -------
-        np.ndarray:
-            Returns the 3D coordinates of the bounding box.
-        """
-        return np.array([
-            [self.x_min, self.y_min, self.z_min],  # lower left
-            [self.x_max, self.y_min, self.z_min],  # lower right
-            [self.x_min, self.y_max, self.z_min],  # upper left
-            [self.x_max, self.y_max, self.z_min],  # upper right
-            [self.x_min, self.y_min, self.z_max],  # deep lower left
-            [self.x_max, self.y_min, self.z_max],  # deep lower right
-            [self.x_min, self.y_max, self.z_max],  # deep upper left
-            [self.x_max, self.y_max, self.z_max],  # deep upper right
-        ])
-
-
-def visualize_bbs(mesh, bbs, verbose=False):
-    """Visualizes bounding boxes.
-
-    Parameters
-    ----------
-    mesh: trimesh.Trimesh
-        The mesh that shall be segmented.
-    bbs: list
-        A list of bounding boxes.
-    verbose: bool
-        Whether to plot the bounding boxes
-
-    Returns
-    -------
-    np.ndarray:
-        Vertex indices which are within the bounding boxes.
-    """
-    # Initialize vertices and their colors
-    vertices = np.array(mesh.vertices)
-    colors = [[0, 0, 0, 255] for _ in range(vertices.shape[0])]
-    are_within = []
-
-    for bb in bbs:
-        # Get bounding box corner points
-        corners = bb.corners()
-
-        # Update vertex colors depending on whether they are inside one bounding box
-        for idx, vertex in enumerate(mesh.vertices):
-            if bb.is_within(vertex):
-                colors[idx] = [0, 255, 0, 255]
-                are_within.append(idx)
-
-        # Add corner points to plot
-        vertices = np.concatenate([vertices, corners])
-
-        # Add bounding box to colors
-        colors = colors + [[255, 0, 0, 255] for _ in range(8)]
-
-    # Visualize point cloud
-    if verbose:
-        pc = trimesh.PointCloud(vertices=vertices, colors=colors)
-        pc.show()
-
-    return np.unique(np.array(are_within))
+MESH_SEGMENTS = {
+    0: "right_arm",
+    1: "left_arm",
+    2: "torso",
+    3: "head",
+    4: "left_foot",
+    5: "right_foot",
+    6: "left_leg",
+    7: "right_leg",
+    8: "left_hand",
+    9: "right_hand"
+}
 
 
 def segment_mesh(mesh, bb_configurations, verbose=False):

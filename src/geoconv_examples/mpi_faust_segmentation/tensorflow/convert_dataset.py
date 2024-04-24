@@ -20,6 +20,20 @@ def save_mesh_file(idx, signal, bc, gt, coord, new_dataset_path):
 
 
 def convert_dataset(registration_path, old_dataset_path, new_dataset_path):
+    """Converts shape correspondence labels to shape segmentation labels using pre-defined bounding boxes for FAUST.
+
+    TODO: Add docstring
+
+    Parameters
+    ----------
+    registration_path
+    old_dataset_path
+    new_dataset_path
+
+    Returns
+    -------
+
+    """
     if not os.path.exists(new_dataset_path):
         os.makedirs(new_dataset_path)
 
@@ -47,6 +61,20 @@ def convert_dataset(registration_path, old_dataset_path, new_dataset_path):
 
 
 def convert_dataset_deepview(csv_path, old_dataset_path, new_dataset_path):
+    """Incorporates proposed changes obtained with DeepView into the shape segmentation dataset.
+
+    TODO: Add docstring
+
+    Parameters
+    ----------
+    csv_path
+    old_dataset_path
+    new_dataset_path
+
+    Returns
+    -------
+
+    """
     if not os.path.exists(new_dataset_path):
         os.makedirs(new_dataset_path)
 
@@ -91,6 +119,20 @@ def convert_dataset_deepview(csv_path, old_dataset_path, new_dataset_path):
 
 
 def smooth_label(current_coord, gt, coord):
+    """Changes a given ground truth label to the label of the majority of neighboring vertices.
+
+    TODO: Add docstring
+
+    Parameters
+    ----------
+    current_coord
+    gt
+    coord
+
+    Returns
+    -------
+
+    """
     # TODO: Use geodesic distances
     distances = np.linalg.norm(coord - current_coord, axis=1)
     indices = np.argsort(distances)
@@ -98,29 +140,22 @@ def smooth_label(current_coord, gt, coord):
     return classes[occurrences.argmax()]
 
 
-def coord_to_signal(old_dataset_path, new_dataset_path):
-    if not os.path.exists(new_dataset_path):
-        os.makedirs(new_dataset_path)
-
-    dataset = faust_generator(
-        path_to_zip=old_dataset_path,
-        set_type=3,
-        only_signal=False,
-        return_coordinates=True
-    )
-
-    for idx, ((signal, bc, coord), gt) in enumerate(dataset):
-        sys.stdout.write(f"\rTranslating ground truth labels.. {LOADING_CHARS[idx % len(LOADING_CHARS)]}")
-        signal, bc, coord, gt = np.array(signal), np.array(bc), np.array(coord), np.array(gt)
-        save_mesh_file(f"{idx}", coord, bc, gt, coord, new_dataset_path)
-
-    print("\nCompress converted dataset...")
-    shutil.make_archive(new_dataset_path, "zip", new_dataset_path)
-    shutil.rmtree(new_dataset_path)
-    print("Converting finished.")
-
-
 def imcnn_new_dataset(imcnn, old_dataset_path, new_dataset_path):
+    """Replaces former ground truth labels with predictions.
+
+    TODO: Add docstring
+
+    Parameters
+    ----------
+    imcnn
+    old_dataset_path
+    new_dataset_path
+
+    Returns
+    -------
+
+    """
+
     if not os.path.exists(new_dataset_path):
         os.makedirs(new_dataset_path)
 
