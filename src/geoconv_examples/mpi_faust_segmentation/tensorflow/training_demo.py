@@ -7,10 +7,12 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 
 import numpy as np
+import scipy as sp
 import pandas as pd
 import tensorflow as tf
 import keras
 import sys
+import os
 
 
 def visualize_csv(csv_path, figure_name="training_statistics"):
@@ -94,11 +96,17 @@ def train_model(training_data,
     seeds: list
         [OPTIONAL] List of integers that represent seeds to be used for the experiments. The amount of seeds also
         determine how often the experiment is repeated.
+
+    Returns
+    -------
+    tuple:
+        The test accuracy and loss.
     """
     # Set seeds
     if seeds is None:
         seeds = [10, 20, 30, 40, 50]
 
+    test_accuracies, test_losses = [], []
     for exp_number in range(len(seeds)):
         # Set seeds
         tf.random.set_seed(seeds[exp_number])
@@ -158,17 +166,29 @@ def train_model(training_data,
         acc = keras.metrics.SparseCategoricalAccuracy()
 
         # Test loop
+        acc_value, loss_value = -1., -1.
         for (signal, bc), gt in test_data:
             pred = imcnn([signal, bc])
+
+            # Statistics
             loss.update_state(gt, pred)
             acc.update_state(gt, pred)
-            sys.stdout.write(f"\rTest accuracy: {acc.result()} - Test loss: {loss.result()}")
+            acc_value = acc.result()
+            loss_value = loss.result()
+
+            sys.stdout.write(f"\rTest accuracy: {acc_value} - Test loss: {loss_value}")
+
+        # Log final accuracy and loss values of test phase
+        test_accuracies.append(float(acc_value))
+        test_losses.append(float(loss_value))
 
         # Visualize training results
         visualize_csv(
             f"{logging_dir}/training_{exp_number}.log",
             figure_name=f"{logging_dir}/training_statistics_{exp_number}"
         )
+
+    return test_accuracies, test_losses
 
 
 def run_experiment(registration_path,
@@ -200,13 +220,17 @@ def run_experiment(registration_path,
     kernel_size = (n_radial, n_angular)
     precomputed_gpc_radius = 0.036993286759038686
     template_radius = precomputed_gpc_radius * 0.75
-    layer_conf = [(10, 1)]
+    layer_conf = [(96, 1)]
     init_lr = 0.00165
     weight_decay = 0.005
     model_variant = "dirac"
     epochs = 10
-    seeds = [10]
+    seeds = [x * 10 for x in range(30)]
     # ----------------------------
+
+    # Create logging dir
+    if not os.path.exists(logging_dir):
+        os.makedirs(logging_dir)
 
     # Use bounding-boxes to convert shape-correspondence to segmentation labels
     converted_zip_bbox = f"{bbox_segmentation_ds_path}.zip"
@@ -235,12 +259,13 @@ def run_experiment(registration_path,
     test_data = load_preprocessed_faust(converted_zip_deepview, signal_dim=544, kernel_size=kernel_size, set_type=2)
 
     # Start training runs
+    test_accuracies, test_losses, sub_logging_dirs = [], [], ["bbox_approach", "deepview_approach"]
     for idx, zip_file in enumerate([converted_zip_bbox, converted_zip_deepview]):
         train_data = load_preprocessed_faust(zip_file, signal_dim=544, kernel_size=kernel_size, set_type=0)
         adaptation_data = load_preprocessed_faust(
             zip_file, signal_dim=544, kernel_size=kernel_size, set_type=0, only_signal=True
         )
-        train_model(
+        accuracies, losses = train_model(
             training_data=train_data,
             validation_data=val_data,
             test_data=test_data,
@@ -248,7 +273,7 @@ def run_experiment(registration_path,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            logging_dir=f"{logging_dir}_{idx}",
+            logging_dir=f"{logging_dir}/{sub_logging_dirs[idx]}",
             layer_conf=layer_conf,
             init_lr=init_lr,
             weight_decay=weight_decay,
@@ -257,3 +282,25 @@ def run_experiment(registration_path,
             epochs=epochs,
             seeds=seeds
         )
+        test_accuracies.append(accuracies)
+        test_losses.append(losses)
+
+    # Compute and store Mann-Whitney U test
+    acc_test_statistic, acc_p_value = sp.stats.ranksums(x=test_accuracies[0], y=test_accuracies[1])
+    loss_test_statistic, loss_p_value = sp.stats.ranksums(x=test_losses[0], y=test_losses[1])
+    mwutest_file_name = f"{logging_dir}/mann_whitney_u_test.txt"
+    if not os.path.exists(mwutest_file_name):
+        os.mknod(mwutest_file_name)
+    with open(mwutest_file_name, "w") as f:
+        f.write("### MANN-WHITNEY-U TEST ###\n")
+        f.write(f"Test accuracy statistic: {acc_test_statistic}\n")
+        f.write(f"Test accuracy p-value: {acc_p_value}\n")
+        f.write(f"Test loss statistic: {loss_test_statistic}\n")
+        f.write(f"Test loss p-value: {loss_p_value}\n")
+        f.write("###########################\n")
+        f.write(f"Captured test accuracies (bbox-approach): {test_accuracies[0]}\n")
+        f.write(f"Captured test accuracies (deepview-approach): {test_accuracies[1]}\n")
+        f.write("###########################\n")
+        f.write(f"Captured test loss (bbox-approach): {test_losses[0]}\n")
+        f.write(f"Captured test loss (deepview-approach): {test_losses[1]}\n")
+        f.write("###########################\n")
