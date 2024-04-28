@@ -26,7 +26,6 @@ def train_model(reference_mesh_path,
                 model="dirac",
                 add_noise=False,
                 reference_mesh_diameter=2.2093810817030244,
-                segmentation=False,
                 save_coordinates=True):
     """Trains one singular IMCNN
 
@@ -72,9 +71,6 @@ def train_model(reference_mesh_path,
         [OPTIONAL] Which model variant (['dirac', 'geodesic', 'zero']) shall be tuned.
     add_noise: bool
         [OPTIONAL] Adds Gaussian noise to the mesh data.
-    segmentation: bool
-        [OPTIONAL] Whether to train the IMCNN for a shape segmentation problem instead of the shape correspondence
-        problem.
     save_coordinates: bool
         [OPTIONAL] Whether to save the vertex coordinates in the dataset.
 
@@ -116,8 +112,7 @@ def train_model(reference_mesh_path,
             kernel_size=kernel_size,
             template_radius=template_radius,
             layer_conf=layer_conf,
-            variant=model,
-            segmentation=segmentation
+            variant=model
         )
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = keras.optimizers.AdamW(
@@ -160,15 +155,14 @@ def train_model(reference_mesh_path,
         imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
 
         # Evaluate model with Princeton benchmark
-        if not segmentation:
-            test_dataset = load_preprocessed_faust(
-                preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=2
-            )
-            princeton_benchmark(
-                imcnn=imcnn,
-                test_dataset=test_dataset,
-                ref_mesh_path=reference_mesh_path,
-                file_name=f"{logging_dir}/model_benchmark_{exp_number}",
-                processes=processes,
-                geodesic_diameter=reference_mesh_diameter
-            )
+        test_dataset = load_preprocessed_faust(
+            preprocess_zip, signal_dim=signal_dim, kernel_size=kernel_size, set_type=2
+        )
+        princeton_benchmark(
+            imcnn=imcnn,
+            test_dataset=test_dataset,
+            ref_mesh_path=reference_mesh_path,
+            file_name=f"{logging_dir}/model_benchmark_{exp_number}",
+            processes=processes,
+            geodesic_diameter=reference_mesh_diameter
+        )
