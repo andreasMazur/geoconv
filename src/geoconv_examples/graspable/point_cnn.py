@@ -1,5 +1,3 @@
-from faust_dataset import FaustDataset
-
 from torch import nn
 from torch_geometric.nn.conv import XConv
 from torcheval.metrics.functional import multiclass_accuracy
@@ -48,19 +46,16 @@ class PointCNN(nn.Module):
                 )
             )
 
-        # Weight sharing pro vertex
+        # Weight sharing per vertex
         self.fc_parameters = [
             {"In": 256, "Out": 256},
             {"In": 256, "Out": 256},
-            {"In": 256, "Out": 1},  # TODO: Adjust for segmentation
+            {"In": 256, "Out": amount_classes},
         ]
         self.fc_layers = nn.ModuleList()
         for conf in self.fc_parameters:
             # Missing activation?
             self.fc_layers.append(nn.Linear(in_features=conf["In"], out_features=conf["Out"]))
-
-        # TODO: Adjust for segmentation
-        self.output_layer = nn.Linear(in_features=6890, out_features=amount_classes)
 
     def forward(self, inputs):
         """Forwards through the model.
@@ -87,10 +82,6 @@ class PointCNN(nn.Module):
         for idx in range(len(self.fc_parameters)):
             vertex_features = self.fc_layers[idx](vertex_features)
 
-        # TODO: Adjust for segmentation
-        vertex_features = vertex_features.view(-1)
-        vertex_features = self.output_layer(vertex_features)
-
         return vertex_features
 
     def train_loop(self, dataset, loss_fn, opt, verbose=True, epoch=None):
@@ -104,9 +95,7 @@ class PointCNN(nn.Module):
         mean_accuracy = 0.
         mean_loss = 0.
 
-        for step in range(len(dataset)):  # one step = one mesh
-            vertices, gt = dataset[step]
-
+        for step, ((_, bc, vertices), gt) in enumerate(dataset):
             pred = self([vertices, vertices])
             loss = loss_fn(pred, gt)
             opt.zero_grad()
@@ -114,7 +103,7 @@ class PointCNN(nn.Module):
             opt.step()
 
             # Statistics
-            epoch_accuracy = epoch_accuracy + multiclass_accuracy(pred.view((1, -1)), torch.Tensor([gt])).detach()
+            epoch_accuracy = epoch_accuracy + multiclass_accuracy(pred, gt).detach()
             epoch_loss = epoch_loss + loss.detach()
 
             # I/O
