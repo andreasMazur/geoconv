@@ -105,7 +105,7 @@ class PointCNN(nn.Module):
         mean_accuracy = 0.
         mean_loss = 0.
 
-        for step, ((_, bc, vertices), gt) in enumerate(dataset):
+        for step, ((vertices, _), gt) in enumerate(dataset):
             pred = self([vertices, vertices])
             loss = loss_fn(pred, gt)
             opt.zero_grad()

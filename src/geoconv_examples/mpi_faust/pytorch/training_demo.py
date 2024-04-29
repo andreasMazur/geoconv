@@ -119,7 +119,6 @@ def train_model(reference_mesh_path,
         sys.stdout.write(f"\n### Experiment no. {exp_number}")
 
         # Define model
-        # TODO: Add option to specify model output to segmentation task
         imcnn = Imcnn(
             signal_dim=signal_dim,
             kernel_size=(n_radial, n_angular),
@@ -155,7 +154,8 @@ def train_model(reference_mesh_path,
                 decay_steps=500,
                 verbose=True,
                 epoch=epoch,
-                prev_steps=epoch * 70
+                prev_steps=epoch * 70,
+                use_lr_decay=True
             )
 
             # Validation
