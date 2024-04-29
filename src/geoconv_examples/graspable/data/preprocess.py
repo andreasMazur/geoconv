@@ -2,7 +2,7 @@ from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_co
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.utils.misc import normalize_mesh, find_largest_one_hop_dist
 
-from src.geoconv_examples.graspable.data_set import raw_data_generator
+from src.geoconv_examples.graspable.data.data_set import raw_data_generator
 
 import shutil
 import numpy as np
