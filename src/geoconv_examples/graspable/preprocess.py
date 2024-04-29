@@ -25,8 +25,6 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
     with open(f"{target_dir}/geodesic_diameters.txt", "w") as diameters_file:
         diameters_file.write("Geodesic diameters\n")
     for mesh_idx, (mesh, _) in enumerate(rd_generator):
-        if mesh_idx in [0, 1]:
-            continue
         # Define file names for normed vertices and faces
         normalized_v_name = f"{temp_dir}/vertices_{mesh_idx}.npy"
         normalized_f_name = f"{temp_dir}/faces_{mesh_idx}.npy"
