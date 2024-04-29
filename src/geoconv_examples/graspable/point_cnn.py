@@ -72,11 +72,21 @@ class PointCNN(nn.Module):
         """
         vertex_features, vertices = inputs
 
-        # TODO: Skip connections
-
         # X-Convolutions
+        skip_connections = []
         for idx in range(len(self.xconv_parameters)):
-            vertex_features = self.xconv_layers[idx](vertex_features, vertices)
+            if idx == 4:
+                vertex_features = self.xconv_layers[idx](vertex_features, vertices)
+                vertex_features += skip_connections[2]
+            elif idx == 5:
+                vertex_features = self.xconv_layers[idx](vertex_features, vertices)
+                vertex_features += skip_connections[1]
+            elif idx in [6, 7]:
+                vertex_features = self.xconv_layers[idx](vertex_features, vertices)
+                vertex_features += skip_connections[0]
+            else:
+                vertex_features = self.xconv_layers[idx](vertex_features, vertices)
+                skip_connections.append(vertex_features.clone())
 
         # Linear layers
         for idx in range(len(self.fc_parameters)):
