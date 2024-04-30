@@ -8,6 +8,11 @@ import fpsample
 import numpy as np
 
 
+class MaxResponse(nn.Module):
+    def forward(self, x):
+        return x[torch.linalg.vector_norm(x, dim=-1).argmax()].view(1, -1)
+
+
 class SetAbstraction(nn.Module):
     def __init__(self, n_balls, group_radius, max_amount_neighbors=None):
         super().__init__()
@@ -18,19 +23,23 @@ class SetAbstraction(nn.Module):
 
         self.point_net_conv = PointNetConv(
             local_nn=torch_geometric.nn.models.MLP(channel_list=[6, 64, 64], act="relu"),
-            global_nn=torch_geometric.nn.models.MLP(channel_list=[64, 128], act="relu"),
+            global_nn=torch.nn.Sequential(
+                MaxResponse(),  # Take max response from point embeddings for neighborhood
+                torch_geometric.nn.models.MLP(channel_list=[64, 128], act="relu")
+            ),
             add_self_loops=False  # Already handled by provided edge tensor
         )
 
     def forward(self, vertices):
         # 1. Farthest point sampling
         centroid_indices = fpsample.fps_sampling(np.array(vertices), self.n_balls)
-
         # 2. Grouping
-        for neighborhood, edges in self.group_around_centroids(centroid_indices, vertices):
-
+        embeddings = []
+        for neighborhood, centroid_idx, edges in self.group_around_centroids(centroid_indices, vertices):
             # 3. PointNet layer
-            neighborhood_embeddings = self.point_net_conv(neighborhood, neighborhood, edges)
+            embeddings.append(self.point_net_conv(neighborhood, neighborhood, edges))
+        # Return tensor of size: (self.n_balls, d + C')
+        return torch.cat(embeddings, dim=0)
 
     def group_around_centroids(self, centroid_indices, vertices):
         # Compute vertex distances
@@ -63,7 +72,7 @@ class SetAbstraction(nn.Module):
             )
 
             # Return neighborhood vertex coordinates and edges to centroid
-            yield vertices[neighborhood_mask].float(), edges_to_centroid
+            yield vertices[neighborhood_mask].float(), centroid_idx_in_neigh, edges_to_centroid
 
 
 if __name__ == "__main__":
