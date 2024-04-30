@@ -24,8 +24,6 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
     rd_generator = raw_data_generator(data_path)
 
     # Normalize meshes
-    with open(f"{target_dir}/geodesic_diameters.txt", "w") as diameters_file:
-        diameters_file.write("Geodesic diameters\n")
     for mesh_idx, (mesh, _) in enumerate(rd_generator):
         # Define file names for normed vertices and faces
         normalized_v_name = f"{temp_dir}/vertices_{mesh_idx}.npy"
@@ -43,7 +41,7 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
         normed_mesh, geodesic_diameter = normalize_mesh(mesh)
 
         # Log geodesic diameter
-        with open(f"{target_dir}/geodesic_diameters.json", "a") as diameters_file:
+        with open(f"{target_dir}/geodesic_diameters.txt", "a") as diameters_file:
             diameters_file.write(f"{geodesic_diameter}\n")
 
         # Save normalized mesh
