@@ -14,6 +14,9 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
     if temp_dir is None:
         temp_dir = "./temp_meshes"
 
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
