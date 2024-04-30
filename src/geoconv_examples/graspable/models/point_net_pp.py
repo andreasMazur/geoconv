@@ -1,6 +1,7 @@
 from torch import nn
 from torch_geometric.nn.conv import PointNetConv
 
+import torch_geometric
 import torch
 import trimesh
 import fpsample
@@ -15,17 +16,19 @@ class SetAbstraction(nn.Module):
         # -1 due to centroid counting as a group member
         self.group_limit = group_limit - 1
 
-        self.point_net_conv = PointNetConv()
+        self.point_net_conv = PointNetConv(
+            local_nn=torch_geometric.nn.models.MLP(channel_list=[6, 64, 64, 128], act="relu")
+        )
 
-    def forward(self, vertex_features, vertices):
+    def forward(self, vertices):
         # 1. Farthest point sampling
         centroid_indices = fpsample.fps_sampling(np.array(vertices), self.subsample_size)
 
         # 2. Grouping
         for neighborhoods, edges in self.group_around_centroids(centroid_indices, vertices):
             # 3. PointNet
-            # neighborhood_embeddings = self.point_net_conv()
-            pass
+            for idx in torch.arange(neighborhoods.shape[0]):
+                neighborhood_embeddings = self.point_net_conv(neighborhoods[idx], neighborhoods[idx], edges[idx])
 
     def group_around_centroids(self, centroid_indices, vertices):
         # Compute vertex distances
@@ -68,11 +71,11 @@ class SetAbstraction(nn.Module):
 
             # Yield neighborhoods with same amount of neighbors and edge indices
             # Group coordinates: (#groups, #neighbors, 3)
-            yield vertices[centroid_neighbor_indices], centroid_edges
+            yield vertices[centroid_neighbor_indices].float(), centroid_edges
 
 
 if __name__ == "__main__":
     sa_layer = SetAbstraction(subsample_size=3445, group_radius=0.2, group_limit=512)
 
     mesh = trimesh.load_mesh("/home/andreas/Uni/datasets/MPI-FAUST/training/registrations/tr_reg_000.ply")
-    sa_layer(torch.tensor(mesh.vertices), torch.tensor(mesh.vertices))
+    sa_layer(torch.tensor(mesh.vertices))
