@@ -29,18 +29,18 @@ class SetAbstraction(nn.Module):
             add_self_loops=False  # Already handled by provided edge tensor
         )
 
-    def forward(self, vertices):
+    def forward(self, features, vertices):
         # 1. Farthest point sampling
         centroid_indices = fpsample.fps_sampling(np.array(vertices), self.n_balls)
         # 2. Grouping
         embeddings = []
-        for neighborhood, centroid_idx, edges in self.group_around_centroids(centroid_indices, vertices):
+        for features, coordinates, edges in self.group_around_centroids(centroid_indices, vertices, features):
             # 3. PointNet layer
-            embeddings.append(self.point_net_conv(neighborhood, neighborhood, edges))
-        # Return tensor of size: (self.n_balls, d + C')
-        return torch.cat(embeddings, dim=0)
+            embeddings.append(self.point_net_conv(features, coordinates, edges))
+        # Return tensor of size: (self.n_balls, d + C') and centroid vertices  of size (self.n_balls, 3)
+        return torch.cat(embeddings, dim=0), vertices[centroid_indices]
 
-    def group_around_centroids(self, centroid_indices, vertices):
+    def group_around_centroids(self, centroid_indices, vertices, features):
         # Compute vertex distances
         squared_norm = torch.einsum("ij,ij->i", vertices, vertices)
         vertex_distances = torch.sqrt(
@@ -71,4 +71,4 @@ class SetAbstraction(nn.Module):
             )
 
             # Return neighborhood vertex coordinates and edges to centroid
-            yield vertices[neighborhood_mask].float(), centroid_idx_in_neigh, edges_to_centroid
+            yield features[neighborhood_mask].float(), vertices[neighborhood_mask].float(), edges_to_centroid
