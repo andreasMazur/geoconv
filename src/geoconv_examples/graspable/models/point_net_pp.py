@@ -7,7 +7,14 @@ import fpsample
 import numpy as np
 
 
+class FeaturePropagation(nn.Module):
+
+    def forward(self, vertices, centroids, centroid_features):
+        pass
+
+
 class MaxResponse(nn.Module):
+
     def forward(self, x):
         return x[torch.linalg.vector_norm(x, dim=-1).argmax()].view(1, -1)
 

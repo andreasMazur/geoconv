@@ -1,8 +1,9 @@
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
-from geoconv.utils.misc import normalize_mesh, find_largest_one_hop_dist
+from geoconv.utils.misc import normalize_mesh, find_largest_one_hop_dist, get_faces_of_edge
 
 from src.geoconv_examples.graspable.data.data_set import raw_data_generator
+from tqdm import tqdm
 
 import shutil
 import numpy as np
@@ -30,6 +31,15 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
         normalized_f_name = f"{temp_dir}/faces_{mesh_idx}.npy"
 
         # Center and normalize mesh to unit geodesic diameter
+        bad_edges = np.array(mesh.as_open3d.get_non_manifold_edges())
+        face_mask = np.full(mesh.faces.shape[0], True)
+        for edge in bad_edges:
+            sorted_edge, edge_faces = get_faces_of_edge(edge, mesh)
+            for edge_f in edge_faces:
+                update_mask = np.logical_not((edge_f == mesh.faces).all(axis=-1))
+                face_mask = np.logical_and(face_mask, update_mask)
+        mesh = trimesh.Trimesh(mesh.vertices, mesh.faces[face_mask])
+        mesh.show()
         normed_mesh, geodesic_diameter = normalize_mesh(mesh)
 
         # Log geodesic diameter
