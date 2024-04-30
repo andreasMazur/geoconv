@@ -70,5 +70,5 @@ class SetAbstraction(nn.Module):
                 dim=0
             )
 
-            # Return neighborhood vertex coordinates and edges to centroid
+            # Return neighborhood feature vectors, neighborhood vertex coordinates and edges to centroid
             yield features[neighborhood_mask].float(), vertices[neighborhood_mask].float(), edges_to_centroid
