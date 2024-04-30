@@ -46,13 +46,18 @@ class SetAbstraction(nn.Module):
         # Filter vertices to groups
         vertices_in_range = vertex_distances <= group_distance_limits.view(-1, 1)
         for idx, neighborhood_mask in enumerate(vertices_in_range):
+            # Determine neighborhoods indices
             vertices_in_neigh = torch.where(neighborhood_mask)[0]
             centroid_idx_in_neigh = torch.where(centroid_indices[idx] == vertices_in_neigh)[0]
+
+            # Determine edges to neighborhood centroid
             n_neighbors = vertices_in_neigh.shape[0]
             edges_to_centroid = torch.stack(
                 [torch.arange(n_neighbors), centroid_idx_in_neigh.repeat(n_neighbors)],
                 dim=0
             )
+
+            # Return neighborhood vertex coordinates and edges to centroid
             yield vertices[neighborhood_mask].float(), edges_to_centroid
 
 
