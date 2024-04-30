@@ -40,7 +40,7 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
         normed_mesh, geodesic_diameter = normalize_mesh(mesh)
 
         # Log geodesic diameter
-        with open(f"{target_dir}/gpc_kernel_properties.json", "a") as diameters_file:
+        with open(f"{target_dir}/geodesic_diameters.json", "a") as diameters_file:
             diameters_file.write(f"{geodesic_diameter}\n")
 
         # Save normalized mesh
