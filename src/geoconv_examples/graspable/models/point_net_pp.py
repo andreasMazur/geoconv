@@ -58,10 +58,9 @@ class SetAbstraction(nn.Module):
             new_centroid_indices = torch.where(neighborhood_centroids.view(-1, 1) == centroid_neighbor_indices)[1]
 
             # Get edges from neighbors towards centroids
-            new_neighbor_indices = torch.arange(n_neighbors)
             centroid_edges = torch.stack(
                 [
-                    new_neighbor_indices.view(1, -1).repeat(torch.sum(neighborhood_group_mask), 1),
+                    torch.arange(n_neighbors).view(1, -1).repeat(torch.sum(neighborhood_group_mask), 1),
                     new_centroid_indices.view(-1, 1).repeat(1, n_neighbors)
                 ],
                 dim=1
