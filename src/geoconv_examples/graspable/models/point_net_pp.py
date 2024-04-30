@@ -9,20 +9,22 @@ import numpy as np
 
 
 class SetAbstraction(nn.Module):
-    def __init__(self, subsample_size, group_radius, group_limit):
+    def __init__(self, n_balls, group_radius, max_amount_neighbors=None):
         super().__init__()
-        self.subsample_size = subsample_size
+        self.n_balls = n_balls
         self.group_radius = group_radius
         # -1 due to centroid counting as a group member
-        self.group_limit = group_limit - 1
+        self.max_amount_neighbors = max_amount_neighbors
 
         self.point_net_conv = PointNetConv(
-            local_nn=torch_geometric.nn.models.MLP(channel_list=[6, 64, 64, 128], act="relu")
+            local_nn=torch_geometric.nn.models.MLP(channel_list=[6, 64, 64], act="relu"),
+            global_nn=torch_geometric.nn.models.MLP(channel_list=[64, 128], act="relu"),
+            add_self_loops=False  # Already handled by provided edge tensor
         )
 
     def forward(self, vertices):
         # 1. Farthest point sampling
-        centroid_indices = fpsample.fps_sampling(np.array(vertices), self.subsample_size)
+        centroid_indices = fpsample.fps_sampling(np.array(vertices), self.n_balls)
 
         # 2. Grouping
         for neighborhood, edges in self.group_around_centroids(centroid_indices, vertices):
@@ -40,8 +42,11 @@ class SetAbstraction(nn.Module):
         # Determine radii for groups while taking group limit into account.
         # I.e. if the amount of vertices exceeds the group limit, the group radius is reduced s.t.
         # group limit is maintained.
-        group_distance_limits = vertex_distances.sort(dim=-1)[0][:, self.group_limit]
-        group_distance_limits[group_distance_limits > self.group_radius] = self.group_radius
+        if self.max_amount_neighbors is not None:
+            group_distance_limits = vertex_distances.sort(dim=-1)[0][:, self.max_amount_neighbors]
+            group_distance_limits[group_distance_limits > self.group_radius] = self.group_radius
+        else:
+            group_distance_limits = torch.tensor([self.group_radius]).repeat(vertex_distances.shape[0])
 
         # Filter vertices to groups
         vertices_in_range = vertex_distances <= group_distance_limits.view(-1, 1)
@@ -62,7 +67,7 @@ class SetAbstraction(nn.Module):
 
 
 if __name__ == "__main__":
-    sa_layer = SetAbstraction(subsample_size=3445, group_radius=0.2, group_limit=512)
+    sa_layer = SetAbstraction(n_balls=512, group_radius=0.2)
 
     mesh = trimesh.load_mesh("/home/andreas/Uni/datasets/MPI-FAUST/training/registrations/tr_reg_000.ply")
     sa_layer(torch.tensor(mesh.vertices))
