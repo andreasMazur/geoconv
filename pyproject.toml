@@ -66,9 +66,7 @@ classifiers = [
 pytorch = [
     "torch",
     "torchvision",
-    "torcheval",
-    "torch_geometric",
-    "torch_cluster"
+    "torcheval"
 ]
 tensorflow = ["tensorflow"]
 tensorflow_gpu = ["tensorflow[and-cuda]"]
