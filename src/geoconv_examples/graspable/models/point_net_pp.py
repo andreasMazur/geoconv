@@ -3,7 +3,6 @@ from torch_geometric.nn.conv import PointNetConv
 
 import torch_geometric
 import torch
-import trimesh
 import fpsample
 import numpy as np
 
@@ -14,7 +13,7 @@ class MaxResponse(nn.Module):
 
 
 class SetAbstraction(nn.Module):
-    def __init__(self, n_balls, group_radius, max_amount_neighbors=None):
+    def __init__(self, n_balls, group_radius, local_nn_channel_list, global_nn_channel_list, max_amount_neighbors=None):
         super().__init__()
         self.n_balls = n_balls
         self.group_radius = group_radius
@@ -22,10 +21,10 @@ class SetAbstraction(nn.Module):
         self.max_amount_neighbors = max_amount_neighbors
 
         self.point_net_conv = PointNetConv(
-            local_nn=torch_geometric.nn.models.MLP(channel_list=[6, 64, 64], act="relu"),
+            local_nn=torch_geometric.nn.models.MLP(channel_list=local_nn_channel_list, act="relu"),
             global_nn=torch.nn.Sequential(
                 MaxResponse(),  # Take max response from point embeddings for neighborhood
-                torch_geometric.nn.models.MLP(channel_list=[64, 128], act="relu")
+                torch_geometric.nn.models.MLP(channel_list=global_nn_channel_list, act="relu")
             ),
             add_self_loops=False  # Already handled by provided edge tensor
         )
@@ -73,10 +72,3 @@ class SetAbstraction(nn.Module):
 
             # Return neighborhood vertex coordinates and edges to centroid
             yield vertices[neighborhood_mask].float(), centroid_idx_in_neigh, edges_to_centroid
-
-
-if __name__ == "__main__":
-    sa_layer = SetAbstraction(n_balls=512, group_radius=0.2)
-
-    mesh = trimesh.load_mesh("/home/andreas/Uni/datasets/MPI-FAUST/training/registrations/tr_reg_000.ply")
-    sa_layer(torch.tensor(mesh.vertices))
