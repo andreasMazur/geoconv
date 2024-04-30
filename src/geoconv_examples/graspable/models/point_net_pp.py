@@ -41,7 +41,7 @@ class SetAbstraction(nn.Module):
         group_distance_limits[group_distance_limits > self.group_radius] = self.group_radius
 
         # Filter vertices to groups
-        vertices_in_range = vertex_distances <= group_distance_limits.view((-1, 1))
+        vertices_in_range = vertex_distances <= group_distance_limits.view(-1, 1)
         amount_neighbors = torch.sum(vertices_in_range, dim=-1)
 
         # Generate groups
@@ -51,13 +51,13 @@ class SetAbstraction(nn.Module):
 
             # Get neighbor indices for selected neighborhoods
             centroid_neighbor_masks = vertices_in_range[neighborhood_group_mask]
-            centroid_neighbor_indices = torch.where(centroid_neighbor_masks)[1].view((-1, n_neighbors))
+            centroid_neighbor_indices = torch.where(centroid_neighbor_masks)[1].view(-1, n_neighbors)
 
             # Translate global indices to local indices
             neighborhood_centroids = torch.tensor(
                 centroid_indices[neighborhood_group_mask], dtype=torch.int32
             )
-            new_centroid_indices = torch.where(neighborhood_centroids.view((-1, 1)) == centroid_neighbor_indices)[1]
+            new_centroid_indices = torch.where(neighborhood_centroids.view(-1, 1) == centroid_neighbor_indices)[1]
 
             # Get edges from neighbors towards centroids
             new_neighbor_indices = torch.arange(n_neighbors)
