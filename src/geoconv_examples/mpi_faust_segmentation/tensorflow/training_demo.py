@@ -108,6 +108,11 @@ def train_model(training_data,
 
     test_accuracies, test_losses = [], []
     for exp_number in range(len(seeds)):
+        svg_file_name = f"{logging_dir}/training_{exp_number}.log"
+        if Path(svg_file_name).is_file():
+            print(f"Found {svg_file_name}: Skipping this experiment iteration.")
+            continue
+
         # Set seeds
         tf.random.set_seed(seeds[exp_number])
         np.random.seed(seeds[exp_number])
@@ -183,10 +188,7 @@ def train_model(training_data,
         test_losses.append(float(loss_value))
 
         # Visualize training results
-        visualize_csv(
-            f"{logging_dir}/training_{exp_number}.log",
-            figure_name=f"{logging_dir}/training_statistics_{exp_number}"
-        )
+        visualize_csv(svg_file_name, figure_name=f"{logging_dir}/training_statistics_{exp_number}")
 
     return test_accuracies, test_losses
 
