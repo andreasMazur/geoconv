@@ -9,8 +9,24 @@ import numpy as np
 
 class FeaturePropagation(nn.Module):
 
-    def forward(self, vertices, centroids, centroid_features):
-        pass
+    def forward(self, vertices, centroids, centroid_features, k=3, p=2):
+        # 1.) Find k nearest neighbors (nc = nearest centroid)
+        distances = torch.linalg.vector_norm(vertices.view(-1, 1, 3) - centroids, dim=-1)
+        nc_distances, nc_indices = distances.topk(k=k, dim=-1, largest=False)
+
+        # 2.) Inverse distance weighting at 'vertices' using 'centroid_features'
+        nc_features = centroid_features[nc_indices]
+        inverse_weights = 1 / nc_distances ** p
+        interpolated_features = (
+                (inverse_weights.view(-1, k, 1) * nc_features).sum(dim=1) / inverse_weights.sum(dim=-1).view(-1, 1)
+        )
+
+        # 3.) If infinite weights have been observed, replace interpolated with original centroid feature
+        inf_weight_positions = inverse_weights == np.inf
+        inf_nc = nc_indices[torch.where(inf_weight_positions)]
+        interpolated_features[inf_weight_positions.any(dim=-1)] = centroid_features[inf_nc].double()
+
+        return interpolated_features
 
 
 class MaxResponse(nn.Module):
