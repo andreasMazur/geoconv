@@ -11,9 +11,14 @@ class FeaturePropagation(nn.Module):
 
     def __init__(self, channel_list, k=3, p=2):
         super().__init__()
-        self.mlp = torch_geometric.nn.models.MLP(channel_list=channel_list, act="relu")
         self.k = k
         self.p = p
+
+        # Emulate "unit-PointNet" by only using self loops, i.e. edge index is empty
+        self.unit_point_net = PointNetConv(
+            local_nn=torch_geometric.nn.models.MLP(channel_list=channel_list, act="relu"), add_self_loops=True
+        )
+        self.edge_index = torch.tensor([], dtype=torch.int32).view(2, 0)
 
     def inverse_distance_weighting(self, vertices, centroids, centroid_features):
         # 1.) Find k nearest neighbors (nc = nearest centroid)
@@ -36,7 +41,8 @@ class FeaturePropagation(nn.Module):
 
     def forward(self, vertices, centroids, centroid_features):
         interpolated_features = self.inverse_distance_weighting(vertices, centroids, centroid_features)
-        return self.mlp(interpolated_features)
+        # Use empty edge index to only use self loops
+        return self.unit_point_net(interpolated_features, vertices.float(), self.edge_index)
 
 
 class MaxResponse(nn.Module):
