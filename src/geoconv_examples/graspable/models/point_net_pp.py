@@ -9,24 +9,34 @@ import numpy as np
 
 class FeaturePropagation(nn.Module):
 
-    def forward(self, vertices, centroids, centroid_features, k=3, p=2):
+    def __init__(self, channel_list, k=3, p=2):
+        super().__init__()
+        self.mlp = torch_geometric.nn.models.MLP(channel_list=channel_list, act="relu")
+        self.k = k
+        self.p = p
+
+    def inverse_distance_weighting(self, vertices, centroids, centroid_features):
         # 1.) Find k nearest neighbors (nc = nearest centroid)
         distances = torch.linalg.vector_norm(vertices.view(-1, 1, 3) - centroids, dim=-1)
-        nc_distances, nc_indices = distances.topk(k=k, dim=-1, largest=False)
+        nc_distances, nc_indices = distances.topk(k=self.k, dim=-1, largest=False)
 
         # 2.) Inverse distance weighting at 'vertices' using 'centroid_features'
         nc_features = centroid_features[nc_indices]
-        inverse_weights = 1 / nc_distances ** p
+        inverse_weights = 1 / nc_distances ** self.p
         interpolated_features = (
-                (inverse_weights.view(-1, k, 1) * nc_features).sum(dim=1) / inverse_weights.sum(dim=-1).view(-1, 1)
-        )
+                (inverse_weights.view(-1, self.k, 1) * nc_features).sum(dim=1) / inverse_weights.sum(dim=-1).view(-1, 1)
+        ).float()
 
         # 3.) If infinite weights have been observed, replace interpolated with original centroid feature
         inf_weight_positions = inverse_weights == np.inf
         inf_nc = nc_indices[torch.where(inf_weight_positions)]
-        interpolated_features[inf_weight_positions.any(dim=-1)] = centroid_features[inf_nc].double()
+        interpolated_features[inf_weight_positions.any(dim=-1)] = centroid_features[inf_nc]
 
         return interpolated_features
+
+    def forward(self, vertices, centroids, centroid_features):
+        interpolated_features = self.inverse_distance_weighting(vertices, centroids, centroid_features)
+        return self.mlp(interpolated_features)
 
 
 class MaxResponse(nn.Module):
