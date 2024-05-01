@@ -108,6 +108,7 @@ def train_model(training_data,
 
     test_accuracies, test_losses = [], []
     for exp_number in range(len(seeds)):
+        # Skip this experiment iteration if results are already plotted.
         svg_file_name = f"{logging_dir}/training_{exp_number}.log"
         if Path(svg_file_name).is_file():
             print(f"Found {svg_file_name}: Skipping this experiment iteration.")
