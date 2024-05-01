@@ -15,7 +15,7 @@ import sys
 import os
 
 
-def visualize_csv(csv_path, figure_name="training_statistics"):
+def visualize_csv(csv_path, figure_name="training_statistics", verbose=False):
     """Visualize training statistics
 
     TODO: Add docstring
@@ -24,6 +24,7 @@ def visualize_csv(csv_path, figure_name="training_statistics"):
     ----------
     csv_path
     figure_name
+    verbose
     """
     csv = pd.read_csv(csv_path)
 
@@ -44,7 +45,10 @@ def visualize_csv(csv_path, figure_name="training_statistics"):
     axs[1].set_ylabel("Sparse Categorical Accuracy")
 
     plt.savefig(f"{figure_name}.svg", bbox_inches="tight")
-    plt.show()
+    if verbose:
+        plt.show()
+    else:
+        plt.close()
 
 
 def train_model(training_data,
