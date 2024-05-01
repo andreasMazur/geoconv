@@ -114,8 +114,10 @@ def train_model(training_data,
         if Path(svg_file_name).is_file():
             print(f"Found training results '{svg_file_name}': Load model and skip to testing phase.")
             imcnn = tf.keras.models.load_model(model_path)
-        # Train new model otherwise
         else:
+            ############
+            # Training
+            ############
             # Set seeds
             tf.random.set_seed(seeds[exp_number])
             np.random.seed(seeds[exp_number])
@@ -169,21 +171,23 @@ def train_model(training_data,
             imcnn.fit(x=training_data, callbacks=[stop, tb, csv], validation_data=validation_data, epochs=epochs)
             imcnn.save(model_path)
 
+        ##########
+        # Testing
+        ##########
         # Configure statistics
         loss = keras.metrics.SparseCategoricalCrossentropy()
         acc = keras.metrics.SparseCategoricalAccuracy()
-
-        # Test loop
         acc_value, loss_value = -1., -1.
         for (signal, bc), gt in test_data:
             pred = imcnn([signal, bc])
 
-            # Statistics
+            # Update statistics
             loss.update_state(gt, pred)
             acc.update_state(gt, pred)
             acc_value = acc.result()
             loss_value = loss.result()
 
+            # Output for user
             sys.stdout.write(f"\rTest accuracy: {acc_value} - Test loss: {loss_value}")
 
         # Log final accuracy and loss values of test phase
