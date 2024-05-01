@@ -24,7 +24,6 @@ class SetAbstraction(nn.Module):
         super().__init__()
         self.n_balls = n_balls
         self.group_radius = group_radius
-        # -1 due to centroid counting as a group member
         self.max_amount_neighbors = max_amount_neighbors
 
         self.point_net_conv = PointNetConv(
