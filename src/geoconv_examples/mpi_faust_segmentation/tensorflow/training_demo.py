@@ -176,6 +176,9 @@ def train_model(training_data,
             imcnn.fit(x=training_data, callbacks=[stop, tb, csv], validation_data=validation_data, epochs=epochs)
             imcnn.save(model_path)
 
+            # Visualize training results
+            visualize_csv(logging_csv, figure_name=svg_file_name)
+
         ##########
         # Testing
         ##########
@@ -198,9 +201,6 @@ def train_model(training_data,
         # Log final accuracy and loss values of test phase
         test_accuracies.append(float(acc_value))
         test_losses.append(float(loss_value))
-
-        # Visualize training results
-        visualize_csv(logging_csv, figure_name=svg_file_name)
 
     return test_accuracies, test_losses
 
