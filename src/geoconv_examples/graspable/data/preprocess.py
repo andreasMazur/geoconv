@@ -2,6 +2,9 @@ from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_co
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.utils.misc import normalize_mesh, find_largest_one_hop_dist, get_faces_of_edge
 from geoconv_examples.graspable.data.data_set import raw_data_generator
+from geoconv_examples.graspable.data.geodesic_diameters import GEODESIC_DIAMETERS
+
+from pathlib import Path
 
 import shutil
 import numpy as np
@@ -38,7 +41,7 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
                 update_mask = np.logical_not((edge_f == mesh.faces).all(axis=-1))
                 face_mask = np.logical_and(face_mask, update_mask)
         mesh = trimesh.Trimesh(mesh.vertices, mesh.faces[face_mask])
-        normed_mesh, geodesic_diameter = normalize_mesh(mesh)
+        normed_mesh, geodesic_diameter = normalize_mesh(mesh, geodesic_diameter=GEODESIC_DIAMETERS[mesh_idx])
 
         # Log geodesic diameter
         with open(f"{target_dir}/geodesic_diameters.txt", "a") as diameters_file:
@@ -84,21 +87,25 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
         faces = np.load(f"{temp_dir}/faces_{mesh_idx}.npy")
         normed_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
 
-        # Save ground truth
-        np.save(gt_name, vertex_labels)
+        # Check whether preprocessed files already exist
+        if not (Path(bc_name).is_file() and Path(gt_name).is_file() and Path(signal_name).is_file()):
+            # Save ground truth
+            np.save(gt_name, vertex_labels)
 
-        # Store mesh signal (3D coordinates)
-        np.save(signal_name, vertices)
+            # Store mesh signal (3D coordinates)
+            np.save(signal_name, vertices)
 
-        # Compute GPC-systems
-        gpc_systems = GPCSystemGroup(normed_mesh, processes=processes)
-        gpc_systems.compute(u_max=gpc_radius)
+            # Compute GPC-systems
+            gpc_systems = GPCSystemGroup(normed_mesh, processes=processes)
+            gpc_systems.compute(u_max=gpc_radius)
 
-        # Compute and save barycentric coordinates
-        bary_coords = compute_barycentric_coordinates(
-            gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=kernel_radius
-        )
-        np.save(bc_name, bary_coords)
+            # Compute and save barycentric coordinates
+            bary_coords = compute_barycentric_coordinates(
+                gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=kernel_radius
+            )
+            np.save(bc_name, bary_coords)
+        else:
+            print(f"Found temp-files:\n{bc_name}\n{gt_name}\n{signal_name}\nSkipping to next temp.-mesh..")
 
     shutil.rmtree(temp_dir)
     shutil.make_archive(target_dir, "zip", target_dir)
