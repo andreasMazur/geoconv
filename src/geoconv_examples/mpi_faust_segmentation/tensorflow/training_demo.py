@@ -108,64 +108,66 @@ def train_model(training_data,
 
     test_accuracies, test_losses = [], []
     for exp_number in range(len(seeds)):
-        # Skip this experiment iteration if results are already plotted.
+        # Skip training if training results already have been plotted
         svg_file_name = f"{logging_dir}/training_{exp_number}.log"
+        model_path = f"{logging_dir}/saved_imcnn_{exp_number}"
         if Path(svg_file_name).is_file():
-            print(f"Found {svg_file_name}: Skipping this experiment iteration.")
-            continue
+            print(f"Found training results '{svg_file_name}': Load model and skip to testing phase.")
+            imcnn = tf.keras.models.load_model(model_path)
+        # Train new model otherwise
+        else:
+            # Set seeds
+            tf.random.set_seed(seeds[exp_number])
+            np.random.seed(seeds[exp_number])
 
-        # Set seeds
-        tf.random.set_seed(seeds[exp_number])
-        np.random.seed(seeds[exp_number])
+            # Set kernel size
+            kernel_size = (n_radial, n_angular)
 
-        # Set kernel size
-        kernel_size = (n_radial, n_angular)
+            # Define and compile model
+            imcnn = Imcnn(
+                signal_dim=544,
+                kernel_size=kernel_size,
+                template_radius=template_radius,
+                layer_conf=layer_conf,
+                variant=model_variant,
+                segmentation=segmentation
+            )
+            loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+            opt = keras.optimizers.AdamW(
+                learning_rate=keras.optimizers.schedules.ExponentialDecay(
+                    initial_learning_rate=init_lr,
+                    decay_steps=500,
+                    decay_rate=0.99
+                ),
+                weight_decay=weight_decay
+            )
+            imcnn.compile(optimizer=opt, loss=loss)
 
-        # Define and compile model
-        imcnn = Imcnn(
-            signal_dim=544,
-            kernel_size=kernel_size,
-            template_radius=template_radius,
-            layer_conf=layer_conf,
-            variant=model_variant,
-            segmentation=segmentation
-        )
-        loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        opt = keras.optimizers.AdamW(
-            learning_rate=keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=init_lr,
-                decay_steps=500,
-                decay_rate=0.99
-            ),
-            weight_decay=weight_decay
-        )
-        imcnn.compile(optimizer=opt, loss=loss)
+            # Adapt normalization
+            print("Initializing normalization layer..")
+            imcnn.normalize.build(tf.TensorShape([6890, 544]))
+            imcnn.normalize.adapt(adaptation_data)
+            print("Done.")
 
-        # Adapt normalization
-        print("Initializing normalization layer..")
-        imcnn.normalize.build(tf.TensorShape([6890, 544]))
-        imcnn.normalize.adapt(adaptation_data)
-        print("Done.")
+            # Build model
+            imcnn([tf.random.uniform(shape=(6890, 544)), tf.random.uniform(shape=(6890,) + kernel_size + (3, 2))])
+            imcnn.summary()
 
-        # Build model
-        imcnn([tf.random.uniform(shape=(6890, 544)), tf.random.uniform(shape=(6890,) + kernel_size + (3, 2))])
-        imcnn.summary()
+            # Define callbacks
+            csv = keras.callbacks.CSVLogger(f"{logging_dir}/training_{exp_number}.log")
+            stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
+            tb = keras.callbacks.TensorBoard(
+                log_dir=f"{logging_dir}/tensorboard_{exp_number}",
+                histogram_freq=1,
+                write_graph=False,
+                write_steps_per_second=True,
+                update_freq="epoch",
+                profile_batch=(1, 70)
+            )
 
-        # Define callbacks
-        csv = keras.callbacks.CSVLogger(f"{logging_dir}/training_{exp_number}.log")
-        stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
-        tb = keras.callbacks.TensorBoard(
-            log_dir=f"{logging_dir}/tensorboard_{exp_number}",
-            histogram_freq=1,
-            write_graph=False,
-            write_steps_per_second=True,
-            update_freq="epoch",
-            profile_batch=(1, 70)
-        )
-
-        # Train and save model
-        imcnn.fit(x=training_data, callbacks=[stop, tb, csv], validation_data=validation_data, epochs=epochs)
-        imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
+            # Train and save model
+            imcnn.fit(x=training_data, callbacks=[stop, tb, csv], validation_data=validation_data, epochs=epochs)
+            imcnn.save(model_path)
 
         # Configure statistics
         loss = keras.metrics.SparseCategoricalCrossentropy()
