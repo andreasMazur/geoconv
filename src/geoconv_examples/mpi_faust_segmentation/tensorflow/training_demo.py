@@ -109,9 +109,10 @@ def train_model(training_data,
     test_accuracies, test_losses = [], []
     for exp_number in range(len(seeds)):
         # Skip training if training results already have been plotted
-        svg_file_name = f"{logging_dir}/training_{exp_number}.log"
+        svg_file_name = f"{logging_dir}/training_statistics_{exp_number}"
         model_path = f"{logging_dir}/saved_imcnn_{exp_number}"
-        if Path(svg_file_name).is_file():
+        logging_csv = f"{logging_dir}/training_{exp_number}.log"
+        if Path(f"{svg_file_name}.svg").is_file():
             print(f"Found training results '{svg_file_name}': Load model and skip to testing phase.")
             imcnn = tf.keras.models.load_model(model_path)
         else:
@@ -156,7 +157,7 @@ def train_model(training_data,
             imcnn.summary()
 
             # Define callbacks
-            csv = keras.callbacks.CSVLogger(f"{logging_dir}/training_{exp_number}.log")
+            csv = keras.callbacks.CSVLogger(logging_csv)
             stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
             tb = keras.callbacks.TensorBoard(
                 log_dir=f"{logging_dir}/tensorboard_{exp_number}",
@@ -195,7 +196,7 @@ def train_model(training_data,
         test_losses.append(float(loss_value))
 
         # Visualize training results
-        visualize_csv(svg_file_name, figure_name=f"{logging_dir}/training_statistics_{exp_number}")
+        visualize_csv(logging_csv, figure_name=svg_file_name)
 
     return test_accuracies, test_losses
 
