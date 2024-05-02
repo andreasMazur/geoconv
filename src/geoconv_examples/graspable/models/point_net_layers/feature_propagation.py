@@ -27,7 +27,7 @@ class FeaturePropagation(nn.Module):
         non_zero = (nc_distances != 0).all(dim=-1)
         inverse_weights = torch.zeros_like(nc_distances)
         inverse_weights[non_zero] = 1 / nc_distances[non_zero] ** self.p
-        inverse_weights[(nc_distances == 0).any(dim=-1)] = 1.
+        inverse_weights[nc_distances == 0] = 1.
 
         # 3.) Inverse distance weighting at 'vertices' using 'centroid_features'
         nc_features = centroid_features[nc_indices]
