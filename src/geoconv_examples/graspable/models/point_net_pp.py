@@ -1,6 +1,7 @@
-from src.geoconv_examples.graspable.models.point_net_layers.set_abstraction import SetAbstraction
-from src.geoconv_examples.graspable.models.point_net_layers.feature_propagation import FeaturePropagation
+from geoconv_examples.graspable.models.point_net_layers.set_abstraction import SetAbstraction
+from geoconv_examples.graspable.models.point_net_layers.feature_propagation import FeaturePropagation
 
+from torch_geometric.nn import PointNetConv
 from torcheval.metrics.functional import multiclass_accuracy
 from torch import nn
 
@@ -63,18 +64,38 @@ class PointNetPP(nn.Module):
         # Initialize feature propagation layers
         ########################################
         self.feature_prop_parameters = [
-            {"channel_list": [1024 + coordinate_dim, 256, 256], "k": 1},
-            {"channel_list": [256 + coordinate_dim, 128], "k": 3},
-            {"channel_list": [128 + coordinate_dim, 128, 128, 128, amount_classes], "k": 3}
+            {"channel_list": [1024 + coordinate_dim, 256, 256], "k": 1, "custom_point_net": None},
+            {"channel_list": [256 + coordinate_dim, 128], "k": 3, "custom_point_net": None},
+            {
+                "channel_list": None,
+                "k": 3,
+                "custom_point_net": PointNetConv(
+                    local_nn=torch.nn.Sequential(
+                        torch.nn.Linear(in_features=128 + coordinate_dim, out_features=128),
+                        torch.nn.ReLU(),
+                        torch.nn.Linear(in_features=128, out_features=128),
+                        torch.nn.ReLU(),
+                        torch.nn.Linear(in_features=128, out_features=128),
+                        torch.nn.ReLU(),
+                        torch.nn.Dropout(p=0.5),
+                        torch.nn.Linear(in_features=128, out_features=128),
+                        torch.nn.ReLU(),
+                        torch.nn.Dropout(p=0.5),
+                        torch.nn.Linear(in_features=128, out_features=amount_classes),
+                        torch.nn.ReLU(),
+                    ),
+                    add_self_loops=True
+                )
+            }
         ]
 
         self.fp_layers = nn.ModuleList()
         for idx, conf in enumerate(self.feature_prop_parameters):
             self.fp_layers.append(
-                FeaturePropagation(channel_list=conf["channel_list"], k=conf["k"])
+                FeaturePropagation(
+                    channel_list=conf["channel_list"], k=conf["k"], custom_point_net=conf["custom_point_net"]
+                )
             )
-
-        # TODO: Add dropout in between last two FC layers
 
     def forward(self, inputs):
         """Forwards through the model.

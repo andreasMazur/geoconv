@@ -7,15 +7,19 @@ import torch
 
 class FeaturePropagation(nn.Module):
 
-    def __init__(self, channel_list, k=3, p=2):
+    def __init__(self, channel_list, k=3, p=2, custom_point_net=None):
         super().__init__()
         self.k = k
         self.p = p
 
-        # Emulate "unit-PointNet" by only using self loops, i.e. edge index is empty
-        self.unit_point_net = PointNetConv(
-            local_nn=torch_geometric.nn.models.MLP(channel_list=channel_list, act="relu"), add_self_loops=True
-        )
+        if custom_point_net is None:
+            # Emulate "unit-PointNet" by only using self loops, i.e. edge index is empty
+            self.unit_point_net = PointNetConv(
+                local_nn=torch_geometric.nn.models.MLP(channel_list=channel_list, act="relu"), add_self_loops=True
+            )
+        else:
+            assert isinstance(custom_point_net, PointNetConv), "Please provide a PointNetConv network."
+            self.unit_point_net = custom_point_net
         self.edge_index = torch.tensor([], dtype=torch.int32).view(2, 0)
 
     def inverse_distance_weighting(self, vertices, centroids, centroid_features):
