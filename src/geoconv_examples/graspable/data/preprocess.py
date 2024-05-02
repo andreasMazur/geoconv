@@ -24,10 +24,10 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
         os.makedirs(target_dir)
 
     # Create raw data generator
-    rd_generator = raw_data_generator(data_path)
+    rd_generator = raw_data_generator(data_path, return_file_name=True)
 
     # Normalize meshes
-    for mesh_idx, (mesh, _) in enumerate(rd_generator):
+    for mesh_idx, (mesh, _, file_name) in enumerate(rd_generator):
         # Define file names for normed vertices and faces
         normalized_v_name = f"{temp_dir}/vertices_{mesh_idx}.npy"
         normalized_f_name = f"{temp_dir}/faces_{mesh_idx}.npy"
@@ -41,7 +41,10 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
                 update_mask = np.logical_not((edge_f == mesh.faces).all(axis=-1))
                 face_mask = np.logical_and(face_mask, update_mask)
         mesh = trimesh.Trimesh(mesh.vertices, mesh.faces[face_mask])
-        normed_mesh, geodesic_diameter = normalize_mesh(mesh, geodesic_diameter=GEODESIC_DIAMETERS[mesh_idx])
+
+        # Get geodesic diameter
+        gd = GEODESIC_DIAMETERS[(GEODESIC_DIAMETERS == float(file_name[:-4])).any(axis=-1)][0, 0]
+        normed_mesh, geodesic_diameter = normalize_mesh(mesh, geodesic_diameter=gd)
 
         # Log geodesic diameter
         with open(f"{target_dir}/geodesic_diameters.txt", "a") as diameters_file:
