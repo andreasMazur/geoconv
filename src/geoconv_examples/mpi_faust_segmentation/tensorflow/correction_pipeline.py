@@ -1,5 +1,5 @@
-from src.geoconv_examples.mpi_faust.tensorflow.faust_data_set import faust_generator
-from src.geoconv_examples.mpi_faust_segmentation.deepview.deepview import DeepViewSubClass
+from geoconv_examples.mpi_faust.tensorflow.faust_data_set import faust_generator
+from geoconv_examples.mpi_faust_segmentation.deepview.deepview import DeepViewSubClass
 
 import numpy as np
 import tensorflow as tf
