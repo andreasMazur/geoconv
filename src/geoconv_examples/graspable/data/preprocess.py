@@ -13,7 +13,7 @@ import os
 import json
 
 
-def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=5, n_angular=8):
+def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=5, n_angular=8, file_boundaries=None):
     if temp_dir is None:
         temp_dir = "./temp_meshes"
 
@@ -24,7 +24,7 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
         os.makedirs(target_dir)
 
     # Create raw data generator
-    rd_generator = raw_data_generator(data_path, return_file_name=True)
+    rd_generator = raw_data_generator(data_path, return_file_name=True, file_boundaries=file_boundaries)
 
     # Normalize meshes
     for mesh_idx, (mesh, _, file_name) in enumerate(rd_generator):
@@ -55,7 +55,7 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
         np.save(normalized_f_name, np.asarray(normed_mesh.faces))
 
     # Find GPC-system radius
-    amount_meshes, gpc_radius = mesh_idx, .0
+    amount_meshes, gpc_radius = mesh_idx + 1, .0
     for mesh_idx in range(amount_meshes):
         # Load normalized mesh
         vertices = np.load(f"{temp_dir}/vertices_{mesh_idx}.npy")
@@ -76,7 +76,7 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
         json.dump({"gpc_system_radius": gpc_radius, "kernel_radius": kernel_radius}, properties_file, indent=4)
 
     # Create raw data generator
-    rd_generator = raw_data_generator(data_path, return_file_name=True)
+    rd_generator = raw_data_generator(data_path, return_file_name=True, file_boundaries=file_boundaries)
 
     # Compute GPC-systems and barycentric coordinates
     for mesh_idx, (_, vertex_labels, file_name) in enumerate(rd_generator):
