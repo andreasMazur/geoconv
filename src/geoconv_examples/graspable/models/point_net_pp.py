@@ -3,7 +3,6 @@ from src.geoconv_examples.graspable.models.point_net_layers.feature_propagation 
 
 from torcheval.metrics.functional import multiclass_accuracy
 from torch import nn
-from torch import autograd
 
 import torch
 import numpy as np
