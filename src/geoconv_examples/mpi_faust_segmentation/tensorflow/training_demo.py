@@ -15,6 +15,47 @@ import sys
 import os
 
 
+def define_model(template_size,
+                 template_radius,
+                 layer_conf,
+                 model_variant,
+                 segmentation,
+                 init_lr,
+                 weight_decay,
+                 adaptation_data):
+    # Define and compile model
+    imcnn = Imcnn(
+        signal_dim=544,
+        kernel_size=template_size,
+        template_radius=template_radius,
+        layer_conf=layer_conf,
+        variant=model_variant,
+        segmentation=segmentation
+    )
+    loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    opt = keras.optimizers.AdamW(
+        learning_rate=keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=init_lr,
+            decay_steps=500,
+            decay_rate=0.99
+        ),
+        weight_decay=weight_decay
+    )
+    imcnn.compile(optimizer=opt, loss=loss)
+
+    # Adapt normalization
+    print("Initializing normalization layer..")
+    imcnn.normalize.build(tf.TensorShape([6890, 544]))
+    imcnn.normalize.adapt(adaptation_data)
+    print("Done.")
+
+    # Build model
+    imcnn([tf.random.uniform(shape=(6890, 544)), tf.random.uniform(shape=(6890,) + template_size + (3, 2))])
+    imcnn.summary()
+
+    return imcnn
+
+
 def visualize_csv(csv_path, figure_name="training_statistics", verbose=False):
     """Visualize training statistics
 
@@ -29,18 +70,19 @@ def visualize_csv(csv_path, figure_name="training_statistics", verbose=False):
     csv = pd.read_csv(csv_path)
 
     # Configure plot
-    n_rows, n_cols, cm = 2, 1, 1/2.54
-    fig, axs = plt.subplots(n_rows, n_cols, figsize=(12*cm, 12.2*cm), sharex=True)
+    n_rows, n_cols, cm = 2, 1, 1 / 2.54
+    fig, axs = plt.subplots(n_rows, n_cols, figsize=(12 * cm, 12.2 * cm), sharex=True)
     for j in range(n_rows):
         axs[j].grid()
+        axs[j].legend()
 
     # Configure axes
     axs[0].plot(csv["loss"], label="loss")
     axs[0].plot(csv["val_loss"], label="val_loss")
     axs[0].set_ylabel("Loss")
 
-    axs[1].plot(csv["sparse_categorical_accuracy"])
-    axs[1].plot(csv["val_sparse_categorical_accuracy"])
+    axs[1].plot(csv["sparse_categorical_accuracy"], label="accuracy")
+    axs[1].plot(csv["val_sparse_categorical_accuracy"], label="val_accuracy")
     axs[1].set_xlabel("Epoch")
     axs[1].set_ylabel("Sparse Categorical Accuracy")
 
@@ -130,35 +172,17 @@ def train_model(training_data,
             # Set kernel size
             kernel_size = (n_radial, n_angular)
 
-            # Define and compile model
-            imcnn = Imcnn(
-                signal_dim=544,
-                kernel_size=kernel_size,
-                template_radius=template_radius,
-                layer_conf=layer_conf,
-                variant=model_variant,
-                segmentation=segmentation
+            # Define model
+            imcnn = define_model(
+                kernel_size,
+                template_radius,
+                layer_conf,
+                model_variant,
+                segmentation,
+                init_lr,
+                weight_decay,
+                adaptation_data
             )
-            loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-            opt = keras.optimizers.AdamW(
-                learning_rate=keras.optimizers.schedules.ExponentialDecay(
-                    initial_learning_rate=init_lr,
-                    decay_steps=500,
-                    decay_rate=0.99
-                ),
-                weight_decay=weight_decay
-            )
-            imcnn.compile(optimizer=opt, loss=loss)
-
-            # Adapt normalization
-            print("Initializing normalization layer..")
-            imcnn.normalize.build(tf.TensorShape([6890, 544]))
-            imcnn.normalize.adapt(adaptation_data)
-            print("Done.")
-
-            # Build model
-            imcnn([tf.random.uniform(shape=(6890, 544)), tf.random.uniform(shape=(6890,) + kernel_size + (3, 2))])
-            imcnn.summary()
 
             # Define callbacks
             csv = keras.callbacks.CSVLogger(logging_csv)
