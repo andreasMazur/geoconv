@@ -3,7 +3,6 @@ from torch_geometric.nn.conv import PointNetConv
 
 import torch_geometric
 import torch
-import numpy as np
 
 
 class FeaturePropagation(nn.Module):
@@ -24,17 +23,17 @@ class FeaturePropagation(nn.Module):
         distances = torch.linalg.vector_norm(vertices.view(-1, 1, 3) - centroids, dim=-1)
         nc_distances, nc_indices = distances.topk(k=self.k, dim=-1, largest=False)
 
-        # 2.) Inverse distance weighting at 'vertices' using 'centroid_features'
+        # 2.) Compute inverse distance weights
+        non_zero = (nc_distances != 0).all(dim=-1)
+        inverse_weights = torch.zeros_like(nc_distances)
+        inverse_weights[non_zero] = 1 / nc_distances[non_zero] ** self.p
+        inverse_weights[(nc_distances == 0).any(dim=-1)] = 1.
+
+        # 3.) Inverse distance weighting at 'vertices' using 'centroid_features'
         nc_features = centroid_features[nc_indices]
-        inverse_weights = 1 / nc_distances ** self.p
         interpolated_features = (
                 (inverse_weights.view(-1, self.k, 1) * nc_features).sum(dim=1) / inverse_weights.sum(dim=-1).view(-1, 1)
         ).float()
-
-        # 3.) If infinite weights have been observed, replace interpolated with original centroid feature
-        inf_weight_positions = inverse_weights == np.inf
-        inf_nc = nc_indices[torch.where(inf_weight_positions)]
-        interpolated_features[inf_weight_positions.any(dim=-1)] = centroid_features[inf_nc]
 
         return interpolated_features
 
