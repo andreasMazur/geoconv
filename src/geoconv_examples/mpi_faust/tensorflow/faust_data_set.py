@@ -6,7 +6,7 @@ import os
 import random
 
 
-def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinates=False):
+def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinates=False, set_indices=None):
     """Reads one element of preprocessed FAUST-geoconv_examples into memory per 'next'-call.
 
     Parameters
@@ -28,6 +28,9 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinat
     return_coordinates: bool
         Whether to return the coordinates of the mesh vertices. Requires coordinates to be contained in preprocessed
         dataset.
+    set_indices: list
+        A list of integer values that determine which meshes shall be returned. If it is set to 'None', the set
+        type determine which meshes will be returned. Defaults to 'None'.
 
     Returns
     -------
@@ -36,7 +39,6 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinat
         and the ground truth correspondences.
     """
     # Initialize and sort file names
-    kernel_size = None
     dataset = np.load(path_to_zip, allow_pickle=True)
     file_names = [os.path.basename(fn) for fn in dataset.files]
     SIGNAL = [file_name for file_name in file_names if file_name.startswith("SIGNAL")]
@@ -48,19 +50,22 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinat
         COORD.sort(key=get_file_number)
 
     # Set iteration indices according to set type
-    if set_type == 0:
-        indices = list(range(70))
-        random.shuffle(indices)
-    elif set_type == 1:
-        indices = range(70, 80)
-    elif set_type == 2:
-        indices = range(80, 100)
-    elif set_type == 3:
-        indices = range(100)
+    if set_indices is None:
+        if set_type == 0:
+            indices = list(range(70))
+            random.shuffle(indices)
+        elif set_type == 1:
+            indices = range(70, 80)
+        elif set_type == 2:
+            indices = range(80, 100)
+        elif set_type == 3:
+            indices = range(100)
+        else:
+            raise RuntimeError(
+                f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test', 3: 'all']."
+            )
     else:
-        raise RuntimeError(
-            f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test', 3: 'all']."
-        )
+        indices = set_indices
 
     for idx in indices:
         # Read signal
@@ -68,8 +73,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinat
 
         # Read bc + add noise
         bc = tf.cast(dataset[BC[idx]], tf.float32)
-        if kernel_size is None:
-            kernel_size = bc.shape[1:3]
+        kernel_size = bc.shape[1:3]
 
         if set_type == 0:
             noise = np.abs(np.random.normal(size=(6890,) + kernel_size + (3, 2), scale=1e-5))
@@ -95,7 +99,9 @@ def load_preprocessed_faust(path_to_zip,
                             signal_dim,
                             kernel_size=(2, 4),
                             set_type=0,
-                            only_signal=False):
+                            only_signal=False,
+                            return_coordinates=False,
+                            set_indices=0):
     """Returns a 'tensorflow.data.Dataset' of the preprocessed MPI-FAUST geoconv_examples.
 
     Requires that preprocessing already happened. This function operates directly on the resulting 'zip'-file.
@@ -120,6 +126,12 @@ def load_preprocessed_faust(path_to_zip,
         > Jonathan Masci and Davide Boscaini et al.
     only_signal: bool
         Return only the signal matrices. Helpful for keras.Normalization(axis=-1).adapt(data)
+    return_coordinates: bool
+        Whether to return the coordinates of the mesh vertices. Requires coordinates to be contained in preprocessed
+        dataset.
+    set_indices: list
+        A list of integer values that determine which meshes shall be returned. If it is set to 'None', the set
+        type determine which meshes will be returned. Defaults to 'None'.
 
     Returns
     -------
@@ -136,8 +148,15 @@ def load_preprocessed_faust(path_to_zip,
             ),
             tf.TensorSpec(shape=(None,), dtype=tf.float32)
         )
-    return tf.data.Dataset.from_generator(
-        faust_generator,
-        args=(path_to_zip, set_type, only_signal),
-        output_signature=output_signature
-    )
+    if isinstance(set_indices, list):
+        return tf.data.Dataset.from_generator(
+            faust_generator,
+            args=(path_to_zip, set_type, only_signal, return_coordinates, set_indices),
+            output_signature=output_signature
+        )
+    else:
+        return tf.data.Dataset.from_generator(
+            faust_generator,
+            args=(path_to_zip, set_type, only_signal, return_coordinates),
+            output_signature=output_signature
+        )
