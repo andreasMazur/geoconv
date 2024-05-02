@@ -60,7 +60,7 @@ def convert_dataset(registration_path, old_dataset_path, new_dataset_path):
     print("Converting finished.")
 
 
-def convert_dataset_deepview(csv_path, old_dataset_path, new_dataset_path):
+def convert_dataset_deepview(csv_path, old_dataset_path, new_dataset_path, changes_path=None):
     """Incorporates proposed changes obtained with DeepView into the shape segmentation dataset.
 
     TODO: Add docstring
@@ -70,6 +70,7 @@ def convert_dataset_deepview(csv_path, old_dataset_path, new_dataset_path):
     csv_path
     old_dataset_path
     new_dataset_path
+    changes_path
 
     Returns
     -------
@@ -99,16 +100,19 @@ def convert_dataset_deepview(csv_path, old_dataset_path, new_dataset_path):
 
         signal, bc, coord, gt = np.array(signal), np.array(bc), np.array(coord), np.array(gt)
 
-        mesh_corrections = csv[csv[:, 0] == idx][::-1]  # Use last correction for mesh with index 'idx'
-        _, array_indices = np.unique(mesh_corrections[:, 1], return_index=True)
-        unique_mesh_corrections = mesh_corrections[array_indices]
+        # Filter for current mesh (csv[:, 0] stores mesh indices)
+        mesh_corrections = csv[csv[:, 0] == idx][::-1]
+
+        # Filter for unique corrections, use last update (mesh_corrections[:, 1] stores vertex indices)
+        mesh_corrections = mesh_corrections[np.unique(mesh_corrections[:, 1], return_index=True)[1]]
+
+        # Store changes
+        if changes_path is not None:
+            np.save(f"{changes_path}/mesh_{idx}", mesh_corrections)
 
         # unique_mesh_corrections[:, 1]: vertex indices to correct
         # unique_mesh_corrections[:, 2]: corrected segmentation labels
-        gt[unique_mesh_corrections[:, 1]] = unique_mesh_corrections[:, 2]
-
-        # Smooth labels - Vertex takes most prominent neighbor label
-        gt = np.array([smooth_label(current_coord, gt, coord) for current_coord in coord])
+        gt[mesh_corrections[:, 1]] = mesh_corrections[:, 2]
 
         save_mesh_file(f"{idx}", signal, bc, gt, coord, new_dataset_path)
 
