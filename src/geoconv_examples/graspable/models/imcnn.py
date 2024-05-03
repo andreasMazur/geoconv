@@ -13,7 +13,8 @@ class SegImcnn(nn.Module):
             adapt_data=adapt_data,
             layer_conf=[(96, 1)],
             variant="dirac",
-            segmentation=10
+            segmentation=10,
+            template_radius=0.3274390161214167  # TODO: Read from dataset
         )
 
     def forward(self, x):
