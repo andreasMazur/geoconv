@@ -56,9 +56,9 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None, ret
     elif set_type == 1:
         indices = range(70, 80)
     elif set_type == 2:
-        indices = range(80, 100)
+        indices = range(80, len(SIGNAL))
     elif set_type == 3:
-        indices = range(100)
+        indices = range(len(SIGNAL))
     else:
         raise RuntimeError(f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test'].")
 

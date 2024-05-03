@@ -31,6 +31,7 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
         # Define file names for normed vertices and faces
         normalized_v_name = f"{temp_dir}/vertices_{mesh_idx}.npy"
         normalized_f_name = f"{temp_dir}/faces_{mesh_idx}.npy"
+        label_mask_name = f"{temp_dir}/mask_{mesh_idx}"
 
         # Center and normalize mesh to unit geodesic diameter
         bad_edges = np.array(mesh.as_open3d.get_non_manifold_edges())
@@ -50,9 +51,10 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
         with open(f"{target_dir}/geodesic_diameters.txt", "a") as diameters_file:
             diameters_file.write(f"{geodesic_diameter}\n")
 
-        # Save normalized mesh
+        # Save normalized mesh and label mask
         np.save(normalized_v_name, np.asarray(normed_mesh.vertices))
         np.save(normalized_f_name, np.asarray(normed_mesh.faces))
+        np.save(label_mask_name, np.unique(mesh.faces[face_mask]))
 
     # Find GPC-system radius
     amount_meshes, gpc_radius = mesh_idx + 1, .0
@@ -84,6 +86,7 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
         bc_name = f"{target_dir}/BC_{file_name}.npy"
         gt_name = f"{target_dir}/GT_{file_name}.npy"
         signal_name = f"{target_dir}/SIGNAL_{file_name}.npy"
+        label_mask_name = f"{temp_dir}/mask_{mesh_idx}"
 
         # Load normalized mesh
         vertices = np.load(f"{temp_dir}/vertices_{mesh_idx}.npy")
@@ -92,8 +95,8 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
 
         # Check whether preprocessed files already exist
         if not (Path(bc_name).is_file() and Path(gt_name).is_file() and Path(signal_name).is_file()):
-            # Save ground truth
-            np.save(gt_name, vertex_labels)
+            # Save ground truth for remaining mesh vertices
+            np.save(gt_name, vertex_labels[np.load(label_mask_name)])
 
             # Store mesh signal (3D coordinates)
             np.save(signal_name, vertices)
