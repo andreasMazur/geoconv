@@ -26,7 +26,6 @@ def train_model(reference_mesh_path,
                 model="dirac",
                 add_noise=False,
                 reference_mesh_diameter=2.2093810817030244,
-                segmentation=False,
                 save_coordinates=True,
                 epochs=200,
                 seeds=None):

@@ -42,9 +42,7 @@ dependencies = [
     "open3d>=0.17.0",
     "networkx>=2.8.6",
     "pygeodesic>=0.1.7",
-    "Pillow>=10.0.1",
-    "scipy>=1.10.0",
-    "pandas>=2.2.1"
+    "Pillow>=10.0.1"
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

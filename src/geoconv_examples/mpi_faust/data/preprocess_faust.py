@@ -1,7 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
-from geoconv.utils.misc import shuffle_mesh_vertices, normalize_mesh, find_largest_one_hop_dist, \
-    compute_geodesic_diameter
+from geoconv.utils.misc import shuffle_mesh_vertices, normalize_mesh, find_largest_one_hop_dist
 from geoconv_examples.mpi_faust.data.geodesic_diameters import GEODESIC_DIAMETERS
 
 from pathlib import Path
@@ -142,7 +141,6 @@ def preprocess_faust(n_radial,
         gt_name = f"{target_dir}/GT_{paths_reg_meshes[file_idx][:-4]}.npy"
         signal_name = f"{target_dir}/SIGNAL_{paths_reg_meshes[file_idx][:-4]}.npy"
         coords_name = f"{target_dir}/COORD_{paths_reg_meshes[file_idx][:-4]}.npy"
-        dist_matrix_name = f"{target_dir}/DIST_{paths_reg_meshes[file_idx][:-4]}.npy"
 
         # Load normalized mesh
         vertices = np.load(f"{temp_dir}/vertices_{file_idx}.npy")
@@ -158,12 +156,6 @@ def preprocess_faust(n_radial,
             np.save(gt_name, ground_truth)
             if save_coordinates:
                 np.save(coords_name, np.asarray(normed_mesh.vertices))
-
-            ##########################
-            # Compute distance matrix
-            ##########################
-            dist_matrix = compute_geodesic_diameter(normed_mesh)
-            np.save(dist_matrix_name, dist_matrix)
 
             ####################
             # Store mesh signal
