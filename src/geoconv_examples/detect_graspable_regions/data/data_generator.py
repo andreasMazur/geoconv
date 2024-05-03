@@ -19,7 +19,7 @@ def raw_data_generator(path, return_file_name=False, file_boundaries=None):
             yield trimesh.Trimesh(vertices=d["verts"], faces=d["faces"], validate=True), d["labels"]
 
 
-def partnet_generator(path_to_zip, set_type=0, only_signal=False, device=None):
+def processed_data_generator(path_to_zip, set_type=0, only_signal=False, device=None):
     return faust_generator(
         path_to_zip, set_type=set_type, only_signal=only_signal, device=device, return_coordinates=False
     )
