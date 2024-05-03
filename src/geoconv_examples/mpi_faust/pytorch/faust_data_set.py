@@ -8,7 +8,12 @@ import numpy as np
 import os
 
 
-def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None, return_coordinates=False):
+def faust_generator(path_to_zip,
+                    set_type=0,
+                    only_signal=False,
+                    device=None,
+                    return_coordinates=False,
+                    set_indices=None):
     """Reads one element of preprocessed FAUST-geoconv_examples into memory per 'next'-call.
 
     Parameters
@@ -26,12 +31,15 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None, ret
         > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
         > Jonathan Masci and Davide Boscaini et al.
     only_signal: bool
-        Return only the signal matrices. Helpful for tensorflow.keras.Normalization(axis=-1).adapt(data)
+        Return only the signal matrices. Helpful for keras.Normalization(axis=-1).adapt(data)
     device:
         The device to put the data on.
     return_coordinates: bool
         Whether to return the coordinates of the mesh vertices. Requires coordinates to be contained in preprocessed
         dataset.
+    set_indices: list
+        A list of integer values that determine which meshes shall be returned. If it is set to 'None', the set
+        type determine which meshes will be returned. Defaults to 'None'.
 
     Returns
     -------
@@ -39,7 +47,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None, ret
         A generator yielding the preprocessed data. I.e. the signal defined on the vertices, the barycentric coordinates
         and the ground truth correspondences.
     """
-    kernel_size = None
+    # Initialize and sort file names
     dataset = np.load(path_to_zip, allow_pickle=True)
     file_names = [os.path.basename(fn) for fn in dataset.files]
     SIGNAL = [file_name for file_name in file_names if file_name.startswith("SIGNAL")]
@@ -50,17 +58,23 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None, ret
         COORD = [file_name for file_name in file_names if file_name.startswith("COORD")]
         COORD.sort(key=get_file_number)
 
-    if set_type == 0:
-        indices = list(range(70))
-        random.shuffle(indices)
-    elif set_type == 1:
-        indices = range(70, 80)
-    elif set_type == 2:
-        indices = range(80, len(SIGNAL))
-    elif set_type == 3:
-        indices = range(len(SIGNAL))
+    # Set iteration indices according to set type
+    if set_indices is None:
+        if set_type == 0:
+            indices = list(range(70))
+            random.shuffle(indices)
+        elif set_type == 1:
+            indices = range(70, 80)
+        elif set_type == 2:
+            indices = range(80, 100)
+        elif set_type == 3:
+            indices = range(100)
+        else:
+            raise RuntimeError(
+                f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test', 3: 'all']."
+            )
     else:
-        raise RuntimeError(f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test'].")
+        indices = set_indices
 
     for idx in indices:
         # Read signal
@@ -68,8 +82,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, device=None, ret
 
         # Read bc + add noise
         bc = torch.tensor(dataset[BC[idx]], dtype=torch.float32)
-        if kernel_size is None:
-            kernel_size = bc.shape[1:3]
+        kernel_size = bc.shape[1:3]
 
         if set_type == 0:
             noise = np.abs(np.random.normal(size=(6890,) + kernel_size + (3, 2), scale=1e-5))
