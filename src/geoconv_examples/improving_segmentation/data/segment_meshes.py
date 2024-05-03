@@ -1,5 +1,5 @@
-from geoconv_examples.mpi_faust_segmentation.data.bounding_box import BoundingBox
-from geoconv_examples.mpi_faust_segmentation.data.bounding_box_utils import visualize_bbs
+from geoconv_examples.improving_segmentation.data.bounding_box import BoundingBox
+from geoconv_examples.improving_segmentation.data.bounding_box_utils import visualize_bbs
 
 import numpy as np
 import trimesh

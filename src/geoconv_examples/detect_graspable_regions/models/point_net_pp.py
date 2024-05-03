@@ -1,5 +1,5 @@
-from geoconv_examples.graspable.models.point_net_layers.set_abstraction import SetAbstraction
-from geoconv_examples.graspable.models.point_net_layers.feature_propagation import FeaturePropagation
+from geoconv_examples.detect_graspable_regions.models.point_net_layers.set_abstraction import SetAbstraction
+from geoconv_examples.detect_graspable_regions.models.point_net_layers.feature_propagation import FeaturePropagation
 
 from torch_geometric.nn import PointNetConv
 from torcheval.metrics.functional import multiclass_accuracy

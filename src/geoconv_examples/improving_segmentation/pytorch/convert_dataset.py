@@ -1,4 +1,4 @@
-from geoconv_examples.mpi_faust.tensorflow.faust_data_set import faust_generator
+from geoconv_examples.mpi_faust.pytorch.faust_data_set import faust_generator
 from geoconv_examples.improving_segmentation.data.segment_meshes import compute_seg_labels
 
 import os
@@ -20,20 +20,7 @@ def save_mesh_file(idx, signal, bc, gt, coord, new_dataset_path):
 
 
 def convert_dataset(registration_path, old_dataset_path, new_dataset_path):
-    """Converts shape correspondence labels to shape segmentation labels using pre-defined bounding boxes for FAUST.
-
-    TODO: Add docstring
-
-    Parameters
-    ----------
-    registration_path
-    old_dataset_path
-    new_dataset_path
-
-    Returns
-    -------
-
-    """
+    """Converts shape correspondence labels to shape segmentation labels using pre-defined bounding boxes for FAUST."""
     if not os.path.exists(new_dataset_path):
         os.makedirs(new_dataset_path)
 
