@@ -5,7 +5,6 @@ import numpy as np
 import shutil
 import sys
 import pandas as pd
-import warnings
 
 
 LOADING_CHARS = ["|", "/", "-", "\\"]

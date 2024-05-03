@@ -57,16 +57,7 @@ def define_model(template_size,
 
 
 def visualize_csv(csv_path, figure_name="training_statistics", verbose=False):
-    """Visualize training statistics
-
-    TODO: Add docstring
-
-    Parameters
-    ----------
-    csv_path
-    figure_name
-    verbose
-    """
+    """Visualize training statistics."""
     csv = pd.read_csv(csv_path)
 
     # Configure plot
@@ -108,46 +99,7 @@ def train_model(training_data,
                 segmentation=False,
                 epochs=200,
                 seeds=None):
-    """Trains one singular IMCNN
-
-    Parameters
-    ----------
-    training_data: TODO
-    validation_data: TODO
-    test_data: TODO
-    adaptation_data: TODO
-    n_radial: int
-        [REQUIRED FOR PRE-PROCESSING] The amount of radial coordinates for the template.
-    n_angular: int
-        [REQUIRED FOR PRE-PROCESSING] The amount of angular coordinates for the template.
-    template_radius: float
-        [OPTIONAL] The template radius of the ISC-layer (the one used during preprocessing, defaults to radius for FAUST
-        data set).
-    logging_dir: str
-        [OPTIONAL] The path to the folder where logs will be stored
-    init_lr: float
-        [OPTIONAL] Initial learning rate.
-    weight_decay: float
-        [OPTIONAL] Weight decay.
-    layer_conf: list
-        [OPTIONAL] List of tuples: The first entry references the output dimensions of the i-th ISC-layer, The second
-        entry references of skips between each rotation while computing the convolution (rotation delta).
-    model_variant: str
-        [OPTIONAL] Which model variant (['dirac', 'geodesic', 'zero']) shall be tuned.
-    segmentation: bool
-        [OPTIONAL] Whether to train the IMCNN for a shape segmentation problem instead of the shape correspondence
-        problem.
-    epochs: int
-        [OPTIONAL] Maximal amount of training epochs.
-    seeds: list
-        [OPTIONAL] List of integers that represent seeds to be used for the experiments. The amount of seeds also
-        determine how often the experiment is repeated.
-
-    Returns
-    -------
-    tuple:
-        The test accuracy and loss.
-    """
+    """Trains one singular IMCNN."""
     # Set seeds
     if seeds is None:
         seeds = [10, 20, 30, 40, 50]
