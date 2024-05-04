@@ -22,3 +22,6 @@ class SegImcnn(nn.Module):
 
     def train_loop(self, dataset, loss_fn, optimizer, verbose=True, epoch=None):
         self.model.train_loop(dataset, loss_fn, optimizer, verbose=verbose, epoch=epoch)
+
+    def validation_loop(self, dataset, loss_fn, verbose=True):
+        self.model.validation_loop(dataset, loss_fn, verbose=verbose)
