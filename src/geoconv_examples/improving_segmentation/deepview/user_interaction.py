@@ -35,7 +35,9 @@ def interactive_seg_correction(shape_idx,
     if prompt_1 == "y":  # Ask for class label
         class_correction = ""
         while class_correction not in [f"{k}" for k in class_dict.keys()]:
-            class_correction = input("What is the correct class for this set of points? Give a number 0-9:").lower()
+            class_correction = input(
+                f"What is the correct class for this set of points? Give a number 0-{amount_classes - 1}:"
+            ).lower()
 
         # Write class label given by user to file
         with open(file_name, "a") as f:
