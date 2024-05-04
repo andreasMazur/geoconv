@@ -30,29 +30,31 @@ def raw_data_generator(path, return_file_name=False, file_boundaries=None):
             yield trimesh.Trimesh(vertices=d["verts"], faces=d["faces"], validate=True), d["labels"]
 
 
-def processed_data_generator(path_to_zip, set_type=0, only_signal=False, device=None):
+def processed_data_generator(path_to_zip, set_type=0, only_signal=False, set_indices=None, device=None):
     return faust_generator(
         path_to_zip,
         set_type=set_type,
         only_signal=only_signal,
         device=device,
         return_coordinates=False,
-        set_indices=PARTNET_SPLITS[set_type]
+        set_indices=PARTNET_SPLITS[set_type] if set_indices is None else set_indices
     )
 
 
 class PartNetDataset(IterableDataset):
-    def __init__(self, path_to_zip, set_type=0, only_signal=False, device=None):
+    def __init__(self, path_to_zip, set_type=0, only_signal=False, set_indices=None, device=None):
         self.only_signal = only_signal
         self.path_to_zip = path_to_zip
         self.set_type = set_type
         self.only_signal = only_signal
         self.device = device
+        self.set_indices = set_indices
 
         self.dataset = processed_data_generator(
             self.path_to_zip,
             set_type=self.set_type,
             only_signal=self.only_signal,
+            set_indices=self.set_indices,
             device=self.device,
         )
 
@@ -64,5 +66,6 @@ class PartNetDataset(IterableDataset):
             self.path_to_zip,
             set_type=self.set_type,
             only_signal=self.only_signal,
+            set_indices=self.set_indices,
             device=self.device
         )

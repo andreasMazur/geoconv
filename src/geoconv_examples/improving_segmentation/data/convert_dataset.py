@@ -51,7 +51,7 @@ def induce_label_correction(csv_array,
                             mesh_coordinates,
                             mesh_gt,
                             new_dataset_path,
-                            changes_path=None):
+                            label_changes_path=None):
     """Converts original ground truth to corrected deep-view ground truth."""
     # Convert to numpy arrays
     signal, bc, coord, gt = np.array(mesh_signal), np.array(mesh_bc), np.array(mesh_coordinates), np.array(mesh_gt)
@@ -62,18 +62,30 @@ def induce_label_correction(csv_array,
     # Filter for unique corrections, use last update (mesh_corrections[:, 1] stores vertex indices)
     mesh_corrections = mesh_corrections[np.unique(mesh_corrections[:, 1], return_index=True)[1]]
 
-    # Store changes
-    if changes_path is not None:
-        np.save(f"{changes_path}/mesh_{mesh_idx}", mesh_corrections)
+    # Store effective changes
+    if label_changes_path is not None:
+        # Set changes for vertices in 'mesh_corrections'
+        was_changed = np.zeros(shape=(signal.shape[0]), dtype=np.int32)
+        was_changed[mesh_corrections[:, 1]] = 1
 
-    # unique_mesh_corrections[:, 1]: vertex indices to correct
-    # unique_mesh_corrections[:, 2]: corrected segmentation labels
+        # Correct ineffective changes
+        ineffective_changes = mesh_corrections[mesh_corrections[:, 2] == gt[mesh_corrections[:, 1]], 1]
+        was_changed[ineffective_changes] = 0
+
+        np.save(f"{label_changes_path}/mesh_changes_{mesh_idx}", was_changed)
+
+    # mesh_corrections[:, 1]: vertex indices to correct
+    # mesh_corrections[:, 2]: corrected segmentation labels
     gt[mesh_corrections[:, 1]] = mesh_corrections[:, 2]
 
     save_mesh_file(f"{mesh_idx}", signal, bc, gt, coord, new_dataset_path)
 
 
-def convert_dataset_deepview(csv_path, old_dataset, new_dataset_path, changes_path=None, signals_are_coordinates=False):
+def convert_dataset_deepview(csv_path,
+                             old_dataset,
+                             new_dataset_path,
+                             label_changes_path=None,
+                             signals_are_coordinates=False):
     """Incorporates proposed changes obtained with DeepView into the shape segmentation dataset."""
     if not os.path.exists(new_dataset_path):
         os.makedirs(new_dataset_path)
@@ -89,11 +101,11 @@ def convert_dataset_deepview(csv_path, old_dataset, new_dataset_path, changes_pa
     if signals_are_coordinates:
         for idx, ((signal, bc), gt) in enumerate(old_dataset):
             sys.stdout.write(f"\rTranslating ground truth labels.. {LOADING_CHARS[idx % len(LOADING_CHARS)]}")
-            induce_label_correction(csv, idx, signal, bc, signal, gt, new_dataset_path, changes_path)
+            induce_label_correction(csv, idx, signal, bc, signal, gt, new_dataset_path, label_changes_path)
     else:
         for idx, ((signal, bc, coord), gt) in enumerate(old_dataset):
             sys.stdout.write(f"\rTranslating ground truth labels.. {LOADING_CHARS[idx % len(LOADING_CHARS)]}")
-            induce_label_correction(csv, idx, signal, bc, coord, gt, new_dataset_path, changes_path)
+            induce_label_correction(csv, idx, signal, bc, coord, gt, new_dataset_path, label_changes_path)
 
     print("\nCompress converted dataset...")
     shutil.make_archive(new_dataset_path, "zip", new_dataset_path)

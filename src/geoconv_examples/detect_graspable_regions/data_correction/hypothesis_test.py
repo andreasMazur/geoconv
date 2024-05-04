@@ -54,9 +54,9 @@ def run_experiment(old_dataset_path,
             val_data = PartNetDataset(new_dataset_path, set_type=1)  # Use corrected data to validate
             test_data = PartNetDataset(new_dataset_path, set_type=2)  # Use corrected data to test
 
-            hist = train_single_imcnn(
+            _, hist = train_single_imcnn(
                 None,
-                saving_path=f"{logging_dir}/imcnn_OldNew_{idx}_Trial_{trial_idx}",
+                saving_path=f"{logging_dir}/imcnn_OldNew_{idx}_trial_{trial_idx}.zip",
                 n_epochs=epochs,
                 adapt_data=adaptation_data,
                 train_data=train_data,
