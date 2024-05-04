@@ -15,7 +15,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinat
         The path to the .zip-file that contains the preprocessed faust data set
     set_type: int
         This integer has to be either:
-            - 0 -> "train"
+            - 0 -> "train"  (adds noise to barycentric coordinates)
             - 1 -> "validation"
             - 2 -> "test"
             - 3 -> "all meshes"
@@ -30,7 +30,8 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinat
         dataset.
     set_indices: list
         A list of integer values that determine which meshes shall be returned. If it is set to 'None', the set
-        type determine which meshes will be returned. Defaults to 'None'.
+        type determine which meshes will be returned. Defaults to 'None'. Adds noise to barycentric coordinates
+        if set type is set to 0.
 
     Returns
     -------
