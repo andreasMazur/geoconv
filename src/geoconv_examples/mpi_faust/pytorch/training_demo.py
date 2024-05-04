@@ -30,7 +30,6 @@ def train_model(reference_mesh_path,
                 add_noise=False,
                 reference_mesh_diameter=2.2093810817030244,
                 early_stop=20,
-                segmentation=False,
                 save_coordinates=False):
     """Trains one singular IMCNN
 
@@ -78,9 +77,6 @@ def train_model(reference_mesh_path,
         [OPTIONAL] Adds Gaussian noise to the mesh data.
     early_stop: int
         [OPTIONAL] The amount of epochs for early stopping.
-    segmentation: bool
-        [OPTIONAL] Whether to train the IMCNN for a shape segmentation problem instead of the shape correspondence
-        problem.
     save_coordinates: bool
         [OPTIONAL] Whether to save the vertex coordinates in the dataset.
     """
@@ -192,15 +188,14 @@ def train_model(reference_mesh_path,
         with open(f"{logging_dir}/training_history_{exp_number}.json", "w") as file:
             json.dump(training_history, file, indent=4)
 
-        if not segmentation:
-            test_dataset = FaustDataset(preprocess_zip, set_type=2, device=device)
-            with torch.no_grad():
-                princeton_benchmark(
-                    imcnn=imcnn,
-                    test_dataset=test_dataset,
-                    ref_mesh_path=reference_mesh_path,
-                    file_name=f"{logging_dir}/model_benchmark_{exp_number}",
-                    processes=processes,
-                    geodesic_diameter=reference_mesh_diameter,
-                    pytorch_model=True
-                )
+        test_dataset = FaustDataset(preprocess_zip, set_type=2, device=device)
+        with torch.no_grad():
+            princeton_benchmark(
+                imcnn=imcnn,
+                test_dataset=test_dataset,
+                ref_mesh_path=reference_mesh_path,
+                file_name=f"{logging_dir}/model_benchmark_{exp_number}",
+                processes=processes,
+                geodesic_diameter=reference_mesh_diameter,
+                pytorch_model=True
+            )

@@ -51,7 +51,7 @@ class Imcnn(nn.Module):
                  template_radius=0.027744965069279016,
                  layer_conf=None,
                  variant="dirac",
-                 segmentation=-1):
+                 segmentation_classes=-1):
         super().__init__()
         self.signal_dim = signal_dim
         self.kernel_size = kernel_size
@@ -107,8 +107,8 @@ class Imcnn(nn.Module):
         #########
         # Output
         #########
-        if segmentation:
-            self.output_dense = nn.Linear(in_features=self.output_dims[-1], out_features=segmentation)
+        if segmentation_classes:
+            self.output_dense = nn.Linear(in_features=self.output_dims[-1], out_features=segmentation_classes)
         else:
             self.output_dense = nn.Linear(in_features=self.output_dims[-1], out_features=6890)
 

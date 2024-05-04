@@ -14,7 +14,7 @@ class Imcnn(keras.Model):
                  template_radius,
                  layer_conf=None,
                  variant="dirac",
-                 segmentation=-1,
+                 segmentation_classes=-1,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -68,8 +68,8 @@ class Imcnn(keras.Model):
         #########
         # Output
         #########
-        if segmentation:
-            self.output_dense = keras.layers.Dense(segmentation, name="output")
+        if segmentation_classes:
+            self.output_dense = keras.layers.Dense(segmentation_classes, name="output")
         else:
             self.output_dense = keras.layers.Dense(6890, name="output")
 

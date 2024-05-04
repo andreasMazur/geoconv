@@ -1,7 +1,6 @@
+from geoconv_examples.improving_segmentation.data.convert_dataset import convert_dataset, convert_dataset_deepview
 from geoconv_examples.mpi_faust.tensorflow.model import Imcnn
-from geoconv_examples.mpi_faust.tensorflow.faust_data_set import load_preprocessed_faust
-from geoconv_examples.improving_segmentation.tensorflow.convert_dataset import convert_dataset
-from geoconv_examples.improving_segmentation.tensorflow.convert_dataset import convert_dataset_deepview
+from geoconv_examples.mpi_faust.tensorflow.faust_data_set import load_preprocessed_faust, faust_generator
 
 from pathlib import Path
 from matplotlib import pyplot as plt
@@ -19,7 +18,7 @@ def define_model(template_size,
                  template_radius,
                  layer_conf,
                  model_variant,
-                 segmentation,
+                 segmentation_classes,
                  init_lr,
                  weight_decay,
                  adaptation_data):
@@ -30,7 +29,7 @@ def define_model(template_size,
         template_radius=template_radius,
         layer_conf=layer_conf,
         variant=model_variant,
-        segmentation=segmentation
+        segmentation_classes=segmentation_classes
     )
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     opt = keras.optimizers.AdamW(
@@ -96,7 +95,7 @@ def train_model(training_data,
                 weight_decay=0.005,
                 layer_conf=None,
                 model_variant="dirac",
-                segmentation=False,
+                segmentation_classes=10,
                 epochs=200,
                 seeds=None):
     """Trains one singular IMCNN."""
@@ -130,7 +129,7 @@ def train_model(training_data,
                 template_radius,
                 layer_conf,
                 model_variant,
-                segmentation,
+                segmentation_classes,
                 init_lr,
                 weight_decay,
                 adaptation_data
@@ -225,9 +224,15 @@ def run_experiment(registration_path,
     # Use bounding-boxes to convert shape-correspondence to segmentation labels
     converted_zip_bbox = f"{bbox_segmentation_ds_path}.zip"
     if not Path(converted_zip_bbox).is_file():
+        old_dataset = faust_generator(
+            path_to_zip=old_dataset_path,
+            set_type=3,
+            only_signal=False,
+            return_coordinates=True
+        )
         convert_dataset(
             registration_path=registration_path,
-            old_dataset_path=old_dataset_path,
+            old_dataset=old_dataset,
             new_dataset_path=bbox_segmentation_ds_path
         )
     else:
@@ -236,9 +241,15 @@ def run_experiment(registration_path,
     # Integrate DeepView-corrected labels into the dataset
     converted_zip_deepview = f"{deepview_segmentation_ds_path}.zip"
     if not Path(converted_zip_deepview).is_file():
+        old_dataset = faust_generator(
+            path_to_zip=converted_zip_bbox,
+            set_type=3,
+            only_signal=False,
+            return_coordinates=True
+        )
         convert_dataset_deepview(
             csv_path=csv_path,
-            old_dataset_path=converted_zip_bbox,
+            old_dataset=old_dataset,
             new_dataset_path=deepview_segmentation_ds_path
         )
     else:
@@ -268,7 +279,7 @@ def run_experiment(registration_path,
             init_lr=init_lr,
             weight_decay=weight_decay,
             model_variant=model_variant,
-            segmentation=True,
+            segmentation_classes=10,
             epochs=epochs,
             seeds=seeds
         )
