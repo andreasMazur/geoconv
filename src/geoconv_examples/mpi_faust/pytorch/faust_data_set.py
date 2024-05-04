@@ -86,7 +86,7 @@ def faust_generator(path_to_zip,
         kernel_size = bc.shape[1:3]
 
         if set_type == 0:
-            noise = np.abs(np.random.normal(size=(6890,) + kernel_size + (3, 2), scale=1e-5))
+            noise = np.abs(np.random.normal(size=(bc.shape[0],) + kernel_size + (3, 2), scale=1e-5))
             noise[:, :, :, :, 0] = 0
             bc = bc + noise
 
