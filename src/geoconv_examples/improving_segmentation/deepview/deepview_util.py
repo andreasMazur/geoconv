@@ -28,6 +28,5 @@ def embed(imcnn, inputs):
 
 
 def pred_wrapper(data, model):
-    """Takes a model embedding and returns the according prediction."""
-    return sp.special.softmax(model.output_dense(data))
-
+    """Get the predicted probabilities of an IMCNN."""
+    return sp.special.softmax(model.output_dense(data), axis=-1)

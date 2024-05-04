@@ -1,6 +1,5 @@
-from geoconv_examples.mpi_faust_segmentation.deepview.select_collection import SelectFromCollection
-from geoconv_examples.mpi_faust_segmentation.data.segment_meshes import MESH_SEGMENTS
-
+from geoconv_examples.improving_segmentation.deepview.select_collection import SelectFromCollection
+from geoconv_examples.improving_segmentation.data.segment_meshes import MESH_SEGMENTS
 from deepview.DeepView import DeepView
 
 import numpy as np
