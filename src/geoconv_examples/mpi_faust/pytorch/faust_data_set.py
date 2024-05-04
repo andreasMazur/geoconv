@@ -91,7 +91,7 @@ def faust_generator(path_to_zip,
             bc = bc + noise
 
         # Ground truth: Return the indices of the ones for each row
-        gt = torch.tensor(dataset[GT[idx]], dtype=torch.int64)
+        gt = torch.tensor(dataset[GT[idx]], dtype=torch.int64).view(-1,)
 
         if device:
             if only_signal:

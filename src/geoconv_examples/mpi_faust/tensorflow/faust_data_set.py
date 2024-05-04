@@ -85,6 +85,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinat
         # Ground truth: Return the indices of the ones for each row
         # (as required by `keras.losses.SparseCategoricalCrossentropy`)
         gt = dataset[GT[idx]]
+        gt = tf.reshape(gt, (-1,))
 
         if only_signal:
             yield signal
