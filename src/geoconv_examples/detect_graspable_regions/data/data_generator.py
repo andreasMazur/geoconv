@@ -5,6 +5,13 @@ import trimesh
 import os
 
 
+PARTNET_SPLITS = {
+    0: list(range(70)),  # train
+    1: list(range(70, 80)),  # validation
+    2: list(range(80, 103))  # test
+}
+
+
 def raw_data_generator(path, return_file_name=False, file_boundaries=None):
     """Loads the manually labeled data."""
     directory = os.listdir(f"{path}/out_data")
@@ -21,5 +28,10 @@ def raw_data_generator(path, return_file_name=False, file_boundaries=None):
 
 def processed_data_generator(path_to_zip, set_type=0, only_signal=False, device=None):
     return faust_generator(
-        path_to_zip, set_type=set_type, only_signal=only_signal, device=device, return_coordinates=False
+        path_to_zip,
+        set_type=set_type,
+        only_signal=only_signal,
+        device=device,
+        return_coordinates=False,
+        set_indices=PARTNET_SPLITS[set_type]
     )
