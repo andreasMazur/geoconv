@@ -2,6 +2,11 @@ import numpy as np
 import scipy as sp
 
 
+def pred_wrapper(data, model):
+    """Get the predicted probabilities of an IMCNN."""
+    return sp.special.softmax(model.output_dense(data), axis=-1)
+
+
 def embed(imcnn, inputs):
     """Retrieves the output of the last ISC-layer of an IMCNN."""
     #################
@@ -25,8 +30,3 @@ def embed(imcnn, inputs):
     # Output
     #########
     return np.array(signal)
-
-
-def pred_wrapper(data, model):
-    """Get the predicted probabilities of an IMCNN."""
-    return sp.special.softmax(model.output_dense(data), axis=-1)

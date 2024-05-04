@@ -1,5 +1,4 @@
 from geoconv_examples.improving_segmentation.deepview.deepview import DeepViewSubClass
-from geoconv_examples.improving_segmentation.deepview.deepview_util import embed, pred_wrapper
 from geoconv_examples.improving_segmentation.deepview.user_interaction import interactive_seg_correction
 
 import numpy as np
@@ -25,10 +24,12 @@ def deep_view_iter(model,
                    metric,
                    disc_dist,
                    class_dict,
-                   correction_file_name):
+                   correction_file_name,
+                   embed_fn,
+                   pred_wrapper):
     """Correct the segmentation labels for one mesh."""
     # Get model embeddings
-    embeddings = embed(model, [signal, bc])
+    embeddings = embed_fn(model, [signal, bc])
 
     # Determine segments by binning the vertices by their class labels
     coordinates = np.array(coordinates)
@@ -62,7 +63,8 @@ def deep_view_iter(model,
         title,
         metric=metric,
         disc_dist=disc_dist,
-        data_viz=data_viz
+        data_viz=data_viz,
+        class_dict=class_dict
     )
     imcnn_deepview.add_samples(embeddings, labels)
     imcnn_deepview.show()
@@ -71,9 +73,10 @@ def deep_view_iter(model,
 def correction_pipeline(model,
                         dataset,
                         embedding_shape,
+                        embed_fn,
+                        pred_fn,
                         class_dict,
                         signals_are_coordinates=False,
-                        amount_classes=10,
                         batch_size=64,
                         max_samples=7000,
                         resolution=100,
@@ -87,6 +90,7 @@ def correction_pipeline(model,
                         correction_file_name=None):
     """Use DeepView, IMCNNs and 3D Visualizations to interactively correct segmentation labels for mesh data."""
     # --- Deep View Parameters ----
+    amount_classes = len(class_dict)
     classes = np.arange(amount_classes)
     if cmap is None:
         cmap = "tab10"
@@ -103,12 +107,12 @@ def correction_pipeline(model,
             deep_view_iter(
                 model, signal, bc, signal, labels, idx, amount_classes, classes, max_samples, batch_size,
                 embedding_shape, interpolations, lam, resolution, cmap, interactive, title, metric, disc_dist,
-                class_dict, correction_file_name
+                class_dict, correction_file_name, embed_fn, pred_fn
             )
     else:
         for idx, ((signal, bc, coordinates), labels) in enumerate(dataset):
             deep_view_iter(
                 model, signal, bc, coordinates, labels, idx, amount_classes, classes, max_samples, batch_size,
                 embedding_shape, interpolations, lam, resolution, cmap, interactive, title, metric, disc_dist,
-                class_dict, correction_file_name
+                class_dict, correction_file_name, embed_fn, pred_fn
             )

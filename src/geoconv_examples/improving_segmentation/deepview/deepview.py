@@ -1,5 +1,4 @@
 from geoconv_examples.improving_segmentation.deepview.select_collection import SelectFromCollection
-from geoconv_examples.improving_segmentation.data.segment_meshes import MESH_SEGMENTS
 from deepview.DeepView import DeepView
 
 import numpy as np
@@ -11,8 +10,9 @@ import warnings
 
 class DeepViewSubClass(DeepView):
 
-    def __init__(self, *args, selector=None, **kwargs):
+    def __init__(self, *args, class_dict, selector=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.class_dict = class_dict
         self.selector = selector
 
     @property
@@ -99,7 +99,7 @@ class DeepViewSubClass(DeepView):
 
         for c in range(self.n_classes):
             color = self.cmap(c / (self.n_classes - 1))
-            plot = self.ax.plot([], [], 'o', label=MESH_SEGMENTS[c],
+            plot = self.ax.plot([], [], 'o', label=self.class_dict[c],
                                 color=color, zorder=2, picker=mpl.rcParams['lines.markersize'])
             self.sample_plots.append(plot[0])
 
