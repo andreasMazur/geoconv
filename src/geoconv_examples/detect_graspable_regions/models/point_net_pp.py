@@ -159,3 +159,27 @@ class PointNetPP(nn.Module):
                 )
 
         return {"epoch_loss": mean_loss, "epoch_accuracy": mean_accuracy}
+
+    def validation_loop(self, dataset, loss_fn, verbose=True):
+        self.eval()
+
+        with torch.no_grad():
+            val_loss = 0.
+            val_accuracy = 0.
+
+            for step, ((vertices, _), gt) in enumerate(dataset):
+                pred = self([vertices, vertices])
+
+                # Statistics
+                val_accuracy = val_accuracy + multiclass_accuracy(pred, gt).detach()
+                val_loss = val_loss + loss_fn(pred, gt).detach()
+
+            # I/O
+            mean_accuracy = val_accuracy / (step + 1)
+            mean_loss = val_loss / (step + 1)
+            if verbose:
+                sys.stdout.write(
+                    f" - Val.-Loss: {mean_loss:.4f} - "
+                    f"Val.-Accuracy: {mean_accuracy:.4f}\n"
+                )
+        return {"val_epoch_loss": mean_loss, "val_epoch_accuracy": mean_accuracy}
