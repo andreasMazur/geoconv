@@ -63,5 +63,5 @@ def correct_sub_partnet(data_path, model_path, correction_csv_path=None):
         class_dict=class_dict,
         signals_are_coordinates=True,
         correction_file_name=correction_csv_path,
-        cmap="bwr"
+        max_samples=10_000
     )
