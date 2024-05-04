@@ -41,22 +41,22 @@ def run_experiment(old_dataset_path,
         convert_partnet(old_data_path=old_dataset_path, new_data_path=new_dataset_path, csv_path=csv_path)
     else:
         print(f"Found converted dataset file: '{new_dataset_path}'. Skipping preprocessing.")
-
-    # Use corrected data as test data   path_to_zip, set_type=0, only_signal=False, device=None
-    val_data = PartNetDataset(new_dataset_path, set_type=1)
-    test_data = PartNetDataset(new_dataset_path, set_type=2)
+    old_dataset_path = f"{old_dataset_path}.zip"
 
     # Start training runs
-    test_accuracies, test_losses, sub_logging_dirs = [], [], ["bbox_approach", "deepview_approach"]
+    test_accuracies, test_losses, sub_logging_dirs = [[], []], [[], []], ["bbox_approach", "deepview_approach"]
     for idx, zip_file in enumerate([old_dataset_path, new_dataset_path]):
-        train_data = PartNetDataset(zip_file, set_type=0)
-        adaptation_data = PartNetDataset(zip_file, set_type=0, only_signal=True)
-
         # Train, validate and test IMCNN
         for trial_idx in range(trials):
+            print(f"Using un-corrected data: {idx == 0} | Using corrected data: {idx == 1} | Trial {trial_idx}")
+            adaptation_data = PartNetDataset(zip_file, set_type=0, only_signal=True)
+            train_data = PartNetDataset(zip_file, set_type=0)
+            val_data = PartNetDataset(new_dataset_path, set_type=1)  # Use corrected data to validate
+            test_data = PartNetDataset(new_dataset_path, set_type=2)  # Use corrected data to test
+
             hist = train_single_imcnn(
                 None,
-                saving_path=f"{logging_dir}/state_dict_imcnn_{trial_idx}",
+                saving_path=f"{logging_dir}/imcnn_NewOld_{idx}_Trial_{trial_idx}",
                 n_epochs=epochs,
                 adapt_data=adaptation_data,
                 train_data=train_data,
@@ -64,8 +64,8 @@ def run_experiment(old_dataset_path,
                 test_data=test_data
             )
 
-            test_accuracies.append(hist["test_accuracy"][-1])
-            test_losses.append(hist["test_loss"][-1])
+            test_accuracies[idx].append(hist["test_accuracy"][-1])
+            test_losses[idx].append(hist["test_loss"][-1])
 
     # Compute and store Mann-Whitney U test
     mwutest_file_name = f"{logging_dir}/mann_whitney_u_test.txt"
@@ -82,9 +82,9 @@ def run_experiment(old_dataset_path,
         f.write(f"Test loss statistic: {loss_test_statistic}\n")
         f.write(f"Test loss p-value: {loss_p_value}\n")
         f.write("###########################\n")
-        f.write(f"Captured test accuracies (bbox-approach): {test_accuracies[0]}\n")
-        f.write(f"Captured test accuracies (deepview-approach): {test_accuracies[1]}\n")
+        f.write(f"Captured test accuracies (uncorrected): {test_accuracies[0]}\n")
+        f.write(f"Captured test accuracies (deepview-corrected): {test_accuracies[1]}\n")
         f.write("###########################\n")
-        f.write(f"Captured test loss (bbox-approach): {test_losses[0]}\n")
-        f.write(f"Captured test loss (deepview-approach): {test_losses[1]}\n")
+        f.write(f"Captured test loss (uncorrected): {test_losses[0]}\n")
+        f.write(f"Captured test loss (deepview-corrected): {test_losses[1]}\n")
         f.write("###########################\n")
