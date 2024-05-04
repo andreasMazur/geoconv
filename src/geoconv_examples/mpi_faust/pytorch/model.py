@@ -200,6 +200,6 @@ class Imcnn(nn.Module):
             if verbose:
                 sys.stdout.write(
                     f" - Val.-Loss: {mean_loss:.4f} - "
-                    f"Val.-Accuracy: {mean_accuracy:.4f}"
+                    f"Val.-Accuracy: {mean_accuracy:.4f}\n"
                 )
         return {"val_epoch_loss": mean_loss, "val_epoch_accuracy": mean_accuracy}
