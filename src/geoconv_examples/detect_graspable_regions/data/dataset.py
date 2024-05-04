@@ -1,5 +1,7 @@
 from geoconv_examples.mpi_faust.pytorch.faust_data_set import faust_generator
 
+from torch.utils.data import IterableDataset
+
 import numpy as np
 import trimesh
 import os
@@ -36,3 +38,30 @@ def processed_data_generator(path_to_zip, set_type=0, only_signal=False, device=
         return_coordinates=False,
         set_indices=PARTNET_SPLITS[set_type]
     )
+
+
+class PartNetDataset(IterableDataset):
+    def __init__(self, path_to_zip, set_type=0, only_signal=False, device=None):
+        self.only_signal = only_signal
+        self.path_to_zip = path_to_zip
+        self.set_type = set_type
+        self.only_signal = only_signal
+        self.device = device
+
+        self.dataset = processed_data_generator(
+            self.path_to_zip,
+            set_type=self.set_type,
+            only_signal=self.only_signal,
+            device=self.device,
+        )
+
+    def __iter__(self):
+        return self.dataset
+
+    def reset(self):
+        self.dataset = processed_data_generator(
+            self.path_to_zip,
+            set_type=self.set_type,
+            only_signal=self.only_signal,
+            device=self.device
+        )
