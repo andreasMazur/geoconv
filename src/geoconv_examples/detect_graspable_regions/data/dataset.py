@@ -7,11 +7,12 @@ import trimesh
 import os
 
 
+PARTNET_LEN = 102
 PARTNET_SPLITS = {
     0: list(range(70)),  # train
     1: list(range(70, 80)),  # validation
-    2: list(range(80, 103)),  # test
-    3: list(range(103))  # all
+    2: list(range(80, PARTNET_LEN)),  # test
+    3: list(range(PARTNET_LEN))  # all
 }
 
 
