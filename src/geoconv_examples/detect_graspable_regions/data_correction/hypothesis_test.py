@@ -56,8 +56,8 @@ def run_experiment(old_dataset_path,
 
             _, hist = train_single_imcnn(
                 None,
-                saving_path=f"{logging_dir}/imcnn_OldNew_{idx}_trial_{trial_idx}.zip",
                 n_epochs=epochs,
+                logging_dir=f"{logging_dir}/imcnn_OldNew_{idx}_trial_{trial_idx}",
                 adapt_data=adaptation_data,
                 train_data=train_data,
                 val_data=val_data,
