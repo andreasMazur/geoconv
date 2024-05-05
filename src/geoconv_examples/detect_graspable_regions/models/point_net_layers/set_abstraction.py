@@ -31,7 +31,10 @@ class SetAbstraction(nn.Module):
 
     def forward(self, features, vertices):
         # 1. Farthest point sampling
-        centroid_indices = fpsample.fps_sampling(np.array(vertices), self.n_balls)
+        if self.n_balls < vertices.shape[0]:
+            centroid_indices = fpsample.fps_sampling(np.array(vertices), self.n_balls)
+        else:
+            centroid_indices = np.arange(vertices.shape[0])
         # 2. Grouping
         embeddings = []
         for features, coordinates, edges in self.group_around_centroids(centroid_indices, vertices, features):
