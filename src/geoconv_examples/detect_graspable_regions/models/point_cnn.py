@@ -72,6 +72,8 @@ class PointCNN(nn.Module):
         """
         vertex_features, vertices = inputs
 
+        # Sample point clouds
+
         # X-Convolutions
         skip_connections = []
         for idx in range(len(self.xconv_parameters)):
