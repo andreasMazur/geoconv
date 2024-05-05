@@ -9,7 +9,7 @@ import torch
 import os
 
 
-def log_training(model, hist, logging_dir, verbose=True):
+def log_training(model, hist, logging_dir, skip_validation, skip_testing, verbose=True):
     """Saves model, training history and plots training statistics."""
     if not os.path.exists(logging_dir):
         os.makedirs(logging_dir)
@@ -18,29 +18,45 @@ def log_training(model, hist, logging_dir, verbose=True):
     torch.save(model.state_dict(), f"{logging_dir}/model.zip")
 
     # Split train/val from test
-    train_val_df = pd.DataFrame.from_dict({
-        "train_loss": hist["train_loss"],
-        "train_accuracy": hist["train_accuracy"],
-        "val_loss": hist["val_loss"],
-        "val_accuracy": hist["val_accuracy"],
-    })
-    test_df = pd.DataFrame.from_dict({
-        "test_loss": hist["test_loss"],
-        "test_accuracy": hist["test_accuracy"]
-    })
+    if skip_validation:
+        train_val_df = pd.DataFrame.from_dict({
+            "train_loss": hist["train_loss"],
+            "train_accuracy": hist["train_accuracy"]
+        })
+    else:
+        train_val_df = pd.DataFrame.from_dict({
+            "train_loss": hist["train_loss"],
+            "train_accuracy": hist["train_accuracy"],
+            "val_loss": hist["val_loss"],
+            "val_accuracy": hist["val_accuracy"],
+        })
+    if not skip_testing:
+        test_df = pd.DataFrame.from_dict({
+            "test_loss": hist["test_loss"],
+            "test_accuracy": hist["test_accuracy"]
+        })
 
     # Save csv files
     train_val_df.to_csv(f"{logging_dir}/train_val.csv", index=False)
-    test_df.to_csv(f"{logging_dir}/test.csv", index=False)
+    if not skip_testing:
+        test_df.to_csv(f"{logging_dir}/test.csv", index=False)
 
     # Save plot
     n_rows, n_cols, cm = 2, 1, 1 / 2.54
     fig, axs = plt.subplots(n_rows, n_cols, figsize=(12 * cm, 12.2 * cm), sharex=True)
     axs[0].set_ylabel("Loss")
-    train_val_df.plot(y=["train_loss", "val_loss"], ax=axs[0], grid=True)
+    if skip_validation:
+        train_val_df.plot(y=["train_loss"], ax=axs[0], grid=True)
+    else:
+        train_val_df.plot(y=["train_loss", "val_loss"], ax=axs[0], grid=True)
+
     axs[1].set_ylabel("Accuracy")
     axs[1].set_xlabel("Epoch")
-    train_val_df.plot(y=["train_accuracy", "val_accuracy"], ax=axs[1], grid=True)
+    if skip_validation:
+        train_val_df.plot(y=["train_accuracy"], ax=axs[1], grid=True)
+    else:
+        train_val_df.plot(y=["train_accuracy", "val_accuracy"], ax=axs[1], grid=True)
+
     plt.savefig(f"{logging_dir}/train_val.svg", bbox_inches="tight")
 
     if verbose:
@@ -109,6 +125,6 @@ def train_single_imcnn(data_path,
         train_hist["test_accuracy"].append(float(epoch_test_hist["val_epoch_accuracy"].detach()))
 
     if logging_dir is not None:
-        log_training(model, train_hist, logging_dir)
+        log_training(model, train_hist, logging_dir, skip_validation, skip_testing)
 
     return model, train_hist
