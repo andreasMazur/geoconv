@@ -8,7 +8,7 @@ import scipy as sp
 import os
 
 
-def partnet_cross_validation(k, epochs, zip_file, logging_dir, label_changes_path, trained_models=None):
+def partnet_grasp_cross_validation(k, epochs, zip_file, logging_dir, label_changes_path, trained_models=None):
     """Perform cross-validation on PartNet-Grasp and store change, entropy and mis-predictions in a CSV file."""
     # Create logging dir
     if not os.path.exists(logging_dir):
