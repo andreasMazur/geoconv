@@ -11,7 +11,9 @@ import pathlib
 import urllib.request
 
 
-PARTNET_EXP_GITHUB_LINK = "https://raw.githubusercontent.com/daerduoCarey/partnet_seg_exps/master/stats/train_val_test_split/"
+PARTNET_EXP_GITHUB_LINK = (
+    "https://raw.githubusercontent.com/daerduoCarey/partnet_seg_exps/master/stats/train_val_test_split/"
+)
 
 
 """(Incomplete) mapping from wordnet synsets to ShapeNet categories"""
