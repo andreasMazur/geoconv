@@ -78,7 +78,7 @@ def partnet_grasp_cross_validation(k, epochs, zip_file, logging_dir, label_chang
             )
 
 
-def filter_method():
+def filter_method(logging_dir):
     """Comparison method."""
     data_indices = np.arange(DATASET_LENGTH)
     selected_misclassifications = np.zeros(len(data_indices))
@@ -87,7 +87,9 @@ def filter_method():
 
     for d in range(len(data_indices)):
         # Load data
-        data = pd.read_csv(f"change_entropy_correct_pred_{data_indices[d]}.csv", header=None)
+        data = pd.read_csv(
+            f"{logging_dir}/change_entropy_correct_pred_{data_indices[d]}.csv", header=None
+        )
         relabeled = data.iloc[:, 0]
         # entropies = data.iloc[:, 1]
         misclassification = data.iloc[:, 2] == 0
