@@ -358,7 +358,7 @@ class PartNetAnnotatedMesh:
         print(f"{self.base_PartNet_path}/{self.anno_id}/objs/{self.objs[0]}")
 
 
-use_colors = [
+USER_COLORS = [
     [0, 255, 0, 255],
     [255, 127, 0, 255],
     [119, 221, 231, 255],
