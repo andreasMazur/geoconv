@@ -8,12 +8,12 @@ import os
 import scipy as sp
 
 
-def run_experiment(old_dataset_path,
-                   new_dataset_path,
-                   csv_path,
-                   logging_dir,
-                   trials=30,
-                   epochs=10):
+def run_hypothesis_test(old_dataset_path,
+                        new_dataset_path,
+                        csv_path,
+                        logging_dir,
+                        trials=30,
+                        epochs=10):
     """Creates the datasets and starts the training runs.
 
     Parameters
