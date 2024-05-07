@@ -1,6 +1,6 @@
-from geoconv_examples.detect_graspable_regions.data.dataset import PartNetDataset
+from geoconv_examples.detect_graspable_regions.partnet_grasp.dataset import PartNetGraspDataset
 from geoconv_examples.detect_graspable_regions.data_correction.convert_partnet import convert_partnet
-from geoconv_examples.detect_graspable_regions.train_models.train_imcnn import train_single_imcnn
+from geoconv_examples.detect_graspable_regions.training.train_imcnn import train_single_imcnn
 
 from pathlib import Path
 
@@ -27,7 +27,7 @@ def run_experiment(old_dataset_path,
     logging_dir: str
         The path to the logging directory
     trials: int
-        The amount of trials (i.e. models to train)
+        The amount of trials (i.e. training to train)
     epochs: int
         The amount of epochs per trial
     """
@@ -49,10 +49,10 @@ def run_experiment(old_dataset_path,
         # Train, validate and test IMCNN
         for trial_idx in range(trials):
             print(f"Using un-corrected data: {idx == 0} | Using corrected data: {idx == 1} | Trial {trial_idx}")
-            adaptation_data = PartNetDataset(zip_file, set_type=0, only_signal=True)
-            train_data = PartNetDataset(zip_file, set_type=0)
-            val_data = PartNetDataset(new_dataset_path, set_type=1)  # Use corrected data to validate
-            test_data = PartNetDataset(new_dataset_path, set_type=2)  # Use corrected data to test
+            adaptation_data = PartNetGraspDataset(zip_file, set_type=0, only_signal=True)
+            train_data = PartNetGraspDataset(zip_file, set_type=0)
+            val_data = PartNetGraspDataset(new_dataset_path, set_type=1)  # Use corrected partnet_grasp to validate
+            test_data = PartNetGraspDataset(new_dataset_path, set_type=2)  # Use corrected partnet_grasp to test
 
             _, hist = train_single_imcnn(
                 None,

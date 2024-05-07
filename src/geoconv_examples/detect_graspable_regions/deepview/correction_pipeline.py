@@ -1,5 +1,5 @@
-from geoconv_examples.improving_segmentation.deepview.deepview import DeepViewSubClass
-from geoconv_examples.improving_segmentation.deepview.user_interaction import interactive_seg_correction
+from geoconv_examples.detect_graspable_regions.deepview.deepview import DeepViewSubClass
+from geoconv_examples.detect_graspable_regions.deepview.user_interaction import interactive_seg_correction
 
 import numpy as np
 
@@ -88,7 +88,7 @@ def correction_pipeline(model,
                         interactive=False,
                         title=None,
                         correction_file_name=None):
-    """Use DeepView, IMCNNs and 3D Visualizations to interactively correct segmentation labels for mesh data."""
+    """Use DeepView, IMCNNs and 3D Visualizations to interactively correct segmentation labels for mesh partnet_grasp."""
     # --- Deep View Parameters ----
     amount_classes = len(class_dict)
     classes = np.arange(amount_classes)

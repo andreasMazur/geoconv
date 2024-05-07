@@ -210,11 +210,11 @@ def align_to_partnet(
     trans = shapenet_trans(v_arr)
 
     shapenet_dir = osp.join(base_shapenet_path, CAT2SYNSET[cat_name], model_id)
-    out_file = osp.join(aligned_shapenet_target_path, CAT2SYNSET[cat_name], model_id, 'models', 'model_normalized.obj')
-    os.makedirs(osp.join(aligned_shapenet_target_path, CAT2SYNSET[cat_name], model_id, 'models'), exist_ok=True)
+    out_file = osp.join(aligned_shapenet_target_path, CAT2SYNSET[cat_name], model_id, 'training', 'model_normalized.obj')
+    os.makedirs(osp.join(aligned_shapenet_target_path, CAT2SYNSET[cat_name], model_id, 'training'), exist_ok=True)
     if not osp.exists(shapenet_dir):
         raise ValueError(f"Shapenet dir {shapenet_dir} does not exist!")
-    tmp_mesh = trimesh.load(osp.join(shapenet_dir, 'models', 'model_normalized.obj'))
+    tmp_mesh = trimesh.load(osp.join(shapenet_dir, 'training', 'model_normalized.obj'))
 
     if isinstance(tmp_mesh, trimesh.Scene):
         shapenet_mesh = trimesh.util.concatenate(
@@ -350,7 +350,7 @@ class PartNetAnnotatedMesh:
 
         cat_id = CAT2SYNSET[self.meta['model_cat'].lower()]
         self.ShapeNet_model_path = (
-            f"{self.base_ShapeNet_path}/{cat_id}/{self.meta['model_id']}/models/model_normalized.obj"
+            f"{self.base_ShapeNet_path}/{cat_id}/{self.meta['model_id']}/training/model_normalized.obj"
         )
 
     def print_paths(self):
@@ -383,7 +383,7 @@ def convert_partnet_labels(
     Args:
         base_partnet_path (str): Path to `PartNet/data_vX` dir.
         base_shapenet_path (str): Path to `ShapeNetCore.vX` dir.
-        target_mesh_path (str): Destination dir to save the aligned ShapeNet data to.
+        target_mesh_path (str): Destination dir to save the aligned ShapeNet partnet_grasp to.
         target_dataset_path (str): Destination dir to save the extracted dataset to.
         obj_class (str, optional): Object class name. Defaults to 'Mug'.
         manual (bool, optional): Whether to manually select meshes. Defaults to False.
@@ -472,7 +472,7 @@ def manual_filter_mesh(
     shapenet_dir = osp.join(aligned_shapenet_path, CAT2SYNSET[cat_name], model_id)
     if not osp.exists(shapenet_dir):
         raise ValueError(f"Shapenet dir {shapenet_dir} does not exist!")
-    tmp_mesh = trimesh.load(osp.join(shapenet_dir, 'models', 'model_normalized.obj'))
+    tmp_mesh = trimesh.load(osp.join(shapenet_dir, 'training', 'model_normalized.obj'))
 
     if isinstance(tmp_mesh, trimesh.Scene):
         shapenet_mesh = trimesh.util.concatenate(
@@ -524,7 +524,7 @@ def orig_segmentation(
 
     Args:
         base_partnet_path (str): Path to `PartNet/data_vX` dir.
-        aligned_shapenet_path (str): Path to aligned ShapeNet data root dir.
+        aligned_shapenet_path (str): Path to aligned ShapeNet partnet_grasp root dir.
         annot (PartNetAnnotatedMesh): Mesh to process.
         out_npz_dir (str): Directory where to save a numpy file containing vertices, faces, and segment labels.
         verbose (bool, optional): Print more info. Defaults to False.
@@ -571,7 +571,7 @@ def orig_segmentation(
     shapenet_dir = osp.join(aligned_shapenet_path, CAT2SYNSET[cat_name], model_id)
     if not osp.exists(shapenet_dir):
         raise ValueError(f"Shapenet dir {shapenet_dir} does not exist!")
-    tmp_mesh = trimesh.load(osp.join(shapenet_dir, 'models', 'model_normalized.obj'))
+    tmp_mesh = trimesh.load(osp.join(shapenet_dir, 'training', 'model_normalized.obj'))
 
     if isinstance(tmp_mesh, trimesh.Scene):
         shapenet_mesh = trimesh.util.concatenate(

@@ -1,23 +1,26 @@
-from geoconv_examples.detect_graspable_regions.data.dataset import PartNetDataset
-from geoconv_examples.detect_graspable_regions.models.point_cnn import PointCNN
-from geoconv_examples.detect_graspable_regions.models.point_net_pp import PointNetPP
-from geoconv_examples.detect_graspable_regions.train_models.train_logging import log_training, log_summary
+from geoconv_examples.detect_graspable_regions.partnet_grasp.dataset import PartNetGraspDataset
+from geoconv_examples.detect_graspable_regions.training.imcnn import SegImcnn
+from geoconv_examples.detect_graspable_regions.training.train_logging import log_training
 
 from torch import nn
 
 import torch
 
 
-def train_single_model(model,
-                       data_path,
+def train_single_imcnn(data_path,
                        n_epochs,
                        logging_dir=None,
+                       adapt_data=None,
                        train_data=None,
                        val_data=None,
                        test_data=None,
                        skip_validation=False,
-                       skip_testing=False):
+                       skip_testing=False,
+                       verbose=False):
     """Trains a single Intrinsic Mesh CNN on a subset of the PartNet dataset."""
+    model = SegImcnn(
+        adapt_data=PartNetGraspDataset(data_path, set_type=0, only_signal=True) if adapt_data is None else adapt_data
+    )
     train_hist = {
         "train_loss": [],
         "train_accuracy": [],
@@ -35,9 +38,9 @@ def train_single_model(model,
 
         # Training
         epoch_train_hist = model.train_loop(
-            dataset=PartNetDataset(set_type=0, path_to_zip=data_path) if train_data is None else train_data,
+            dataset=PartNetGraspDataset(set_type=0, path_to_zip=data_path) if train_data is None else train_data,
             loss_fn=nn.CrossEntropyLoss(),
-            opt=torch.optim.Adam(model.parameters()),
+            optimizer=torch.optim.Adam(model.parameters()),
             verbose=True,
             epoch=epoch
         )
@@ -47,7 +50,7 @@ def train_single_model(model,
         # Validation
         if not skip_validation:
             epoch_val_hist = model.validation_loop(
-                dataset=PartNetDataset(set_type=1, path_to_zip=data_path) if val_data is None else val_data,
+                dataset=PartNetGraspDataset(set_type=1, path_to_zip=data_path) if val_data is None else val_data,
                 loss_fn=nn.CrossEntropyLoss(),
                 verbose=True
             )
@@ -57,7 +60,7 @@ def train_single_model(model,
     # Testing
     if not skip_testing:
         epoch_test_hist = model.validation_loop(
-            dataset=PartNetDataset(set_type=2, path_to_zip=data_path) if test_data is None else test_data,
+            dataset=PartNetGraspDataset(set_type=2, path_to_zip=data_path) if test_data is None else test_data,
             loss_fn=nn.CrossEntropyLoss(),
             verbose=False
         )
@@ -65,25 +68,18 @@ def train_single_model(model,
         train_hist["test_accuracy"].append(float(epoch_test_hist["val_epoch_accuracy"].detach()))
 
     if logging_dir is not None:
-        log_training(model, train_hist, logging_dir, skip_validation, skip_testing)
+        log_training(model, train_hist, logging_dir, skip_validation, skip_testing, verbose=verbose)
 
     return model, train_hist
 
 
-def train_n_models(model_variant, n, data_path, n_epochs, amount_classes=2, logging_dir=None, verbose=True):
-    """Train the given model n times."""
-    # Define possible models to train
-    possible_models = {
-        "PointCNN": PointCNN(amount_classes=amount_classes), "PointNetPP": PointNetPP(amount_classes=amount_classes)
-    }
-
-    # Train models
+def train_n_imcnns(n, data_path, n_epochs, logging_dir=None, verbose=False):
+    """Train n IMCNNs."""
     training_histories = []
     for repetition in range(n):
         print(f"### Repetition {repetition} ###")
-        model = possible_models[model_variant]
-        _, train_hist = train_single_model(
-            model, data_path, n_epochs=n_epochs, logging_dir=f"{logging_dir}/rep_{repetition}"
+        _, train_hist = train_single_imcnn(
+            data_path, n_epochs=n_epochs, logging_dir=f"{logging_dir}/rep_{repetition}", verbose=verbose
         )
         training_histories.append(train_hist)
-    log_summary(training_histories, n_epochs, logging_dir, verbose=verbose)
+    return training_histories

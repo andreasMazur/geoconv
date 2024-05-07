@@ -1,4 +1,5 @@
-from geoconv_examples.improving_segmentation.deepview.select_collection import SelectFromCollection
+from geoconv_examples.detect_graspable_regions.deepview.select_collection import SelectFromCollection
+
 from deepview.DeepView import DeepView
 
 import numpy as np
@@ -154,7 +155,7 @@ class DeepViewSubClass(DeepView):
             self.data_viz(sample, p, t, self.cmap)
             return
         else:
-            warnings.warn("Data visualization not possible, as the data points have"
+            warnings.warn("Data visualization not possible, as the partnet_grasp points have"
                           "no image shape. Pass a function in the data_viz argument,"
-                          "to enable custom data visualization.")
+                          "to enable custom partnet_grasp visualization.")
             return

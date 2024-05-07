@@ -1,8 +1,8 @@
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.utils.misc import normalize_mesh, find_largest_one_hop_dist, get_faces_of_edge
-from geoconv_examples.detect_graspable_regions.data.geodesic_diameters import GEODESIC_DIAMETERS
-from geoconv_examples.detect_graspable_regions.data.dataset import raw_data_generator
+from geoconv_examples.detect_graspable_regions.partnet_grasp.geodesic_diameters import GEODESIC_DIAMETERS
+from geoconv_examples.detect_graspable_regions.partnet_grasp.dataset import raw_partnet_grasp_generator
 
 from pathlib import Path
 
@@ -23,8 +23,8 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
-    # Create raw data generator
-    rd_generator = raw_data_generator(data_path, return_file_name=True, file_boundaries=file_boundaries)
+    # Create raw partnet_grasp generator
+    rd_generator = raw_partnet_grasp_generator(data_path, return_file_name=True, file_boundaries=file_boundaries)
 
     # Normalize meshes
     for mesh_idx, (mesh, _, file_name) in enumerate(rd_generator):
@@ -81,8 +81,8 @@ def preprocess_data(data_path, target_dir, temp_dir=None, processes=1, n_radial=
     with open(f"{target_dir}/gpc_kernel_properties.json", "w") as properties_file:
         json.dump({"gpc_system_radius": gpc_radius, "kernel_radius": kernel_radius}, properties_file, indent=4)
 
-    # Create raw data generator
-    rd_generator = raw_data_generator(data_path, return_file_name=True, file_boundaries=file_boundaries)
+    # Create raw partnet_grasp generator
+    rd_generator = raw_partnet_grasp_generator(data_path, return_file_name=True, file_boundaries=file_boundaries)
 
     # Compute GPC-systems and barycentric coordinates
     for mesh_idx, (_, vertex_labels, file_name) in enumerate(rd_generator):

@@ -1,6 +1,8 @@
-from geoconv_examples.improving_segmentation.deepview.correction_pipeline import correction_pipeline
-from geoconv_examples.detect_graspable_regions.data.dataset import PartNetDataset, processed_data_generator
-from geoconv_examples.detect_graspable_regions.models.imcnn import SegImcnn
+from geoconv_examples.detect_graspable_regions.deepview.correction_pipeline import correction_pipeline
+from geoconv_examples.detect_graspable_regions.partnet_grasp.dataset import (
+    PartNetGraspDataset, processed_partnet_grasp_generator
+)
+from geoconv_examples.detect_graspable_regions.training.imcnn import SegImcnn
 
 import torch
 import scipy as sp
@@ -41,11 +43,11 @@ def correct_sub_partnet(data_path, model_path, correction_csv_path=None):
     if correction_csv_path is None:
         correction_csv_path = "./partnet_correction.csv"
 
-    model = SegImcnn(adapt_data=PartNetDataset(data_path, set_type=0, only_signal=True))
+    model = SegImcnn(adapt_data=PartNetGraspDataset(data_path, set_type=0, only_signal=True))
     model.load_state_dict(torch.load(model_path))
 
     # Load the dataset
-    dataset = processed_data_generator(data_path, set_type=3)
+    dataset = processed_partnet_grasp_generator(data_path, set_type=3)
 
     # Create class descriptions
     class_dict = {

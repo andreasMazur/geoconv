@@ -16,8 +16,8 @@ PARTNET_SPLITS = {
 }
 
 
-def raw_data_generator(path, return_file_name=False, file_boundaries=None):
-    """Loads the manually labeled data."""
+def raw_partnet_grasp_generator(path, return_file_name=False, file_boundaries=None):
+    """Loads raw PartNet-Grasp partnet_grasp."""
     directory = os.listdir(f"{path}/out_data")
     directory.sort()
     if file_boundaries is not None:
@@ -30,7 +30,8 @@ def raw_data_generator(path, return_file_name=False, file_boundaries=None):
             yield trimesh.Trimesh(vertices=d["verts"], faces=d["faces"], validate=True), d["labels"]
 
 
-def processed_data_generator(path_to_zip, set_type=0, only_signal=False, set_indices=None, device=None):
+def processed_partnet_grasp_generator(path_to_zip, set_type=0, only_signal=False, set_indices=None, device=None):
+    """Loads preprocessed PartNet-Grasp partnet_grasp."""
     return faust_generator(
         path_to_zip,
         set_type=set_type,
@@ -41,7 +42,7 @@ def processed_data_generator(path_to_zip, set_type=0, only_signal=False, set_ind
     )
 
 
-class PartNetDataset(IterableDataset):
+class PartNetGraspDataset(IterableDataset):
     def __init__(self, path_to_zip, set_type=0, only_signal=False, set_indices=None, device=None):
         self.only_signal = only_signal
         self.path_to_zip = path_to_zip
@@ -50,7 +51,7 @@ class PartNetDataset(IterableDataset):
         self.device = device
         self.set_indices = set_indices
 
-        self.dataset = processed_data_generator(
+        self.dataset = processed_partnet_grasp_generator(
             self.path_to_zip,
             set_type=self.set_type,
             only_signal=self.only_signal,
@@ -62,7 +63,7 @@ class PartNetDataset(IterableDataset):
         return self.dataset
 
     def reset(self):
-        self.dataset = processed_data_generator(
+        self.dataset = processed_partnet_grasp_generator(
             self.path_to_zip,
             set_type=self.set_type,
             only_signal=self.only_signal,
