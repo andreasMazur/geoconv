@@ -11,6 +11,7 @@ import open3d as o3d
 import urllib.request
 
 
+# https://github.com/daerduoCarey/partnet_seg_exps/tree/master/stats/train_val_test_split
 PARTNET_EXP_GITHUB_LINK = (
     "https://raw.githubusercontent.com/daerduoCarey/partnet_seg_exps/master/stats/train_val_test_split/"
 )
@@ -376,7 +377,8 @@ def convert_partnet_labels(
         manual: bool = False,
         verbose: bool = False) -> None:
     """Transfers PartNet labels to ShapeNet mesh.
-    Involves a) extracting ShapeNet meshes of the given class from ShapeNet,
+    Involves
+    a) extracting ShapeNet meshes of the given class from ShapeNet,
     b) transforming the ShapeNet mesh to match the combined PartNet transform,
     c) assigning labels to the transformed ShapeNet mesh by choosing the min distance of signed distance with each
      individual segment.
@@ -418,11 +420,12 @@ def convert_partnet_labels(
         use_mesh = None
         if manual:
             use_mesh = manual_filter_mesh(
-                    base_partnet_path=base_partnet_path,
-                    aligned_shapenet_path=target_mesh_path,
-                    anno_id=annot.meta['anno_id'],
-                    cat_name=annot.meta['model_cat'].lower(),
-                    model_id=annot.meta['model_id'])
+                base_partnet_path=base_partnet_path,
+                aligned_shapenet_path=target_mesh_path,
+                anno_id=annot.meta['anno_id'],
+                cat_name=annot.meta['model_cat'].lower(),
+                model_id=annot.meta['model_id']
+            )
         else:
             use_mesh = ANNOT_DICT[inst['anno_id']]
 

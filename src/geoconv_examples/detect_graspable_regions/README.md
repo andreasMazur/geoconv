@@ -17,7 +17,22 @@ conda install -c conda-forge libstdcxx-ng
 ## Download PartNet and ShapeNet
 
 ```python
-    #TODO
+from huggingface_hub import login
+
+import datasets
+
+if __name__ == "__main__":
+    """Download Mug-meshes from ShapeNetCore.v2 and PartNet-archive
+    
+    You can also do it manually from here:
+    * ShapeNetCore.v2:
+        https://huggingface.co/datasets/ShapeNet/ShapeNetCore/blob/main/03797390.zip
+    * PartNet-archive:
+        https://huggingface.co/datasets/ShapeNet/PartNet-archive/tree/main
+    """
+    login()
+    datasets.load_dataset("ShapeNet/ShapeNetCore", data_files="03797390.zip")
+    datasets.load_dataset("ShapeNet/PartNet-archive")
 ```
 
 ## Sampling and preprocessing PartNet-Grasp
