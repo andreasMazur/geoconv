@@ -51,7 +51,7 @@ if __name__ == '__main__':
 ```
 We refer to that sub-dataset as '*PartNet-Grasp*'.
 
-## Correcting segmentation labels
+## Correcting Segmentation Labels
 
 Next, the user needs to run the segmentation label correction algorithm to interactively
 correct segmentation labels of PartNet-Grasp:
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     )
 ```
 
-## Comparison to filter method
+## Comparison to Filter Method
 
 ```python
 from geoconv_examples.detect_graspable_regions.experiments.cross_validation import (
