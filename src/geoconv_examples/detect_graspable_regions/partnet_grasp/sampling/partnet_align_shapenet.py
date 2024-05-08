@@ -1,13 +1,13 @@
 from scipy.spatial.distance import cdist
 
+from geoconv_examples.detect_graspable_regions.partnet_grasp.sampling.PartNetGraspMeshes import ANNOT_DICT
+
 import os
 import os.path as osp
 import trimesh
 import json
 import numpy as np
 import open3d as o3d
-import pickle
-import pathlib
 import urllib.request
 
 
@@ -398,11 +398,6 @@ def convert_partnet_labels(
             d = json.load(url)
             data.extend(d)
 
-    # Load predefined mesh id set
-    print(f"Path: {pathlib.Path(__file__).absolute().parents[0]}")
-    with open(osp.join(str(pathlib.Path(__file__).absolute().parents[0]), 'PartNetGraspMeshes.pkl'), 'rb') as f:
-        annot_dict = pickle.load(f)
-
     for inst in data:
         annot = PartNetAnnotatedMesh(
             anno_id=inst["anno_id"],
@@ -429,7 +424,7 @@ def convert_partnet_labels(
                     cat_name=annot.meta['model_cat'].lower(),
                     model_id=annot.meta['model_id'])
         else:
-            use_mesh = annot_dict[inst['anno_id']]
+            use_mesh = ANNOT_DICT[inst['anno_id']]
 
         if use_mesh:
             orig_segmentation(
