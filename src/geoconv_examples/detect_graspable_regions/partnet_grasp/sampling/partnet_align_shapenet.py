@@ -1,6 +1,6 @@
 from scipy.spatial.distance import cdist
 
-from geoconv_examples.detect_graspable_regions.partnet_grasp.sampling.PartNetGraspMeshes import ANNOT_DICT
+from geoconv_examples.detect_graspable_regions.partnet_grasp.sampling.partnet_grasp_meshes import ANNOT_DICT
 
 import os
 import os.path as osp
@@ -628,13 +628,3 @@ def orig_segmentation(
         labels = np.vstack(labels)
         with open(f'{out_npz_dir}/{annot.anno_id}.npz', 'wb') as f:
             np.savez(f, verts=shapenet_mesh.vertices, faces=shapenet_mesh.faces, labels=labels)
-
-
-if __name__ == '__main__':
-    convert_partnet_labels(
-        base_partnet_path='/PATH_TO/PartNet/data_v0',
-        base_shapenet_path='/PATH_TO/ShapeNet/ShapeNetCore.v2',
-        target_mesh_path='/tmp/AlignedShapeNet',
-        target_dataset_path='/PATH_TO/out_data',
-        manual=False
-    )
