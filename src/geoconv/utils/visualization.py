@@ -44,7 +44,7 @@ def draw_barycentric_coordinates(gpc_system, barycentric_coordinates, save_name=
                 point_color=pc,
                 title=f"Interpolation Coefficients: {triangle_interpolation_coefficients}",
                 plot=True,
-                save_name=f"{save_name}_{rc}_{ac}"
+                save_name=f"{save_name}_{rc}_{ac}" if save_name else ""
             )
 
 
