@@ -1,4 +1,4 @@
-from geoconv_examples.detect_graspable_regions.deepview.deepview import DeepViewSubClass
+from deepview.DeepView import DeepViewSelector
 from geoconv_examples.detect_graspable_regions.deepview.user_interaction import interactive_seg_correction
 
 import numpy as np
@@ -49,7 +49,7 @@ def deep_view_iter(model,
             file_name=correction_file_name
         )
 
-    imcnn_deepview = DeepViewSubClass(
+    imcnn_deepview = DeepViewSelector(
         lambda x: pred_wrapper(x, model),
         classes,
         max_samples,
@@ -64,6 +64,7 @@ def deep_view_iter(model,
         metric=metric,
         disc_dist=disc_dist,
         data_viz=data_viz,
+        selector=True,
         class_dict=class_dict
     )
     imcnn_deepview.add_samples(embeddings, labels)
@@ -93,7 +94,7 @@ def correction_pipeline(model,
     amount_classes = len(class_dict)
     classes = np.arange(amount_classes)
     if cmap is None:
-        cmap = "tab10"
+        cmap = "jet"
     if metric is None:
         metric = "euclidean"
     if title is None:
