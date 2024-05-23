@@ -8,6 +8,7 @@ from tqdm import tqdm
 import numpy as np
 import warnings
 import heapq
+import os
 
 
 class GPCSystemGroup:
@@ -120,3 +121,33 @@ class GPCSystemGroup:
                         if gpc_system.update(i, new_u_i, new_theta_i, j, k_vertices):
                             heapq.heappush(candidates, (new_u_i, i))
         return gpc_system
+
+    def save(self, path):
+        """Saves all GPC-systems.
+
+        Parameters
+        ----------
+        path: str
+            The path to where the GPC-system group shall be saved.
+        """
+        for gpc_system_idx, gpc_system in tqdm(enumerate(self.object_mesh_gpc_systems), postfix="Saving GPC-systems.."):
+            gpc_system.save(f"{path}/{gpc_system_idx}")
+
+    def load(self, path):
+        """Loads GPC-systems.
+
+        Parameters
+        ----------
+        path: str
+            The path from where to load the GPC-systems.
+        """
+        gpc_systems = []
+        gpc_system_directories = os.listdir(path)
+        gpc_system_directories.sort(key=lambda fn: int(fn))
+        for source_point, gpc_system_directory in tqdm(
+                enumerate(gpc_system_directories), postfix=f"Loading GPC-systems from: '{path}'"
+        ):
+            gpc_system = GPCSystem(source_point, self.object_mesh, use_c=True)
+            gpc_system.load(f"{path}/{gpc_system_directory}")
+            gpc_systems.append(gpc_system)
+        self.object_mesh_gpc_systems = np.array(gpc_systems)

@@ -83,8 +83,14 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     print(f"GPC-system max.-radius: {u_max} | Template max.-radius: {template_radius}")
 
     # Compute and store the GPC-systems for the bunny mesh.
-    gpc_systems = GPCSystemGroup(bunny, processes=processes)
-    gpc_systems.compute(u_max=u_max)
+    gpc_systems_path = f"{os.path.dirname(path_to_stanford_bunny)}/bunny_gpc_systems"
+    if not os.path.exists(gpc_systems_path):
+        gpc_systems = GPCSystemGroup(bunny, processes=processes)
+        gpc_systems.compute(u_max=u_max)
+        gpc_systems.save(gpc_systems_path)
+    else:
+        gpc_systems = GPCSystemGroup(bunny, processes=processes)
+        gpc_systems.load(gpc_systems_path)
 
     # Compute the barycentric coordinates for the template in the computed GPC-systems.
     bc = compute_barycentric_coordinates(

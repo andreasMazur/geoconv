@@ -6,7 +6,9 @@ from matplotlib.patches import Polygon
 
 import c_extension
 import numpy as np
+import json
 import sys
+import os
 
 
 class GPCSystem:
@@ -116,7 +118,7 @@ class GPCSystem:
         if np.inf in [self.x_coordinates[edge[0]], self.x_coordinates[edge[1]]]:
             raise RuntimeError(f"Edge {edge} lacks GPC: {[self.x_coordinates[edge[0]], self.x_coordinates[edge[1]]]}")
 
-        edge = list(np.sort(edge))
+        edge = np.sort(edge).astype(np.int32).tolist()
         # Check if edge was seen once
         if edge not in self.edges[-1]:
             self.edges[-1].append(edge)
@@ -136,7 +138,7 @@ class GPCSystem:
         face: np.ndarray
             The face to add
         """
-        face = list(np.sort(face))
+        face = np.sort(face).astype(np.int32).tolist()
         if face not in self.faces[(-1, -1)]:
             self.faces[(-1, -1)].append(face)
         face_edges = [
@@ -358,3 +360,46 @@ class GPCSystem:
             return gpc_systems_into_cart(gpc_system_triangles)
         else:
             return gpc_system_triangles
+
+    def save(self, path):
+        """Saves the GPC-system.
+
+        Parameters
+        ----------
+        path: str
+            The path to where the GPC-system shall be saved.
+        """
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        np.save(f"{path}/angular_coordinates.npy", self.angular_coordinates)
+        np.save(f"{path}/radial_coordinates.npy", self.radial_coordinates)
+        np.save(f"{path}/x_coordinates.npy", self.x_coordinates)
+        np.save(f"{path}/y_coordinates.npy", self.y_coordinates)
+        with open(f"{path}/properties.json", "w") as properties_file:
+            json.dump(
+                {
+                    "edges": {int(k): v for k, v in self.edges.items()},
+                    "faces": {f"{k1},{k2}": v for (k1, k2), v in self.faces.items()},
+                    "source_point": int(self.source_point)
+                },
+                properties_file
+            )
+
+    def load(self, path):
+        """Loads a GPC-system.
+
+        Parameters
+        ----------
+        path: str
+            The path from where to load the GPC-system.
+        """
+        self.angular_coordinates = np.load(f"{path}/angular_coordinates.npy")
+        self.radial_coordinates = np.load(f"{path}/radial_coordinates.npy")
+        self.x_coordinates = np.load(f"{path}/x_coordinates.npy")
+        self.y_coordinates = np.load(f"{path}/y_coordinates.npy")
+        with open(f"{path}/properties.json", "r") as properties_file:
+            properties = json.load(properties_file)
+            self.edges = {int(k): v for k, v in properties["edges"].items()}
+            self.faces = {tuple([int(k) for k in k_str.split(",")]): v for k_str, v in properties["faces"].items()}
+            self.source_point = properties["source_point"]
