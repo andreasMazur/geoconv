@@ -16,7 +16,7 @@ def manifold_plus(shapenet_path, manifold_plus_executable, output_path, temp_dir
         # Filter file directory name (-> synset/model_id)
         shape_path = "/" + "/".join(shape_path.split("/")[-4:-1])
         if not os.path.exists(shape_path):
-            os.makedirs(output_path)
+            os.makedirs(output_path, exist_ok=True)
             # Create temporary file for manifold+ algorithm
             temp_fn = temp_dir + shape_path
             if not os.path.exists(temp_fn):
