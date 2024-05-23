@@ -15,25 +15,26 @@ def manifold_plus(shapenet_path, manifold_plus_executable, output_path, temp_dir
     for shape, shape_path in shapenet_generator:
         # Filter file directory name (-> synset/model_id)
         shape_path = "/" + "/".join(shape_path.split("/")[-4:-1])
+        if not os.path.exists(shape_path):
+            os.makedirs(output_path)
+            # Create temporary file for manifold+ algorithm
+            temp_fn = temp_dir + shape_path
+            if not os.path.exists(temp_fn):
+                os.makedirs(temp_fn)
+            in_file = temp_fn + "/model_normalized.obj"
+            shape.export(in_file)
 
-        # Create temporary file for manifold+ algorithm
-        temp_fn = temp_dir + shape_path
-        if not os.path.exists(temp_fn):
-            os.makedirs(temp_fn)
-        in_file = temp_fn + "/model_normalized.obj"
-        shape.export(in_file)
+            # Create output file
+            output_fn = output_path + shape_path
+            if not os.path.exists(output_fn):
+                os.makedirs(output_fn)
+            out_file = output_fn + "/model_normalized.obj"
 
-        # Create output file
-        output_fn = output_path + shape_path
-        if not os.path.exists(output_fn):
-            os.makedirs(output_fn)
-        out_file = output_fn + "/model_normalized.obj"
-
-        # Manifold plus algorithm
-        if np.asarray(shape.as_open3d.get_non_manifold_edges()).shape[0] > 0:
-            os.system(f"{manifold_plus_executable} --input {in_file} --output {out_file} --depth {depth}")
-        else:
-            shape.export(out_file)
+            # Manifold plus algorithm
+            if np.asarray(shape.as_open3d.get_non_manifold_edges()).shape[0] > 0:
+                os.system(f"{manifold_plus_executable} --input {in_file} --output {out_file} --depth {depth}")
+            else:
+                shape.export(out_file)
     shutil.rmtree(temp_dir)
 
 
@@ -51,11 +52,9 @@ def preprocess_shapenet(n_radial,
     ####################################
     # Convert meshes to manifold meshes
     ####################################
-    if not os.path.exists(target_dir):
-        os.makedirs(target_dir)
-        manifold_plus(
-            shapenet_path, manifold_plus_executable, output_path=target_dir, synset_ids=synset_ids, depth=depth
-        )
+    manifold_plus(
+        shapenet_path, manifold_plus_executable, output_path=target_dir, synset_ids=synset_ids, depth=depth
+    )
 
     ##################################
     # Compute barycentric coordinates
