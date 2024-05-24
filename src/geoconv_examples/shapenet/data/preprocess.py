@@ -97,7 +97,7 @@ def compute_gpc_systems(shapenet_root,
         if not os.path.isfile(f"{shapenet_root}/{synset_id}.zip"):
             shapenet_generator = up_shapenet_generator(shapenet_root, return_filename=True, synset_ids=[synset_id])
             for shape, shape_path in shapenet_generator:
-                # 'output_shape_path': where to store the preprocessed mesh (synset_id repetition for subsequent zipping)
+                # output_shape_path: where to store the preprocessed mesh (synset_id repetition for subsequent zipping)
                 dir_name = os.path.dirname(f"{target_root}/{synset_id}/{shape_path}")
 
                 # If properties file exists, GPC-computation ran through and we can skip addition GPC-computation.
