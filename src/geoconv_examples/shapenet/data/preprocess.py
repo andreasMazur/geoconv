@@ -50,6 +50,7 @@ def manifold_plus(shapenet_path, manifold_plus_executable, target_dir, synset_id
 
 
 def compute_gpc_systems(target_dir, synset_ids, down_sample=6000, processes=1):
+    """Computes GPC-systems."""
     for synset_id in synset_ids:
         shapenet_generator = up_shapenet_generator(
             target_dir,
