@@ -94,7 +94,7 @@ def compute_gpc_systems(shapenet_root,
     """Computes GPC-systems."""
     for synset_id in synset_ids:
         # Check if zip for synset already exists
-        if not os.path.isfile(f"{shapenet_root}/{synset_id}.zip"):
+        if not os.path.isfile(f"{target_root}/{synset_id}.zip"):
             shapenet_generator = up_shapenet_generator(shapenet_root, return_filename=True, synset_ids=[synset_id])
             for shape, shape_path in shapenet_generator:
                 # output_shape_path: where to store the preprocessed mesh (synset_id repetition for subsequent zipping)
@@ -117,7 +117,7 @@ def compute_gpc_systems(shapenet_root,
                     )
 
                     # Only compute GPC-systems for meshes with more than 100 vertices
-                    if shape.vertices.shape[0] >= min_vertices:
+                    if shape.vertices.shape[0] >= min_vertices and shape.faces.shape[0] > 0:
                         # 1.) Normalize shape
                         gpc_system_radius = None
                         if os.path.isfile(properties_file_path):
@@ -153,6 +153,9 @@ def compute_gpc_systems(shapenet_root,
                                 properties_file,
                                 indent=4
                             )
+                    else:
+                        print(f"Could not repair: {shape_path}")
+                        shutil.rmtree(dir_name)
                 else:
                     print(f"Found preprocess-properties file: {properties_file_path}")
             print(f"Preprocessing '{synset_id}' done. Zipping..")
