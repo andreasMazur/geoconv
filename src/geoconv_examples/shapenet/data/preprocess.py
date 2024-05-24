@@ -42,7 +42,7 @@ def repair_shape(shape,
                  depth=8,
                  down_sample=None,
                  remove_non_manifold_edges=True):
-    """Repairs and normalizes the given shape."""
+    """Repairs the given shape."""
     # Create temporary file for manifold+ algorithm
     in_file = f"{dir_name}/model_normalized_temp.obj"
     shape.export(in_file)
