@@ -69,7 +69,7 @@ def compute_gpc_systems(target_dir, synset_ids, down_sample=6000, processes=1, m
                     dir_name = os.path.dirname(output_shape_path)
                     os.makedirs(dir_name, exist_ok=True)
 
-                    # 0.) Store mesh
+                    # 0.) Store down-sampled and filtered mesh
                     shape.export(f"{dir_name}/model_normalized.obj")
 
                     # 1.) Normalize shape
