@@ -49,27 +49,7 @@ def manifold_plus(shapenet_path, manifold_plus_executable, target_dir, synset_id
             print(f"Zip-file already exists: {zip_file}")
 
 
-def preprocess_shapenet(n_radial,
-                        n_angular,
-                        kernel_radius,
-                        shapenet_path,
-                        target_dir,
-                        manifold_plus_executable,
-                        synset_ids=None,
-                        down_sample=6000,
-                        depth=8,
-                        processes=1,
-                        compute_bc=True):
-    ####################################
-    # Convert meshes to manifold meshes
-    ####################################
-    manifold_plus(
-        shapenet_path, manifold_plus_executable, target_dir=target_dir, synset_ids=synset_ids, depth=depth
-    )
-
-    ##################################
-    # Compute barycentric coordinates
-    ##################################
+def compute_gpc_systems(target_dir, synset_ids, down_sample=6000, processes=1):
     for synset_id in synset_ids:
         shapenet_generator = up_shapenet_generator(
             target_dir,
@@ -115,21 +95,13 @@ def preprocess_shapenet(n_radial,
                         gpc_systems = GPCSystemGroup(shape, processes=processes)
                         gpc_systems.load(gpc_systems_path)
 
-                    # 3.) Compute barycentric coordinates
-                    if compute_bc:
-                        bary_coords = compute_barycentric_coordinates(
-                            gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=kernel_radius
-                        )
-                        np.save(f"{dir_name}/barycentric_coordinates.npy", bary_coords)
-
-                    # 4.) Log preprocess properties
+                    # 3.) Log preprocess properties
                     with open(properties_file_path, "w") as properties_file:
                         json.dump(
                             {
                                 "non_manifold_edges": np.asarray(shape.as_open3d.get_non_manifold_edges()).shape[0],
                                 "gpc_system_radius": gpc_system_radius,
-                                "geodesic_diameter": geodesic_diameter,
-                                "kernel_radius": kernel_radius if compute_bc else None
+                                "geodesic_diameter": geodesic_diameter
                             },
                             properties_file,
                             indent=4
@@ -140,3 +112,30 @@ def preprocess_shapenet(n_radial,
         shutil.make_archive(base_name=zip_file, format="zip", root_dir=zip_file)
         shutil.rmtree(zip_file)
         print("Done.")
+
+
+def preprocess_shapenet(n_radial,
+                        n_angular,
+                        kernel_radius,
+                        shapenet_path,
+                        target_dir,
+                        manifold_plus_executable,
+                        synset_ids,
+                        down_sample=6000,
+                        depth=8,
+                        processes=1):
+    ####################################
+    # Convert meshes to manifold meshes
+    ####################################
+    manifold_plus(
+        shapenet_path, manifold_plus_executable, target_dir=target_dir, synset_ids=synset_ids, depth=depth
+    )
+
+    ######################
+    # Compute GPC-systems
+    ######################
+    compute_gpc_systems(target_dir, synset_ids, down_sample=down_sample, processes=processes)
+
+    ########################################
+    # TODO: Compute barycentric coordinates
+    ########################################
