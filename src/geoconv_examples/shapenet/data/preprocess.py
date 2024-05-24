@@ -1,13 +1,14 @@
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.utils.misc import normalize_mesh, find_largest_one_hop_dist, get_faces_of_edge
-from geoconv_examples.shapenet.data.shapenet_generator import up_shapenet_generator
+from geoconv_examples.shapenet.data.shapenet_generator import up_shapenet_generator, up_unpacked_shapenet_generator
 
 import numpy as np
 import os
 import json
 import shutil
 import trimesh
+import zipfile
 
 
 def remove_nme(mesh):
@@ -41,6 +42,7 @@ def repair_shape(shape,
                  depth=8,
                  down_sample=None,
                  remove_non_manifold_edges=True):
+    """Repairs and normalizes the given shape."""
     # Create temporary file for manifold+ algorithm
     in_file = f"{dir_name}/model_normalized_temp.obj"
     shape.export(in_file)
@@ -81,8 +83,8 @@ def repair_shape(shape,
     return shape
 
 
-def compute_gpc_systems(shapenet_dir,
-                        target_dir,
+def compute_gpc_systems(shapenet_root,
+                        target_root,
                         manifold_plus_executable,
                         synset_ids,
                         down_sample=6000,
@@ -91,10 +93,10 @@ def compute_gpc_systems(shapenet_dir,
                         depth=8):
     """Computes GPC-systems."""
     for synset_id in synset_ids:
-        shapenet_generator = up_shapenet_generator(shapenet_dir, return_filename=True, synset_ids=[synset_id])
+        shapenet_generator = up_shapenet_generator(shapenet_root, return_filename=True, synset_ids=[synset_id])
         for shape, shape_path in shapenet_generator:
             # 'output_shape_path': where to store the preprocessed mesh (synset_id repetition for subsequent zipping)
-            output_shape_path = f"{target_dir}/{synset_id}/{shape_path}"
+            output_shape_path = f"{target_root}/{synset_id}/{shape_path}"
             if not os.path.isfile(output_shape_path):
                 # Create shape directory
                 dir_name = os.path.dirname(output_shape_path)
@@ -148,19 +150,65 @@ def compute_gpc_systems(shapenet_dir,
                             indent=4
                         )
         print(f"Preprocessing '{synset_id}' done. Zipping..")
-        zip_file = f"{target_dir}/{synset_id}"
+        zip_file = f"{target_root}/{synset_id}"
         shutil.make_archive(base_name=zip_file, format="zip", root_dir=zip_file)
         shutil.rmtree(zip_file)
         print("Done.")
 
 
+def compute_bc(dataset_root, synset_ids, n_radial, n_angular, kernel_radius, processes=1):
+    """Computes barycentric coordinates."""
+    for synset_id in synset_ids:
+        # Unzip ShapeNet-synset with GPC-systems
+        print(f"Unzipping synset '{synset_id}' for computing barycentric coordinates..")
+        synset_zip = f"{dataset_root}/{synset_id}.zip"
+        with zipfile.ZipFile(synset_zip, "r") as zip_ref:
+            zip_ref.extractall(synset_zip[:-4])
+        # os.remove(synset_zip)
+        print("Done.")
+
+        shapenet_generator = up_unpacked_shapenet_generator(dataset_root, return_filename=True, synset_ids=[synset_id])
+        for shape, shape_path in shapenet_generator:
+            # 'output_bc_path': where to store the preprocessed mesh (synset_id repetition for subsequent zipping)
+            shape_dir = os.path.dirname(shape_path)
+            output_bc_path = f"{dataset_root}/{shape_dir}/BC_{n_radial}_{n_angular}_{kernel_radius}.npy"
+            if not os.path.isfile(output_bc_path):
+                with open(f"{dataset_root}/{shape_dir}/preprocess_properties.json", "r") as properties_file:
+                    properties = json.load(properties_file)
+                    geodesic_diameter = properties["geodesic_diameter"]
+
+                gpc_systems = GPCSystemGroup(normalize_mesh(shape, geodesic_diameter)[0], processes=processes)
+                gpc_systems.load(f"{dataset_root}/{shape_dir}/gpc_systems")
+
+                # Compute barycentric coordinates
+                bc = compute_barycentric_coordinates(
+                    gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=kernel_radius
+                )
+                np.save(output_bc_path, bc)
+        print(f"Computing barycentric coordinates for synset '{synset_id}' done. Zipping..")
+        zip_file = f"{dataset_root}/{synset_id}"
+        shutil.make_archive(base_name=zip_file, format="zip", root_dir=zip_file)
+        shutil.rmtree(zip_file)
+        print("Done.")
+
+
+def get_gpc_stats(dataset_root):
+    """Get GPC-system stats of ShapeNet."""
+    shapenet_generator = up_shapenet_generator(dataset_root, return_properties=True)
+    avg_radius = 0
+    for idx, (shape, properties) in enumerate(shapenet_generator):
+        avg_radius += properties["gpc_system_radius"]
+    avg_radius = avg_radius / (idx + 1)
+    return avg_radius
+
+
 def preprocess_shapenet(n_radial,
                         n_angular,
-                        kernel_radius,
                         shapenet_path,
                         target_dir,
                         manifold_plus_executable,
                         synset_ids,
+                        kernel_radius=None,
                         down_sample=6000,
                         depth=8,
                         processes=1,
@@ -179,7 +227,11 @@ def preprocess_shapenet(n_radial,
         depth=depth
     )
 
-    ########################################
-    # TODO: Compute barycentric coordinates
-    ########################################
+    ##################################
+    # Compute barycentric coordinates
+    ##################################
+    if kernel_radius is None:
+        gpc_system_radius = get_gpc_stats(target_dir)
+        kernel_radius = gpc_system_radius * 0.75
+    compute_bc(target_dir, synset_ids, n_radial, n_angular, kernel_radius)
 
