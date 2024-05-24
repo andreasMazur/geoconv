@@ -5,9 +5,7 @@ import os
 import zipfile
 
 
-def up_shapenet_generator(shapenet_path,
-                          return_filename=False,
-                          synset_ids=None):
+def up_shapenet_generator(shapenet_path, return_filename=False, synset_ids=None):
     """Yields unprocessed shapenet shapes directly from the zip-files."""
     # Check for file ending
     synset_ids = [synset_id if synset_id[-3:] == "zip" else f"{synset_id}.zip" for synset_id in synset_ids]
