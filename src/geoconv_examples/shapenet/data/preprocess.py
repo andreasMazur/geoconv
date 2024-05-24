@@ -49,7 +49,7 @@ def manifold_plus(shapenet_path, manifold_plus_executable, target_dir, synset_id
             print(f"Zip-file already exists: {zip_file}")
 
 
-def compute_gpc_systems(target_dir, synset_ids, down_sample=6000, processes=1):
+def compute_gpc_systems(target_dir, synset_ids, down_sample=6000, processes=1, min_vertices=100):
     """Computes GPC-systems."""
     for synset_id in synset_ids:
         shapenet_generator = up_shapenet_generator(
@@ -64,7 +64,7 @@ def compute_gpc_systems(target_dir, synset_ids, down_sample=6000, processes=1):
             output_shape_path = f"{target_dir}/{synset_id}/{shape_path}"
             if not os.path.isfile(output_shape_path):
                 # Only preprocess meshes with more than 100 vertices
-                if shape.vertices.shape[0] >= 100:
+                if shape.vertices.shape[0] >= min_vertices:
                     # Create shape directory
                     dir_name = os.path.dirname(output_shape_path)
                     os.makedirs(dir_name, exist_ok=True)
@@ -124,7 +124,8 @@ def preprocess_shapenet(n_radial,
                         synset_ids,
                         down_sample=6000,
                         depth=8,
-                        processes=1):
+                        processes=1,
+                        min_vertices=100):
     ####################################
     # Convert meshes to manifold meshes
     ####################################
@@ -135,7 +136,7 @@ def preprocess_shapenet(n_radial,
     ######################
     # Compute GPC-systems
     ######################
-    compute_gpc_systems(target_dir, synset_ids, down_sample=down_sample, processes=processes)
+    compute_gpc_systems(target_dir, synset_ids, down_sample=down_sample, processes=processes, min_vertices=min_vertices)
 
     ########################################
     # TODO: Compute barycentric coordinates
