@@ -119,24 +119,13 @@ def compute_gpc_systems(shapenet_root,
                     # Only compute GPC-systems for meshes with more than 100 vertices
                     if shape.vertices.shape[0] >= min_vertices and shape.faces.shape[0] > 0:
                         # 1.) Normalize shape
-                        gpc_system_radius = None
-                        if os.path.isfile(properties_file_path):
-                            with open(properties_file_path, "r") as properties_file:
-                                properties = json.load(properties_file)
-                                shape, geodesic_diameter = normalize_mesh(
-                                    shape, geodesic_diameter=properties["geodesic_diameter"]
-                                )
-                                gpc_system_radius = properties["gpc_system_radius"]
-                        else:
-                            shape, geodesic_diameter = normalize_mesh(shape)
+                        shape, geodesic_diameter = normalize_mesh(shape)
 
                         # 2.) Compute GPC-systems
                         gpc_systems_path = f"{dir_name}/gpc_systems"
                         if not os.path.exists(gpc_systems_path):
                             gpc_systems = GPCSystemGroup(shape, processes=processes)
-                            if gpc_system_radius is None:
-                                gpc_system_radius = find_largest_one_hop_dist(shape)
-                            gpc_systems.compute(u_max=gpc_system_radius)
+                            gpc_systems.compute(u_max=find_largest_one_hop_dist(shape))
                             gpc_systems.save(gpc_systems_path)
                         else:
                             gpc_systems = GPCSystemGroup(shape, processes=processes)
