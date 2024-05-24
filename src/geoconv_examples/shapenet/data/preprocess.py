@@ -122,15 +122,10 @@ def compute_gpc_systems(shapenet_root,
                         shape, geodesic_diameter = normalize_mesh(shape)
 
                         # 2.) Compute GPC-systems
-                        gpc_systems_path = f"{dir_name}/gpc_systems"
-                        if not os.path.exists(gpc_systems_path):
-                            gpc_systems = GPCSystemGroup(shape, processes=processes)
-                            gpc_system_radius = find_largest_one_hop_dist(shape)
-                            gpc_systems.compute(u_max=gpc_system_radius)
-                            gpc_systems.save(gpc_systems_path)
-                        else:
-                            gpc_systems = GPCSystemGroup(shape, processes=processes)
-                            gpc_systems.load(gpc_systems_path)
+                        gpc_systems = GPCSystemGroup(shape, processes=processes)
+                        gpc_system_radius = find_largest_one_hop_dist(shape)
+                        gpc_systems.compute(u_max=gpc_system_radius)
+                        gpc_systems.save(f"{dir_name}/gpc_systems")
 
                         # 3.) Log preprocess properties
                         with open(properties_file_path, "w") as properties_file:
