@@ -147,7 +147,6 @@ def compute_gpc_systems(shapenet_dir,
                             properties_file,
                             indent=4
                         )
-                    break
         print(f"Preprocessing '{synset_id}' done. Zipping..")
         zip_file = f"{target_dir}/{synset_id}"
         shutil.make_archive(base_name=zip_file, format="zip", root_dir=zip_file)
