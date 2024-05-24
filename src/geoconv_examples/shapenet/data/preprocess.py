@@ -213,6 +213,7 @@ def preprocess_shapenet(n_radial,
                         depth=8,
                         processes=1,
                         min_vertices=100):
+    """Wrapper function to preprocess ShapeNet."""
     ######################
     # Compute GPC-systems
     ######################
