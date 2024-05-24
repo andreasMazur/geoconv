@@ -93,70 +93,72 @@ def compute_gpc_systems(shapenet_root,
                         depth=8):
     """Computes GPC-systems."""
     for synset_id in synset_ids:
-        shapenet_generator = up_shapenet_generator(shapenet_root, return_filename=True, synset_ids=[synset_id])
-        for shape, shape_path in shapenet_generator:
-            # 'output_shape_path': where to store the preprocessed mesh (synset_id repetition for subsequent zipping)
-            dir_name = os.path.dirname(f"{target_root}/{synset_id}/{shape_path}")
+        # Check if zip for synset already exists
+        if not os.path.isfile(f"{shapenet_root}/{synset_id}.zip"):
+            shapenet_generator = up_shapenet_generator(shapenet_root, return_filename=True, synset_ids=[synset_id])
+            for shape, shape_path in shapenet_generator:
+                # 'output_shape_path': where to store the preprocessed mesh (synset_id repetition for subsequent zipping)
+                dir_name = os.path.dirname(f"{target_root}/{synset_id}/{shape_path}")
 
-            # If properties file exists, GPC-computation ran through and we can skip addition GPC-computation.
-            properties_file_path = f"{dir_name}/preprocess_properties.json"
-            if not os.path.isfile(properties_file_path):
-                # Create shape directory
-                os.makedirs(dir_name, exist_ok=True)
+                # If properties file exists, GPC-computation ran through and we can skip addition GPC-computation.
+                properties_file_path = f"{dir_name}/preprocess_properties.json"
+                if not os.path.isfile(properties_file_path):
+                    # Create shape directory
+                    os.makedirs(dir_name, exist_ok=True)
 
-                # Repair shape (manifold+-algorithm + down-sample + remove nme)
-                shape = repair_shape(
-                    shape,
-                    dir_name,
-                    manifold_plus_executable,
-                    depth=depth,
-                    down_sample=down_sample,
-                    remove_non_manifold_edges=True
-                )
+                    # Repair shape (manifold+-algorithm + down-sample + remove nme)
+                    shape = repair_shape(
+                        shape,
+                        dir_name,
+                        manifold_plus_executable,
+                        depth=depth,
+                        down_sample=down_sample,
+                        remove_non_manifold_edges=True
+                    )
 
-                # Only compute GPC-systems for meshes with more than 100 vertices
-                if shape.vertices.shape[0] >= min_vertices:
-                    # 1.) Normalize shape
-                    gpc_system_radius = None
-                    if os.path.isfile(properties_file_path):
-                        with open(properties_file_path, "r") as properties_file:
-                            properties = json.load(properties_file)
-                            shape, geodesic_diameter = normalize_mesh(
-                                shape, geodesic_diameter=properties["geodesic_diameter"]
+                    # Only compute GPC-systems for meshes with more than 100 vertices
+                    if shape.vertices.shape[0] >= min_vertices:
+                        # 1.) Normalize shape
+                        gpc_system_radius = None
+                        if os.path.isfile(properties_file_path):
+                            with open(properties_file_path, "r") as properties_file:
+                                properties = json.load(properties_file)
+                                shape, geodesic_diameter = normalize_mesh(
+                                    shape, geodesic_diameter=properties["geodesic_diameter"]
+                                )
+                                gpc_system_radius = properties["gpc_system_radius"]
+                        else:
+                            shape, geodesic_diameter = normalize_mesh(shape)
+
+                        # 2.) Compute GPC-systems
+                        gpc_systems_path = f"{dir_name}/gpc_systems"
+                        if not os.path.exists(gpc_systems_path):
+                            gpc_systems = GPCSystemGroup(shape, processes=processes)
+                            gpc_system_radius = find_largest_one_hop_dist(shape) if gpc_system_radius is None else gpc_system_radius
+                            gpc_systems.compute(u_max=gpc_system_radius)
+                            gpc_systems.save(gpc_systems_path)
+                        else:
+                            gpc_systems = GPCSystemGroup(shape, processes=processes)
+                            gpc_systems.load(gpc_systems_path)
+
+                        # 3.) Log preprocess properties
+                        with open(properties_file_path, "w") as properties_file:
+                            json.dump(
+                                {
+                                    "non_manifold_edges": np.asarray(shape.as_open3d.get_non_manifold_edges()).shape[0],
+                                    "gpc_system_radius": gpc_system_radius,
+                                    "geodesic_diameter": geodesic_diameter
+                                },
+                                properties_file,
+                                indent=4
                             )
-                            gpc_system_radius = properties["gpc_system_radius"]
-                    else:
-                        shape, geodesic_diameter = normalize_mesh(shape)
-
-                    # 2.) Compute GPC-systems
-                    gpc_systems_path = f"{dir_name}/gpc_systems"
-                    if not os.path.exists(gpc_systems_path):
-                        gpc_systems = GPCSystemGroup(shape, processes=processes)
-                        gpc_system_radius = find_largest_one_hop_dist(shape) if gpc_system_radius is None else gpc_system_radius
-                        gpc_systems.compute(u_max=gpc_system_radius)
-                        gpc_systems.save(gpc_systems_path)
-                    else:
-                        gpc_systems = GPCSystemGroup(shape, processes=processes)
-                        gpc_systems.load(gpc_systems_path)
-
-                    # 3.) Log preprocess properties
-                    with open(properties_file_path, "w") as properties_file:
-                        json.dump(
-                            {
-                                "non_manifold_edges": np.asarray(shape.as_open3d.get_non_manifold_edges()).shape[0],
-                                "gpc_system_radius": gpc_system_radius,
-                                "geodesic_diameter": geodesic_diameter
-                            },
-                            properties_file,
-                            indent=4
-                        )
-            else:
-                print(f"Found preprocess-properties file: {properties_file_path}")
-        print(f"Preprocessing '{synset_id}' done. Zipping..")
-        zip_file = f"{target_root}/{synset_id}"
-        shutil.make_archive(base_name=zip_file, format="zip", root_dir=zip_file)
-        shutil.rmtree(zip_file)
-        print("Done.")
+                else:
+                    print(f"Found preprocess-properties file: {properties_file_path}")
+            print(f"Preprocessing '{synset_id}' done. Zipping..")
+            zip_file = f"{target_root}/{synset_id}"
+            shutil.make_archive(base_name=zip_file, format="zip", root_dir=zip_file)
+            shutil.rmtree(zip_file)
+            print("Done.")
 
 
 def compute_bc(dataset_root, synset_ids, n_radial, n_angular, kernel_radius, processes=1):
