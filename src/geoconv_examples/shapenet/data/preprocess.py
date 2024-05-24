@@ -173,7 +173,7 @@ def compute_bc(dataset_root, synset_ids, n_radial, n_angular, kernel_radius, pro
         synset_zip = f"{dataset_root}/{synset_id}.zip"
         with zipfile.ZipFile(synset_zip, "r") as zip_ref:
             zip_ref.extractall(synset_zip[:-4])
-        # os.remove(synset_zip)
+        os.remove(synset_zip)
         print("Done.")
 
         shapenet_generator = up_unpacked_shapenet_generator(dataset_root, return_filename=True, synset_ids=[synset_id])
