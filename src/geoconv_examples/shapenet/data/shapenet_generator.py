@@ -39,6 +39,9 @@ def up_shapenet_generator(shapenet_path,
                           down_sample=None,
                           synset_ids=None):
     """Yields unprocessed shapenet shapes directly from the zip-files."""
+    # Check for file ending
+    synset_ids = [synset_id if synset_id[-3:] == "zip" else f"{synset_id}.zip" for synset_id in synset_ids]
+
     # Synset (WordNet): Set of synonyms
     if synset_ids is None:
         synset_ids = os.listdir(shapenet_path)
@@ -47,9 +50,9 @@ def up_shapenet_generator(shapenet_path,
         synset_ids_zip = zipfile.ZipFile(f"{shapenet_path}/{synset_id}", "r")
         zip_content = [fn for fn in synset_ids_zip.namelist() if fn[-3:] == "obj"]
         zip_content.sort()
-        for shape_id in zip_content:
+        for shape_path in zip_content:
             # Load shape
-            mesh = trimesh.load_mesh(BytesIO(synset_ids_zip.read(shape_id)), file_type="obj")
+            mesh = trimesh.load_mesh(BytesIO(synset_ids_zip.read(shape_path)), file_type="obj")
 
             # Concat meshes if a scene was loaded
             if type(mesh) == trimesh.scene.Scene:
@@ -63,13 +66,9 @@ def up_shapenet_generator(shapenet_path,
             if remove_non_manifold_edges:
                 mesh = remove_nme(mesh)
 
-            # Logging
-            non_manifold_edges = np.asarray(mesh.as_open3d.get_non_manifold_edges()).shape[0]
-            print(f"{shape_id} | Non-manifold edges: {non_manifold_edges} | vertices: {mesh.vertices.shape[0]}")
-
             # Yield mesh
             if return_filename:
-                yield mesh, shape_id
+                yield mesh, shape_path
             else:
                 yield mesh
 
