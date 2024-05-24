@@ -78,15 +78,7 @@ def preprocess_shapenet(n_radial,
             down_sample=down_sample,
             synset_ids=[synset_id]
         )
-
-        i = -1
-
         for shape, shape_path in shapenet_generator:
-
-            i += 1
-            if i == 0:
-                continue
-
             # 'output_shape_path': where to store the preprocessed mesh (synset_id repetition for subsequent zipping)
             output_shape_path = f"{target_dir}/{synset_id}/{shape_path}"
             if not os.path.isfile(output_shape_path):
@@ -142,8 +134,6 @@ def preprocess_shapenet(n_radial,
                             properties_file,
                             indent=4
                         )
-
-                    break
         print(f"Preprocessing '{synset_id}' done. Zipping..")
         zip_file = f"{target_dir}/{synset_id}"
         os.remove(f"{zip_file}.zip")
