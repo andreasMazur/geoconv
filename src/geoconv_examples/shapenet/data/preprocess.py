@@ -96,10 +96,12 @@ def compute_gpc_systems(shapenet_root,
         shapenet_generator = up_shapenet_generator(shapenet_root, return_filename=True, synset_ids=[synset_id])
         for shape, shape_path in shapenet_generator:
             # 'output_shape_path': where to store the preprocessed mesh (synset_id repetition for subsequent zipping)
-            output_shape_path = f"{target_root}/{synset_id}/{shape_path}"
-            if not os.path.isfile(output_shape_path):
+            dir_name = os.path.dirname(f"{target_root}/{synset_id}/{shape_path}")
+
+            # If properties file exists, GPC-computation ran through and we can skip addition GPC-computation.
+            properties_file_path = f"{dir_name}/preprocess_properties.json"
+            if not os.path.isfile(properties_file_path):
                 # Create shape directory
-                dir_name = os.path.dirname(output_shape_path)
                 os.makedirs(dir_name, exist_ok=True)
 
                 # Repair shape (manifold+-algorithm + down-sample + remove nme)
@@ -115,7 +117,6 @@ def compute_gpc_systems(shapenet_root,
                 # Only compute GPC-systems for meshes with more than 100 vertices
                 if shape.vertices.shape[0] >= min_vertices:
                     # 1.) Normalize shape
-                    properties_file_path = f"{dir_name}/preprocess_properties.json"
                     gpc_system_radius = None
                     if os.path.isfile(properties_file_path):
                         with open(properties_file_path, "r") as properties_file:
@@ -149,6 +150,8 @@ def compute_gpc_systems(shapenet_root,
                             properties_file,
                             indent=4
                         )
+            else:
+                print(f"Found preprocess-properties file: {properties_file_path}")
         print(f"Preprocessing '{synset_id}' done. Zipping..")
         zip_file = f"{target_root}/{synset_id}"
         shutil.make_archive(base_name=zip_file, format="zip", root_dir=zip_file)
