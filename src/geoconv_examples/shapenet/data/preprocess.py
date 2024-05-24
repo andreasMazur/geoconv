@@ -125,7 +125,8 @@ def compute_gpc_systems(shapenet_root,
                         gpc_systems_path = f"{dir_name}/gpc_systems"
                         if not os.path.exists(gpc_systems_path):
                             gpc_systems = GPCSystemGroup(shape, processes=processes)
-                            gpc_systems.compute(u_max=find_largest_one_hop_dist(shape))
+                            gpc_system_radius = find_largest_one_hop_dist(shape)
+                            gpc_systems.compute(u_max=gpc_system_radius)
                             gpc_systems.save(gpc_systems_path)
                         else:
                             gpc_systems = GPCSystemGroup(shape, processes=processes)
