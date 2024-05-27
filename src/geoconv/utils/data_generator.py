@@ -57,7 +57,12 @@ def down_sample_mesh(mesh, target_number_of_triangles):
     return mesh
 
 
-def zip_file_generator(zipfile_path, file_type, manifold_plus_executable=None, down_sample=None, return_filename=False):
+def zip_file_generator(zipfile_path,
+                       file_type,
+                       manifold_plus_executable=None,
+                       down_sample=None,
+                       return_filename=False,
+                       min_vertices=100):
     """Loads shapes from a given zip-file and removes non-manifold edges.
 
     Parameters
@@ -76,12 +81,12 @@ def zip_file_generator(zipfile_path, file_type, manifold_plus_executable=None, d
     trimesh.Trimesh:
         A manifold-mesh.
     """
-    modelnet_40_zip = zipfile.ZipFile(zipfile_path, "r")
-    zip_content = [fn for fn in modelnet_40_zip.namelist() if fn[-3:] == file_type]
+    zip_file = zipfile.ZipFile(zipfile_path, "r")
+    zip_content = [fn for fn in zip_file.namelist() if fn[-3:] == file_type]
     zip_content.sort()
 
     for shape_path in zip_content:
-        shape = trimesh.load_mesh(BytesIO(modelnet_40_zip.read(shape_path)), file_type=file_type)
+        shape = trimesh.load_mesh(BytesIO(zip_file.read(shape_path)), file_type=file_type)
 
         # Concat meshes if a scene was loaded
         if type(shape) == trimesh.scene.Scene:
@@ -111,7 +116,10 @@ def zip_file_generator(zipfile_path, file_type, manifold_plus_executable=None, d
         # Remove non-manifold meshes
         shape = remove_nme(shape)
 
-        if return_filename:
-            yield shape, shape_path
+        if shape.vertices.shape[0] > min_vertices:
+            if return_filename:
+                yield shape, shape_path
+            else:
+                yield shape
         else:
-            yield shape
+            print(f"{shape_path} has less then {min_vertices} vertices. Skipping to next shape..")
