@@ -8,7 +8,6 @@ import numpy as np
 import scipy as sp
 import trimesh
 import shutil
-import zipfile
 import json
 
 
@@ -29,24 +28,21 @@ def image_to_grid(image, grid):
     trimesh.Scene([grid, grid_image]).show()
 
 
-def compute_bc(zipfile_path, n_radial, n_angular):
-    unzipped_name = zipfile_path[:-4]
-    with zipfile.ZipFile(zipfile_path, "r") as zip_ref:
-        zip_ref.extractall(unzipped_name)
+def compute_bc(preprocess_dir, n_radial, n_angular):
 
-    with open(f"{unzipped_name}/preprocess_properties.json") as properties_file:
+    with open(f"{preprocess_dir}/preprocess_properties.json") as properties_file:
         properties = json.load(properties_file)
         template_radius = properties["gpc_system_radius"] * 0.75
 
-    gpc_systems = GPCSystemGroup(object_mesh=trimesh.load_mesh(f"{unzipped_name}/normalized_mesh.stl"))
-    gpc_systems.load(f"{unzipped_name}/gpc_systems")
+    gpc_systems = GPCSystemGroup(object_mesh=trimesh.load_mesh(f"{preprocess_dir}/normalized_mesh.stl"))
+    gpc_systems.load(f"{preprocess_dir}/gpc_systems")
 
     bc = compute_barycentric_coordinates(gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius)
-    np.save(f"{unzipped_name}/BC_{n_radial}_{n_angular}_{template_radius}.npy", bc)
+    np.save(f"{preprocess_dir}/BC_{n_radial}_{n_angular}_{template_radius}.npy", bc)
 
     print(f"Barycentric coordinates done. Zipping..")
-    shutil.make_archive(base_name=unzipped_name, format="zip", root_dir=unzipped_name)
-    shutil.rmtree(unzipped_name)
+    shutil.make_archive(base_name=preprocess_dir, format="zip", root_dir=preprocess_dir)
+    shutil.rmtree(preprocess_dir)
     print("Done.")
 
 
@@ -54,10 +50,4 @@ def preprocess(output_path, processes, n_radial, n_angular):
     # Preprocess flat grid
     grid = create_grid(n_vertices=28)  # MNIST-images are 28x28
     compute_gpc_systems(grid, output_path, processes=processes)
-
-    print(f"GPC-systems done. Zipping..")
-    shutil.make_archive(base_name=output_path, format="zip", root_dir=output_path)
-    shutil.rmtree(output_path)
-    print("Done.")
-
-    compute_bc(f"{output_path}.zip", n_radial=n_radial, n_angular=n_angular)
+    compute_bc(output_path, n_radial=n_radial, n_angular=n_angular)
