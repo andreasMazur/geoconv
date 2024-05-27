@@ -40,7 +40,7 @@ class GPCSystemGroup:
             )
         self.object_mesh_gpc_systems = np.array(gpc_systems).flatten()
 
-    def compute_gpc_system(self, source_point, u_max, gpc_system=None, plot_path=""):
+    def compute_gpc_system(self, source_point, u_max, gpc_system=None, plot_path="", max_iter=10_000):
         """Computes local GPC for one given source point.
 
         This method implements the algorithm of:
@@ -59,6 +59,8 @@ class GPCSystemGroup:
             which saves computation time.
         plot_path: bool
             If given, the update steps will be plotted and stored at the given path.
+        max_iter: int
+            The maximum amount of update steps.
 
         Returns
         -------
@@ -93,6 +95,7 @@ class GPCSystemGroup:
         # Algorithm to compute GPC-systems
         ###################################
         plot_number = 0
+        iteration = 0
         while candidates:
             # Get vertex from min-heap that is closest to GPC-system origin
             j_dist, j = heapq.heappop(candidates)
@@ -108,6 +111,10 @@ class GPCSystemGroup:
                     self.use_c,
                     rotation_axis=self.object_mesh.vertex_normals[source_point]
                 )
+                # Break if max-iteration has been exceeded
+                iteration += 1
+                if iteration >= max_iter:
+                    break
                 # In difference to the original pseudocode, we add 'new_u_i < u_max' to this IF-query
                 # to ensure that the radial coordinates do not exceed 'u_max'.
                 if new_u_i < u_max and gpc_system.radial_coordinates[i] / new_u_i > 1 + self.eps:
@@ -120,6 +127,10 @@ class GPCSystemGroup:
                     else:
                         if gpc_system.update(i, new_u_i, new_theta_i, j, k_vertices):
                             heapq.heappush(candidates, (new_u_i, i))
+            # Break if max-iteration has been exceeded
+            if iteration >= max_iter:
+                print(f"**** GPC-algorithm: Source Point {source_point} - Maximum iterations reached! ****")
+                break
         return gpc_system
 
     def save(self, path):
