@@ -75,6 +75,10 @@ def zip_file_generator(zipfile_path,
         The path to the manifold+ algorithm.
     down_sample: int
         The target amount of triangles the mesh shall be down-sampled to.
+    return_filename: bool
+        Whether to return the filename of the shape within the zip-file.
+    min_vertices: int
+        The minimal amount of vertices a shape shall return.
 
     Returns
     -------
