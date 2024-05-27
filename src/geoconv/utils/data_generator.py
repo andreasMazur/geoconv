@@ -57,7 +57,7 @@ def down_sample_mesh(mesh, target_number_of_triangles):
     return mesh
 
 
-def zip_file_generator(zipfile_path, file_type, manifold_plus_executable=None, down_sample=None):
+def zip_file_generator(zipfile_path, file_type, manifold_plus_executable=None, down_sample=None, return_filename=False):
     """Loads shapes from a given zip-file and removes non-manifold edges.
 
     Parameters
@@ -111,4 +111,7 @@ def zip_file_generator(zipfile_path, file_type, manifold_plus_executable=None, d
         # Remove non-manifold meshes
         shape = remove_nme(shape)
 
-        yield shape
+        if return_filename:
+            yield shape, shape_path
+        else:
+            yield shape
