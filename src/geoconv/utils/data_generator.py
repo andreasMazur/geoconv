@@ -120,7 +120,7 @@ def zip_file_generator(zipfile_path,
         # Remove non-manifold meshes
         shape = remove_nme(shape)
 
-        if shape.vertices.shape[0] > min_vertices:
+        if shape.vertices.shape[0] > min_vertices and shape.faces.shape[0] > 0:
             if return_filename:
                 yield shape, shape_path
             else:
