@@ -42,3 +42,6 @@ def compute_gpc_systems(shape, output_dir, processes=1):
             properties_file,
             indent=4
         )
+
+    # 4.) Export preprocessed mesh
+    shape.export(f"{output_dir}/normalized_mesh.stl")
