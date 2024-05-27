@@ -52,7 +52,7 @@ def compute_bc(zipfile_path, n_radial, n_angular):
 
 def preprocess(output_path, processes, n_radial, n_angular):
     # Preprocess flat grid
-    grid = create_grid(n_vertices=28)
+    grid = create_grid(n_vertices=28)  # MNIST-images are 28x28
     compute_gpc_systems(grid, output_path, processes=processes)
 
     print(f"GPC-systems done. Zipping..")
