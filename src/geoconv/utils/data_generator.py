@@ -144,3 +144,42 @@ def zip_file_generator(zipfile_path,
                 yield shape
         else:
             print(f"{shape_path} has less then {min_vertices} vertices. Skipping to next shape..")
+
+
+def barycentric_coordinates_generator(zipfile_path, n_radial, n_angular, template_radius, return_filename=False):
+    """Loads barycentric coordinates from a preprocessed dataset
+
+    Parameters
+    ----------
+    zipfile_path: str
+        Path to preprocessed dataset.
+    n_radial: int
+        Amount of radial coordinates contained in the barycentric coordinates that shall be loaded.
+    n_angular: int
+        Amount of angular coordinates contained in the barycentric coordinates that shall be loaded.
+    template_radius: float
+        The template radius considered during barycentric coordinates computation.
+    return_filename: bool
+        Whether to return the filename of the shape within the zip-file.
+
+    Returns
+    -------
+    np.ndarray:
+        Barycentric coordinates.
+    """
+    # Load barycentric coordinates
+    zip_file = np.load(zipfile_path)
+
+    # Filter for correct barycentric coordinates
+    filtered_content = []
+    for fn in [file_name for file_name in zip_file.files if file_name[:2] == "BC"]:
+        fn_splitted = fn.split("_")
+        if int(fn_splitted[1]) == n_radial and int(fn_splitted[2]) == n_angular and float(fn_splitted[3]) == template_radius:
+            filtered_content.append(fn)
+
+    filtered_content.sort()
+    for bc_path in filtered_content:
+        if return_filename:
+            yield zip_file[bc_path], bc_path
+        else:
+            yield zip_file[bc_path]
