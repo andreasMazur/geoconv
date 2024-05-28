@@ -44,4 +44,4 @@ def load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_t
 
         # Apply 'make_compatible' to each element of MNIST
         dataset = dataset.map(make_compatible)
-    return dataset
+    return dataset.batch(1).prefetch(tf.data.AUTOTUNE)
