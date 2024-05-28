@@ -19,7 +19,7 @@ def compute_gpc_systems(shape, output_dir, processes=1):
     processes: int
         The amount of processes to be used concurrently.
     """
-    # 0.) Check whether file already exist. If so, computing GPC-systems.
+    # 0.) Check whether file already exist. If so, skip computing GPC-systems.
     if not os.path.isfile(f"{output_dir}/preprocess_properties.json"):
         # 1.) Create output dir if not existent
         os.makedirs(output_dir, exist_ok=True)
