@@ -6,6 +6,7 @@ import zipfile
 import trimesh
 import numpy as np
 import os
+import subprocess
 
 
 def remove_nme(mesh):
@@ -62,7 +63,9 @@ def zip_file_generator(zipfile_path,
                        manifold_plus_executable=None,
                        down_sample=None,
                        return_filename=False,
-                       min_vertices=100):
+                       min_vertices=100,
+                       timeout_in_sec=20,
+                       mp_depth=8):
     """Loads shapes from a given zip-file and removes non-manifold edges.
 
     Parameters
@@ -79,6 +82,10 @@ def zip_file_generator(zipfile_path,
         Whether to return the filename of the shape within the zip-file.
     min_vertices: int
         The minimal amount of vertices a shape shall return.
+    timeout_in_sec: int
+        The amount of seconds to wait before killing the manifold+ subprocess and continue with the next shape.
+    mp_depth: int
+        Depth for manifold+-algorithm.
 
     Returns
     -------
@@ -106,7 +113,17 @@ def zip_file_generator(zipfile_path,
 
             # Manifold plus algorithm
             if np.asarray(shape.as_open3d.get_non_manifold_edges()).shape[0] > 0:
-                os.system(f"{manifold_plus_executable} --input {in_file} --output {out_file} --depth 8")
+                try:
+                    subprocess.run(
+                        [manifold_plus_executable, "--input", in_file, "--output", out_file, "--depth", f"{mp_depth}"],
+                        timeout=timeout_in_sec
+                    )
+                except subprocess.TimeoutExpired:
+                    print(
+                        f"{shape_path} took more than {timeout_in_sec} to be processed by the manifold+ algorithm. "
+                        f"Skipping to next shape."
+                    )
+                    continue
                 shape = trimesh.load_mesh(out_file)
                 # Remove temp files
                 os.remove(out_file)
