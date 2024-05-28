@@ -132,6 +132,7 @@ def compute_geodesic_diameter(mesh):
     (np.array, float):
         The distance matrix between all vertices of the mesh and the geodesic diameter of the mesh.
     """
+    should_raise = False
     with tempfile.TemporaryDirectory(dir=".") as tempdir:
         np.save(f"{tempdir}/mesh_vertices.npy", mesh.vertices)
         np.save(f"{tempdir}/mesh_faces.npy", mesh.faces)
@@ -141,9 +142,12 @@ def compute_geodesic_diameter(mesh):
             [f"python", f"{pathlib.Path(__file__).parent.resolve()}/safe_pygeodesic.py", tempdir],
             env=current_env
         )
-    if proc.returncode != 0:
+        if proc.returncode != 0:
+            should_raise = True
+        else:
+            distance_matrix = np.load(f"{tempdir}/distance_matrix.npy")
+    if should_raise:
         raise RuntimeError("Pygeodesic crashed processing!")
-    distance_matrix = np.load(f"{tempdir}/distance_matrix.npy")
 
     return distance_matrix, distance_matrix[distance_matrix != np.inf].max()
 

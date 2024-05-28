@@ -37,7 +37,7 @@ def compute_bc(preprocess_dir, n_radial, n_angular):
     template_radii = []
     preprocess_dir_temp = f"{preprocess_dir}/ModelNet40"
     for shape_class in tqdm(os.listdir(preprocess_dir_temp), postfix="Computing template radius for BC.."):
-        for split in ["test"]:  # "train",
+        for split in ["test", "train"]:
             for instance in os.listdir(f"{preprocess_dir_temp}/{shape_class}/{split}/"):
                 shape_path = f"{preprocess_dir_temp}/{shape_class}/{split}/{instance}"
 

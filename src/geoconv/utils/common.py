@@ -1,6 +1,7 @@
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.utils.misc import normalize_mesh, find_largest_one_hop_dist
 
+import shutil
 import json
 import os
 import numpy as np
@@ -24,7 +25,12 @@ def compute_gpc_systems(shape, output_dir, processes=1):
         os.makedirs(output_dir, exist_ok=True)
 
         # 2.) Normalize shape
-        shape, geodesic_diameter = normalize_mesh(shape)
+        try:
+            shape, geodesic_diameter = normalize_mesh(shape)
+        except RuntimeError:
+            print(f"{output_dir} crashed during normalization. Skipping preprocessing.")
+            shutil.rmtree(output_dir)
+            return
 
         # 3.) Compute GPC-systems
         gpc_systems = GPCSystemGroup(shape, processes=processes)
