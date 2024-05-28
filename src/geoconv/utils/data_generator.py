@@ -173,8 +173,8 @@ def barycentric_coordinates_generator(zipfile_path, n_radial, n_angular, templat
     # Filter for correct barycentric coordinates
     filtered_content = []
     for fn in [file_name for file_name in zip_file.files if file_name[:2] == "BC"]:
-        fn_splitted = fn.split("_")
-        if int(fn_splitted[1]) == n_radial and int(fn_splitted[2]) == n_angular and float(fn_splitted[3]) == template_radius:
+        fn_split = fn.split("_")
+        if int(fn_split[1]) == n_radial and int(fn_split[2]) == n_angular and float(fn_split[3]) == template_radius:
             filtered_content.append(fn)
 
     filtered_content.sort()
