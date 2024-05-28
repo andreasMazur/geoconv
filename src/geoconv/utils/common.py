@@ -51,7 +51,7 @@ def compute_gpc_systems(shape, output_dir, processes=1):
                 indent=4
             )
 
-        # 4.) Export preprocessed mesh
+        # 5.) Export preprocessed mesh
         shape.export(f"{output_dir}/normalized_mesh.stl")
     else:
         print(f"{output_dir}/preprocess_properties.json already exists. Skipping preprocessing.")
