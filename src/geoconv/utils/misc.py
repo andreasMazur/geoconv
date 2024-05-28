@@ -1,11 +1,13 @@
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
 
-from tqdm import tqdm
 from scipy.linalg import blas
 
-import pygeodesic.geodesic as geodesic
 import numpy as np
 import trimesh
+import tempfile
+import subprocess
+import os
+import pathlib
 
 
 def compute_vector_angle(vector_a, vector_b, rotation_axis):
@@ -130,12 +132,19 @@ def compute_geodesic_diameter(mesh):
     (np.array, float):
         The distance matrix between all vertices of the mesh and the geodesic diameter of the mesh.
     """
-    n_vertices = mesh.vertices.shape[0]
-    distance_matrix = np.zeros((n_vertices, n_vertices))
-    geoalg = geodesic.PyGeodesicAlgorithmExact(mesh.vertices, mesh.faces)
-    for sp in tqdm(range(n_vertices), postfix=f"Calculating geodesic diameter.."):
-        distances, _ = geoalg.geodesicDistances([sp], None)
-        distance_matrix[sp] = distances
+    with tempfile.TemporaryDirectory(dir=".") as tempdir:
+        np.save(f"{tempdir}/mesh_vertices.npy", mesh.vertices)
+        np.save(f"{tempdir}/mesh_faces.npy", mesh.faces)
+
+        current_env = os.environ.copy()
+        proc = subprocess.run(
+            [f"python", f"{pathlib.Path(__file__).parent.resolve()}/safe_pygeodesic.py", tempdir],
+            env=current_env
+        )
+    if proc.returncode != 0:
+        raise RuntimeError("Pygeodesic crashed processing!")
+    distance_matrix = np.load(f"{tempdir}/distance_matrix.npy")
+
     return distance_matrix, distance_matrix[distance_matrix != np.inf].max()
 
 
