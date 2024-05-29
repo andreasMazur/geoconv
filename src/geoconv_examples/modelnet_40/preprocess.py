@@ -12,7 +12,13 @@ import numpy as np
 import os
 
 
-def preprocess(modelnet_path, output_path, manifold_plus_executable, down_sample, processes, class_names=None):
+def preprocess(modelnet_path,
+               output_path,
+               manifold_plus_executable,
+               down_sample,
+               processes,
+               class_names=None,
+               zip_when_done=True):
     # Initialize shape generator
     shape_generator = zip_file_generator(
         modelnet_path,
@@ -35,6 +41,12 @@ def preprocess(modelnet_path, output_path, manifold_plus_executable, down_sample
 
     # Compute barycentric coordinates
     compute_bc(output_path, n_radial=5, n_angular=8)
+
+    if zip_when_done:
+        print("Zipping..")
+        shutil.make_archive(base_name=output_path, format="zip", root_dir=output_path)
+        shutil.rmtree(output_path)
+        print("Done.")
 
 
 def compute_bc(preprocess_dir, n_radial, n_angular):
@@ -64,8 +76,4 @@ def compute_bc(preprocess_dir, n_radial, n_angular):
                     gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius
                 )
                 np.save(f"{shape_path}/BC_{n_radial}_{n_angular}_{template_radius}.npy", bc)
-
-    print(f"Barycentric coordinates done. Zipping..")
-    shutil.make_archive(base_name=preprocess_dir, format="zip", root_dir=preprocess_dir)
-    shutil.rmtree(preprocess_dir)
-    print("Done.")
+    print(f"Barycentric coordinates done.")
