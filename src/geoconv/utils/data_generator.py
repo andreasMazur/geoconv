@@ -65,7 +65,8 @@ def zip_file_generator(zipfile_path,
                        return_filename=False,
                        min_vertices=100,
                        timeout_in_sec=20,
-                       mp_depth=8):
+                       mp_depth=8,
+                       shape_path_contains=None):
     """Loads shapes from a given zip-file and removes non-manifold edges.
 
     Parameters
@@ -86,17 +87,27 @@ def zip_file_generator(zipfile_path,
         The amount of seconds to wait before killing the manifold+ subprocess and continue with the next shape.
     mp_depth: int
         Depth for manifold+-algorithm.
+    shape_path_contains: list
+        A list of strings that is contained in the shape-path within the zip-file. If none of the contained strings are
+        within the shape-path, then the shape is skipped.
 
     Returns
     -------
     trimesh.Trimesh:
         A manifold-mesh.
     """
+    # Load the zip-file
     zip_file = zipfile.ZipFile(zipfile_path, "r")
     zip_content = [fn for fn in zip_file.namelist() if fn[-3:] == file_type]
     zip_content.sort()
 
     for shape_path in zip_content:
+        # Skip irrelevant shapes
+        if shape_path_contains is not None:
+            if np.all([substring not in shape_path for substring in shape_path_contains]):
+                continue
+
+        # Load shape
         shape = trimesh.load_mesh(BytesIO(zip_file.read(shape_path)), file_type=file_type)
 
         # Concat meshes if a scene was loaded

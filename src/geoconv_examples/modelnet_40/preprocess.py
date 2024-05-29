@@ -12,21 +12,26 @@ import numpy as np
 import os
 
 
-def preprocess(modelnet_path, output_path, manifold_plus_executable, down_sample, processes):
+def preprocess(modelnet_path, output_path, manifold_plus_executable, down_sample, processes, class_names=None):
     # Initialize shape generator
     shape_generator = zip_file_generator(
         modelnet_path,
         file_type="off",
         manifold_plus_executable=manifold_plus_executable,
         down_sample=down_sample,
-        return_filename=True
+        return_filename=True,
+        shape_path_contains=class_names
     )
 
     # Compute GPC-systems
     for shape, shape_path in shape_generator:
         print(f"*** Preprocessing: '{shape_path}'")
         # Remove file-ending from folder name
-        compute_gpc_systems(shape, f"{output_path}/{shape_path}"[:-4], processes=processes)
+        output_dir = f"{output_path}/{shape_path}"[:-4]
+        if class_names is None:
+            compute_gpc_systems(shape, output_dir, processes=processes)
+        elif shape_path.split("/")[1] in class_names:
+            compute_gpc_systems(shape, output_dir, processes=processes)
 
     # Compute barycentric coordinates
     compute_bc(output_path, n_radial=5, n_angular=8)
