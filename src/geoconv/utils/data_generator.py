@@ -66,7 +66,8 @@ def zip_file_generator(zipfile_path,
                        min_vertices=100,
                        timeout_in_sec=20,
                        mp_depth=8,
-                       shape_path_contains=None):
+                       shape_path_contains=None,
+                       epsilon=0.25):
     """Loads shapes from a given zip-file and removes non-manifold edges.
 
     Parameters
@@ -90,6 +91,9 @@ def zip_file_generator(zipfile_path,
     shape_path_contains: list
         A list of strings that is contained in the shape-path within the zip-file. If none of the contained strings are
         within the shape-path, then the shape is skipped.
+    epsilon: float
+        Percentage value that describes how far a down-sampled shape can deviate from the target amount of faces
+        given by the parameter 'down_sample'. If 'down_sample' is 'None' this value is not used.
 
     Returns
     -------
@@ -131,7 +135,7 @@ def zip_file_generator(zipfile_path,
                     )
                 except subprocess.TimeoutExpired:
                     print(
-                        f"{shape_path} took more than {timeout_in_sec} to be processed by the manifold+ algorithm. "
+                        f"*** {shape_path} took more than {timeout_in_sec} to be processed by the manifold+ algorithm. "
                         f"Skipping to next shape."
                     )
                     continue
@@ -142,10 +146,15 @@ def zip_file_generator(zipfile_path,
             # Remove temp files
             os.remove(in_file)
 
+        # Simplify shape
         if down_sample is not None and shape.faces.shape[0] > down_sample:
             shape = down_sample_mesh(shape, down_sample)
+            # Check result and skip if it is too far from target amount of faces
+            if shape.faces.shape[0] > down_sample + down_sample * epsilon:
+                print(f"*** {shape_path} couldn't be down-sampled enough to {down_sample}.")
+                continue
 
-        # Remove non-manifold meshes
+        # Remove non-manifold edges
         shape = remove_nme(shape)
 
         if shape.vertices.shape[0] > min_vertices and shape.faces.shape[0] > 0:
