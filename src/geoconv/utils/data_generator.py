@@ -9,7 +9,7 @@ import os
 import subprocess
 
 
-def remove_nme(mesh):
+def remove_non_manifold_edges(mesh):
     """Removes non-manifold edges by removing all their faces.
 
     Parameters
@@ -155,7 +155,7 @@ def zip_file_generator(zipfile_path,
                 continue
 
         # Remove non-manifold edges
-        shape = remove_nme(shape)
+        shape = remove_non_manifold_edges(shape)
 
         if shape.vertices.shape[0] > min_vertices and shape.faces.shape[0] > 0:
             if return_filename:
