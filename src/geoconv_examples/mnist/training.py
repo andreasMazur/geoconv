@@ -54,7 +54,7 @@ def training(bc_path, logging_dir, k=5):
             imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"])
 
             # Define callbacks
-            exp_number = f"{n_radial}_{n_angular}_{template_radius}"
+            exp_number = f"{exp_no}__{n_radial}_{n_angular}_{template_radius}"
             csv = keras.callbacks.CSVLogger(f"{logging_dir}/training_{exp_number}.log")
             tb = keras.callbacks.TensorBoard(
                 log_dir=f"{logging_dir}/tensorboard_{exp_number}",
