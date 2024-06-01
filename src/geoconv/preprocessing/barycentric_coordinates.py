@@ -159,7 +159,8 @@ def compute_barycentric_coordinates(gpc_systems, n_radial=2, n_angular=4, radius
     n_gpc_systems = gpc_systems.object_mesh_gpc_systems.shape[0]
     barycentric_coordinates = np.zeros((n_gpc_systems, n_radial, n_angular, 3, 2))
 
-    for gpc_system_idx in tqdm(range(n_gpc_systems), postfix=f"Computing barycentric coordinates"):
+    template_info = f"n_radial: {n_radial} | n_angular: {n_angular} | radius: {radius}"
+    for gpc_system_idx in tqdm(range(n_gpc_systems), postfix=f"Computing barycentric coordinates: " + template_info):
         gpc_system = gpc_systems.object_mesh_gpc_systems[gpc_system_idx]
         gpc_triangles = gpc_system.get_gpc_triangles(in_cart=True)
         for radial_coordinate in range(n_radial):
