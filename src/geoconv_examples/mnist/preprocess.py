@@ -60,7 +60,7 @@ def compute_bc(preprocess_dir):
     print("Done.")
 
 
-def preprocess(output_path, processes, n_radial, n_angular):
+def preprocess(output_path, processes):
     # Preprocess flat grid
     grid = create_grid(n_vertices=28)  # MNIST-images are 28x28
     compute_gpc_systems(grid, output_path, processes=processes)
