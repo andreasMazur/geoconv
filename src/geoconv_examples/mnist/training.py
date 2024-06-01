@@ -1,3 +1,4 @@
+from geoconv.utils.common import read_template_configurations
 from geoconv_examples.mnist.dataset import load_preprocessed_mnist
 from geoconv.tensorflow.layers.conv_dirac import ConvDirac
 from geoconv.tensorflow.layers.angular_max_pooling import AngularMaxPooling
@@ -27,21 +28,26 @@ class MNISTClassifier(keras.Model):
         return self.output_layer(signal)
 
 
-def training(bc_path, template_radius, n_radial=5, n_angular=8, k=5):
+def training(bc_path, k=5):
     # Prepare k-fold cross-validation
     splits = tfds.even_splits("all", n=k)
 
-    for exp_no in range(len(splits)):
-        # Load data
-        train_data = load_preprocessed_mnist(
-            bc_path, n_radial, n_angular, template_radius, set_type=splits[:exp_no] + splits[exp_no+1:]
-        )
-        val_data = load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_type=splits[exp_no])
+    # Prepare template configurations
+    template_configurations = read_template_configurations(bc_path)
 
-        # Define and compile model
-        imcnn = MNISTClassifier(template_radius)
-        loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"], run_eagerly=True)
+    # Run experiments
+    for (n_radial, n_angular, template_radius) in template_configurations:
+        for exp_no in range(len(splits)):
+            # Load data
+            train_data = load_preprocessed_mnist(
+                bc_path, n_radial, n_angular, template_radius, set_type=splits[:exp_no] + splits[exp_no+1:]
+            )
+            val_data = load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_type=splits[exp_no])
 
-        # Train model
-        imcnn.fit(x=train_data, validation_data=val_data, epochs=100)
+            # Define and compile model
+            imcnn = MNISTClassifier(template_radius)
+            loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+            imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"])
+
+            # Train model
+            imcnn.fit(x=train_data, validation_data=val_data, epochs=100)

@@ -55,3 +55,33 @@ def compute_gpc_systems(shape, output_dir, processes=1):
         shape.export(f"{output_dir}/normalized_mesh.stl")
     else:
         print(f"{output_dir}/preprocess_properties.json already exists. Skipping preprocessing.")
+
+
+def read_template_configurations(zipfile_path):
+    """Reads the template configurations stored within a preprocessed dataset.
+
+    Parameters
+    ----------
+    zipfile_path: str
+        The path to the preprocessed dataset.
+
+    Returns
+    -------
+    list:
+        A list of tuples of the form (n_radial, n_angular, template_radius). These configurations have been
+        found in the given zipfile.
+    """
+    # Load barycentric coordinates
+    zip_file = np.load(zipfile_path)
+
+    # Filter for barycentric coordinates files
+    filtered_content = [file_name for file_name in zip_file.files if file_name[:2] == "BC"]
+    filtered_content.sort()
+
+    # Collect all found template configurations
+    template_configurations = set()
+    for bc_path in filtered_content:
+        bc_properties = tuple(bc_path.split("_")[1:])
+        template_configurations.add((int(bc_properties[0]), int(bc_properties[1]), float(bc_properties[2])))
+
+    return list(template_configurations)
