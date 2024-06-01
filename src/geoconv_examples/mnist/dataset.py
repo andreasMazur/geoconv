@@ -17,7 +17,7 @@ def load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_t
         The amount of angular coordinates used during BC-computation.
     template_radius: float
         The considered template radius during BC-computation.
-    set_type: str
+    set_type: tensorflow_datasets.SplitArg
         The set type according to the common split-nomenclature in tensorflow-datasets.
 
     Returns
@@ -25,8 +25,14 @@ def load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_t
     tensorflow.data.Dataset:
         A dataset containing MNIST-images and labels together with barycentric coordinates to train an IMCNN.
     """
-    # Load MNIST
-    dataset = tfds.load("mnist", split=set_type, shuffle_files=True, as_supervised=True)
+    # Load splitted MNIST
+    splitted_datasets = tfds.load("mnist", split=set_type, shuffle_files=True, as_supervised=True)
+    if isinstance(splitted_datasets, list):
+        dataset = splitted_datasets[0]
+        for d in splitted_datasets[1:]:
+            dataset = dataset.concatenate(d)
+    else:
+        dataset = splitted_datasets
 
     # Load barycentric coordinates
     barycentric_coordinates = barycentric_coordinates_generator(

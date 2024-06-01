@@ -4,6 +4,7 @@ from geoconv.tensorflow.layers.angular_max_pooling import AngularMaxPooling
 
 import keras
 import tensorflow as tf
+import tensorflow_datasets as tfds
 
 
 class MNISTClassifier(keras.Model):
@@ -26,15 +27,21 @@ class MNISTClassifier(keras.Model):
         return self.output_layer(signal)
 
 
-def training(bc_path, template_radius, n_radial=5, n_angular=8):
-    # Load data
-    train_data = load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_type="train[:80%]")
-    val_data = load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_type="train[80%:]")
+def training(bc_path, template_radius, n_radial=5, n_angular=8, k=5):
+    # Prepare k-fold cross-validation
+    splits = tfds.even_splits("all", n=k)
 
-    # Define and compile model
-    imcnn = MNISTClassifier(template_radius)
-    loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"], run_eagerly=True)
+    for exp_no in range(len(splits)):
+        # Load data
+        train_data = load_preprocessed_mnist(
+            bc_path, n_radial, n_angular, template_radius, set_type=splits[:exp_no] + splits[exp_no+1:]
+        )
+        val_data = load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_type=splits[exp_no])
 
-    # Train model
-    imcnn.fit(x=train_data, validation_data=val_data, epochs=100)
+        # Define and compile model
+        imcnn = MNISTClassifier(template_radius)
+        loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"], run_eagerly=True)
+
+        # Train model
+        imcnn.fit(x=train_data, validation_data=val_data, epochs=100)
