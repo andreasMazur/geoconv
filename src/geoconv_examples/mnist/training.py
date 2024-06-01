@@ -40,7 +40,6 @@ def training(bc_path, logging_dir, k=5):
     template_configurations = read_template_configurations(bc_path)
 
     # Run experiments
-    exp_number = 0
     for (n_radial, n_angular, template_radius) in template_configurations:
         for exp_no in range(len(splits)):
             # Load data
@@ -55,21 +54,16 @@ def training(bc_path, logging_dir, k=5):
             imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"])
 
             # Define callbacks
+            exp_number = f"{n_radial}_{n_angular}_{template_radius}"
             csv = keras.callbacks.CSVLogger(f"{logging_dir}/training_{exp_number}.log")
-            stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=10)
             tb = keras.callbacks.TensorBoard(
                 log_dir=f"{logging_dir}/tensorboard_{exp_number}",
                 histogram_freq=1,
                 write_graph=False,
                 write_steps_per_second=True,
                 update_freq="epoch",
-                profile_batch=(1, 70)
+                profile_batch=(1, 100)
             )
 
             # Train model
-            imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=val_data, epochs=1)  # TODO epochs=200
-
-            # Update experiment number
-            exp_number += 1
-            break
-        break
+            imcnn.fit(x=train_data, callbacks=[tb, csv], validation_data=val_data, epochs=10)
