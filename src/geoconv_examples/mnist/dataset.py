@@ -42,11 +42,11 @@ def load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_t
     for bc in barycentric_coordinates:
         bc = tf.cast(tf.constant(bc), tf.float32)
 
-        # Reshapes the image to a vector and adds barycentric coordinates
         def make_compatible(image, label):
             image = tf.cast(tf.reshape(image, (-1, 1)), tf.float32)
             label = tf.cast(label, tf.int32)
-            return (image, bc), label
+            # Image normalization, adding barycentric coordinates and adjusting data types
+            return (tf.cast(image, tf.float32) / 255., bc), label
 
         # Apply 'make_compatible' to each element of MNIST
         dataset = dataset.map(make_compatible)

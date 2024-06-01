@@ -6,13 +6,14 @@ from geoconv.tensorflow.layers.angular_max_pooling import AngularMaxPooling
 import keras
 import tensorflow as tf
 import tensorflow_datasets as tfds
+import os
 
 
 class MNISTClassifier(keras.Model):
     def __init__(self, template_radius):
         super().__init__()
         self.conv = ConvDirac(
-            amt_templates=32,
+            amt_templates=128,
             template_radius=template_radius,
             activation="relu",
             rotation_delta=1
@@ -28,7 +29,10 @@ class MNISTClassifier(keras.Model):
         return self.output_layer(signal)
 
 
-def training(bc_path, k=5):
+def training(bc_path, logging_dir, k=5):
+    # Create logging dir
+    os.makedirs(logging_dir, exist_ok=True)
+
     # Prepare k-fold cross-validation
     splits = tfds.even_splits("all", n=k)
 
@@ -36,6 +40,7 @@ def training(bc_path, k=5):
     template_configurations = read_template_configurations(bc_path)
 
     # Run experiments
+    exp_number = 0
     for (n_radial, n_angular, template_radius) in template_configurations:
         for exp_no in range(len(splits)):
             # Load data
@@ -49,5 +54,22 @@ def training(bc_path, k=5):
             loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
             imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"])
 
+            # Define callbacks
+            csv = keras.callbacks.CSVLogger(f"{logging_dir}/training_{exp_number}.log")
+            stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=10)
+            tb = keras.callbacks.TensorBoard(
+                log_dir=f"{logging_dir}/tensorboard_{exp_number}",
+                histogram_freq=1,
+                write_graph=False,
+                write_steps_per_second=True,
+                update_freq="epoch",
+                profile_batch=(1, 70)
+            )
+
             # Train model
-            imcnn.fit(x=train_data, validation_data=val_data, epochs=100)
+            imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=val_data, epochs=1)  # TODO epochs=200
+
+            # Update experiment number
+            exp_number += 1
+            break
+        break
