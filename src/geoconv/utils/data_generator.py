@@ -218,14 +218,19 @@ def preprocessed_shape_generator(zipfile_path,
     if split is not None:
         preprocessed_shapes = preprocessed_shapes[split]
 
+    # Iterate over dataset shapes
     for preprocessed_shape_dir in preprocessed_shapes:
-        # Given one shape directory, filter for all its contents
-        preprocessed_shape_dir = [x for x in zip_file.files if preprocessed_shape_dir in x if "gpc_systems" not in x]
 
-        # Seek for files, not folders, that contain a given filter string as a sub-string
-        shape_files = [
-            shape_file for shape_file in preprocessed_shape_dir if np.any([x in shape_file for x in filter_list])
-        ]
+        # Iterate over shape's data and collect with filters
+        preprocessed_shape_dir = [x for x in zip_file.files if preprocessed_shape_dir in x and "gpc_systems" not in x]
+
+        # Seek for file-names that contain a given filter string as a sub-string
+        shape_files = []
+        for filter_str in filter_list:
+            for file_name in preprocessed_shape_dir:
+                if filter_str in file_name:
+                    shape_files.append(file_name)
+
         yield [(zip_file[shape_file], shape_file) for shape_file in shape_files]
 
 
