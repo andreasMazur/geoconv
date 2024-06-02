@@ -40,7 +40,7 @@ def preprocess(modelnet_path,
             compute_gpc_systems(shape, output_dir, processes=processes)
 
     # Compute barycentric coordinates
-    compute_bc(output_path, n_radial=5, n_angular=8)
+    compute_bc(output_path)
 
     if zip_when_done:
         print("Zipping..")
