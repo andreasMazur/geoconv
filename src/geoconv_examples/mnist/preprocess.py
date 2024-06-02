@@ -54,14 +54,14 @@ def compute_bc(preprocess_dir):
         )
         np.save(f"{preprocess_dir}/BC_{n_radial}_{n_angular}_{template_radius}.npy", bc)
 
-    print(f"Barycentric coordinates done. Zipping..")
-    shutil.make_archive(base_name=preprocess_dir, format="zip", root_dir=preprocess_dir)
-    shutil.rmtree(preprocess_dir)
-    print("Done.")
-
 
 def preprocess(output_path, processes):
     # Preprocess flat grid
     grid = create_grid(n_vertices=28)  # MNIST-images are 28x28
-    compute_gpc_systems(grid, output_path, processes=processes)
-    compute_bc(output_path)
+    compute_gpc_systems(grid, f"{output_path}/grid", processes=processes)
+    compute_bc(f"{output_path}/grid")
+
+    print(f"Barycentric coordinates done. Zipping..")
+    shutil.make_archive(base_name=output_path, format="zip", root_dir=output_path)
+    shutil.rmtree(output_path)
+    print("Done.")
