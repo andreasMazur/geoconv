@@ -7,6 +7,7 @@ import trimesh
 import numpy as np
 import os
 import subprocess
+import random
 
 
 def remove_non_manifold_edges(mesh):
@@ -166,7 +167,7 @@ def zip_file_generator(zipfile_path,
             print(f"{shape_path} has less then {min_vertices} vertices. Skipping to next shape..")
 
 
-def preprocessed_shape_generator(zipfile_path, filter_list, sorting_key=None):
+def preprocessed_shape_generator(zipfile_path, filter_list, sorting_key=None, shuffle_seed=None):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
     This function sorts alphanumerically after the shape-directory name.
@@ -181,6 +182,8 @@ def preprocessed_shape_generator(zipfile_path, filter_list, sorting_key=None):
         A function that takes a single file-path as an argument and returns its part after which it should be sorted.
         If 'None' is given, then sorting is performed with respect to the directory name of a shape, i.e., the shapes
         name.
+    shuffle_seed: int
+        Whether to randomly shuffle the data with the given seed. If no seed is given, no shuffling will be performed.
 
     Returns
     -------
@@ -198,6 +201,11 @@ def preprocessed_shape_generator(zipfile_path, filter_list, sorting_key=None):
         def sorting_key(file_name):
             return file_name.split("/")[-1]
     preprocessed_shapes.sort(key=sorting_key)
+
+    # Shuffle shapes
+    if shuffle_seed is not None:
+        random.seed(shuffle_seed)
+        random.shuffle(preprocessed_shapes)
 
     for preprocessed_shape_dir in preprocessed_shapes:
         # Given one shape directory, filter for all its contents
