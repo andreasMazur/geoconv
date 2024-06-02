@@ -7,13 +7,26 @@ import trimesh
 import tensorflow as tf
 
 
-MODELNET40_TOTAL = 7917
+# MODELNET40_TOTAL = 7917
+# MODELNET40_FOLDS = {
+#     "fold_1": list(range(0, 1583)),
+#     "fold_2": list(range(1598, 1583 * 2)),
+#     "fold_3": list(range(1583 * 2, 1583 * 3)),
+#     "fold_4": list(range(1583 * 3, 1583 * 4)),
+#     "fold_5": list(range(1583 * 4, MODELNET40_TOTAL))
+# }
+MODELNET40_TOTAL = 8
 MODELNET40_FOLDS = {
-    "fold_1": list(range(0, 1583)),
-    "fold_2": list(range(1598, 1583 * 2)),
-    "fold_3": list(range(1583 * 2, 1583 * 3)),
-    "fold_4": list(range(1583 * 3, 1583 * 4)),
-    "fold_5": list(range(1583 * 4, MODELNET40_TOTAL))
+    0: list(range(0, 2)),
+    1: list(range(2, 4)),
+    2: list(range(4, 6)),
+    3: list(range(6, MODELNET40_TOTAL)),
+}
+MODELNET40_TRAIN_SPLITS = {
+    0: MODELNET40_FOLDS[1] + MODELNET40_FOLDS[2] + MODELNET40_FOLDS[3],
+    1: MODELNET40_FOLDS[0] + MODELNET40_FOLDS[2] + MODELNET40_FOLDS[3],
+    2: MODELNET40_FOLDS[0] + MODELNET40_FOLDS[1] + MODELNET40_FOLDS[3],
+    3: MODELNET40_FOLDS[0] + MODELNET40_FOLDS[1] + MODELNET40_FOLDS[2],
 }
 MODELNET_CLASSES = {
     "airplane": 0,
@@ -59,10 +72,19 @@ MODELNET_CLASSES = {
 }
 
 
-def modelnet_generator(path_to_zip, n_radial, n_angular, template_radius, split=None):
+def modelnet_generator(path_to_zip, n_radial, n_angular, template_radius, is_train, split):
+    # Choose train or test split
+    if is_train:
+        split = MODELNET40_TRAIN_SPLITS[split]
+    else:
+        split = MODELNET40_FOLDS[split]
+
     # Load barycentric coordinates
     psg = preprocessed_shape_generator(
-        path_to_zip, filter_list=["stl", f"BC_{n_radial}_{n_angular}_{template_radius}"], shuffle_seed=42, split=split
+        path_to_zip,
+        filter_list=["stl", f"BC_{n_radial}_{n_angular}_{template_radius}"],
+        shuffle_seed=42,
+        split=split
     )
 
     for elements in psg:
@@ -74,7 +96,7 @@ def modelnet_generator(path_to_zip, n_radial, n_angular, template_radius, split=
         yield (vertices, bc), np.array(MODELNET_CLASSES[elements[0][1].split("/")[1]]).reshape(1)
 
 
-def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius, split=None):
+def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius, is_train, split):
     output_signature = (
         (
             tf.TensorSpec(shape=(None, 3,), dtype=tf.float32),  # Signal  (3D coordinates)
@@ -85,6 +107,6 @@ def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius
 
     return tf.data.Dataset.from_generator(
         modelnet_generator,
-        args=(path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64)),
+        args=(path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, split),
         output_signature=output_signature
     )
