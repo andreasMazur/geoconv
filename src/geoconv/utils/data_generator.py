@@ -167,7 +167,11 @@ def zip_file_generator(zipfile_path,
             print(f"{shape_path} has less then {min_vertices} vertices. Skipping to next shape..")
 
 
-def preprocessed_shape_generator(zipfile_path, filter_list, sorting_key=None, shuffle_seed=None):
+def preprocessed_shape_generator(zipfile_path,
+                                 filter_list,
+                                 sorting_key=None,
+                                 shuffle_seed=None,
+                                 split=None):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
     This function sorts alphanumerically after the shape-directory name.
@@ -184,6 +188,8 @@ def preprocessed_shape_generator(zipfile_path, filter_list, sorting_key=None, sh
         name.
     shuffle_seed: int
         Whether to randomly shuffle the data with the given seed. If no seed is given, no shuffling will be performed.
+    split: list
+        List of integers which are yielded from the list of all shapes.
 
     Returns
     -------
@@ -206,6 +212,11 @@ def preprocessed_shape_generator(zipfile_path, filter_list, sorting_key=None, sh
     if shuffle_seed is not None:
         random.seed(shuffle_seed)
         random.shuffle(preprocessed_shapes)
+
+    # Filter for given split
+    preprocessed_shapes = np.array(preprocessed_shapes)
+    if split is not None:
+        preprocessed_shapes = preprocessed_shapes[split]
 
     for preprocessed_shape_dir in preprocessed_shapes:
         # Given one shape directory, filter for all its contents
