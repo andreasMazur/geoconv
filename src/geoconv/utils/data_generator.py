@@ -166,7 +166,46 @@ def zip_file_generator(zipfile_path,
             print(f"{shape_path} has less then {min_vertices} vertices. Skipping to next shape..")
 
 
-def barycentric_coordinates_generator(zipfile_path, n_radial, n_angular, template_radius, return_filename=False):
+def preprocessed_shape_generator(zipfile_path, filter_list):
+    """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
+
+    This function sorts alphanumerically after the shape-directory name.
+
+    Parameters
+    ----------
+    zipfile_path: str
+        The path to the preprocessed dataset.
+    filter_list: list
+        A list of substrings to filter for in each shape-directory.
+
+    Returns
+    -------
+    list:
+        The loaded files and their corresponding filenames.
+    """
+    # Load the zip-file
+    zip_file = np.load(zipfile_path)
+
+    # Get and sort all shape directories from preprocessed shapes
+    preprocessed_shapes = ["/".join(fn.split("/")[:-1]) for fn in zip_file.files if "preprocess_properties.json" in fn]
+    preprocessed_shapes.sort(key=lambda file_name: file_name.split("/")[-1])
+    for preprocessed_shape_dir in preprocessed_shapes:
+
+        # Given one shape directory, filter for all its contents
+        preprocessed_shape_dir = [x for x in zip_file.files if preprocessed_shape_dir in x if "gpc_systems" not in x]
+
+        # Seek for files, not folders, that contain a given filter string as a sub-string
+        shape_files = [
+            shape_file for shape_file in preprocessed_shape_dir if np.any([x in shape_file for x in filter_list])
+        ]
+        yield [(zip_file[shape_file], shape_file) for shape_file in shape_files]
+
+
+def barycentric_coordinates_generator(zipfile_path,
+                                      n_radial,
+                                      n_angular,
+                                      template_radius,
+                                      return_filename=False):
     """Loads barycentric coordinates from a preprocessed dataset
 
     Parameters
@@ -187,19 +226,9 @@ def barycentric_coordinates_generator(zipfile_path, n_radial, n_angular, templat
     np.ndarray:
         Barycentric coordinates.
     """
-    # Load barycentric coordinates
-    zip_file = np.load(zipfile_path)
-
-    # Filter for correct barycentric coordinates
-    filtered_content = []
-    for fn in [file_name for file_name in zip_file.files if file_name[:2] == "BC"]:
-        fn_split = fn.split("_")
-        if int(fn_split[1]) == n_radial and int(fn_split[2]) == n_angular and float(fn_split[3]) == template_radius:
-            filtered_content.append(fn)
-
-    filtered_content.sort()
-    for bc_path in filtered_content:
+    psg = preprocessed_shape_generator(zipfile_path, filter_list=[f"BC_{n_radial}_{n_angular}_{template_radius}"])
+    for filtered_files in psg:
         if return_filename:
-            yield zip_file[bc_path], bc_path
+            yield filtered_files[0][0], filtered_files[0][1]
         else:
-            yield zip_file[bc_path]
+            yield filtered_files[0][0]
