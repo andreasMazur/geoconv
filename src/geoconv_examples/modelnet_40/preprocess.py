@@ -49,7 +49,7 @@ def preprocess(modelnet_path,
         print("Done.")
 
 
-def compute_bc(preprocess_dir):
+def compute_bc(preprocess_dir, inverse_order=False):
     # Get average template radius
     gpc_system_radii = []
     preprocess_dir_temp = f"{preprocess_dir}/ModelNet40"
@@ -74,7 +74,8 @@ def compute_bc(preprocess_dir):
     ]
 
     # Compute BC
-    for shape_class in os.listdir(preprocess_dir_temp):
+    step = -1 if inverse_order else 1
+    for shape_class in os.listdir(preprocess_dir_temp)[::step]:
         for split in ["test", "train"]:
             for instance in os.listdir(f"{preprocess_dir_temp}/{shape_class}/{split}/"):
                 shape_path = f"{preprocess_dir_temp}/{shape_class}/{split}/{instance}"
