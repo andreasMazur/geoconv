@@ -6,7 +6,7 @@ import trimesh
 
 
 MODELNET40_TOTAL = 7917
-MODELNET40_SPLITS = {
+MODELNET40_FOLDS = {
     "fold_1": list(range(0, 1583)),
     "fold_2": list(range(1598, 1583 * 2)),
     "fold_3": list(range(1583 * 2, 1583 * 3)),
