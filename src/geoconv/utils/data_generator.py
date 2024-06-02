@@ -166,7 +166,7 @@ def zip_file_generator(zipfile_path,
             print(f"{shape_path} has less then {min_vertices} vertices. Skipping to next shape..")
 
 
-def preprocessed_shape_generator(zipfile_path, filter_list):
+def preprocessed_shape_generator(zipfile_path, filter_list, sorting_key=None):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
     This function sorts alphanumerically after the shape-directory name.
@@ -177,6 +177,10 @@ def preprocessed_shape_generator(zipfile_path, filter_list):
         The path to the preprocessed dataset.
     filter_list: list
         A list of substrings to filter for in each shape-directory.
+    sorting_key: callable
+        A function that takes a single file-path as an argument and returns its part after which it should be sorted.
+        If 'None' is given, then sorting is performed with respect to the directory name of a shape, i.e., the shapes
+        name.
 
     Returns
     -------
@@ -188,9 +192,14 @@ def preprocessed_shape_generator(zipfile_path, filter_list):
 
     # Get and sort all shape directories from preprocessed shapes
     preprocessed_shapes = ["/".join(fn.split("/")[:-1]) for fn in zip_file.files if "preprocess_properties.json" in fn]
-    preprocessed_shapes.sort(key=lambda file_name: file_name.split("/")[-1])
-    for preprocessed_shape_dir in preprocessed_shapes:
 
+    # Sort shapes
+    if sorting_key is None:
+        def sorting_key(file_name):
+            return file_name.split("/")[-1]
+    preprocessed_shapes.sort(key=sorting_key)
+
+    for preprocessed_shape_dir in preprocessed_shapes:
         # Given one shape directory, filter for all its contents
         preprocessed_shape_dir = [x for x in zip_file.files if preprocessed_shape_dir in x if "gpc_systems" not in x]
 
