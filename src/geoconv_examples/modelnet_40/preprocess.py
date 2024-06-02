@@ -74,8 +74,10 @@ def compute_bc(preprocess_dir, inverse_order=False):
     ]
 
     # Compute BC
+    shape_classes = os.listdir(preprocess_dir_temp)
+    shape_classes.sort()
     step = -1 if inverse_order else 1
-    for shape_class in os.listdir(preprocess_dir_temp)[::step]:
+    for shape_class in shape_classes[::step]:
         for split in ["test", "train"]:
             for instance in os.listdir(f"{preprocess_dir_temp}/{shape_class}/{split}/"):
                 shape_path = f"{preprocess_dir_temp}/{shape_class}/{split}/{instance}"
