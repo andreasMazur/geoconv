@@ -75,12 +75,12 @@ def read_template_configurations(zipfile_path):
     zip_file = np.load(zipfile_path)
 
     # Filter for barycentric coordinates files
-    filtered_content = [file_name for file_name in zip_file.files if file_name[:2] == "BC"]
-    filtered_content.sort()
+    bc_files = [file_name.split("/")[-1] for file_name in zip_file.files if "BC" in file_name]
+    bc_files.sort()
 
     # Collect all found template configurations
     template_configurations = set()
-    for bc_path in filtered_content:
+    for bc_path in bc_files:
         bc_properties = tuple(bc_path.split("_")[1:])
         template_configurations.add((int(bc_properties[0]), int(bc_properties[1]), float(bc_properties[2])))
 
