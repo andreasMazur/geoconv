@@ -86,8 +86,10 @@ def compute_bc(preprocess_dir, inverse_order=False):
 
                 # Compute barycentric coordinates
                 for (n_radial, n_angular, template_radius) in template_configurations:
-                    bc = compute_barycentric_coordinates(
-                        gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius
-                    )
-                    np.save(f"{shape_path}/BC_{n_radial}_{n_angular}_{template_radius}.npy", bc)
+                    bc_file_name = f"{shape_path}/BC_{n_radial}_{n_angular}_{template_radius}.npy"
+                    if not os.path.isfile(bc_file_name):
+                        bc = compute_barycentric_coordinates(
+                            gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius
+                        )
+                        np.save(bc_file_name, bc)
     print(f"Barycentric coordinates done.")
