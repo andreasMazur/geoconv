@@ -2,7 +2,9 @@ from geoconv.utils.data_generator import preprocessed_shape_generator
 
 from io import BytesIO
 
+import numpy as np
 import trimesh
+import tensorflow as tf
 
 
 MODELNET40_TOTAL = 7917
@@ -57,16 +59,32 @@ MODELNET_CLASSES = {
 }
 
 
-def modelnet_generator(bc_path, n_radial, n_angular, template_radius, split):
+def modelnet_generator(path_to_zip, n_radial, n_angular, template_radius, split=None):
     # Load barycentric coordinates
     psg = preprocessed_shape_generator(
-        bc_path, filter_list=["stl", f"BC_{n_radial}_{n_angular}_{template_radius}"], shuffle_seed=42, split=split
+        path_to_zip, filter_list=["stl", f"BC_{n_radial}_{n_angular}_{template_radius}"], shuffle_seed=42, split=split
     )
 
     for elements in psg:
-        bc = elements[0][0]
-        vertices = trimesh.load_mesh(BytesIO(elements[1][0]), file_type="stl").vertices
+        vertices = trimesh.load_mesh(BytesIO(elements[0][0]), file_type="stl").vertices
+        bc = elements[1][0]
 
-        assert bc.shape[0] == vertices.shape[0], "Number of vertices and barycentric coordinates does not match!"
+        assert bc.shape[0] == vertices.shape[0], "Numbers of vertices and barycentric coordinates do not match!"
 
-        yield (vertices, bc), MODELNET_CLASSES[elements[0][1].split("/")[1]]
+        yield (vertices, bc), np.array(MODELNET_CLASSES[elements[0][1].split("/")[1]]).reshape(1)
+
+
+def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius, split=None):
+    output_signature = (
+        (
+            tf.TensorSpec(shape=(None, 3,), dtype=tf.float32),  # Signal  (3D coordinates)
+            tf.TensorSpec(shape=(None,) + (n_radial, n_angular) + (3, 2), dtype=tf.float32)  # Barycentric Coordinates
+        ),
+        tf.TensorSpec(shape=(None,), dtype=tf.float32)
+    )
+
+    return tf.data.Dataset.from_generator(
+        modelnet_generator,
+        args=(path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64)),
+        output_signature=output_signature
+    )
