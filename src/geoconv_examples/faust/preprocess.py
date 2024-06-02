@@ -12,7 +12,7 @@ import json
 import trimesh
 
 
-def preprocess(faust_path, output_path, processes, zip_when_done=False):
+def preprocess(faust_path, output_path, processes, zip_when_done=True):
     # Initialize shape generator
     shape_generator = zip_file_generator(
         faust_path,
