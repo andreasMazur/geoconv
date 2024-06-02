@@ -49,9 +49,9 @@ def preprocess(modelnet_path,
         print("Done.")
 
 
-def compute_bc(preprocess_dir, n_radial, n_angular):
+def compute_bc(preprocess_dir):
     # Get average template radius
-    template_radii = []
+    gpc_system_radii = []
     preprocess_dir_temp = f"{preprocess_dir}/ModelNet40"
     for shape_class in tqdm(os.listdir(preprocess_dir_temp), postfix="Computing template radius for BC.."):
         for split in ["test", "train"]:
@@ -60,20 +60,33 @@ def compute_bc(preprocess_dir, n_radial, n_angular):
 
                 with open(f"{shape_path}/preprocess_properties.json") as properties_file:
                     properties = json.load(properties_file)
-                    template_radii.append(properties["gpc_system_radius"] * 0.75)
-    template_radius = np.array(template_radii).mean()
+                    gpc_system_radii.append(properties["gpc_system_radius"])
+    avg_gpc_system_radius = np.array(gpc_system_radii).mean()
+
+    # Define template configurations
+    template_configurations = [
+        (3, 6, avg_gpc_system_radius * .75),
+        (3, 6, avg_gpc_system_radius),
+        (3, 6, avg_gpc_system_radius * 1.25),
+        (5, 8, avg_gpc_system_radius * .75),
+        (5, 8, avg_gpc_system_radius),
+        (5, 8, avg_gpc_system_radius * 1.25)
+    ]
 
     # Compute BC
     for shape_class in os.listdir(preprocess_dir_temp):
-        for split in ["test"]:  # "train",
+        for split in ["test", "train"]:
             for instance in os.listdir(f"{preprocess_dir_temp}/{shape_class}/{split}/"):
                 shape_path = f"{preprocess_dir_temp}/{shape_class}/{split}/{instance}"
 
+                # Load GPC-systems for current mesh
                 gpc_systems = GPCSystemGroup(object_mesh=trimesh.load_mesh(f"{shape_path}/normalized_mesh.stl"))
                 gpc_systems.load(f"{shape_path}/gpc_systems")
 
-                bc = compute_barycentric_coordinates(
-                    gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius
-                )
-                np.save(f"{shape_path}/BC_{n_radial}_{n_angular}_{template_radius}.npy", bc)
+                # Compute barycentric coordinates
+                for (n_radial, n_angular, template_radius) in template_configurations:
+                    bc = compute_barycentric_coordinates(
+                        gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius
+                    )
+                    np.save(f"{shape_path}/BC_{n_radial}_{n_angular}_{template_radius}.npy", bc)
     print(f"Barycentric coordinates done.")
