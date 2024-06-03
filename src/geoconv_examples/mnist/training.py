@@ -29,7 +29,7 @@ class MNISTClassifier(keras.Model):
         return self.output_layer(signal)
 
 
-def training(bc_path, logging_dir, k=5):
+def training(bc_path, logging_dir, k=5, template_configurations=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -37,7 +37,8 @@ def training(bc_path, logging_dir, k=5):
     splits = tfds.even_splits("all", n=k)
 
     # Prepare template configurations
-    template_configurations = read_template_configurations(bc_path)
+    if template_configurations is None:
+        template_configurations = read_template_configurations(bc_path)
 
     # Run experiments
     for (n_radial, n_angular, template_radius) in template_configurations:
