@@ -1,5 +1,7 @@
 from geoconv.tensorflow.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.tensorflow.layers.conv_dirac import ConvDirac
+from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
+from geoconv.tensorflow.layers.conv_zero import ConvZero
 from geoconv.utils.common import read_template_configurations
 from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet, MODELNET40_FOLDS
 
@@ -9,15 +11,25 @@ import tensorflow as tf
 
 
 class ModelnetClassifier(keras.Model):
-    def __init__(self, template_radius):
+    def __init__(self, template_radius, variant=None):
         super().__init__()
-        self.conv_1 = ConvDirac(
+
+        if variant is None or variant == "dirac":
+            self.layer_type = ConvDirac
+        elif variant == "geodesic":
+            self.layer_type = ConvGeodesic
+        elif variant == "zero":
+            self.layer_type = ConvZero
+        else:
+            raise RuntimeError("Select a layer type from: ['dirac', 'geodesic', 'zero']")
+
+        self.conv_1 = self.layer_type(
             amt_templates=128,
             template_radius=template_radius,
             activation="relu",
             rotation_delta=1
         )
-        self.conv_2 = ConvDirac(
+        self.conv_2 = self.layer_type(
             amt_templates=128,
             template_radius=template_radius,
             activation="relu",
@@ -43,7 +55,7 @@ class ModelnetClassifier(keras.Model):
         return self.output_layer(signal)
 
 
-def training(bc_path, logging_dir, template_configurations=None):
+def training(bc_path, logging_dir, template_configurations=None, variant=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -63,7 +75,7 @@ def training(bc_path, logging_dir, template_configurations=None):
             )
 
             # Define and compile model
-            imcnn = ModelnetClassifier(template_radius)
+            imcnn = ModelnetClassifier(template_radius, variant=variant)
             loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
             imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"])
 
