@@ -80,3 +80,4 @@ def training(bc_path, logging_dir, k=5, template_configurations=None, variant=No
 
             # Train model
             imcnn.fit(x=train_data, callbacks=[tb, csv], validation_data=val_data, epochs=5)
+            imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
