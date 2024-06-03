@@ -33,7 +33,7 @@ def faust_generator(path_to_zip, n_radial, n_angular, template_radius, is_train,
         path_to_zip,
         filter_list=["SIGNAL", f"BC_{n_radial}_{n_angular}_{template_radius}"],
         shuffle_seed=42,
-        split=None  # TODO: split
+        split=split
     )
 
     # Set seed for permutations
