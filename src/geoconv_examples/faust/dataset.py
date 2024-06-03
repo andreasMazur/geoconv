@@ -21,7 +21,7 @@ FAUST_TRAIN_SPLITS = {
 }
 
 
-def faust_generator(path_to_zip, n_radial, n_angular, template_radius, is_train, split, seed=42):
+def faust_generator(path_to_zip, n_radial, n_angular, template_radius, is_train, split, seed=42, only_signal=False):
     # Choose train or test split
     if is_train:
         split = FAUST_TRAIN_SPLITS[split]
@@ -82,7 +82,10 @@ def faust_generator(path_to_zip, n_radial, n_angular, template_radius, is_train,
         #           == shot_perm[bc_perm[inverse_permutation, :, :, :, 0].astype(np.int32)]
         # ).all()
 
-        yield (shot_perm, bc_perm), inverse_permutation
+        if only_signal:
+            yield shot_perm
+        else:
+            yield (shot_perm, bc_perm), inverse_permutation
 
 
 def interpolate(barycentric_coordinates, feature_dim, template_size, mesh_signal):
@@ -99,17 +102,29 @@ def interpolate(barycentric_coordinates, feature_dim, template_size, mesh_signal
     )
 
 
-def load_preprocessed_faust(path_to_zip, n_radial, n_angular, template_radius, is_train, split):
-    output_signature = (
-        (
-            tf.TensorSpec(shape=(None, 544,), dtype=tf.float32),  # Signal  (3D coordinates)
-            tf.TensorSpec(shape=(None,) + (n_radial, n_angular) + (3, 2), dtype=tf.float32)  # Barycentric Coordinates
-        ),
-        tf.TensorSpec(shape=(None,), dtype=tf.float32)
-    )
+def load_preprocessed_faust(path_to_zip,
+                            n_radial,
+                            n_angular,
+                            template_radius,
+                            is_train,
+                            split,
+                            seed=42,
+                            only_signal=False):
+    if only_signal:
+        output_signature = tf.TensorSpec(shape=(None, 544,), dtype=tf.float32)  # Signal  (3D coordinates)
+    else:
+        output_signature = (
+            (
+                tf.TensorSpec(shape=(None, 544,), dtype=tf.float32),  # Signal  (3D coordinates)
+                tf.TensorSpec(shape=(None,) + (n_radial, n_angular) + (3, 2), dtype=tf.float32)  # Barycentric Coordinates
+            ),
+            tf.TensorSpec(shape=(None,), dtype=tf.float32)
+        )
 
     return tf.data.Dataset.from_generator(
         faust_generator,
-        args=(path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, split),
+        args=(
+            path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, split, seed, only_signal
+        ),
         output_signature=output_signature
     )
