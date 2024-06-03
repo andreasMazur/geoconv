@@ -128,6 +128,7 @@ def training(bc_path, logging_dir, reference_mesh_path, template_configurations=
             # Define callbacks
             exp_number = f"{exp_no}__{n_radial}_{n_angular}_{template_radius}"
             csv = keras.callbacks.CSVLogger(f"{logging_dir}/training_{exp_number}.log")
+            stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
             tb = keras.callbacks.TensorBoard(
                 log_dir=f"{logging_dir}/tensorboard_{exp_number}",
                 histogram_freq=1,
@@ -138,7 +139,7 @@ def training(bc_path, logging_dir, reference_mesh_path, template_configurations=
             )
 
             # Train model
-            imcnn.fit(x=train_data, callbacks=[tb, csv], validation_data=test_data, epochs=200)
+            imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=test_data, epochs=200)
             imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
 
             # Evaluate model with Princeton benchmark
