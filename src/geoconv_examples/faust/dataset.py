@@ -21,7 +21,7 @@ FAUST_TRAIN_SPLITS = {
 }
 
 
-def faust_generator(path_to_zip, n_radial, n_angular, template_radius, is_train, split):
+def faust_generator(path_to_zip, n_radial, n_angular, template_radius, is_train, split, seed=42):
     # Choose train or test split
     if is_train:
         split = FAUST_TRAIN_SPLITS[split]
@@ -35,6 +35,9 @@ def faust_generator(path_to_zip, n_radial, n_angular, template_radius, is_train,
         shuffle_seed=42,
         split=None  # TODO: split
     )
+
+    # Set seed for permutations
+    np.random.seed(seed)
 
     for elements in psg:
         shot = elements[0][0]
