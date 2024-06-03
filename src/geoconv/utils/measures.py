@@ -96,11 +96,12 @@ def princeton_benchmark(imcnn,
     plt.title(plot_title)
     plt.xlabel("geodesic error")
     plt.ylabel("% correct correspondences")
+    plt.grid()
+    plt.legend()
+    plt.savefig(f"{file_name}.svg")
     if plot:
-        plt.grid()
-        plt.legend()
-        plt.savefig(f"{file_name}.svg")
         plt.show()
+    plt.close()
 
 
 def geodesic_alg_wrapper(ground_truth_and_prediction, reference_mesh):

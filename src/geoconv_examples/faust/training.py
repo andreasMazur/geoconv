@@ -3,6 +3,7 @@ from geoconv.tensorflow.layers.conv_dirac import ConvDirac
 from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
 from geoconv.tensorflow.layers.conv_zero import ConvZero
 from geoconv.utils.common import read_template_configurations
+from geoconv.utils.measures import princeton_benchmark
 from geoconv_examples.faust.dataset import FAUST_FOLDS, load_preprocessed_faust
 
 import tensorflow as tf
@@ -85,7 +86,7 @@ class FaustModel(keras.Model):
         return self.output_dense(signal)
 
 
-def training(bc_path, logging_dir, template_configurations=None, variant=None):
+def training(bc_path, logging_dir, reference_mesh_path, template_configurations=None, variant=None, processes=1):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -139,3 +140,17 @@ def training(bc_path, logging_dir, template_configurations=None, variant=None):
             # Train model
             imcnn.fit(x=train_data, callbacks=[tb, csv], validation_data=test_data, epochs=200)
             imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
+
+            # Evaluate model with Princeton benchmark
+            test_data = load_preprocessed_faust(
+                bc_path, n_radial, n_angular, template_radius, is_train=False, split=exp_no
+            )
+            princeton_benchmark(
+                imcnn=imcnn,
+                test_dataset=test_data,
+                ref_mesh_path=reference_mesh_path,
+                normalize=True,
+                file_name=f"{logging_dir}/model_benchmark_{exp_number}",
+                processes=processes,
+                geodesic_diameter=2.2093810817030244
+            )
