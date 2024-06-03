@@ -98,7 +98,7 @@ def training(bc_path, logging_dir, template_configurations=None):
             loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
             imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"], run_eagerly=True)
 
-            # Adapt normalization
+            # Adapt normalization on training data
             print("Initializing normalization layer..")
             imcnn.normalize.build(tf.TensorShape([6890, 544]))
             adaption_data = load_preprocessed_faust(
