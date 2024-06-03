@@ -102,7 +102,7 @@ def interpolate(barycentric_coordinates, feature_dim, template_size, mesh_signal
 def load_preprocessed_faust(path_to_zip, n_radial, n_angular, template_radius, is_train, split):
     output_signature = (
         (
-            tf.TensorSpec(shape=(None, 3,), dtype=tf.float32),  # Signal  (3D coordinates)
+            tf.TensorSpec(shape=(None, 544,), dtype=tf.float32),  # Signal  (3D coordinates)
             tf.TensorSpec(shape=(None,) + (n_radial, n_angular) + (3, 2), dtype=tf.float32)  # Barycentric Coordinates
         ),
         tf.TensorSpec(shape=(None,), dtype=tf.float32)
