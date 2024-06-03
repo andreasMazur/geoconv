@@ -57,7 +57,7 @@ def preprocess(faust_path, output_path, processes, zip_when_done=True):
         print("Done.")
 
 
-def compute_bc(preprocess_dir):
+def compute_bc(preprocess_dir, inverse_order=False):
     # Get average template radius
     gpc_system_radii = []
     preprocess_dir_temp = f"{preprocess_dir}/MPI-FAUST"
@@ -78,7 +78,10 @@ def compute_bc(preprocess_dir):
         (5, 8, avg_gpc_system_radius * 1.25)
     ]
 
-    for instance in os.listdir(f"{preprocess_dir_temp}/training/registrations"):
+    shapes = os.listdir(f"{preprocess_dir_temp}/training/registrations")
+    shapes.sort()
+    step = -1 if inverse_order else 1
+    for instance in shapes[::step]:
         shape_path = f"{preprocess_dir_temp}/training/registrations/{instance}"
 
         # Load GPC-systems for current mesh
