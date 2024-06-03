@@ -56,7 +56,7 @@ def faust_generator(path_to_zip, n_radial, n_angular, template_radius, is_train,
 
         # Permute shot descriptors
         # It holds that:
-        #   shot[x] = shot_perm[inverse_permutation[x]] <=> shot[permutation[x]] = shot_perm[x]  -- (I)
+        #   shot[permutation[x]] = shot_perm[x] <=> shot[x] = shot_perm[inverse_permutation[x]]  -- (I)
         shot_perm = shot[permutation]
 
         # Permute barycentric coordinates:
