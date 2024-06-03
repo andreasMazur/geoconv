@@ -68,7 +68,16 @@ def faust_generator(path_to_zip, n_radial, n_angular, template_radius, is_train,
         bc_perm[:, :, :, :, 0] = inverse_permutation[bc_perm[:, :, :, :, 0].astype(np.int32)]
 
         # 2.) Permute order of center-vertices
+        #   bc[k, r, a, i, 0] = bc_perm[inverse_permutation[k], r, a, i, 0]
+        #   <=> bc[permutation[k], r, a, i, 0] = bc_perm[k, r, a, i, 0]
         bc_perm = bc_perm[permutation]
+
+        # Combining both we thus have in total:
+        #   shot[bc[k, r, a, i, 0]] = shot_perm[bc_perm[inverse_permutation[k], r, a, i, 0]]
+        # assert (
+        #         shot[bc[:, :, :, :, 0].astype(np.int32)] \
+        #           == shot_perm[bc_perm[inverse_permutation, :, :, :, 0].astype(np.int32)]
+        # ).all()
 
         yield (shot_perm, bc_perm), inverse_permutation
 
