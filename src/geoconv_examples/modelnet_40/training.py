@@ -35,6 +35,13 @@ class ModelnetClassifier(keras.Model):
             activation="relu",
             rotation_delta=1
         )
+        self.conv_3 = self.layer_type(
+            amt_templates=128,
+            template_radius=template_radius,
+            activation="relu",
+            rotation_delta=1
+        )
+
         self.amp = AngularMaxPooling()
         self.global_avg = keras.layers.GlobalAveragePooling1D()
         self.output_layer = keras.layers.Dense(40)
@@ -46,6 +53,8 @@ class ModelnetClassifier(keras.Model):
         signal = self.conv_1([signal, bc])
         signal = self.amp(signal)
         signal = self.conv_2([signal, bc])
+        signal = self.amp(signal)
+        signal = self.conv_3([signal, bc])
         signal = self.amp(signal)
 
         # Average pool
