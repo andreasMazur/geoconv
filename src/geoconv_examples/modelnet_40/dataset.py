@@ -7,14 +7,14 @@ import trimesh
 import tensorflow as tf
 
 
-MODELNET40_TOTAL = 7917
+MODELNET40_TOTAL = 6895
 MODELNET40_FOLDS = {
     -1: list(range(0, MODELNET40_TOTAL)),
-    0: list(range(0, 1583)),
-    1: list(range(1583, 1583 * 2)),
-    2: list(range(1583 * 2, 1583 * 3)),
-    3: list(range(1583 * 3, 1583 * 4)),
-    4: list(range(1583 * 4, MODELNET40_TOTAL))
+    0: list(range(0, 1379)),
+    1: list(range(1379, 1379 * 2)),
+    2: list(range(1379 * 2, 1379 * 3)),
+    3: list(range(1379 * 3, 1379 * 4)),
+    4: list(range(1379 * 4, MODELNET40_TOTAL))
 }
 MODELNET40_TRAIN_SPLITS = {
     0: MODELNET40_FOLDS[1] + MODELNET40_FOLDS[2] + MODELNET40_FOLDS[3] + MODELNET40_FOLDS[4],
