@@ -6,6 +6,7 @@ import numpy as np
 
 FAUST_TOTAL = 100
 FAUST_FOLDS = {
+    -1: list(range(0, FAUST_TOTAL)),
     0: list(range(0, 20)),
     1: list(range(20, 40)),
     2: list(range(40, 60)),
