@@ -127,4 +127,4 @@ def load_preprocessed_faust(path_to_zip,
             path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, split, seed, only_signal
         ),
         output_signature=output_signature
-    )
+    ).prefetch(1)
