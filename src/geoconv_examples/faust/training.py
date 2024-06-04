@@ -108,7 +108,15 @@ def training(bc_path, logging_dir, reference_mesh_path, template_configurations=
             # Define and compile model
             imcnn = FaustModel(n_radial, n_angular, template_radius, variant=variant)
             loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-            imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"], run_eagerly=True)
+            opt = keras.optimizers.AdamW(
+                learning_rate=keras.optimizers.schedules.ExponentialDecay(
+                    initial_learning_rate=0.00165,
+                    decay_steps=500,
+                    decay_rate=0.99
+                ),
+                weight_decay=0.005
+            )
+            imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
 
             # Adapt normalization on training data
             print("Initializing normalization layer..")
