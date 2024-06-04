@@ -9,8 +9,9 @@ import tensorflow as tf
 
 MODELNET40_TOTAL = 7917
 MODELNET40_FOLDS = {
+    -1: list(range(0, MODELNET40_TOTAL)),
     0: list(range(0, 1583)),
-    1: list(range(1598, 1583 * 2)),
+    1: list(range(1583, 1583 * 2)),
     2: list(range(1583 * 2, 1583 * 3)),
     3: list(range(1583 * 3, 1583 * 4)),
     4: list(range(1583 * 4, MODELNET40_TOTAL))
@@ -77,7 +78,7 @@ def modelnet_generator(path_to_zip, n_radial, n_angular, template_radius, is_tra
     psg = preprocessed_shape_generator(
         path_to_zip,
         filter_list=["stl", f"BC_{n_radial}_{n_angular}_{template_radius}"],
-        shuffle_seed=42,
+        shuffle_seed=42 if split != -1 else None,
         split=split
     )
 
