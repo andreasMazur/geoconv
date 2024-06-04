@@ -171,7 +171,8 @@ def preprocessed_shape_generator(zipfile_path,
                                  filter_list,
                                  sorting_key=None,
                                  shuffle_seed=None,
-                                 split=None):
+                                 split=None,
+                                 verbose=False):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
     This function sorts alphanumerically after the shape-directory name.
@@ -190,6 +191,8 @@ def preprocessed_shape_generator(zipfile_path,
         Whether to randomly shuffle the data with the given seed. If no seed is given, no shuffling will be performed.
     split: list
         List of integers which are yielded from the list of all shapes.
+    verbose: bool
+        Whether to print incomplete shape directories.
 
     Returns
     -------
@@ -197,7 +200,9 @@ def preprocessed_shape_generator(zipfile_path,
         The loaded files and their corresponding filenames.
     """
     # Load the zip-file
+    print(f"Loading data from zip-file.. ({zipfile_path})")
     zip_file = np.load(zipfile_path)
+    print("Done.")
 
     # Get and sort all shape directories from preprocessed shapes
     preprocessed_shapes = ["/".join(fn.split("/")[:-1]) for fn in zip_file.files if "preprocess_properties.json" in fn]
@@ -214,8 +219,8 @@ def preprocessed_shape_generator(zipfile_path,
         random.shuffle(preprocessed_shapes)
 
     # Filter for given split
-    preprocessed_shapes = np.array(preprocessed_shapes)
     if split is not None:
+        preprocessed_shapes = np.array(preprocessed_shapes)
         preprocessed_shapes = preprocessed_shapes[split]
 
     # Iterate over dataset shapes
@@ -231,7 +236,13 @@ def preprocessed_shape_generator(zipfile_path,
                 if filter_str in file_name:
                     shape_files.append(file_name)
 
-        yield [(zip_file[shape_file], shape_file) for shape_file in shape_files]
+        # Skip files that were not processed completely
+        output = [(zip_file[shape_file], shape_file) for shape_file in shape_files]
+        if len(output) == len(filter_list):
+            yield output
+        else:
+            if verbose:
+                print(f"Incomplete shape-directory: {preprocessed_shape_dir}")
 
 
 def barycentric_coordinates_generator(zipfile_path,
