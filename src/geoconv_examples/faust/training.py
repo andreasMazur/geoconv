@@ -122,7 +122,7 @@ def training(bc_path, logging_dir, reference_mesh_path, template_configurations=
             print("Initializing normalization layer..")
             imcnn.normalize.build(tf.TensorShape([6890, 544]))
             adaption_data = load_preprocessed_faust(
-                bc_path, n_radial, n_angular, template_radius, is_train=False, split=exp_no, only_signal=True
+                bc_path, n_radial, n_angular, template_radius, is_train=True, split=exp_no, only_signal=True
             )
             imcnn.normalize.adapt(adaption_data)
             print("Done.")
