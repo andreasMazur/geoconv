@@ -1,6 +1,7 @@
 from geoconv.utils.misc import get_faces_of_edge
 
 from io import BytesIO
+from tqdm import tqdm
 
 import zipfile
 import trimesh
@@ -223,11 +224,12 @@ def preprocessed_shape_generator(zipfile_path,
         preprocessed_shapes = np.array(preprocessed_shapes)
         preprocessed_shapes = preprocessed_shapes[split]
 
-    # Iterate over dataset shapes
-    for preprocessed_shape_dir in preprocessed_shapes:
-
+    # Precompute list of files to yield
+    without_gpc_systems = [x for x in zip_file.files if "gpc_systems" not in x]
+    per_shape_files = []
+    for preprocessed_shape_dir in tqdm(preprocessed_shapes, postfix="Preparing generator.."):
         # Iterate over shape's data and collect with filters
-        preprocessed_shape_dir = [x for x in zip_file.files if preprocessed_shape_dir in x and "gpc_systems" not in x]
+        preprocessed_shape_dir = [x for x in without_gpc_systems if preprocessed_shape_dir in x]
 
         # Seek for file-names that contain a given filter string as a sub-string
         shape_files = []
@@ -237,12 +239,15 @@ def preprocessed_shape_generator(zipfile_path,
                     shape_files.append(file_name)
 
         # Skip files that were not processed completely
-        output = [(zip_file[shape_file], shape_file) for shape_file in shape_files]
-        if len(output) == len(filter_list):
-            yield output
+        if len(shape_files) == len(filter_list):
+            per_shape_files.append(shape_files)
         else:
             if verbose:
                 print(f"Incomplete shape-directory: {preprocessed_shape_dir}")
+
+    # Yield prepared data
+    for shape_files in per_shape_files:
+        yield [(zip_file[shape_file], shape_file) for shape_file in shape_files]
 
 
 def barycentric_coordinates_generator(zipfile_path,
