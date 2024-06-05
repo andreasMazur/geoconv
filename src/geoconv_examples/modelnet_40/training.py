@@ -66,7 +66,7 @@ class ModelnetClassifier(keras.Model):
         signal = self.amp(signal)
 
         # Average pool
-        signal = self.global_avg(tf.reshape(signal, (1, -1, 128)))
+        signal = self.global_avg(tf.reshape(signal, (1, -1, 384)))
 
         # Output
         return self.output_layer(signal)
