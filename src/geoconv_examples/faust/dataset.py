@@ -86,7 +86,7 @@ def faust_generator(path_to_zip, n_radial, n_angular, template_radius, is_train,
         if only_signal:
             yield shot_perm
         else:
-            yield (shot_perm, bc_perm), inverse_permutation
+            yield (shot_perm, bc_perm), permutation
 
 
 def interpolate(barycentric_coordinates, feature_dim, template_size, mesh_signal):
