@@ -24,19 +24,25 @@ class ModelnetClassifier(keras.Model):
             raise RuntimeError("Select a layer type from: ['dirac', 'geodesic', 'zero']")
 
         self.conv_1 = self.layer_type(
-            amt_templates=128,
+            amt_templates=96,
             template_radius=template_radius,
             activation="relu",
             rotation_delta=1
         )
         self.conv_2 = self.layer_type(
-            amt_templates=128,
+            amt_templates=256,
             template_radius=template_radius,
             activation="relu",
             rotation_delta=1
         )
         self.conv_3 = self.layer_type(
-            amt_templates=128,
+            amt_templates=384,
+            template_radius=template_radius,
+            activation="relu",
+            rotation_delta=1
+        )
+        self.conv_4 = self.layer_type(
+            amt_templates=384,
             template_radius=template_radius,
             activation="relu",
             rotation_delta=1
@@ -55,6 +61,8 @@ class ModelnetClassifier(keras.Model):
         signal = self.conv_2([signal, bc])
         signal = self.amp(signal)
         signal = self.conv_3([signal, bc])
+        signal = self.amp(signal)
+        signal = self.conv_4([signal, bc])
         signal = self.amp(signal)
 
         # Average pool
