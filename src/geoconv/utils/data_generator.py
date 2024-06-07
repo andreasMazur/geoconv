@@ -17,7 +17,7 @@ def remove_non_manifold_edges(mesh):
     Parameters
     ----------
     mesh: trimesh.Trimesh
-        The manifold mesh.
+        The triangle mesh.
 
     Returns
     -------
@@ -40,7 +40,7 @@ def remove_non_manifold_edges(mesh):
 
 
 def down_sample_mesh(mesh, target_number_of_triangles):
-    """Down-samples the mesh to (roughly) the given target number of triangles.
+    """Tries to down-samples the mesh to the given target number of triangles. Target number is not guaranteed.
 
     Parameters
     ----------
