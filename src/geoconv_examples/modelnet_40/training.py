@@ -2,7 +2,7 @@ from geoconv.tensorflow.layers.angular_max_pooling import AngularMaxPooling
 from geoconv.tensorflow.layers.conv_dirac import ConvDirac
 from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
 from geoconv.tensorflow.layers.conv_zero import ConvZero
-from geoconv.utils.common import read_template_configurations
+from geoconv.utils.data_generator import read_template_configurations
 from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet, MODELNET40_FOLDS
 
 import os

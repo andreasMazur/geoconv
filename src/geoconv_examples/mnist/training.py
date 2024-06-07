@@ -1,6 +1,6 @@
 from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
 from geoconv.tensorflow.layers.conv_zero import ConvZero
-from geoconv.utils.common import read_template_configurations
+from geoconv.utils.data_generator import read_template_configurations
 from geoconv_examples.mnist.dataset import load_preprocessed_mnist
 from geoconv.tensorflow.layers.conv_dirac import ConvDirac
 from geoconv.tensorflow.layers.angular_max_pooling import AngularMaxPooling
