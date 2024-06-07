@@ -117,10 +117,7 @@ def normalize_mesh(mesh, geodesic_diameter=None):
 
 
 def compute_geodesic_diameter(mesh):
-    """Computes the geodesic diameter of a mesh.
-
-    In case the mesh contains a pair of vertices which are not connected by a path, this
-    function returns the largest geodesic distance that has been seen as the geodesic diameter.
+    """Computes the largest geodesic distance within a mesh.
 
     Parameters
     ----------
