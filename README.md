@@ -48,56 +48,56 @@ minimal example below or the `geoconv_examples`-package for how you configure In
 
 ```python
 from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
-from geoconv.tensorflow.layers.angular_max_pooling import AngularMaxPooling
+from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
 
 import keras
 
 
 def define_model(input_dim, output_dim, n_radial, n_angular):
-     """Define a geodesic convolutional neural network"""
+    """Define a geodesic convolutional neural network"""
 
-     signal_input = keras.layers.InputLayer(shape=(input_dim,))
-     barycentric = keras.layers.InputLayer(shape=(n_radial, n_angular, 3, 2))
-     signal = ConvGeodesic(
-          amt_templates=32,  # 32-dimensional output
-          template_radius=0.03,  # maximal geodesic template distance 
-          activation="relu",
-          rotation_delta=1  # Delta in between template rotations
-     )([signal_input, barycentric])
-     signal = AngularMaxPooling()(signal)
-     logits = keras.layers.Dense(output_dim)(signal)
+    signal_input = keras.layers.InputLayer(shape=(input_dim,))
+    barycentric = keras.layers.InputLayer(shape=(n_radial, n_angular, 3, 2))
+    signal = ConvGeodesic(
+        amt_templates=32,  # 32-dimensional output
+        template_radius=0.03,  # maximal geodesic template distance 
+        activation="relu",
+        rotation_delta=1  # Delta in between template rotations
+    )([signal_input, barycentric])
+    signal = AngularMaxPooling()(signal)
+    logits = keras.layers.Dense(output_dim)(signal)
 
-     model = keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
-     return model
+    model = keras.Model(inputs=[signal_input, barycentric], outputs=[logits])
+    return model
 ```
 
 ### Minimal Example (PyTorch)
 
 ```python
 from geoconv.pytorch.layers.conv_geodesic import ConvGeodesic
-from geoconv.pytorch.layers.angular_max_pooling import AngularMaxPooling
+from geoconv.pytorch.layers.pooling.angular_max_pooling import AngularMaxPooling
 
 from torch import nn
 
 
 class GCNN(nn.Module):
-     def __init__(self, input_dim, output_dim, n_radial, n_angular):
-          super().__init__()
-          self.geodesic_conv = ConvGeodesic(
-               input_shape=[(None, input_dim), (None, n_radial, n_angular, 3, 2)],
-               amt_templates=32,  # 32-dimensional output
-               template_radius=0.03,  # maximal geodesic template distance 
-               activation="relu",
-               rotation_delta=1  # Delta in between template rotations
-          )
-          self.amp = AngularMaxPooling()
-          self.output = nn.Linear(in_features=32, out_features=output_dim)
+    def __init__(self, input_dim, output_dim, n_radial, n_angular):
+        super().__init__()
+        self.geodesic_conv = ConvGeodesic(
+            input_shape=[(None, input_dim), (None, n_radial, n_angular, 3, 2)],
+            amt_templates=32,  # 32-dimensional output
+            template_radius=0.03,  # maximal geodesic template distance 
+            activation="relu",
+            rotation_delta=1  # Delta in between template rotations
+        )
+        self.amp = AngularMaxPooling()
+        self.output = nn.Linear(in_features=32, out_features=output_dim)
 
-     def forward(self, x):
-          signal, barycentric = x
-          signal = self.geodesic_conv([signal, barycentric])
-          signal = self.amp(signal)
-          return self.output(signal)
+    def forward(self, x):
+        signal, barycentric = x
+        signal = self.geodesic_conv([signal, barycentric])
+        signal = self.amp(signal)
+        return self.output(signal)
 ```
 
 ### Inputs and preprocessing
