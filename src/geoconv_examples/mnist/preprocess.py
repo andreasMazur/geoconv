@@ -1,6 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
-from geoconv.utils.common import compute_gpc_systems
+from geoconv.preprocessing.wrapper import compute_gpc_systems
 
 from matplotlib import pyplot as plt
 
