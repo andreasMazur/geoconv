@@ -396,36 +396,3 @@ def draw_vertices_in_coordinate_system(radial_coordinates, angular_coordinates):
     _, ax = plt.subplots(subplot_kw={'projection': 'polar'})
     ax.plot(angular_coordinates[mask], radial_coordinates[mask], "ro")
     plt.show()
-
-
-def draw_edge_cache(edge_cache,
-                    u,
-                    theta,
-                    edges_to_highlight=None,
-                    point_to_highlight=None,
-                    highlighting_color="red",
-                    saving_folder="./visualization"):
-    if not os.path.exists(saving_folder):
-        os.makedirs(saving_folder)
-    fig, ax = plt.subplots()
-    for edge in edge_cache[-1]:
-        vertex_1 = polar_to_cart(angles=theta[edge[0]], scales=u[edge[0]])
-        vertex_2 = polar_to_cart(angles=theta[edge[1]], scales=u[edge[1]])
-        ax.plot([vertex_1[0], vertex_2[0]], [vertex_1[1], vertex_2[1]], c="blue")
-        ax.annotate(f"{edge[0]}", vertex_1)
-        ax.annotate(f"{edge[1]}", vertex_2)
-    if edges_to_highlight is not None:
-        for edge in edges_to_highlight:
-            vertex_1 = polar_to_cart(angles=theta[edge[0]], scales=u[edge[0]])
-            vertex_2 = polar_to_cart(angles=theta[edge[1]], scales=u[edge[1]])
-            ax.plot([vertex_1[0], vertex_2[0]], [vertex_1[1], vertex_2[1]], c=highlighting_color)
-            ax.scatter([vertex_1[0], vertex_2[0]], [vertex_1[1], vertex_2[1]], c=highlighting_color)
-            ax.annotate(f"{edge[0]}", vertex_1)
-            ax.annotate(f"{edge[1]}", vertex_2)
-    if point_to_highlight is not None:
-        x, y = polar_to_cart(angles=point_to_highlight[2], scales=point_to_highlight[1])
-        ax.scatter([x], [y], c="green")
-        ax.annotate(point_to_highlight[0], [x, y])
-    plt.savefig(f"./{saving_folder}/{time.time()}.svg")
-    plt.close()
-    time.sleep(.5)
