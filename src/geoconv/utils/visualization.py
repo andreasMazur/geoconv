@@ -1,17 +1,13 @@
-from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
-
 from matplotlib import pyplot as plt
 from matplotlib.collections import PolyCollection
 from matplotlib.patches import Polygon
 from PIL import Image
 
-import os
 import matplotlib
 import trimesh
 import numpy as np
 import matplotlib.cm as cm
 import io
-import time
 
 
 def draw_barycentric_coordinates(gpc_system, barycentric_coordinates, save_name=""):
