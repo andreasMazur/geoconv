@@ -99,7 +99,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         signal_shape, barycentric_shape = input_shape
 
         # Configure template
-        self._template_size = (barycentric_shape[1], barycentric_shape[2])
+        self._template_size = (barycentric_shape[-4], barycentric_shape[-3])
         self._all_rotations = self._template_size[1]
         self._template_vertices = tf.constant(
             create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius)
@@ -109,14 +109,14 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         # Configure trainable weights
         self._template_neighbor_weights = self.add_weight(
             name="neighbor_weights",
-            shape=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[1]),
+            shape=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[-1]),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.template_regularizer
         )
         self._template_self_weights = self.add_weight(
             name="center_weights",
-            shape=(self.amt_templates, 1, signal_shape[1]),
+            shape=(self.amt_templates, 1, signal_shape[-1]),
             initializer=self.initializer,
             trainable=True,
             regularizer=self.template_regularizer
@@ -132,7 +132,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         # Configure kernel
         self._configure_kernel()
 
-    @tf.function
+    # @tf.function
     def call(self, inputs, orientations=None):
         """Computes intrinsic surface convolution on all vertices of a given mesh.
 
@@ -153,16 +153,16 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         """
         mesh_signal, bary_coordinates = inputs
 
-        ######################################################
-        # Fold center - conv_center: (vertices, 1, templates)
-        ######################################################
+        ####################################################################
+        # Fold center - conv_center: (batch_shapes, vertices, 1, templates)
+        ####################################################################
         # Weight matrix : (templates, 1, input_dim)
-        # Mesh signal   : (vertices, input_dim)
-        # Result        : (vertices, 1, n_templates)
-        conv_center = tf.einsum("tef,kf->ket", self._template_self_weights, mesh_signal)
+        # Mesh signal   : (batch_shapes, vertices, input_dim)
+        # Result        : (batch_shapes, vertices, 1, templates)
+        conv_center = tf.einsum("tef,skf->sket", self._template_self_weights, mesh_signal)
 
         #####################################################################
-        # Fold neighbors - conv_neighbor: (vertices, n_rotations, templates)
+        # Fold neighbors - conv_neighbor: (batch_shapes, vertices, n_rotations, templates)
         #####################################################################
         # Call patch operator
         interpolations = self._patch_operator(mesh_signal, bary_coordinates)
@@ -173,21 +173,21 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
 
         def fold_neighbor(o):
             # Weight              : (templates, radial, angular, input_dim)
-            # Mesh interpolations : (vertices, radial, angular, input_dim)
-            # Result              : (vertices, templates)
+            # Mesh interpolations : (batch_shapes, vertices, radial, angular, input_dim)
+            # Result              : (batch_shapes, vertices, templates)
             return tf.einsum(
-                "traf,kraf->kt",
+                "traf,skraf->skt",
                 self._template_neighbor_weights,
-                tf.roll(interpolations, shift=o, axis=2)
+                tf.roll(interpolations, shift=o, axis=-2)
             )
 
-        # conv_neighbor: (vertices, n_rotations, templates)
+        # conv_neighbor: (batch_shapes, vertices, n_rotations, templates)
         conv_neighbor = tf.transpose(
-            tf.map_fn(fold_neighbor, orientations, fn_output_signature=tf.float32), perm=[1, 0, 2]
+            tf.map_fn(fold_neighbor, orientations, fn_output_signature=tf.float32), perm=[1, 2, 0, 3]
         )
         return self._activation(conv_center + conv_neighbor + self._bias)
 
-    @tf.function
+    # @tf.function
     def _patch_operator(self, mesh_signal, barycentric_coordinates):
         """Interpolates and weights mesh signal
 
@@ -203,18 +203,19 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         tensorflow.Tensor:
             Weighted and interpolated mesh signals
         """
-        interpolations = self._signal_retrieval(mesh_signal, barycentric_coordinates)
+        # interpolations : (batch_shapes, vertices, radial, angular, input_dim)
+        interpolations = self._signal_pullback(mesh_signal, barycentric_coordinates)
 
         if self.include_prior:
             # Weight matrix  : (radial, angular, radial, angular)
-            # interpolations : (vertices, radial, angular, input_dim)
-            # Result         : (vertices, radial, angular, input_dim)
-            return tf.einsum("raxy,kxyf->kraf", self._kernel, interpolations)
+            # interpolations : (batch_shapes, vertices, radial, angular, input_dim)
+            # Result         : (batch_shapes, vertices, radial, angular, input_dim)
+            return tf.einsum("raxy,skxyf->skraf", self._kernel, interpolations)
         else:
             return interpolations
 
-    @tf.function
-    def _signal_retrieval(self, mesh_signal, barycentric_coordinates):
+    # @tf.function
+    def _signal_pullback(self, mesh_signal, barycentric_coordinates):
         """Interpolates signals at template vertices
 
         Parameters
@@ -229,16 +230,26 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         tensorflow.Tensor:
             Interpolation values for the template vertices
         """
+        # Get vertex indices from BC-tensor
         vertex_indices = tf.reshape(
-            tf.cast(barycentric_coordinates[:, :, :, :, 0], tf.int32), (-1, 1)
+            tf.cast(barycentric_coordinates[:, :, :, :, :, 0], tf.int32),
+            (-1, tf.reduce_prod(barycentric_coordinates.shape[1:-1]), 1)
         )
+
+        # Use retrieved vertex indices to gather vertex signals required for interpolation
         mesh_signal = tf.reshape(
-            tf.gather_nd(mesh_signal, vertex_indices),
-            (-1, self._template_size[0], self._template_size[1], 3, self._feature_dim)
+            tf.gather_nd(mesh_signal, vertex_indices, batch_dims=1), (
+                -1,
+                tf.shape(barycentric_coordinates)[1],
+                self._template_size[0],
+                self._template_size[1],
+                3,
+                self._feature_dim
+            )
         )
-        # (vertices, n_radial, n_angular, input_dim)
+        # (batch_shapes, vertices, n_radial, n_angular, input_dim)
         return tf.math.reduce_sum(
-            tf.expand_dims(barycentric_coordinates[:, :, :, :, 1], axis=-1) * mesh_signal, axis=-2
+            tf.expand_dims(barycentric_coordinates[:, :, :, :, :, 1], axis=-1) * mesh_signal, axis=-2
         )
 
     def _configure_kernel(self):
