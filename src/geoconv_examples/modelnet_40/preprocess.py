@@ -30,19 +30,26 @@ def preprocess(modelnet_path,
     )
 
     # Compute GPC-systems
+    preprocessed_shapes = 0
     for shape, shape_path in shape_generator:
         print(f"*** Preprocessing: '{shape_path}'")
         # Remove file-ending from folder name
         output_dir = f"{output_path}/{shape_path}"[:-4]
         if class_names is None:
-            compute_gpc_systems(shape, output_dir, processes=processes)
+            was_successful = compute_gpc_systems(shape, output_dir, processes=processes)
         elif shape_path.split("/")[1] in class_names:
-            compute_gpc_systems(shape, output_dir, processes=processes)
+            was_successful = compute_gpc_systems(shape, output_dir, processes=processes)
+        preprocessed_shapes = preprocessed_shapes + 1 if was_successful else preprocessed_shapes
 
     # Compute barycentric coordinates
-    compute_bc(output_path)
+    template_configurations = compute_bc(output_path)
 
-    # TODO: Add preprocess information to dataset
+    # Add preprocess information to dataset
+    with open(f"{output_path}/dataset_properties.json", "w") as properties_file:
+        json.dump(
+            {"preprocessed_shapes": preprocessed_shapes, "template_configurations": template_configurations},
+            properties_file
+        )
 
     if zip_when_done:
         print("Zipping..")
@@ -57,9 +64,10 @@ def compute_bc(preprocess_dir, inverse_order=False, shape_classes=None):
     preprocess_dir_temp = f"{preprocess_dir}/ModelNet40"
     for shape_class in tqdm(os.listdir(preprocess_dir_temp), postfix="Computing template radius for BC.."):
         for split in ["test", "train"]:
-            for instance in os.listdir(f"{preprocess_dir_temp}/{shape_class}/{split}/"):
-                shape_path = f"{preprocess_dir_temp}/{shape_class}/{split}/{instance}"
-
+            shape_folders = os.listdir(f"{preprocess_dir_temp}/{shape_class}/{split}/")
+            shape_folders.sort()
+            for shape_folder in shape_folders:
+                shape_path = f"{preprocess_dir_temp}/{shape_class}/{split}/{shape_folder}"
                 with open(f"{shape_path}/preprocess_properties.json") as properties_file:
                     properties = json.load(properties_file)
                     gpc_system_radii.append(properties["gpc_system_radius"])
@@ -82,8 +90,10 @@ def compute_bc(preprocess_dir, inverse_order=False, shape_classes=None):
     step = -1 if inverse_order else 1
     for shape_class in shape_classes[::step]:
         for split in ["test", "train"]:
-            for instance in os.listdir(f"{preprocess_dir_temp}/{shape_class}/{split}/"):
-                shape_path = f"{preprocess_dir_temp}/{shape_class}/{split}/{instance}"
+            shape_folders = os.listdir(f"{preprocess_dir_temp}/{shape_class}/{split}/")
+            shape_folders.sort()
+            for shape_folder in shape_folders:
+                shape_path = f"{preprocess_dir_temp}/{shape_class}/{split}/{shape_folder}"
 
                 # Load GPC-systems for current mesh
                 gpc_systems = GPCSystemGroup(object_mesh=trimesh.load_mesh(f"{shape_path}/normalized_mesh.stl"))
@@ -98,3 +108,4 @@ def compute_bc(preprocess_dir, inverse_order=False, shape_classes=None):
                         )
                         np.save(bc_file_name, bc)
     print(f"Barycentric coordinates done.")
+    return template_configurations
