@@ -386,20 +386,44 @@ class GPCSystem:
                 properties_file
             )
 
-    def load(self, path):
-        """Loads a GPC-system.
+    def load(self, path=None, from_dict=None):
+        """Loads a GPC-system. Decide whether to load the GPC-system from a store-path or from a dictionary.
 
         Parameters
         ----------
         path: str
             The path from where to load the GPC-system.
+        from_dict: dict
+            A dictionary object containing:
+                * angular coordinates
+                * radial coordinates
+                * x_coordinates
+                * y_coordinates
+                * GPC-system properties
         """
-        self.angular_coordinates = np.load(f"{path}/angular_coordinates.npy")
-        self.radial_coordinates = np.load(f"{path}/radial_coordinates.npy")
-        self.x_coordinates = np.load(f"{path}/x_coordinates.npy")
-        self.y_coordinates = np.load(f"{path}/y_coordinates.npy")
-        with open(f"{path}/properties.json", "r") as properties_file:
-            properties = json.load(properties_file)
+        if path is not None:
+            self.angular_coordinates = np.load(f"{path}/angular_coordinates.npy")
+            self.radial_coordinates = np.load(f"{path}/radial_coordinates.npy")
+            self.x_coordinates = np.load(f"{path}/x_coordinates.npy")
+            self.y_coordinates = np.load(f"{path}/y_coordinates.npy")
+
+            with open(f"{path}/properties.json", "r") as properties_file:
+                properties = json.load(properties_file)
+                self.edges = {int(k): v for k, v in properties["edges"].items()}
+                self.faces = {tuple([int(k) for k in k_str.split(",")]): v for k_str, v in properties["faces"].items()}
+                self.source_point = properties["source_point"]
+        elif from_dict is not None:
+            self.angular_coordinates = from_dict["angular_coordinates"]
+            self.radial_coordinates = from_dict["radial_coordinates"]
+            self.x_coordinates = from_dict["x_coordinates"]
+            self.y_coordinates = from_dict["y_coordinates"]
+
+            properties = from_dict["properties"]
             self.edges = {int(k): v for k, v in properties["edges"].items()}
             self.faces = {tuple([int(k) for k in k_str.split(",")]): v for k_str, v in properties["faces"].items()}
             self.source_point = properties["source_point"]
+        else:
+            raise RuntimeError(
+                "When you load a GPC-system, you either need to provide a path to the storing directory or"
+                "a dictionary containing the required GPC-system information!"
+            )
