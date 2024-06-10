@@ -18,6 +18,11 @@ def compute_gpc_systems(shape, output_dir, processes=1):
         The directory where the GPC-systems shall be stored.
     processes: int
         The amount of processes to be used concurrently.
+
+    Returns
+    -------
+    bool:
+        Whether preprocessing has been successful.
     """
     # 0.) Check whether file already exist. If so, skip computing GPC-systems.
     if not os.path.isfile(f"{output_dir}/preprocess_properties.json"):
@@ -45,7 +50,8 @@ def compute_gpc_systems(shape, output_dir, processes=1):
                 {
                     "non_manifold_edges": np.asarray(shape.as_open3d.get_non_manifold_edges()).shape[0],
                     "gpc_system_radius": gpc_system_radius,
-                    "geodesic_diameter": geodesic_diameter
+                    "original_geodesic_diameter": geodesic_diameter,
+                    "amount_gpc_systems": gpc_systems.object_mesh_gpc_systems.shape[0]
                 },
                 properties_file,
                 indent=4
@@ -53,5 +59,7 @@ def compute_gpc_systems(shape, output_dir, processes=1):
 
         # 5.) Export preprocessed mesh
         shape.export(f"{output_dir}/normalized_mesh.stl")
+        return True
     else:
         print(f"{output_dir}/preprocess_properties.json already exists. Skipping preprocessing.")
+        return False
