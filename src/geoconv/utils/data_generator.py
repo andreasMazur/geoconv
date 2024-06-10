@@ -153,7 +153,7 @@ def zip_file_generator(zipfile_path,
             shape = down_sample_mesh(shape, down_sample)
             # Check result and skip if it is too far from target amount of faces
             if shape.faces.shape[0] > down_sample + down_sample * epsilon:
-                print(f"*** {shape_path} couldn't be down-sampled enough to {down_sample}.")
+                print(f"*** {shape_path} couldn't be down-sampled close enough to {down_sample}.")
                 continue
 
         # Remove non-manifold edges
