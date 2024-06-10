@@ -173,7 +173,8 @@ def preprocessed_shape_generator(zipfile_path,
                                  sorting_key=None,
                                  shuffle_seed=None,
                                  split=None,
-                                 verbose=False):
+                                 verbose=False,
+                                 zero_pad_vertices=True):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
     This function sorts alphanumerically after the shape-directory name.
@@ -194,6 +195,10 @@ def preprocessed_shape_generator(zipfile_path,
         List of integers which are yielded from the list of all shapes.
     verbose: bool
         Whether to print incomplete shape directories.
+    zero_pad_vertices: bool
+        Adds zero interpolation coefficients to barycentric coordinates-tensor and zero signals to signal tensor
+        such that every signal- and barycentric coordinates tensor in the dataset has the same dimensionality.
+        The dimensionality is determined by the largest tensor.
 
     Returns
     -------
@@ -227,6 +232,7 @@ def preprocessed_shape_generator(zipfile_path,
     # Precompute list of files to yield
     without_gpc_systems = [x for x in zip_file.files if "gpc_systems" not in x]
     per_shape_files = []
+    most_vertices = 0  # only required if zero-padding is wished for
     for preprocessed_shape_dir in tqdm(preprocessed_shapes, postfix="Preparing generator.."):
         # Iterate over shape's data and collect with filters
         preprocessed_shape_dir = [x for x in without_gpc_systems if preprocessed_shape_dir in x]
@@ -245,9 +251,35 @@ def preprocessed_shape_generator(zipfile_path,
             if verbose:
                 print(f"Incomplete shape-directory: {preprocessed_shape_dir}")
 
+        # Seek for largest amount of vertices
+        if zero_pad_vertices:
+            for file in shape_files:
+                content = zip_file[file]
+                if isinstance(content, np.ndarray):
+                    # Read amount of vertices
+                    n_vertices = content.shape[0]
+                    if content.shape[0] > most_vertices:
+                        most_vertices = n_vertices
+
     # Yield prepared data
     for shape_files in per_shape_files:
-        yield [(zip_file[shape_file], shape_file) for shape_file in shape_files]
+        if zero_pad_vertices:
+            to_return = []
+            for shape_file in shape_files:
+                # Load content
+                content = zip_file[shape_file]
+
+                # Filter for arrays
+                if isinstance(content, np.ndarray):
+                    # Zero pad (assumes first dimension represent vertices)
+                    while content.shape[0] < most_vertices:
+                        content = np.concatenate([content, np.zeros_like(content)[:most_vertices - content.shape[0]]])
+
+                # Add padded content to list 'to_return'
+                to_return.append((content, shape_file))
+            yield to_return
+        else:
+            yield [(zip_file[shape_file], shape_file) for shape_file in shape_files]
 
 
 def barycentric_coordinates_generator(zipfile_path,
