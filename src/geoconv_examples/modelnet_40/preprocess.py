@@ -45,8 +45,8 @@ def preprocess(modelnet_path,
     template_configurations = compute_bc(output_path)
 
     # Add preprocess information to dataset
-    with open(f"{output_path}/dataset_properties.json", "w") as properties_file:
-        temp_conf_dict = {}
+    with open(f"{output_path}/dataset_properties.json", "a") as properties_file:
+        temp_conf_dict = {"considered_classes": class_names}
         for idx, tconf in enumerate(template_configurations):
             temp_conf_dict[f"{idx}"] = {"n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]}
         json.dump(temp_conf_dict, properties_file, indent=4)
