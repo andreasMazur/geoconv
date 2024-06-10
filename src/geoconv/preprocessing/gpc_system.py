@@ -397,9 +397,10 @@ class GPCSystem:
             A dictionary object containing:
                 * angular coordinates
                 * radial coordinates
-                * x_coordinates
-                * y_coordinates
+                * x-coordinates
+                * y-coordinates
                 * GPC-system properties
+            in the format as required by this class.
         """
         if path is not None:
             self.angular_coordinates = np.load(f"{path}/angular_coordinates.npy")
