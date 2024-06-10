@@ -132,7 +132,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         # Configure kernel
         self._configure_kernel()
 
-    # @tf.function
+    @tf.function
     def call(self, inputs, orientations=None):
         """Computes intrinsic surface convolution on all vertices of a given mesh.
 
@@ -187,7 +187,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         )
         return self._activation(conv_center + conv_neighbor + self._bias)
 
-    # @tf.function
+    @tf.function
     def _patch_operator(self, mesh_signal, barycentric_coordinates):
         """Interpolates and weights mesh signal
 
@@ -214,7 +214,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         else:
             return interpolations
 
-    # @tf.function
+    @tf.function
     def _signal_pullback(self, mesh_signal, barycentric_coordinates):
         """Interpolates signals at template vertices
 
