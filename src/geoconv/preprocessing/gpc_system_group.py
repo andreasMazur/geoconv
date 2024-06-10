@@ -9,6 +9,7 @@ import numpy as np
 import warnings
 import heapq
 import os
+import json
 
 
 class GPCSystemGroup:
@@ -133,32 +134,111 @@ class GPCSystemGroup:
                 break
         return gpc_system
 
-    def save(self, path):
+    def save(self, path, compressed=True):
         """Saves all GPC-systems.
 
         Parameters
         ----------
         path: str
             The path to where the GPC-system group shall be saved.
+        compressed: bool
+            Whether to store the coordinates and properties of a GPC-system in 5 files instead of individual
+            GPC-system subdirectories.
         """
-        for gpc_system_idx, gpc_system in tqdm(enumerate(self.object_mesh_gpc_systems), postfix="Saving GPC-systems.."):
-            gpc_system.save(f"{path}/{gpc_system_idx}")
+        # Create saving directory
+        os.makedirs(path, exist_ok=True)
 
-    def load(self, path):
+        ####################################
+        # Save compressed GPC-system format
+        ####################################
+        if compressed:
+            # Initialize dictionaries which shall be saved
+            radial_dict, angular_dict = {}, {}
+            x_coordinates_dict, y_coordinates_dict = {}, {}
+            gpc_properties_dict = {}
+
+            # Collect information about all GPC-systems
+            for gpc_system_idx, gpc_system in tqdm(
+                    enumerate(self.object_mesh_gpc_systems), postfix="Saving GPC-systems.."
+            ):
+                # Store current GPC-system properties in saving dictionaries
+                radial_dict[f"{gpc_system_idx}"] = gpc_system.radial_coordinates
+                angular_dict[f"{gpc_system_idx}"] = gpc_system.angular_coordinates
+                x_coordinates_dict[f"{gpc_system_idx}"] = gpc_system.x_coordinates
+                y_coordinates_dict[f"{gpc_system_idx}"] = gpc_system.y_coordinates
+                gpc_properties_dict[f"{gpc_system_idx}"] = {
+                    "edges": {int(k): v for k, v in gpc_system.edges.items()},
+                    "faces": {f"{k1},{k2}": v for (k1, k2), v in gpc_system.faces.items()},
+                    "source_point": int(gpc_system.source_point)
+                }
+
+            # Save all GPC-system properties in one corresponding file
+            np.savez(f"{path}/radial_coordinates.npz", **radial_dict)
+            np.savez(f"{path}/angular_coordinates.npz", **angular_dict)
+            np.savez(f"{path}/x_coordinates.npz", **x_coordinates_dict)
+            np.savez(f"{path}/y_coordinates.npz", **y_coordinates_dict)
+            with open(f"{path}/properties.json", "w") as properties_file:
+                json.dump(gpc_properties_dict, properties_file)
+        ###############################################################################
+        # Load regular GPC-system format (each GPC-system has individual subdirectory)
+        ###############################################################################
+        else:
+            for gpc_system_idx, gpc_system in tqdm(
+                    enumerate(self.object_mesh_gpc_systems), postfix="Saving GPC-systems.."
+            ):
+                gpc_system.save(f"{path}/{gpc_system_idx}")
+
+    def load(self, path, load_compressed=True):
         """Loads GPC-systems.
 
         Parameters
         ----------
         path: str
             The path from where to load the GPC-systems.
+        load_compressed: bool
+            Whether to load from a compressed store-format (cf. self.save()).
         """
+        # Initialize GPC-system list
         gpc_systems = []
-        gpc_system_directories = os.listdir(path)
-        gpc_system_directories.sort(key=lambda fn: int(fn))
-        for source_point, gpc_system_directory in tqdm(
-                enumerate(gpc_system_directories), postfix=f"Loading GPC-systems from: '{path}'"
-        ):
-            gpc_system = GPCSystem(source_point, self.object_mesh, use_c=True)
-            gpc_system.load(f"{path}/{gpc_system_directory}")
-            gpc_systems.append(gpc_system)
+
+        ####################################
+        # Load compressed GPC-system format
+        ####################################
+        if load_compressed:
+            # Load all GPC-systems from compressed file format
+            radial_coordinates_dict = np.load(f"{path}/radial_coordinates.npz")
+            angular_coordinates_dict = np.load(f"{path}/angular_coordinates.npz")
+            x_coordinates_dict = np.load(f"{path}/x_coordinates.npz")
+            y_coordinates_dict = np.load(f"{path}/y_coordinates.npz")
+            with open(f"{path}/properties.json", "r") as properties_file:
+                properties = json.load(properties_file)
+
+            # Initialize all GPC-systems using the information stored within the compressed files
+            for source_point in tqdm(range(len(properties.keys())), postfix=f"Loading GPC-systems from: '{path}'"):
+                gpc_system = GPCSystem(source_point, self.object_mesh, use_c=True)
+                gpc_system.load(from_dict={
+                    "angular_coordinates": radial_coordinates_dict[f"{source_point}"],
+                    "radial_coordinates": angular_coordinates_dict[f"{source_point}"],
+                    "x_coordinates": x_coordinates_dict[f"{source_point}"],
+                    "y_coordinates": y_coordinates_dict[f"{source_point}"],
+                    "properties": properties[f"{source_point}"]
+                })
+                gpc_systems.append(gpc_system)
+        ###############################################################################
+        # Load regular GPC-system format (each GPC-system has individual subdirectory)
+        ###############################################################################
+        else:
+            # Read root-directory of all GPC-systems
+            gpc_system_directories = os.listdir(path)
+            gpc_system_directories.sort(key=lambda fn: int(fn))
+
+            # Iterate over root-directory content and load each GPC-system individually from file-system
+            for source_point, gpc_system_directory in tqdm(
+                    enumerate(gpc_system_directories), postfix=f"Loading GPC-systems from: '{path}'"
+            ):
+                gpc_system = GPCSystem(source_point, self.object_mesh, use_c=True)
+                gpc_system.load(f"{path}/{gpc_system_directory}")
+                gpc_systems.append(gpc_system)
+
+        # Remember GPC-systems
         self.object_mesh_gpc_systems = np.array(gpc_systems)
