@@ -24,4 +24,4 @@ class AngularAvgPooling(keras.layers.Layer):
             vertex. Thereby, the convolution result is the average results among the convolution results for
             all rotations.
         """
-        return tf.reduce_mean(inputs, axis=1)
+        return tf.reduce_mean(inputs, axis=-2)

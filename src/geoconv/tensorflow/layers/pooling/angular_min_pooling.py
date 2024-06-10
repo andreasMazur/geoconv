@@ -25,8 +25,5 @@ class AngularMinPooling(keras.layers.Layer):
             all rotations.
         """
         minimal_response = tf.norm(inputs, ord="euclidean", axis=-1)
-        minimal_response = tf.cast(tf.argmin(minimal_response, axis=1), dtype=tf.int32)
-        return tf.gather_nd(
-            indices=tf.stack([tf.range(tf.shape(inputs)[0]), minimal_response], axis=-1),
-            params=inputs
-        )
+        minimal_response = tf.cast(tf.argmin(minimal_response, axis=-1), dtype=tf.int32)
+        return tf.gather(inputs, minimal_response, batch_dims=2)
