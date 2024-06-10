@@ -24,4 +24,4 @@ class AngularAvgPooling(nn.Module):
             vertex. Thereby, the convolution result is the average results among the convolution results for
             all rotations.
         """
-        return torch.mean(inputs, dim=1)
+        return torch.mean(inputs, dim=-2)

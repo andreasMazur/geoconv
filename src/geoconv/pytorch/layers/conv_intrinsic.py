@@ -93,7 +93,7 @@ class ConvIntrinsic(ABC, nn.Module):
         signal_shape, barycentric_shape = input_shape
 
         # Configure template
-        self._template_size = (barycentric_shape[1], barycentric_shape[2])
+        self._template_size = (barycentric_shape[2], barycentric_shape[3])
         self._all_rotations = self._template_size[1]
         self._template_vertices = torch.tensor(
             create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius)
@@ -102,11 +102,11 @@ class ConvIntrinsic(ABC, nn.Module):
 
         # Configure trainable weights
         self._template_neighbor_weights = nn.Parameter(
-            torch.zeros(size=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[1]))
+            torch.zeros(size=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[-1]))
         )
         self._init_fn(self._template_neighbor_weights)
 
-        self._template_self_weights = nn.Parameter(torch.zeros(size=(self.amt_templates, 1, signal_shape[1])))
+        self._template_self_weights = nn.Parameter(torch.zeros(size=(self.amt_templates, 1, signal_shape[-1])))
         self._init_fn(self._template_self_weights)
 
         self._bias = nn.Parameter(torch.zeros(size=(1, self.amt_templates)))
@@ -139,9 +139,9 @@ class ConvIntrinsic(ABC, nn.Module):
         # Fold center - conv_center: (vertices, 1, templates)
         ######################################################
         # Weight matrix : (templates, 1, input_dim)
-        # Mesh signal   : (vertices, input_dim)
-        # Result        : (vertices, 1, n_templates)
-        conv_center = torch.einsum("tef,kf->ket", self._template_self_weights, mesh_signal)
+        # Mesh signal   : (batch_shapes, vertices, input_dim)
+        # Result        : (batch_shapes, vertices, 1, n_templates)
+        conv_center = torch.einsum("tef,skf->sket", self._template_self_weights, mesh_signal)
 
         #####################################################################
         # Fold neighbors - conv_neighbor: (vertices, n_rotations, templates)
@@ -155,19 +155,19 @@ class ConvIntrinsic(ABC, nn.Module):
 
         def fold_neighbor(orientation):
             # Weight              : (templates, radial, angular, input_dim)
-            # Mesh interpolations : (vertices, radial, angular, input_dim)
-            # Result              : (vertices, templates)
+            # Mesh interpolations : (batch_shapes, vertices, radial, angular, input_dim)
+            # Result              : (batch_shapes, vertices, templates)
             return torch.einsum(
-                "traf,kraf->kt",
+                "traf,skraf->skt",
                 self._template_neighbor_weights,
-                torch.roll(interpolations, shifts=orientation.item(), dims=2).float()
+                torch.roll(interpolations, shifts=orientation.item(), dims=-2).float()
             )
 
-        # Result: (vertices, n_rotations, templates)
+        # Result: (batch_shapes, vertices, n_rotations, templates)
         conv_neighbor = torch.permute(
-            torch.stack(list(map(fold_neighbor, orientations))), dims=[1, 0, 2]
+            torch.stack(list(map(fold_neighbor, orientations))), dims=[1, 2, 0, 3]
         )
-        # conv_neighbor: (vertices, n_rotations, templates)
+        # conv_neighbor: (batch_shapes, vertices, n_rotations, templates)
         return self._activation(conv_center + conv_neighbor + self._bias)
 
     def _patch_operator(self, mesh_signal, barycentric_coordinates):
@@ -189,9 +189,9 @@ class ConvIntrinsic(ABC, nn.Module):
 
         if self.include_prior:
             # Weight matrix  : (radial, angular, radial, angular)
-            # interpolations : (vertices, radial, angular, input_dim)
-            # Result         : (vertices, radial, angular, input_dim)
-            return torch.einsum("raxy,kxyf->kraf", self._kernel, interpolations)
+            # interpolations : (batch_shapes, vertices, radial, angular, input_dim)
+            # Result         : (batch_shapes, vertices, radial, angular, input_dim)
+            return torch.einsum("raxy,skxyf->skraf", self._kernel, interpolations)
         else:
             return interpolations
 
@@ -210,9 +210,13 @@ class ConvIntrinsic(ABC, nn.Module):
         tensorflow.Tensor:
             Interpolation values for the template vertices
         """
-        mesh_signal = mesh_signal[barycentric_coordinates[:, :, :, :, 0].int()]
-        # (vertices, n_radial, n_angular, input_dim)
-        return torch.sum(barycentric_coordinates[:, :, :, :, 1].unsqueeze(-1) * mesh_signal, dim=-2)
+        all_mesh_signals = []
+        for signal, bc in zip(mesh_signal, barycentric_coordinates):
+            all_mesh_signals.append(signal[bc[:, :, :, :, 0].int()])
+        # (batch_shapes, vertices, n_radial, n_angular, input_dim)
+        return torch.sum(
+            barycentric_coordinates[:, :, :, :, :, 1].unsqueeze(-1) * torch.stack(all_mesh_signals), dim=-2
+        )
 
     def _configure_kernel(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""

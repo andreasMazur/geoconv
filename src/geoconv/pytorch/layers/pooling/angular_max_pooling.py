@@ -25,5 +25,8 @@ class AngularMaxPooling(nn.Module):
             all rotations.
         """
         maximal_response = torch.linalg.vector_norm(inputs, ord=2, dim=-1)
-        maximal_response = torch.argmax(maximal_response, dim=1).int()
-        return inputs[torch.arange(0, inputs.shape[0]), maximal_response]
+        maximal_response = torch.argmax(maximal_response, dim=-1).int()
+        pooled_signals = []
+        for signal, indices in zip(inputs, maximal_response):
+            pooled_signals.append(signal[torch.arange(0, inputs.shape[1]), indices])
+        return torch.stack(pooled_signals)

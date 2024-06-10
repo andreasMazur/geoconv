@@ -24,6 +24,9 @@ class AngularMinPooling(nn.Module):
             vertex. Thereby, the convolution result has the smallest Euclidean norm among the convolution results for
             all rotations.
         """
-        maximal_response = torch.linalg.vector_norm(inputs, ord=2, dim=-1)
-        maximal_response = torch.argmin(maximal_response, dim=1).int()
-        return inputs[torch.arange(0, inputs.shape[0]), maximal_response]
+        minimal_response = torch.linalg.vector_norm(inputs, ord=2, dim=-1)
+        minimal_response = torch.argmin(minimal_response, dim=-1).int()
+        pooled_signals = []
+        for signal, indices in zip(inputs, minimal_response):
+            pooled_signals.append(signal[torch.arange(0, inputs.shape[1]), indices])
+        return torch.stack(pooled_signals)
