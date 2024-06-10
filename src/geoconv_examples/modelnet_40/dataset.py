@@ -78,8 +78,8 @@ def modelnet_generator(path_to_zip, n_radial, n_angular, template_radius, is_tra
     psg = preprocessed_shape_generator(
         path_to_zip,
         filter_list=["stl", f"BC_{n_radial}_{n_angular}_{template_radius}"],
-        # shuffle_seed=42 if split != -1 else None,
-        # split=split
+        shuffle_seed=42 if split != -1 else None,
+        split=split
     )
 
     for elements in psg:
@@ -105,4 +105,4 @@ def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius
         modelnet_generator,
         args=(path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, split),
         output_signature=output_signature
-    ).batch(2).prefetch(20)
+    ).batch(5).prefetch(20)
