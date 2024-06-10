@@ -46,10 +46,10 @@ def preprocess(modelnet_path,
 
     # Add preprocess information to dataset
     with open(f"{output_path}/dataset_properties.json", "w") as properties_file:
-        json.dump(
-            {"preprocessed_shapes": preprocessed_shapes, "template_configurations": template_configurations},
-            properties_file
-        )
+        temp_conf_dict = {}
+        for idx, tconf in enumerate(template_configurations):
+            temp_conf_dict[f"{idx}"] = {"n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]}
+        json.dump(temp_conf_dict, properties_file, indent=4)
 
     if zip_when_done:
         print("Zipping..")
