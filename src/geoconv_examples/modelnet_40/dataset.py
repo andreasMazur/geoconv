@@ -78,15 +78,16 @@ def modelnet_generator(path_to_zip, n_radial, n_angular, template_radius, is_tra
     psg = preprocessed_shape_generator(
         path_to_zip,
         filter_list=["stl", f"BC_{n_radial}_{n_angular}_{template_radius}"],
-        shuffle_seed=42 if split != -1 else None,
-        split=split
+        # shuffle_seed=42 if split != -1 else None,
+        # split=split
     )
 
     for elements in psg:
-        vertices = trimesh.load_mesh(BytesIO(elements[0][0]), file_type="stl").vertices
         bc = elements[1][0]
-
-        assert bc.shape[0] == vertices.shape[0], "Numbers of vertices and barycentric coordinates do not match!"
+        vertices = trimesh.load_mesh(BytesIO(elements[0][0]), file_type="stl").vertices
+        # Zero pad signal
+        while vertices.shape[0] < bc.shape[0]:
+            vertices = np.concatenate([vertices, np.zeros_like(vertices)[:bc.shape[0] - vertices.shape[0]]])
 
         yield (vertices, bc), np.array(MODELNET_CLASSES[elements[0][1].split("/")[1]]).reshape(1)
 
@@ -104,4 +105,4 @@ def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius
         modelnet_generator,
         args=(path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, split),
         output_signature=output_signature
-    ).prefetch(20)
+    ).batch(2).prefetch(20)

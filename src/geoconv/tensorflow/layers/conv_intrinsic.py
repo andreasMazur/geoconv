@@ -140,16 +140,16 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         ----------
         inputs: (tensorflow.Tensor, tensorflow.Tensor)
             The first tensor represents the signal defined on the manifold. It has size
-            (n_vertices, feature_dim). The second tensor represents the barycentric coordinates. It has
-            size (n_vertices, n_radial, n_angular, 3, 2).
+            (batch_shapes, n_vertices, feature_dim). The second tensor represents the barycentric coordinates. It has
+            size (batch_shapes, n_vertices, n_radial, n_angular, 3, 2).
         orientations: tensorflow.Tensor
-            Contains an integer that tells how to rotate the data.
+            Contains an integer that tells how to rotate the signal-interpolations.
 
         Returns
         -------
         tensorflow.Tensor
             The geodesic convolution of the template with the signal on the object mesh in every given GPC-system.
-            It has size (vertices, n_rotations, templates)
+            It has size (batch_shapes, vertices, n_rotations, templates)
         """
         mesh_signal, bary_coordinates = inputs
 

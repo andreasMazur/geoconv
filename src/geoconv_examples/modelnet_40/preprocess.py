@@ -42,6 +42,8 @@ def preprocess(modelnet_path,
     # Compute barycentric coordinates
     compute_bc(output_path)
 
+    # TODO: Add preprocess information to dataset
+
     if zip_when_done:
         print("Zipping..")
         shutil.make_archive(base_name=output_path, format="zip", root_dir=output_path)
