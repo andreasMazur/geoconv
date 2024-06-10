@@ -3,7 +3,7 @@ from torch import nn
 import torch
 
 
-class AngularMaxPooling(nn.Module):
+class AngularMinPooling(nn.Module):
     """The implementation for angular max-pooling"""
 
     def forward(self, inputs):
