@@ -1,6 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
-from geoconv.preprocessing.wrapper import compute_gpc_systems
+from geoconv.preprocessing.wrapper import compute_gpc_systems_wrapper
 from geoconv.utils.data_generator import zip_file_generator
 from geoconv.utils.misc import find_largest_one_hop_dist
 
@@ -30,7 +30,7 @@ def preprocess(faust_path, output_path, processes, zip_when_done=True):
         output_dir = f"{output_path}/{shape_path}"[:-4]
 
         # Compute GPC-systems
-        compute_gpc_systems(shape, output_dir, processes=processes)
+        compute_gpc_systems_wrapper(shape, output_dir, processes=processes)
 
         # Compute SHOT-descriptor
         radius = find_largest_one_hop_dist(shape) * 2.5

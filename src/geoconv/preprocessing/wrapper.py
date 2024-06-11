@@ -7,7 +7,7 @@ import os
 import numpy as np
 
 
-def compute_gpc_systems(shape, output_dir, processes=1):
+def compute_gpc_systems_wrapper(shape, output_dir, processes=1):
     """Wrapper function that computes all GPC systems for one given shape.
 
     Parameters

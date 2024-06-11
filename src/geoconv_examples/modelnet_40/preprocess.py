@@ -1,6 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
-from geoconv.preprocessing.wrapper import compute_gpc_systems
+from geoconv.preprocessing.wrapper import compute_gpc_systems_wrapper
 from geoconv.utils.data_generator import zip_file_generator
 
 from tqdm import tqdm
@@ -36,9 +36,9 @@ def preprocess(modelnet_path,
         # Remove file-ending from folder name
         output_dir = f"{output_path}/{shape_path}"[:-4]
         if class_names is None:
-            was_successful = compute_gpc_systems(shape, output_dir, processes=processes)
+            was_successful = compute_gpc_systems_wrapper(shape, output_dir, processes=processes)
         elif shape_path.split("/")[1] in class_names:
-            was_successful = compute_gpc_systems(shape, output_dir, processes=processes)
+            was_successful = compute_gpc_systems_wrapper(shape, output_dir, processes=processes)
         preprocessed_shapes = preprocessed_shapes + 1 if was_successful else preprocessed_shapes
 
     # Compute barycentric coordinates

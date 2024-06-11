@@ -1,6 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
-from geoconv.preprocessing.wrapper import compute_gpc_systems
+from geoconv.preprocessing.wrapper import compute_gpc_systems_wrapper
 
 from matplotlib import pyplot as plt
 
@@ -58,7 +58,7 @@ def compute_bc(preprocess_dir):
 def preprocess(output_path, processes):
     # Preprocess flat grid
     grid = create_grid(n_vertices=28)  # MNIST-images are 28x28
-    compute_gpc_systems(grid, f"{output_path}/grid", processes=processes)
+    compute_gpc_systems_wrapper(grid, f"{output_path}/grid", processes=processes)
     compute_bc(f"{output_path}/grid")
 
     print(f"Barycentric coordinates done. Zipping..")
