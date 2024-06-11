@@ -46,6 +46,8 @@ def preprocess(modelnet_path,
     # Compute barycentric coordinates
     ##################################
     if compute_bc:
+        # 'template_configurations' contains in addition to template sizes also the respective template radii
+        # 'most_gpc_systems' describes the highest amount of GPC-systems in a shape in the dataset
         template_configurations, most_gpc_systems = compute_bc_wrapper(
             preprocess_dir=output_path,
             template_sizes=[(3, 6), (5, 8)],
