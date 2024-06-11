@@ -63,7 +63,7 @@ def preprocess(modelnet_path,
 
 
 def compute_bc(preprocess_dir, inverse_order=False, shape_classes=None):
-    # Get average template radius
+    # Get average template radius and most gpc-systems among shapes
     gpc_system_radii, most_gpc_systems = [], 0
     preprocess_dir_temp = f"{preprocess_dir}/ModelNet40"
     for shape_class in tqdm(os.listdir(preprocess_dir_temp), postfix="Computing template radius for BC.."):
