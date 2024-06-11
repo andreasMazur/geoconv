@@ -2,13 +2,14 @@ from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_co
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.utils.misc import normalize_mesh, find_largest_one_hop_dist
 
-from tqdm import tqdm
+from multiprocessing import Pool
 
 import shutil
 import json
 import os
 import numpy as np
 import trimesh
+import math
 
 
 def compute_gpc_systems_wrapper(shape, output_dir, processes=1):
@@ -69,18 +70,32 @@ def compute_gpc_systems_wrapper(shape, output_dir, processes=1):
         return False
 
 
-def compute_bc_wrapper(preprocess_dir, template_sizes, scales=None, load_compressed_gpc_systems=True):
-    """
+def compute_bc_wrapper(preprocess_dir,
+                       template_sizes,
+                       scales=None,
+                       load_compressed_gpc_systems=True,
+                       processes=10):
+    """Given a directory structure containing GPC-systems, this function computes corresponding barycentric coordinates.
 
     Parameters
     ----------
-    preprocess_dir
-    template_sizes
-    load_compressed_gpc_systems
+    preprocess_dir: str
+        The path to the directory structure.
+    template_sizes: list
+        A list of tuples containing the wished template sizes for which barycentric coordinates shall be computed.
+    scales: list
+        A list of floats used for scaling the radii of the templates.
+    load_compressed_gpc_systems: bool
+        If 'True', assumes that GPC-systems are stored in the compressed format (cf. GPCSystemGroup.save()).
+        Otherwise, assume that each GPC-system for a shape has its own directory.
+    processes: int
+        The amount of parallel processes to use.
 
     Returns
     -------
-
+    list, int:
+        (i) A list of triple containing the template configurations (radial, angular, template radius).
+        (ii) An integer representing the most seen GPC-systems / vertices in a shape in the entire dataset.
     """
     # Get average template radius as well as most seen GPC-systems in a shape
     shape_directories, gpc_system_radii, most_gpc_systems = [], [], 0
@@ -104,9 +119,32 @@ def compute_bc_wrapper(preprocess_dir, template_sizes, scales=None, load_compres
         template_size + (avg_gpc_system_radius * scale,) for template_size in template_sizes for scale in scales
     ]
 
-    # Compute barycentric coordinates
+    # Split the list of all directories into multiple chunks
     shape_directories.sort(key=lambda directory_name: directory_name.split("/")[-1])
-    for shape_dir in shape_directories:
+    per_chunk = math.ceil(len(shape_directories) / 10)
+    shape_directories = [shape_directories[i * per_chunk:(i * per_chunk) + per_chunk] for i in range(processes)]
+
+    # Compute barycentric coordinates
+    with Pool(processes=processes) as p:
+        p.starmap(bc_helper, [(d, template_configurations, load_compressed_gpc_systems) for d in shape_directories])
+
+    return template_configurations, most_gpc_systems
+
+
+def bc_helper(assigned_directories, template_configurations, load_compressed_gpc_systems):
+    """Given a set of shape directories, compute barycentric coordinates for given template configurations.
+
+    Parameters
+    ----------
+    assigned_directories: list
+        A list containing paths to shape directories
+    template_configurations: list
+        A list containing template configurations (radial, angular) for which barycentric coordinates shall be computed
+    load_compressed_gpc_systems bool
+        If 'True', assumes that GPC-systems are stored in the compressed format (cf. GPCSystemGroup.save()).
+        Otherwise, assume that each GPC-system for a shape has its own directory.
+    """
+    for shape_dir in assigned_directories:
         # Load GPC-systems for current mesh
         gpc_systems = GPCSystemGroup(object_mesh=trimesh.load_mesh(f"{shape_dir}/normalized_mesh.stl"))
         gpc_systems.load(f"{shape_dir}/gpc_systems", load_compressed=load_compressed_gpc_systems)
@@ -119,5 +157,3 @@ def compute_bc_wrapper(preprocess_dir, template_sizes, scales=None, load_compres
                     gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius
                 )
                 np.save(bc_file_name, bc)
-
-    return template_configurations, most_gpc_systems
