@@ -9,6 +9,7 @@ import numpy as np
 import os
 import subprocess
 import random
+import json
 
 
 def remove_non_manifold_edges(mesh):
@@ -174,7 +175,7 @@ def preprocessed_shape_generator(zipfile_path,
                                  shuffle_seed=None,
                                  split=None,
                                  verbose=False,
-                                 zero_pad_vertices=True):
+                                 zero_pad_shapes=True):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
     This function sorts alphanumerically after the shape-directory name.
@@ -195,10 +196,10 @@ def preprocessed_shape_generator(zipfile_path,
         List of integers which are yielded from the list of all shapes.
     verbose: bool
         Whether to print incomplete shape directories.
-    zero_pad_vertices: bool
-        Adds zero interpolation coefficients to barycentric coordinates-tensor and zero signals to signal tensor
+    zero_pad_shapes: bool
+        Adds zero interpolation coefficients to barycentric coordinates tensor and zero signals to signal tensor
         such that every signal- and barycentric coordinates tensor in the dataset has the same dimensionality.
-        The dimensionality is determined by the largest tensor.
+        This allows for batching multiple shapes. The dimensionality is determined by the largest tensor.
 
     Returns
     -------
@@ -233,6 +234,7 @@ def preprocessed_shape_generator(zipfile_path,
     without_gpc_systems = [x for x in zip_file.files if "gpc_systems" not in x]
     per_shape_files = []
     most_vertices = 0  # only required if zero-padding is wished for
+    print_no_most_gpc_systems_found = True
     for preprocessed_shape_dir in tqdm(preprocessed_shapes, postfix="Preparing generator.."):
         # Iterate over shape's data and collect with filters
         preprocessed_shape_dir = [x for x in without_gpc_systems if preprocessed_shape_dir in x]
@@ -252,18 +254,30 @@ def preprocessed_shape_generator(zipfile_path,
                 print(f"Incomplete shape-directory: {preprocessed_shape_dir}")
 
         # Seek for largest amount of vertices
-        if zero_pad_vertices:
-            for file in shape_files:
-                content = zip_file[file]
-                if isinstance(content, np.ndarray):
-                    # Read amount of vertices
-                    n_vertices = content.shape[0]
-                    if content.shape[0] > most_vertices:
-                        most_vertices = n_vertices
+        if zero_pad_shapes:
+            try:
+                # Check if dataset properties file contains entry 'most_gpc_systems'
+                dataset_properties = json.load(BytesIO(zip_file["dataset_properties.json"]))
+                most_vertices = dataset_properties["most_gpc_systems"]
+            except KeyError:
+                if print_no_most_gpc_systems_found:
+                    print(
+                        "Did not find 'most_gpc_systems'-key in dataset properties file. "
+                        "Manually search for most GPC-systems."
+                    )
+                    print_no_most_gpc_systems_found = False
+                # Iterate over shape files
+                for file in shape_files:
+                    content = zip_file[file]
+                    # If content is an array, read how many vertices it's describing
+                    if isinstance(content, np.ndarray):
+                        n_vertices = content.shape[0]
+                        if content.shape[0] > most_vertices:
+                            most_vertices = n_vertices
 
     # Yield prepared data
     for shape_files in per_shape_files:
-        if zero_pad_vertices:
+        if zero_pad_shapes:
             to_return = []
             for shape_file in shape_files:
                 # Load content
