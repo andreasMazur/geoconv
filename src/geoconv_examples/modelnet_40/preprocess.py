@@ -42,13 +42,18 @@ def preprocess(modelnet_path,
         preprocessed_shapes = preprocessed_shapes + 1 if was_successful else preprocessed_shapes
 
     # Compute barycentric coordinates
-    template_configurations = compute_bc(output_path)
+    template_configurations, most_gpc_systems = compute_bc(output_path)
 
     # Add preprocess information to dataset
     with open(f"{output_path}/dataset_properties.json", "a") as properties_file:
         temp_conf_dict = {"considered_classes": class_names}
         for idx, tconf in enumerate(template_configurations):
-            temp_conf_dict[f"{idx}"] = {"n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]}
+            temp_conf_dict[f"{idx}"] = {
+                "n_radial": tconf[0],
+                "n_angular": tconf[1],
+                "template_radius": tconf[2],
+                "most_gpc_systems": most_gpc_systems
+            }
         json.dump(temp_conf_dict, properties_file, indent=4)
 
     if zip_when_done:
@@ -60,7 +65,7 @@ def preprocess(modelnet_path,
 
 def compute_bc(preprocess_dir, inverse_order=False, shape_classes=None):
     # Get average template radius
-    gpc_system_radii = []
+    gpc_system_radii, most_gpc_systems = [], 0
     preprocess_dir_temp = f"{preprocess_dir}/ModelNet40"
     for shape_class in tqdm(os.listdir(preprocess_dir_temp), postfix="Computing template radius for BC.."):
         for split in ["test", "train"]:
@@ -71,6 +76,8 @@ def compute_bc(preprocess_dir, inverse_order=False, shape_classes=None):
                 with open(f"{shape_path}/preprocess_properties.json") as properties_file:
                     properties = json.load(properties_file)
                     gpc_system_radii.append(properties["gpc_system_radius"])
+                    n_gpc_systems = properties["amount_gpc_systems"]
+                    most_gpc_systems = n_gpc_systems if n_gpc_systems > most_gpc_systems else most_gpc_systems
     avg_gpc_system_radius = np.array(gpc_system_radii).mean()
 
     # Define template configurations
@@ -108,4 +115,4 @@ def compute_bc(preprocess_dir, inverse_order=False, shape_classes=None):
                         )
                         np.save(bc_file_name, bc)
     print(f"Barycentric coordinates done.")
-    return template_configurations
+    return template_configurations, most_gpc_systems
