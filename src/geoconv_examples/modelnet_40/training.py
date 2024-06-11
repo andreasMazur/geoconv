@@ -7,7 +7,6 @@ from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet, MOD
 
 import os
 import keras
-import tensorflow as tf
 
 
 class ModelnetClassifier(keras.Model):
