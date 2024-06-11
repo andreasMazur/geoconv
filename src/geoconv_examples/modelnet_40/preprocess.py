@@ -14,7 +14,7 @@ def preprocess(modelnet_path,
                zip_when_done=True,
                compute_gpc=True,
                compute_bc=True):
-    assert compute_gpc or compute_bc, "You must either set 'compute_gpc' or 'compute_bc' to true."
+    assert compute_gpc or compute_bc, "You must either set 'compute_gpc' or 'compute_bc' to 'True'."
 
     ######################
     # Compute GPC-systems
