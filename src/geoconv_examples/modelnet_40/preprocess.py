@@ -60,9 +60,9 @@ def preprocess(modelnet_path,
         # Add preprocess information to dataset
         with open(f"{output_path}/dataset_properties.json", "a") as properties_file:
             temp_conf_dict = {
-                "considered_classes": class_names,
+                "preprocessed_shapes": preprocessed_shapes,
                 "most_gpc_systems": most_gpc_systems,
-                "preprocessed_shapes": preprocessed_shapes
+                "considered_classes": class_names
             }
             for idx, tconf in enumerate(template_configurations):
                 temp_conf_dict[f"{idx}"] = {"n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]}
