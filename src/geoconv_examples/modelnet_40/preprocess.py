@@ -19,6 +19,7 @@ def preprocess(modelnet_path,
     ######################
     # Compute GPC-systems
     ######################
+    preprocessed_shapes = 0
     if compute_gpc:
         # Initialize shape generator
         shape_generator = zip_file_generator(
@@ -31,16 +32,16 @@ def preprocess(modelnet_path,
         )
 
         # Compute GPC-systems
-        preprocessed_shapes = 0
         for shape, shape_path in shape_generator:
             print(f"*** Preprocessing: '{shape_path}'")
             # Remove file-ending from folder name
             output_dir = f"{output_path}/{shape_path}"[:-4]
             if class_names is None:
                 was_successful = compute_gpc_systems_wrapper(shape, output_dir, processes=processes)
+                preprocessed_shapes = preprocessed_shapes + 1 if was_successful else preprocessed_shapes
             elif shape_path.split("/")[1] in class_names:
                 was_successful = compute_gpc_systems_wrapper(shape, output_dir, processes=processes)
-            preprocessed_shapes = preprocessed_shapes + 1 if was_successful else preprocessed_shapes
+                preprocessed_shapes = preprocessed_shapes + 1 if was_successful else preprocessed_shapes
 
     ##################################
     # Compute barycentric coordinates
@@ -58,7 +59,11 @@ def preprocess(modelnet_path,
 
         # Add preprocess information to dataset
         with open(f"{output_path}/dataset_properties.json", "a") as properties_file:
-            temp_conf_dict = {"considered_classes": class_names, "most_gpc_systems": most_gpc_systems}
+            temp_conf_dict = {
+                "considered_classes": class_names,
+                "most_gpc_systems": most_gpc_systems,
+                "preprocessed_shapes": preprocessed_shapes
+            }
             for idx, tconf in enumerate(template_configurations):
                 temp_conf_dict[f"{idx}"] = {"n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]}
             json.dump(temp_conf_dict, properties_file, indent=4)
