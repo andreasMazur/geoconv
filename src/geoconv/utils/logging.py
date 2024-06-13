@@ -14,7 +14,7 @@ def process_logs(csv_files, file_name):
     file_name: str
         A path where the averages shall be saved.
     """
-    # Parse available features
+    # Parse available statistics
     captured_statistics = pd.read_csv(csv_files[0]).columns
 
     # Init stats dictionary
