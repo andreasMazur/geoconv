@@ -20,10 +20,6 @@ class AngularMinPooling(keras.layers.Layer):
         Returns
         -------
         tensorflow.Tensor:
-            A two-dimensional tensor of size (batch_shapes, n_vertices, feature_dim), that contains a convolution
-            result for each vertex. Thereby, the convolution result has the smallest Euclidean norm among the
-            convolution results for all rotations.
+            A two-dimensional tensor of size (batch_shapes, n_vertices, feature_dim).
         """
-        minimal_response = tf.norm(inputs, ord="euclidean", axis=-1)
-        minimal_response = tf.cast(tf.argmin(minimal_response, axis=-1), dtype=tf.int32)
-        return tf.gather(inputs, minimal_response, batch_dims=2)
+        return tf.reduce_min(inputs, axis=-2)

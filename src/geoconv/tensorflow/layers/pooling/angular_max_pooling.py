@@ -20,10 +20,6 @@ class AngularMaxPooling(keras.layers.Layer):
         Returns
         -------
         tensorflow.Tensor:
-            A two-dimensional tensor of size (batch_shapes, n_vertices, feature_dim), that contains a convolution
-            result for each vertex. Thereby, the convolution result has the largest Euclidean norm among the
-            convolution results for all rotations.
+            A two-dimensional tensor of size (batch_shapes, n_vertices, feature_dim).
         """
-        maximal_response = tf.norm(inputs, ord="euclidean", axis=-1)
-        maximal_response = tf.cast(tf.argmax(maximal_response, axis=-1), dtype=tf.int32)
-        return tf.gather(inputs, maximal_response, batch_dims=2)
+        return tf.reduce_max(inputs, axis=-2)

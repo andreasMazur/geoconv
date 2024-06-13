@@ -20,8 +20,6 @@ class AngularAvgPooling(keras.layers.Layer):
         Returns
         -------
         tensorflow.Tensor:
-            A two-dimensional tensor of size (batch_shapes, n_vertices, feature_dim), that contains a convolution
-            result for each vertex. Thereby, the convolution result is the average results among the convolution
-            results for all rotations.
+            A two-dimensional tensor of size (batch_shapes, n_vertices, feature_dim).
         """
         return tf.reduce_mean(inputs, axis=-2)
