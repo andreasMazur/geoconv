@@ -152,6 +152,7 @@ def bc_helper(assigned_directories, template_configurations, load_compressed_gpc
         # Compute barycentric coordinates
         for (n_radial, n_angular, template_radius) in template_configurations:
             bc_file_name = f"{shape_dir}/BC_{n_radial}_{n_angular}_{template_radius}.npy"
+            # Only compute new BC-coordinates if nonexistent so far
             if not os.path.isfile(bc_file_name):
                 bc = compute_barycentric_coordinates(
                     gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius
