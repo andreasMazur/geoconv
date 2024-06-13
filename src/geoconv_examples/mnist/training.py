@@ -31,13 +31,14 @@ class MNISTClassifier(keras.Model):
             rotation_delta=1
         )
         self.amp = AngularMaxPooling()
+        self.flatten = tf.keras.layers.Flatten()
         self.output_layer = keras.layers.Dense(10)
 
     def call(self, inputs, **kwargs):
-        signal, bc = [x[0] for x in inputs]
+        signal, bc = inputs
         signal = self.conv([signal, bc])
         signal = self.amp(signal)
-        signal = tf.reshape(signal, (1, -1))
+        signal = self.flatten(signal)
         return self.output_layer(signal)
 
 
