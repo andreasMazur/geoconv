@@ -3,6 +3,7 @@ from geoconv.tensorflow.layers.conv_dirac import ConvDirac
 from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
 from geoconv.tensorflow.layers.conv_zero import ConvZero
 from geoconv.utils.data_generator import read_template_configurations
+from geoconv.utils.logging import process_logs
 from geoconv.utils.princeton_benchmark import princeton_benchmark
 from geoconv_examples.faust.dataset import FAUST_FOLDS, load_preprocessed_faust
 
@@ -96,6 +97,7 @@ def training(bc_path, logging_dir, reference_mesh_path, template_configurations=
 
     # Run experiments
     for (n_radial, n_angular, template_radius) in template_configurations:
+        csv_file_names = []
         for exp_no in range(len(FAUST_FOLDS.keys())):
             # Load data
             train_data = load_preprocessed_faust(
@@ -135,7 +137,9 @@ def training(bc_path, logging_dir, reference_mesh_path, template_configurations=
 
             # Define callbacks
             exp_number = f"{exp_no}__{n_radial}_{n_angular}_{template_radius}"
-            csv = keras.callbacks.CSVLogger(f"{logging_dir}/training_{exp_number}.log")
+            csv_file_name = f"{logging_dir}/training_{exp_number}.log"
+            csv_file_names.append(csv_file_name)
+            csv = keras.callbacks.CSVLogger(csv_file_name)
             stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, min_delta=0.01)
             tb = keras.callbacks.TensorBoard(
                 log_dir=f"{logging_dir}/tensorboard_{exp_number}",
@@ -163,3 +167,8 @@ def training(bc_path, logging_dir, reference_mesh_path, template_configurations=
                 processes=processes,
                 geodesic_diameter=2.2093810817030244
             )
+
+        # Process logs
+        process_logs(
+            csv_file_names, file_name=f"{logging_dir}/avg_training_{n_radial}_{n_angular}_{template_radius}.log"
+        )
