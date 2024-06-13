@@ -3,7 +3,7 @@ from geoconv.tensorflow.layers.conv_dirac import ConvDirac
 from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
 from geoconv.tensorflow.layers.conv_zero import ConvZero
 from geoconv.utils.data_generator import read_template_configurations
-from geoconv.utils.measures import princeton_benchmark
+from geoconv.utils.princeton_benchmark import princeton_benchmark
 from geoconv_examples.faust.dataset import FAUST_FOLDS, load_preprocessed_faust
 
 import tensorflow as tf
