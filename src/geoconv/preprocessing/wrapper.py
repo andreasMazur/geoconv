@@ -90,12 +90,6 @@ def compute_bc_wrapper(preprocess_dir,
         Otherwise, assume that each GPC-system for a shape has its own directory.
     processes: int
         The amount of parallel processes to use.
-
-    Returns
-    -------
-    list, int:
-        (i) A list of triple containing the template configurations (radial, angular, template radius).
-        (ii) An integer representing the most seen GPC-systems / vertices in a shape in the entire dataset.
     """
     # Get average template radius as well as most seen GPC-systems in a shape
     shape_directories, gpc_system_radii, most_gpc_systems = [], [], 0
@@ -121,6 +115,7 @@ def compute_bc_wrapper(preprocess_dir,
 
     # Split the list of all directories into multiple chunks
     shape_directories.sort(key=lambda directory_name: directory_name.split("/")[-1])
+    preprocessed_shapes = len(shape_directories)
     per_chunk = math.ceil(len(shape_directories) / 10)
     shape_directories = [shape_directories[i * per_chunk:(i * per_chunk) + per_chunk] for i in range(processes)]
 
@@ -128,7 +123,12 @@ def compute_bc_wrapper(preprocess_dir,
     with Pool(processes=processes) as p:
         p.starmap(bc_helper, [(d, template_configurations, load_compressed_gpc_systems) for d in shape_directories])
 
-    return template_configurations, most_gpc_systems
+    # Add preprocess information to dataset
+    with open(f"{preprocess_dir}/dataset_properties.json", "a") as properties_file:
+        temp_conf_dict = {"preprocessed_shapes": preprocessed_shapes, "most_gpc_systems": most_gpc_systems}
+        for idx, tconf in enumerate(template_configurations):
+            temp_conf_dict[f"{idx}"] = {"n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]}
+        json.dump(temp_conf_dict, properties_file, indent=4)
 
 
 def bc_helper(assigned_directories, template_configurations, load_compressed_gpc_systems):
