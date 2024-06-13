@@ -116,7 +116,7 @@ def compute_bc_wrapper(preprocess_dir,
     # Split the list of all directories into multiple chunks
     shape_directories.sort(key=lambda directory_name: directory_name.split("/")[-1])
     preprocessed_shapes = len(shape_directories)
-    per_chunk = math.ceil(len(shape_directories) / 10)
+    per_chunk = math.ceil(len(shape_directories) / processes)
     shape_directories = [shape_directories[i * per_chunk:(i * per_chunk) + per_chunk] for i in range(processes)]
 
     # Compute barycentric coordinates
