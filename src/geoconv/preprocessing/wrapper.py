@@ -140,7 +140,7 @@ def bc_helper(assigned_directories, template_configurations, load_compressed_gpc
         A list containing paths to shape directories
     template_configurations: list
         A list containing template configurations (radial, angular) for which barycentric coordinates shall be computed
-    load_compressed_gpc_systems bool
+    load_compressed_gpc_systems: bool
         If 'True', assumes that GPC-systems are stored in the compressed format (cf. GPCSystemGroup.save()).
         Otherwise, assume that each GPC-system for a shape has its own directory.
     """
