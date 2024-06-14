@@ -91,6 +91,9 @@ def compute_bc_wrapper(preprocess_dir,
         Otherwise, assume that each GPC-system for a shape has its own directory.
     processes: int
         The amount of parallel processes to use.
+    shape_path_contains: list
+        A list of strings that is contained in the shape-path. If none of the contained strings are within the
+        shape-path, then the shape is skipped.
     """
     # Get average template radius as well as most seen GPC-systems in a shape
     shape_directories, gpc_system_radii, most_gpc_systems = [], [], 0
