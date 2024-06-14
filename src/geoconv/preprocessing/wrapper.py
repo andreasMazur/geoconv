@@ -74,7 +74,8 @@ def compute_bc_wrapper(preprocess_dir,
                        template_sizes,
                        scales=None,
                        load_compressed_gpc_systems=True,
-                       processes=10):
+                       processes=10,
+                       shape_path_contains=None):
     """Given a directory structure containing GPC-systems, this function computes corresponding barycentric coordinates.
 
     Parameters
@@ -115,6 +116,10 @@ def compute_bc_wrapper(preprocess_dir,
 
     # Split the list of all directories into multiple chunks
     shape_directories.sort(key=lambda directory_name: directory_name.split("/")[-1])
+    if shape_path_contains is not None:
+        shape_directories = [
+            d for d in shape_directories if np.any([substring not in d for substring in shape_path_contains])
+        ]
     preprocessed_shapes = len(shape_directories)
     per_chunk = math.ceil(len(shape_directories) / processes)
     shape_directories = [shape_directories[i * per_chunk:(i * per_chunk) + per_chunk] for i in range(processes)]

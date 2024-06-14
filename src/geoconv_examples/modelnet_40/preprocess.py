@@ -48,7 +48,8 @@ def preprocess(modelnet_path,
             template_sizes=[(3, 6), (5, 8)],
             scales=[0.75, 1.0, 1.25],
             load_compressed_gpc_systems=True,
-            processes=processes
+            processes=processes,
+            shape_path_contains=class_names
         )
 
     #############################
