@@ -118,7 +118,7 @@ def compute_bc_wrapper(preprocess_dir,
     shape_directories.sort(key=lambda directory_name: directory_name.split("/")[-1])
     if shape_path_contains is not None:
         shape_directories = [
-            d for d in shape_directories if np.any([substring not in d for substring in shape_path_contains])
+            d for d in shape_directories if np.any([substring in d for substring in shape_path_contains])
         ]
     preprocessed_shapes = len(shape_directories)
     per_chunk = math.ceil(len(shape_directories) / processes)
