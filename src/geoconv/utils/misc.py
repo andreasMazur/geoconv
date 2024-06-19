@@ -114,9 +114,31 @@ def normalize_mesh(mesh, geodesic_diameter=None):
     print(f"-> Normalized with geodesic diameter: {geodesic_diameter}")
 
     # Merge vertices
-    mesh.merge_vertices(merge_tex=True, merge_norm=True)
+    mesh = repair_mesh(mesh)
 
     return mesh, geodesic_diameter
+
+
+def repair_mesh(mesh):
+    """Merges very close vertices and removes degenerate faces (faces without 3 unique vertices).
+
+    Parameters
+    ----------
+    mesh: trimesh.Trimesh
+        The mesh to validate.
+
+    Returns
+    -------
+    trimesh.Trimesh:
+        The repaired mesh.
+    """
+    # Merge vertices
+    mesh.merge_vertices(merge_tex=True, merge_norm=True)
+
+    # Remove degenerate faces
+    mesh.update_faces(mesh.nondegenerate_faces())
+
+    return mesh
 
 
 def compute_geodesic_diameter(mesh):

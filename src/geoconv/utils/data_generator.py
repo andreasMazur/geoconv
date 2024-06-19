@@ -1,4 +1,4 @@
-from geoconv.utils.misc import get_faces_of_edge
+from geoconv.utils.misc import get_faces_of_edge, repair_mesh
 
 from io import BytesIO
 from tqdm import tqdm
@@ -161,7 +161,7 @@ def zip_file_generator(zipfile_path,
         shape = remove_non_manifold_edges(shape)
 
         # Merge vertices
-        shape.merge_vertices(merge_tex=True, merge_norm=True)
+        shape = repair_mesh(shape)
 
         if shape.vertices.shape[0] > min_vertices and shape.faces.shape[0] > 0:
             if return_filename:
