@@ -86,7 +86,7 @@ def get_neighbors(vertex, object_mesh):
 
 
 def normalize_mesh(mesh, geodesic_diameter=None):
-    """Center mesh and scale x, y and z dimension with '1/geodesic diameter'.
+    """Center mesh and scale x, y and z dimension with '1/geodesic diameter' as well as merge vertices.
 
     Parameters
     ----------
@@ -114,7 +114,7 @@ def normalize_mesh(mesh, geodesic_diameter=None):
     print(f"-> Normalized with geodesic diameter: {geodesic_diameter}")
 
     # Merge vertices
-    mesh.merge_vertices()
+    mesh.merge_vertices(merge_tex=True, merge_norm=True)
 
     return mesh, geodesic_diameter
 

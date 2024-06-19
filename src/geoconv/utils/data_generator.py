@@ -161,7 +161,7 @@ def zip_file_generator(zipfile_path,
         shape = remove_non_manifold_edges(shape)
 
         # Merge vertices
-        shape.merge_vertices()
+        shape.merge_vertices(merge_tex=True, merge_norm=True)
 
         if shape.vertices.shape[0] > min_vertices and shape.faces.shape[0] > 0:
             if return_filename:
