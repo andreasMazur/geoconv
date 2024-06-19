@@ -113,6 +113,9 @@ def normalize_mesh(mesh, geodesic_diameter=None):
         mesh.vertices[:, dim] = mesh.vertices[:, dim] * (1 / geodesic_diameter)
     print(f"-> Normalized with geodesic diameter: {geodesic_diameter}")
 
+    # Merge vertices
+    mesh.merge_vertices()
+
     return mesh, geodesic_diameter
 
 
