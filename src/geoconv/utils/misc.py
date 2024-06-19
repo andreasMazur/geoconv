@@ -132,13 +132,13 @@ def repair_mesh(mesh):
     trimesh.Trimesh:
         The repaired mesh.
     """
-    # Merge vertices
-    mesh.merge_vertices(merge_tex=True, merge_norm=True)
-
+    # 'merge_vertices'
+    # mesh.merge_vertices(merge_tex=True, merge_norm=True)  # (does not update vertex_adjacency_graph)
     # Remove degenerate faces
-    mesh.update_faces(mesh.nondegenerate_faces())
+    # mesh.update_faces(mesh.nondegenerate_faces())  # (does not update vertex_adjacency_graph)
 
-    return mesh
+    # Re-initializing seems like the straight-forward way currently
+    return trimesh.Trimesh(vertices=mesh.vertices, faces=mesh.faces, process=True, validate=True)
 
 
 def compute_geodesic_diameter(mesh):
