@@ -1,4 +1,5 @@
 #define PY_SSIZE_T_CLEAN
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
 #include <Python.h>
 #include <math.h>
@@ -175,14 +176,14 @@ static PyObject *compute_dist_and_dir_wrapper(PyObject *self, PyObject *args) {
     double *vertices[] = {vertex_i, vertex_j, vertex_k, rotation_axis};
     for (int i = 0; i < 4; i++) {
         // Check for correct array types
-        if (vertices_numpy[i]->nd != 1 || vertices_numpy[i]->descr->type_num != PyArray_DOUBLE) {
+        if (PyArray_NDIM(vertices_numpy[i]) != 1 || PyArray_TYPE(vertices_numpy[i]) != NPY_DOUBLE) {
             PyErr_SetString(PyExc_ValueError, "Array must be one-dimensional and of type numpy.float64!");
             return NULL;
         }
         // Translate Numpy array to C array (except `result_values`)
         if (i < 4) {
             for (int j = 0; j < 3; j++) {
-                vertices[i][j] = *(double *)(vertices_numpy[i]->data + j * vertices_numpy[i]->strides[0]);
+                vertices[i][j] = *(double *)(PyArray_DATA(vertices_numpy[i]) + j * PyArray_STRIDE(vertices_numpy[i], 0));
             }
         }
     }
@@ -192,7 +193,7 @@ static PyObject *compute_dist_and_dir_wrapper(PyObject *self, PyObject *args) {
 
     // Write the result into the numpy result array
     for (int i = 0; i < 2; i++) {
-        *(double *)(result_values_numpy->data + i * result_values_numpy->strides[0]) = result_values[i];
+        *(double *)(PyArray_DATA(result_values_numpy) + i * PyArray_STRIDE(result_values_numpy, 0)) = result_values[i];
     }
     Py_INCREF(Py_None);
     return Py_None;
@@ -215,12 +216,12 @@ static PyObject *compute_angle_wrapper(PyObject *self, PyObject *args) {
     double *vectors[] = {vector_1, vector_2};
     for (int i = 0; i < 2; i++) {
         // Check for correct array types
-        if (vectors_numpy[i]->nd != 1 || vectors_numpy[i]->descr->type_num != PyArray_DOUBLE) {
+        if (PyArray_NDIM(vectors_numpy[i]) != 1 || PyArray_TYPE(vectors_numpy[i]) != NPY_DOUBLE) {
             PyErr_SetString(PyExc_ValueError, "Array must be one-dimensional and of type numpy.float64!");
             return NULL;
         }
         for (int j = 0; j < 3; j++) {
-            vectors[i][j] = *(double *)(vectors_numpy[i]->data + j * vectors_numpy[i]->strides[0]);
+            vectors[i][j] = *(double *)(PyArray_DATA(vectors_numpy[i]) + j * PyArray_STRIDE(vectors_numpy[i], 0));
         }
     }
 
@@ -247,13 +248,13 @@ static PyObject *compute_angle_360_wrapper(PyObject *self, PyObject *args) {
     double *vectors[] = {vector_1, vector_2, rotation_axis};
     for (int i = 0; i < 3; i++) {
         // Check for correct array types
-        if (vectors_numpy[i]->nd != 1 || vectors_numpy[i]->descr->type_num != PyArray_DOUBLE) {
+        if (PyArray_NDIM(vectors_numpy[i]) != 1 || PyArray_TYPE(vectors_numpy[i]) != NPY_DOUBLE) {
             PyErr_SetString(PyExc_ValueError, "Array must be one-dimensional and of type numpy.float64!");
             return NULL;
         }
 
         for (int j = 0; j < 3; j++) {
-            vectors[i][j] = *(double *)(vectors_numpy[i]->data + j * vectors_numpy[i]->strides[0]);
+            vectors[i][j] = *(double *)(PyArray_DATA(vectors_numpy[i]) + j * PyArray_STRIDE(vectors_numpy[i], 0));
         }
     }
 
