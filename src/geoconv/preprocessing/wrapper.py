@@ -133,9 +133,15 @@ def compute_bc_wrapper(preprocess_dir,
 
     # Add preprocess information to dataset
     with open(f"{preprocess_dir}/dataset_properties.json", "a") as properties_file:
-        temp_conf_dict = {"preprocessed_shapes": preprocessed_shapes, "most_gpc_systems": most_gpc_systems}
+        temp_conf_dict = {
+            "preprocessed_shapes": preprocessed_shapes,
+            "most_gpc_systems": most_gpc_systems,
+            "template_configurations": {}
+        }
         for idx, tconf in enumerate(template_configurations):
-            temp_conf_dict[f"{idx}"] = {"n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]}
+            temp_conf_dict["template_configurations"][f"{idx}"] = {
+                "n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]
+            }
         json.dump(temp_conf_dict, properties_file, indent=4)
 
 
