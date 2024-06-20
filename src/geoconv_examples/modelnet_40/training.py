@@ -4,7 +4,7 @@ from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
 from geoconv.tensorflow.layers.conv_zero import ConvZero
 from geoconv.utils.data_generator import read_template_configurations
 from geoconv.utils.prepare_logs import process_logs
-from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet, MODELNET40_FOLDS
+from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 
 import os
 import keras
@@ -64,7 +64,7 @@ class ModelnetClassifier(keras.Model):
         return self.output_layer(signal)
 
 
-def training(bc_path, logging_dir, template_configurations=None, variant=None):
+def training(bc_path, logging_dir, template_configurations=None, variant=None, modelnet_folds=5):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -75,7 +75,7 @@ def training(bc_path, logging_dir, template_configurations=None, variant=None):
     # Run experiments
     for (n_radial, n_angular, template_radius) in template_configurations:
         csv_file_names = []
-        for exp_no in range(len(MODELNET40_FOLDS.keys())):
+        for exp_no in range(modelnet_folds):
             # Load data
             train_data = load_preprocessed_modelnet(
                 bc_path, n_radial, n_angular, template_radius, is_train=True, split=exp_no
@@ -87,7 +87,7 @@ def training(bc_path, logging_dir, template_configurations=None, variant=None):
             # Define and compile model
             imcnn = ModelnetClassifier(template_radius, variant=variant)
             loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-            imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"])
+            imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"], run_eagerly=True)
 
             # Define callbacks
             exp_number = f"{exp_no}__{n_radial}_{n_angular}_{template_radius}"
