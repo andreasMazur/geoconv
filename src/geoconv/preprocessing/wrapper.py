@@ -40,7 +40,7 @@ def compute_gpc_systems_wrapper(shape, output_dir, processes=1):
         except RuntimeError:
             print(f"{output_dir} crashed during normalization. Skipping preprocessing.")
             shutil.rmtree(output_dir)
-            return
+            return False
 
         # 3.) Compute GPC-systems
         gpc_systems = GPCSystemGroup(shape, processes=processes)
