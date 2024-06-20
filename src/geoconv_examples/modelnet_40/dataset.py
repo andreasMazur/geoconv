@@ -78,7 +78,7 @@ def modelnet_generator(path_to_zip, n_radial, n_angular, template_radius, is_tra
     else:
         split = modelnet_folds[split]
 
-    # Load barycentric coordinates
+    # Load preprocessed shapes
     psg = preprocessed_shape_generator(
         path_to_zip,
         filter_list=["stl", f"BC_{n_radial}_{n_angular}_{template_radius}"],
