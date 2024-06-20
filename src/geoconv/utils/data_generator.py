@@ -210,7 +210,7 @@ def preprocessed_shape_generator(zipfile_path,
         The loaded files and their corresponding filenames.
     """
     # Load the zip-file
-    print(f"Loading data from zip-file.. ({zipfile_path})")
+    print(f"Loading shape data from zip-file.. ({zipfile_path})")
     zip_file = np.load(zipfile_path)
     print("Done.")
 
@@ -319,7 +319,7 @@ def preprocessed_properties_generator(zipfile_path, return_filename=False, sorti
         A properties dictionary and, if wanted, the path of the properties file within the zip-file.
     """
     # Load the zip-file
-    print(f"Loading data from zip-file.. ({zipfile_path})")
+    print(f"Loading properties from zip-file.. ({zipfile_path})")
     zip_file = np.load(zipfile_path)
     print("Done.")
 
