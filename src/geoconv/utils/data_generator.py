@@ -299,6 +299,49 @@ def preprocessed_shape_generator(zipfile_path,
             yield [(zip_file[shape_file], shape_file) for shape_file in shape_files]
 
 
+def preprocessed_properties_generator(zipfile_path, return_filename=False, sorting_key=None):
+    """Loads all shape properties files from preprocessed dataset. First yielded file describes dataset properties.
+
+    Parameters
+    ----------
+    zipfile_path: str
+        The path to the preprocessed dataset.
+    return_filename: bool
+        Whether to return the file-path of the properties file within the zip-file.
+    sorting_key: callable
+        A function that takes a single file-path as an argument and returns its part after which it should be sorted.
+        If 'None' is given, then sorting is performed with respect to the directory name of a shape, i.e., the shapes
+        name.
+
+    Returns
+    -------
+    dict, str:
+        A properties dictionary and, if wanted, the path of the properties file within the zip-file.
+    """
+    # Load the zip-file
+    print(f"Loading data from zip-file.. ({zipfile_path})")
+    zip_file = np.load(zipfile_path)
+    print("Done.")
+
+    # Get and sort all shape directories from preprocessed shapes
+    pr_str = "preprocess_properties.json"
+    properties_files = [f"{'/'.join(fn.split('/')[:-1])}/{pr_str}" for fn in zip_file.files if pr_str in fn]
+    properties_files = ["dataset_properties.json"] + properties_files
+
+    # Sort properties files
+    if sorting_key is None:
+        def sorting_key(file_name):
+            return file_name.split("/")[-1]
+    properties_files.sort(key=sorting_key)
+
+    # Yield properties and, if wanted, properties path
+    for properties_path in properties_files:
+        if return_filename:
+            yield json.load(BytesIO(zip_file[properties_path])), properties_path
+        else:
+            yield json.load(BytesIO(zip_file[properties_path]))
+
+
 def barycentric_coordinates_generator(zipfile_path,
                                       n_radial,
                                       n_angular,
