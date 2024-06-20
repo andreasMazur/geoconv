@@ -1,4 +1,4 @@
-from geoconv.utils.data_generator import preprocessed_shape_generator
+from geoconv.utils.data_generator import preprocessed_shape_generator, preprocessed_properties_generator
 
 from io import BytesIO
 
@@ -7,22 +7,6 @@ import trimesh
 import tensorflow as tf
 
 
-MODELNET40_TOTAL = 6895
-MODELNET40_FOLDS = {
-    -1: list(range(0, MODELNET40_TOTAL)),
-    0: list(range(0, 1379)),
-    1: list(range(1379, 1379 * 2)),
-    2: list(range(1379 * 2, 1379 * 3)),
-    3: list(range(1379 * 3, 1379 * 4)),
-    4: list(range(1379 * 4, MODELNET40_TOTAL))
-}
-MODELNET40_TRAIN_SPLITS = {
-    0: MODELNET40_FOLDS[1] + MODELNET40_FOLDS[2] + MODELNET40_FOLDS[3] + MODELNET40_FOLDS[4],
-    1: MODELNET40_FOLDS[0] + MODELNET40_FOLDS[2] + MODELNET40_FOLDS[3] + MODELNET40_FOLDS[4],
-    2: MODELNET40_FOLDS[1] + MODELNET40_FOLDS[0] + MODELNET40_FOLDS[3] + MODELNET40_FOLDS[4],
-    3: MODELNET40_FOLDS[1] + MODELNET40_FOLDS[2] + MODELNET40_FOLDS[0] + MODELNET40_FOLDS[4],
-    4: MODELNET40_FOLDS[1] + MODELNET40_FOLDS[2] + MODELNET40_FOLDS[3] + MODELNET40_FOLDS[0],
-}
 MODELNET_CLASSES = {
     "airplane": 0,
     "bathtub": 1,
@@ -67,19 +51,40 @@ MODELNET_CLASSES = {
 }
 
 
-def modelnet_generator(path_to_zip, n_radial, n_angular, template_radius, is_train, split):
+def modelnet_generator(path_to_zip, n_radial, n_angular, template_radius, is_train, split, amount_folds=5):
+    # Determine dataset length
+    ppg = preprocessed_properties_generator(path_to_zip)
+    modelnet_total = next(ppg)["preprocessed_shapes"]
+
+    # Determine folds
+    chunk = modelnet_total // amount_folds
+    modelnet_folds = {-1: list(range(0, modelnet_total))}
+    for fold in range(amount_folds):
+        if fold < amount_folds - 1:
+            modelnet_folds[fold] = list(range(fold * chunk, fold * chunk + chunk))
+        else:
+            modelnet_folds[fold] = list(range(fold * chunk, modelnet_total))
+
+    # Determine splits
+    fold_indices = list(range(amount_folds))
+    modelnet_split_indices = {split: fold_indices[:split] + fold_indices[split + 1:] for split in fold_indices}
+    modelnet_splits = {}
+    for key, fold_indices in modelnet_split_indices.items():
+        modelnet_splits[key] = [shape_idx for idx in fold_indices for shape_idx in modelnet_folds[idx]]
+
     # Choose train or test split
     if is_train:
-        split = MODELNET40_TRAIN_SPLITS[split]
+        split = modelnet_splits[split]
     else:
-        split = MODELNET40_FOLDS[split]
+        split = modelnet_folds[split]
 
     # Load barycentric coordinates
     psg = preprocessed_shape_generator(
         path_to_zip,
         filter_list=["stl", f"BC_{n_radial}_{n_angular}_{template_radius}"],
         shuffle_seed=42 if split != -1 else None,
-        split=split
+        split=split,
+        zero_pad_shapes=True
     )
 
     for elements in psg:
