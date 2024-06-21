@@ -233,7 +233,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         # Get vertex indices from BC-tensor
         vertex_indices = tf.reshape(
             tf.cast(barycentric_coordinates[:, :, :, :, :, 0], tf.int32),
-            (-1, tf.reduce_prod(barycentric_coordinates.shape[1:-1]), 1)
+            (-1, tf.reduce_prod(tf.shape(barycentric_coordinates)[1:-1]), 1)
         )
 
         # Use retrieved vertex indices to gather vertex signals required for interpolation
