@@ -392,14 +392,11 @@ def read_template_configurations(zipfile_path):
     # Load barycentric coordinates
     zip_file = np.load(zipfile_path)
 
-    # Filter for barycentric coordinates files
-    bc_files = [file_name.split("/")[-1] for file_name in zip_file.files if "BC" in file_name]
-    bc_files.sort()
+    # Load template configuration dictionary
+    template_configurations = json.load(BytesIO(zip_file["dataset_properties.json"]))["template_configurations"]
 
-    # Collect all found template configurations
-    template_configurations = set()
-    for bc_path in bc_files:
-        bc_properties = tuple(bc_path.split("_")[1:])
-        template_configurations.add((int(bc_properties[0]), int(bc_properties[1]), float(bc_properties[2])))
-
-    return list(template_configurations)
+    # Convert to list and return
+    as_list = []
+    for temp_conf in template_configurations.values():
+        as_list.append((temp_conf["n_radial"], temp_conf["n_angular"], temp_conf["template_radius"]))
+    return as_list
