@@ -29,19 +29,19 @@ class ModelnetClassifier(keras.Model):
         return self.output_layer(signal)
 
 
-def training(bc_path, logging_dir, template_configurations=None, variant=None):
+def training(dataset_path, logging_dir, template_configurations=None, variant=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
     # Prepare template configurations
     if template_configurations is None:
-        template_configurations = read_template_configurations(bc_path)
+        template_configurations = read_template_configurations(dataset_path)
 
     # Run experiments
     for (n_radial, n_angular, template_radius) in template_configurations:
         # Load data
-        train_data = load_preprocessed_modelnet(bc_path, n_radial, n_angular, template_radius, is_train=True)
-        test_data = load_preprocessed_modelnet(bc_path, n_radial, n_angular, template_radius, is_train=False)
+        train_data = load_preprocessed_modelnet(dataset_path, n_radial, n_angular, template_radius, is_train=True)
+        test_data = load_preprocessed_modelnet(dataset_path, n_radial, n_angular, template_radius, is_train=False)
 
         # Define and compile model
         imcnn = ModelnetClassifier(n_radial, n_angular, template_radius, variant=variant)
