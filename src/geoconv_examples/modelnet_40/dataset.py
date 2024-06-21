@@ -1,4 +1,5 @@
-from geoconv.utils.data_generator import preprocessed_shape_generator, preprocessed_properties_generator
+from geoconv.utils.cross_validation import get_folds_and_splits
+from geoconv.utils.data_generator import preprocessed_shape_generator
 
 from io import BytesIO
 
@@ -51,26 +52,8 @@ MODELNET_CLASSES = {
 }
 
 
-def modelnet_generator(path_to_zip, n_radial, n_angular, template_radius, is_train, split, amount_folds=5):
-    # Determine dataset length
-    ppg = preprocessed_properties_generator(path_to_zip)
-    modelnet_total = next(ppg)["preprocessed_shapes"]
-
-    # Determine folds
-    chunk = modelnet_total // amount_folds
-    modelnet_folds = {-1: list(range(0, modelnet_total))}
-    for fold in range(amount_folds):
-        if fold < amount_folds - 1:
-            modelnet_folds[fold] = list(range(fold * chunk, fold * chunk + chunk))
-        else:
-            modelnet_folds[fold] = list(range(fold * chunk, modelnet_total))
-
-    # Determine splits
-    fold_indices = list(range(amount_folds))
-    modelnet_split_indices = {split: fold_indices[:split] + fold_indices[split + 1:] for split in fold_indices}
-    modelnet_splits = {}
-    for key, fold_indices in modelnet_split_indices.items():
-        modelnet_splits[key] = [shape_idx for idx in fold_indices for shape_idx in modelnet_folds[idx]]
+def modelnet_generator(dataset_path, n_radial, n_angular, template_radius, is_train, split, amount_folds=5):
+    modelnet_folds, modelnet_splits = get_folds_and_splits(dataset_path, amount_folds)
 
     # Choose train or test split
     if is_train:
@@ -80,7 +63,7 @@ def modelnet_generator(path_to_zip, n_radial, n_angular, template_radius, is_tra
 
     # Load preprocessed shapes
     psg = preprocessed_shape_generator(
-        path_to_zip,
+        dataset_path,
         filter_list=["stl", f"BC_{n_radial}_{n_angular}_{template_radius}"],
         shuffle_seed=42 if split != -1 else None,
         split=split,
