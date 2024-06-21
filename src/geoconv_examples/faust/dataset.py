@@ -1,33 +1,18 @@
-from geoconv.utils.cross_validation import get_folds_and_splits
 from geoconv.utils.data_generator import preprocessed_shape_generator
 
 import tensorflow as tf
 import numpy as np
 
 
-def faust_generator(dataset_path,
-                    n_radial,
-                    n_angular,
-                    template_radius,
-                    is_train,
-                    split,
-                    seed=42,
-                    only_signal=False,
-                    amount_folds=5):
-    faust_folds, faust_splits = get_folds_and_splits(dataset_path, amount_folds)
-
-    # Choose train or test split
-    if is_train:
-        split = faust_splits[split]
-    else:
-        split = faust_folds[split]
+def faust_generator(dataset_path, n_radial, n_angular, template_radius, is_train, only_signal=False, seed=42):
+    split_indices = list(range(80)) if is_train else list(range(80, 100))
 
     # Load barycentric coordinates
     psg = preprocessed_shape_generator(
         dataset_path,
         filter_list=["SIGNAL", f"BC_{n_radial}_{n_angular}_{template_radius}"],
-        shuffle_seed=42,
-        split=split
+        shuffle_seed=seed,
+        split=split_indices
     )
 
     # Set seed for permutations
@@ -82,27 +67,11 @@ def faust_generator(dataset_path,
             yield (shot_perm, bc_perm), permutation
 
 
-def interpolate(barycentric_coordinates, feature_dim, template_size, mesh_signal):
-    vertex_indices = tf.reshape(
-        tf.cast(barycentric_coordinates[:, :, :, :, 0], tf.int32), (-1, 1)
-    )
-    mesh_signal = tf.reshape(
-        tf.gather_nd(mesh_signal, vertex_indices),
-        (-1, template_size[0], template_size[1], 3, feature_dim)
-    )
-    # (vertices, n_radial, n_angular, input_dim)
-    return tf.math.reduce_sum(
-        tf.expand_dims(barycentric_coordinates[:, :, :, :, 1], axis=-1) * mesh_signal, axis=-2
-    )
-
-
 def load_preprocessed_faust(path_to_zip,
                             n_radial,
                             n_angular,
                             template_radius,
                             is_train,
-                            split,
-                            seed=42,
                             only_signal=False):
     if only_signal:
         output_signature = tf.TensorSpec(shape=(None, 544,), dtype=tf.float32)  # Signal  (3D coordinates)
@@ -118,7 +87,7 @@ def load_preprocessed_faust(path_to_zip,
     return tf.data.Dataset.from_generator(
         faust_generator,
         args=(
-            path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, split, seed, only_signal
+            path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, only_signal
         ),
         output_signature=output_signature
     ).batch(1).prefetch(tf.data.AUTOTUNE)

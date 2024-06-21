@@ -1,64 +1,30 @@
-from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
-from geoconv.tensorflow.layers.conv_dirac import ConvDirac
-from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
-from geoconv.tensorflow.layers.conv_zero import ConvZero
+from geoconv.tensorflow.backbone.imcnn_backbone import ImcnnBackbone
 from geoconv.utils.data_generator import read_template_configurations
 from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 
 import os
 import keras
+import tensorflow as tf
 
 
 class ModelnetClassifier(keras.Model):
-    def __init__(self, template_radius, variant=None):
+    def __init__(self, n_radial, n_angular, template_radius, variant=None):
         super().__init__()
-
-        if variant is None or variant == "dirac":
-            self.layer_type = ConvDirac
-        elif variant == "geodesic":
-            self.layer_type = ConvGeodesic
-        elif variant == "zero":
-            self.layer_type = ConvZero
-        else:
-            raise RuntimeError("Select a layer type from: ['dirac', 'geodesic', 'zero']")
-
-        self.conv_1 = self.layer_type(
-            amt_templates=128,
+        self.backbone = ImcnnBackbone(
+            isc_layer_dims=[96, 256, 384, 384],
+            n_radial=n_radial,
+            n_angular=n_angular,
             template_radius=template_radius,
-            activation="relu",
-            rotation_delta=1
+            variant=variant
         )
-        self.conv_2 = self.layer_type(
-            amt_templates=128,
-            template_radius=template_radius,
-            activation="relu",
-            rotation_delta=1
-        )
-        self.conv_3 = self.layer_type(
-            amt_templates=128,
-            template_radius=template_radius,
-            activation="relu",
-            rotation_delta=1
-        )
-
-        self.amp = AngularMaxPooling()
         self.global_avg = keras.layers.GlobalAveragePooling1D()
         self.output_layer = keras.layers.Dense(40)
 
     def call(self, inputs, **kwargs):
-        signal, bc = inputs
-
         # Embed
-        signal = self.conv_1([signal, bc])
-        signal = self.amp(signal)
-        signal = self.conv_2([signal, bc])
-        signal = self.amp(signal)
-        signal = self.conv_3([signal, bc])
-        signal = self.amp(signal)
-
-        # Average pool
+        signal = self.backbone(inputs)
+        # Global average pool
         signal = self.global_avg(signal)
-
         # Output
         return self.output_layer(signal)
 
@@ -78,9 +44,13 @@ def training(bc_path, logging_dir, template_configurations=None, variant=None):
         test_data = load_preprocessed_modelnet(bc_path, n_radial, n_angular, template_radius, is_train=False)
 
         # Define and compile model
-        imcnn = ModelnetClassifier(template_radius, variant=variant)
+        imcnn = ModelnetClassifier(n_radial, n_angular, template_radius, variant=variant)
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"])
+        imcnn.build(
+            input_shape=[tf.TensorShape([None, 541, 3]), tf.TensorShape([None, 541, n_radial, n_angular, 3, 2])]
+        )
+        imcnn.summary()
 
         # Define callbacks
         exp_number = f"{n_radial}_{n_angular}_{template_radius}"
@@ -93,7 +63,7 @@ def training(bc_path, logging_dir, template_configurations=None, variant=None):
             write_graph=False,
             write_steps_per_second=True,
             update_freq="epoch",
-            profile_batch=(1, 100)
+            profile_batch=(1, 80)
         )
 
         # Train model
