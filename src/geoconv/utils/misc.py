@@ -223,47 +223,6 @@ def reconstruct_template(gpc_system, b_coordinates):
     return reconstructed_template
 
 
-def shuffle_mesh_vertices(mesh, given_shuffle=None):
-    """Shuffles the vertices of the mesh
-
-    Parameters
-    ----------
-    mesh: trimesh.Trimesh
-        The mesh from which you want to shuffle the vertices
-    given_shuffle: np.ndarray
-        A given shuffle of the vertices
-
-    Returns
-    -------
-    (trimesh.Trimesh, np.ndarray, np.ndarray)
-        The same mesh but with a different vertices order. Additionally, two arrays are returned. Both contain vertex
-        indices. Given a vertex index 'idx', it holds that:
-
-        mesh.vertices[idx] == shuffled_mesh.vertices[shuffle_map[idx]] == mesh.vertices[ground_truth[shuffle_map[idx]]]
-    """
-    ground_truth = np.arange(mesh.vertices.shape[0])
-    if given_shuffle is None:
-        np.random.shuffle(ground_truth)
-    else:
-        ground_truth = np.copy(given_shuffle)
-    mesh_vertices = np.copy(mesh.vertices)[ground_truth]
-
-    shuffle_map = []
-    for vertex_idx in range(mesh.vertices.shape[0]):
-        shuffle_map.append(np.where(ground_truth == vertex_idx)[0])
-    shuffle_map = np.array(shuffle_map).flatten()
-
-    mesh_faces = np.copy(mesh.faces)
-    for face_idx in range(mesh.faces.shape[0]):
-        mesh_faces[face_idx, 0] = shuffle_map[mesh.faces[face_idx, 0]]
-        mesh_faces[face_idx, 1] = shuffle_map[mesh.faces[face_idx, 1]]
-        mesh_faces[face_idx, 2] = shuffle_map[mesh.faces[face_idx, 2]]
-
-    shuffled_mesh = trimesh.Trimesh(vertices=mesh_vertices, faces=mesh_faces)
-
-    return shuffled_mesh, shuffle_map, ground_truth
-
-
 def find_largest_one_hop_dist(object_mesh):
     """Finds the largest Euclidean distance from center vertex to a one-hop neighbor in a triangle mesh
 
