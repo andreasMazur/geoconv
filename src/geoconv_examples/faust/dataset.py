@@ -5,7 +5,15 @@ import tensorflow as tf
 import numpy as np
 
 
-def faust_generator(dataset_path, n_radial, n_angular, template_radius, is_train, split, seed=42, only_signal=False, amount_folds=5):
+def faust_generator(dataset_path,
+                    n_radial,
+                    n_angular,
+                    template_radius,
+                    is_train,
+                    split,
+                    seed=42,
+                    only_signal=False,
+                    amount_folds=5):
     faust_folds, faust_splits = get_folds_and_splits(dataset_path, amount_folds)
 
     # Choose train or test split

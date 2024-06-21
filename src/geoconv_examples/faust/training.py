@@ -87,7 +87,13 @@ class FaustModel(keras.Model):
         return self.output_dense(signal)
 
 
-def training(dataset_path, logging_dir, reference_mesh_path, template_configurations=None, variant=None, processes=1, amount_folds=5):
+def training(dataset_path,
+             logging_dir,
+             reference_mesh_path,
+             template_configurations=None,
+             variant=None,
+             processes=1,
+             amount_folds=5):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
