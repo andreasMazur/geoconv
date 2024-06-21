@@ -83,4 +83,4 @@ def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius
         modelnet_generator,
         args=(path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train),  # , split
         output_signature=output_signature
-    ).batch(16).prefetch(tf.data.AUTOTUNE)
+    ).batch(8).prefetch(tf.data.AUTOTUNE)
