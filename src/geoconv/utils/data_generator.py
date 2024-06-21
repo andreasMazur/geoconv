@@ -10,6 +10,7 @@ import os
 import subprocess
 import random
 import json
+import re
 
 
 def remove_non_manifold_edges(mesh):
@@ -214,21 +215,16 @@ def preprocessed_shape_generator(zipfile_path,
     zip_file = np.load(zipfile_path)
     print("Done.")
 
-    # Get and sort all shape directories from preprocessed shapes
+    # Get shape directories
     preprocessed_shapes = ["/".join(fn.split("/")[:-1]) for fn in zip_file.files if "preprocess_properties.json" in fn]
 
-    # Sort shapes
+    # Sort shape directories
     if sorting_key is None:
         def sorting_key(file_name):
             return file_name.split("/")[-1]
     preprocessed_shapes.sort(key=sorting_key)
 
-    # Shuffle shapes
-    if shuffle_seed is not None:
-        random.seed(shuffle_seed)
-        random.shuffle(preprocessed_shapes)
-
-    # Filter for given split
+    # Filter for given split (list of indices)
     if split is not None:
         preprocessed_shapes = np.array(preprocessed_shapes)
         preprocessed_shapes = preprocessed_shapes[split]
@@ -245,18 +241,20 @@ def preprocessed_shape_generator(zipfile_path,
             "Did not find 'most_gpc_systems'-key in dataset properties file. Manually search for most GPC-systems."
         )
 
-    # Precompute list of files to yield
-    without_gpc_systems = [x for x in zip_file.files if "gpc_systems" not in x]
+    # Read *.zip-file content without GPC-system directories
+    zip_file_content = [x for x in zip_file.files if "gpc_systems" not in x]
+
     per_shape_files = []
     for preprocessed_shape_dir in tqdm(preprocessed_shapes, postfix="Preparing generator.."):
         # Iterate over shape's data and collect with filters
-        preprocessed_shape_dir = [x for x in without_gpc_systems if preprocessed_shape_dir in x]
+        preprocessed_shape_dir = [x for x in zip_file_content if preprocessed_shape_dir in x]
 
         # Seek for file-names that contain a given filter string as a sub-string
         shape_files = []
         for filter_str in filter_list:
             for file_name in preprocessed_shape_dir:
-                if filter_str in file_name:
+                # Check whether regular expression can be found. If so, put file into shape files list.
+                if re.search(filter_str, file_name) is not None:
                     shape_files.append(file_name)
 
         # Skip files that were not processed completely
@@ -266,7 +264,7 @@ def preprocessed_shape_generator(zipfile_path,
             if verbose:
                 print(f"Incomplete shape-directory: {preprocessed_shape_dir}")
 
-        # Seek for largest amount of vertices
+        # Seek for largest amount of vertices if necessary
         if zero_pad_shapes and search_for_gpc_systems:
             # Iterate over shape files
             mesh_properties = f"{'/'.join(shape_files[0].split('/')[:-1])}/preprocess_properties.json"
@@ -274,23 +272,28 @@ def preprocessed_shape_generator(zipfile_path,
             if n_vertices > most_vertices:
                 most_vertices = n_vertices
 
+    # Shuffle shapes
+    if shuffle_seed is not None:
+        random.seed(shuffle_seed)
+        random.shuffle(per_shape_files)
+
     # Yield prepared data
     for shape_files in per_shape_files:
+        # Zero padding
         if zero_pad_shapes:
-            to_return = []
+            return_list = []
             for shape_file in shape_files:
                 # Load content
                 content = zip_file[shape_file]
-
-                # Filter for arrays
+                # Filter for arrays and zero pad them
                 if isinstance(content, np.ndarray):
                     # Zero pad (assumes first dimension represent vertices)
                     while content.shape[0] < most_vertices:
                         content = np.concatenate([content, np.zeros_like(content)[:most_vertices - content.shape[0]]])
-
-                # Add padded content to list 'to_return'
-                to_return.append((content, shape_file))
-            yield to_return
+                # Add padded content to list 'return_list'
+                return_list.append((content, shape_file))
+            yield return_list
+        # No zero padding
         else:
             yield [(zip_file[shape_file], shape_file) for shape_file in shape_files]
 

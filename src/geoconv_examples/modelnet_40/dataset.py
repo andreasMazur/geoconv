@@ -1,4 +1,3 @@
-from geoconv.utils.cross_validation import get_folds_and_splits
 from geoconv.utils.data_generator import preprocessed_shape_generator
 
 from io import BytesIO
@@ -52,23 +51,14 @@ MODELNET_CLASSES = {
 }
 
 
-def modelnet_generator(dataset_path, n_radial, n_angular, template_radius, is_train, split, amount_folds=5):
-    modelnet_folds, modelnet_splits = get_folds_and_splits(dataset_path, amount_folds)
-
-    # Choose train or test split
+def modelnet_generator(dataset_path, n_radial, n_angular, template_radius, is_train):
     if is_train:
-        split = modelnet_splits[split]
+        filter_list = ["train.*stl", f"train.*BC_{n_radial}_{n_angular}_{template_radius}"]
     else:
-        split = modelnet_folds[split]
+        filter_list = ["test.*stl", f"test.*BC_{n_radial}_{n_angular}_{template_radius}"]
 
     # Load preprocessed shapes
-    psg = preprocessed_shape_generator(
-        dataset_path,
-        filter_list=["stl", f"BC_{n_radial}_{n_angular}_{template_radius}"],
-        shuffle_seed=42 if split != -1 else None,
-        split=split,
-        zero_pad_shapes=True
-    )
+    psg = preprocessed_shape_generator(dataset_path,  filter_list=filter_list, zero_pad_shapes=True)
 
     for elements in psg:
         bc = elements[1][0]
@@ -80,7 +70,7 @@ def modelnet_generator(dataset_path, n_radial, n_angular, template_radius, is_tr
         yield (vertices, bc), np.array(MODELNET_CLASSES[elements[0][1].split("/")[1]]).reshape(1)
 
 
-def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius, is_train, split):
+def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius, is_train):  # , split
     output_signature = (
         (
             tf.TensorSpec(shape=(None, 3,), dtype=tf.float32),  # Signal  (3D coordinates)
@@ -91,6 +81,6 @@ def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius
 
     return tf.data.Dataset.from_generator(
         modelnet_generator,
-        args=(path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, split),
+        args=(path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train),  # , split
         output_signature=output_signature
     ).batch(16).prefetch(tf.data.AUTOTUNE)
