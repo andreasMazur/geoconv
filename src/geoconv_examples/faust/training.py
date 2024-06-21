@@ -1,6 +1,5 @@
 from geoconv.tensorflow.backbone.imcnn_backbone import ImcnnBackbone
 from geoconv.utils.data_generator import read_template_configurations
-from geoconv.utils.prepare_logs import process_logs
 from geoconv.utils.princeton_benchmark import princeton_benchmark
 from geoconv_examples.faust.dataset import load_preprocessed_faust
 
