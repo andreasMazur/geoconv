@@ -33,8 +33,7 @@ def training(dataset_path,
              reference_mesh_path,
              template_configurations=None,
              variant=None,
-             processes=1,
-             amount_folds=5):
+             processes=1):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
