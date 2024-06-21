@@ -1,37 +1,22 @@
+from geoconv.utils.cross_validation import get_folds_and_splits
 from geoconv.utils.data_generator import preprocessed_shape_generator
 
 import tensorflow as tf
 import numpy as np
 
 
-FAUST_TOTAL = 100
-FAUST_FOLDS = {
-    -1: list(range(0, FAUST_TOTAL)),
-    0: list(range(0, 20)),
-    1: list(range(20, 40)),
-    2: list(range(40, 60)),
-    3: list(range(60, 80)),
-    4: list(range(80, FAUST_TOTAL))
-}
-FAUST_TRAIN_SPLITS = {
-    0: FAUST_FOLDS[1] + FAUST_FOLDS[2] + FAUST_FOLDS[3] + FAUST_FOLDS[4],
-    1: FAUST_FOLDS[0] + FAUST_FOLDS[2] + FAUST_FOLDS[3] + FAUST_FOLDS[4],
-    2: FAUST_FOLDS[1] + FAUST_FOLDS[0] + FAUST_FOLDS[3] + FAUST_FOLDS[4],
-    3: FAUST_FOLDS[1] + FAUST_FOLDS[2] + FAUST_FOLDS[0] + FAUST_FOLDS[4],
-    4: FAUST_FOLDS[1] + FAUST_FOLDS[2] + FAUST_FOLDS[3] + FAUST_FOLDS[0],
-}
+def faust_generator(dataset_path, n_radial, n_angular, template_radius, is_train, split, seed=42, only_signal=False, amount_folds=5):
+    faust_folds, faust_splits = get_folds_and_splits(dataset_path, amount_folds)
 
-
-def faust_generator(path_to_zip, n_radial, n_angular, template_radius, is_train, split, seed=42, only_signal=False):
     # Choose train or test split
     if is_train:
-        split = FAUST_TRAIN_SPLITS[split]
+        split = faust_splits[split]
     else:
-        split = FAUST_FOLDS[split]
+        split = faust_folds[split]
 
     # Load barycentric coordinates
     psg = preprocessed_shape_generator(
-        path_to_zip,
+        dataset_path,
         filter_list=["SIGNAL", f"BC_{n_radial}_{n_angular}_{template_radius}"],
         shuffle_seed=42,
         split=split

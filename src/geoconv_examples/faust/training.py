@@ -5,7 +5,7 @@ from geoconv.tensorflow.layers.conv_zero import ConvZero
 from geoconv.utils.data_generator import read_template_configurations
 from geoconv.utils.prepare_logs import process_logs
 from geoconv.utils.princeton_benchmark import princeton_benchmark
-from geoconv_examples.faust.dataset import FAUST_FOLDS, load_preprocessed_faust
+from geoconv_examples.faust.dataset import load_preprocessed_faust
 
 import tensorflow as tf
 import keras
@@ -87,7 +87,7 @@ class FaustModel(keras.Model):
         return self.output_dense(signal)
 
 
-def training(dataset_path, logging_dir, reference_mesh_path, template_configurations=None, variant=None, processes=1):
+def training(dataset_path, logging_dir, reference_mesh_path, template_configurations=None, variant=None, processes=1, amount_folds=5):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -98,7 +98,7 @@ def training(dataset_path, logging_dir, reference_mesh_path, template_configurat
     # Run experiments
     for (n_radial, n_angular, template_radius) in template_configurations:
         csv_file_names = []
-        for exp_no in range(len(FAUST_FOLDS.keys())):
+        for exp_no in range(amount_folds):
             # Load data
             train_data = load_preprocessed_faust(
                 dataset_path, n_radial, n_angular, template_radius, is_train=True, split=exp_no
