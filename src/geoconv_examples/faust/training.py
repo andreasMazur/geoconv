@@ -131,7 +131,8 @@ def training(dataset_path, logging_dir, reference_mesh_path, template_configurat
 
             # Build model
             imcnn([
-                tf.random.uniform(shape=(1, 6890, 544)), tf.random.uniform(shape=(1, 6890,) + (n_radial, n_angular) + (3, 2))
+                tf.random.uniform(shape=(1, 6890, 544)),
+                tf.random.uniform(shape=(1, 6890,) + (n_radial, n_angular) + (3, 2))
             ])
             imcnn.summary()
 
