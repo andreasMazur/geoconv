@@ -11,7 +11,7 @@ class ModelnetClassifier(keras.Model):
     def __init__(self, n_radial, n_angular, template_radius, variant=None):
         super().__init__()
         self.backbone = ImcnnBackbone(
-            isc_layer_dims=[96, 256, 384, 384],
+            isc_layer_dims=[96, 256, 384],
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
