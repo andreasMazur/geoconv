@@ -58,7 +58,7 @@ def modelnet_generator(dataset_path, n_radial, n_angular, template_radius, is_tr
         filter_list = ["test.*stl", f"test.*BC_{n_radial}_{n_angular}_{template_radius}"]
 
     # Load preprocessed shapes
-    psg = preprocessed_shape_generator(dataset_path,  filter_list=filter_list, zero_pad_shapes=True)
+    psg = preprocessed_shape_generator(dataset_path, filter_list=filter_list, zero_pad_shapes=True)
 
     for elements in psg:
         bc = elements[1][0]
