@@ -87,7 +87,7 @@ def training(bc_path, logging_dir, template_configurations=None, variant=None, m
             # Define and compile model
             imcnn = ModelnetClassifier(template_radius, variant=variant)
             loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-            imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"], run_eagerly=True)
+            imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"])
 
             # Define callbacks
             exp_number = f"{exp_no}__{n_radial}_{n_angular}_{template_radius}"
