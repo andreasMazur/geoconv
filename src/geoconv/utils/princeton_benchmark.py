@@ -58,12 +58,17 @@ def princeton_benchmark(imcnn,
 
     mesh_number = 0
     for ((signal, barycentric), ground_truth) in test_dataset:
+        # Get predictions of the model
         if pytorch_model:
-            prediction = np.array(imcnn([signal, barycentric]).cpu()).argmax(axis=1)
+            prediction = np.array(imcnn([signal, barycentric]).cpu()).argmax(axis=-1)
             ground_truth = ground_truth.cpu()
         else:
-            prediction = np.array(imcnn([signal, barycentric])).argmax(axis=1)
-        batched = [(data, reference_mesh) for data in np.stack([ground_truth, prediction], axis=-1)]
+            prediction = np.array(imcnn([signal, barycentric])).argmax(axis=-1)
+
+        # Create ground-truth/prediction-pairs and prepare data for multiprocessing ([0] because of batched shapes)
+        batched = [(data, reference_mesh) for data in np.stack([ground_truth, prediction], axis=-1)[0]]
+
+        # Calculate geodesic distance of ground-truth to prediction on the given reference mesh
         with Pool(processes) as p:
             geodesic_errors = p.starmap(
                 geodesic_alg_wrapper,
@@ -77,6 +82,8 @@ def princeton_benchmark(imcnn,
     geodesic_errors = np.array(geodesic_errors)
     geodesic_errors.sort()
     amt_values = geodesic_errors.shape[0]
+
+    # Create plot-values: y-values = accuracy, x-values = geodesic errors
     arr = np.array([((i + 1) / amt_values, x) for (i, x) in zip(range(amt_values), geodesic_errors)])
     np.save(f"{file_name}.npy", arr)
 
