@@ -11,20 +11,20 @@ class ModelnetClassifier(keras.Model):
     def __init__(self, n_radial, n_angular, template_radius, variant=None):
         super().__init__()
         self.backbone = ImcnnBackbone(
-            isc_layer_dims=[96, 256, 384],
+            isc_layer_dims=[128, 64, 32, 16, 8, 4],
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
             variant=variant
         )
-        self.global_avg = keras.layers.GlobalAveragePooling1D()
+        self.flatten = tf.keras.layers.Flatten()
         self.output_layer = keras.layers.Dense(40)
 
     def call(self, inputs, **kwargs):
         # Embed
         signal = self.backbone(inputs)
-        # Global average pool
-        signal = self.global_avg(signal)
+        # Flatten embeddings
+        signal = self.flatten(signal)
         # Output
         return self.output_layer(signal)
 
@@ -78,7 +78,7 @@ def training(dataset_path, logging_dir, template_configurations=None, variant=No
             write_graph=False,
             write_steps_per_second=True,
             update_freq="epoch",
-            profile_batch=(1, 80)
+            profile_batch=(1, 5000)
         )
 
         # Train model
