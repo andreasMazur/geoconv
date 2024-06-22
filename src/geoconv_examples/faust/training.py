@@ -16,7 +16,8 @@ class FaustModel(keras.Model):
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            variant=variant
+            variant=variant,
+            downsize_input=64
         )
         self.output_dense = keras.layers.Dense(6890, name="output")
 

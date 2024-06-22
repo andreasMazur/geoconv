@@ -7,12 +7,21 @@ import tensorflow as tf
 
 
 class ImcnnBackbone(tf.keras.Model):
-    def __init__(self, isc_layer_dims, n_radial, n_angular, template_radius, variant=None, *args, **kwargs):
+    def __init__(self,
+                 isc_layer_dims,
+                 n_radial,
+                 n_angular,
+                 template_radius,
+                 variant=None,
+                 downsize_input=None,
+                 *args,
+                 **kwargs):
         super().__init__(*args, **kwargs)
 
         # Input configuration
         self.kernel_size = (n_radial, n_angular)
         self.template_radius = template_radius
+        self.downsize_input = downsize_input
 
         # Output configuration
         self.isc_layer_dims = isc_layer_dims
@@ -29,6 +38,9 @@ class ImcnnBackbone(tf.keras.Model):
 
         # Normalize Input
         self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
+        if self.downsize_input is not None:
+            self.downsize_fc = tf.keras.layers.Dense(self.downsize_input, activation="relu", name="FC_downsize")
+            self.downsize_bn = tf.keras.layers.BatchNormalization(axis=-1, name="BN_downsize")
 
         # ISC blocks
         self.isc_layers = []
@@ -55,6 +67,9 @@ class ImcnnBackbone(tf.keras.Model):
         #################
         signal, bc = inputs
         signal = self.normalize(signal)
+        if self.downsize_input is not None:
+            signal = self.downsize_fc(signal)
+            signal = self.downsize_bn(signal)
 
         ###############
         # Forward pass
