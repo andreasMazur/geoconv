@@ -58,6 +58,13 @@ def training(dataset_path, logging_dir, template_configurations=None, variant=No
         imcnn.build(
             input_shape=[tf.TensorShape([None, 541, 3]), tf.TensorShape([None, 541, n_radial, n_angular, 3, 2])]
         )
+        print("Adapt normalization layer on training data..")
+        imcnn.backbone.normalize.adapt(
+            load_preprocessed_modelnet(
+                dataset_path, n_radial, n_angular, template_radius, is_train=True, only_signal=True
+            )
+        )
+        print("Done.")
         imcnn.summary()
 
         # Define callbacks
