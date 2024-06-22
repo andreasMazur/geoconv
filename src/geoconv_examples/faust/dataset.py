@@ -74,11 +74,11 @@ def load_preprocessed_faust(path_to_zip,
                             is_train,
                             only_signal=False):
     if only_signal:
-        output_signature = tf.TensorSpec(shape=(None, 544,), dtype=tf.float32)  # Signal  (3D coordinates)
+        output_signature = tf.TensorSpec(shape=(None, 544,), dtype=tf.float32)  # Signal
     else:
         output_signature = (
             (
-                tf.TensorSpec(shape=(None, 544,), dtype=tf.float32),  # Signal  (3D coordinates)
+                tf.TensorSpec(shape=(None, 544,), dtype=tf.float32),  # Signal
                 tf.TensorSpec(shape=(None,) + (n_radial, n_angular) + (3, 2), dtype=tf.float32)  # Barycentric Coordinates
             ),
             tf.TensorSpec(shape=(None,), dtype=tf.float32)
