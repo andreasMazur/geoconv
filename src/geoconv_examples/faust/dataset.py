@@ -74,7 +74,7 @@ def load_preprocessed_faust(path_to_zip,
                             is_train,
                             only_signal=False):
     if only_signal:
-        output_signature = tf.TensorSpec(shape=(None, 544,), dtype=tf.float32)  # Signal
+        output_signature = tf.TensorSpec(shape=(None, 544), dtype=tf.float32)  # Signal
     else:
         output_signature = (
             (
