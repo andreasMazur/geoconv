@@ -63,6 +63,9 @@ def training(dataset_path,
         imcnn.build(
             input_shape=[tf.TensorShape([None, 6890, 544]), tf.TensorShape([None, 6890, n_radial, n_angular, 3, 2])]
         )
+        imcnn.backbone.normalize.adapt(
+            load_preprocessed_faust(dataset_path, n_radial, n_angular, template_radius, is_train=True, only_signal=True)
+        )
         imcnn.summary()
 
         # Define callbacks
