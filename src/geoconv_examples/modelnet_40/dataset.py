@@ -62,6 +62,11 @@ def modelnet_generator(dataset_path, n_radial, n_angular, template_radius, is_tr
 
     for elements in psg:
         bc = elements[1][0]
+        if is_train:
+            noise = np.abs(np.random.normal(size=(bc.shape[0], n_radial, n_angular, 3, 2), scale=1e-5))
+            noise[:, :, :, :, 0] = 0
+            bc = bc + noise
+
         vertices = trimesh.load_mesh(BytesIO(elements[0][0]), file_type="stl").vertices
         # Zero pad signal
         while vertices.shape[0] < bc.shape[0]:

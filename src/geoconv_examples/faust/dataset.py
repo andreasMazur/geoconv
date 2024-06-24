@@ -21,6 +21,10 @@ def faust_generator(dataset_path, n_radial, n_angular, template_radius, is_train
     for elements in psg:
         shot = elements[0][0]
         bc = elements[1][0]
+        if is_train:
+            noise = np.abs(np.random.normal(size=(bc.shape[0], n_radial, n_angular, 3, 2), scale=1e-5))
+            noise[:, :, :, :, 0] = 0
+            bc = bc + noise
 
         assert bc.shape[0] == shot.shape[0], "Numbers of shot-descriptors and barycentric coordinates do not match!"
 
