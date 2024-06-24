@@ -25,10 +25,10 @@ class HyperModel(kt.HyperModel):
             self.n_angular,
             self.template_radius,
             isc_layer_dims=[
-                hp.Int(name=f"ISC_1", min_value=4, max_value=256),
-                hp.Int(name=f"ISC_2", min_value=4, max_value=256),
-                hp.Int(name=f"ISC_3", min_value=4, max_value=256),
-                hp.Int(name=f"ISC_3", min_value=4, max_value=256),
+                hp.Int(name="ISC_1", min_value=4, max_value=256),
+                hp.Int(name="ISC_2", min_value=4, max_value=256),
+                hp.Int(name="ISC_3", min_value=4, max_value=256),
+                hp.Int(name="ISC_4", min_value=4, max_value=256),
             ]
         )
         clf.backbone.normalize.adapt(self.adapt_data)
