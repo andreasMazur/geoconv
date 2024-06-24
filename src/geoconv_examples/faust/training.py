@@ -8,24 +8,54 @@ import keras
 import os
 
 
-class FaustModel(keras.Model):
-    def __init__(self, n_radial, n_angular, template_radius, variant=None, *args, **kwargs):
+SIG_DIM = 544
+
+
+def reconstruction_loss(y_true, y_pred):
+    return tf.math.reduce_mean(tf.math.abs(y_pred))
+
+
+class FaustVertexClassifier(keras.Model):
+    def __init__(self,
+                 n_radial,
+                 n_angular,
+                 template_radius,
+                 isc_layer_dims=None,
+                 variant=None,
+                 normalize=True,
+                 *args,
+                 **kwargs):
         super().__init__(*args, **kwargs)
-        self.backbone = ImcnnBackbone(
-            isc_layer_dims=[96, 256, 384, 384],
+        isc_layer_dims = [128, 64, 8] if isc_layer_dims is None else isc_layer_dims
+        self.backbone_encoder = ImcnnBackbone(
+            isc_layer_dims=isc_layer_dims,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
             variant=variant,
-            rescale_input_dim=64
+            normalize=normalize
+        )
+        self.backbone_decoder = ImcnnBackbone(
+            isc_layer_dims=isc_layer_dims[1::-1] + [SIG_DIM],
+            n_radial=n_radial,
+            n_angular=n_angular,
+            template_radius=template_radius,
+            variant=variant,
+            normalize=False
         )
         self.output_dense = keras.layers.Dense(6890, name="output")
 
     def call(self, inputs, **kwargs):
+        signal, bc = inputs
+
         # Embed
-        signal = self.backbone(inputs)
+        embedding = self.backbone_encoder([signal, bc])
+
+        # Reconstruct
+        reconstruction = self.backbone_decoder([embedding, bc])
+
         # Output
-        return self.output_dense(signal)
+        return self.output_dense(embedding), signal - reconstruction
 
 
 def training(dataset_path,
@@ -49,7 +79,7 @@ def training(dataset_path,
         test_data = load_preprocessed_faust(dataset_path, n_radial, n_angular, template_radius, is_train=False)
 
         # Define and compile model
-        imcnn = FaustModel(n_radial, n_angular, template_radius, variant=variant)
+        imcnn = FaustVertexClassifier(n_radial, n_angular, template_radius, variant=variant)
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = keras.optimizers.AdamW(
             learning_rate=keras.optimizers.schedules.ExponentialDecay(
@@ -59,12 +89,12 @@ def training(dataset_path,
             ),
             weight_decay=0.005
         )
-        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
+        imcnn.compile(optimizer=opt, loss=[loss, reconstruction_loss], metrics=["accuracy"])
         imcnn.build(
-            input_shape=[tf.TensorShape([None, 6890, 544]), tf.TensorShape([None, 6890, n_radial, n_angular, 3, 2])]
+            input_shape=[tf.TensorShape([None, 6890, SIG_DIM]), tf.TensorShape([None, 6890, n_radial, n_angular, 3, 2])]
         )
         print("Adapt normalization layer on training data..")
-        imcnn.backbone.normalize.adapt(
+        imcnn.backbone_encoder.normalize.adapt(
             load_preprocessed_faust(dataset_path, n_radial, n_angular, template_radius, is_train=True, only_signal=True)
         )
         print("Done.")
