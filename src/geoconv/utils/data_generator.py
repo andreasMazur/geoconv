@@ -211,7 +211,7 @@ def preprocessed_shape_generator(zipfile_path,
         The loaded files and their corresponding filenames.
     """
     # Load the zip-file
-    print(f"Loading shape data from zip-file.. ({zipfile_path})")
+    print(f"\nLoading shape data from zip-file.. ({zipfile_path})")
     zip_file = np.load(zipfile_path)
     print("Done.")
 
