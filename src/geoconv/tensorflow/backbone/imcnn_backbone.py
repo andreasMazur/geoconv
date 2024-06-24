@@ -22,7 +22,7 @@ class ImcnnBackbone(tf.keras.Model):
         # Input configuration
         self.kernel_size = (n_radial, n_angular)
         self.template_radius = template_radius
-        self.downsize_input = rescale_input_dim
+        self.rescale_input_dim = rescale_input_dim
 
         # Output configuration
         self.isc_layer_dims = isc_layer_dims
@@ -41,8 +41,8 @@ class ImcnnBackbone(tf.keras.Model):
         self.do_normalize = normalize
         if self.do_normalize:
             self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
-        if self.downsize_input is not None:
-            self.downsize_fc = tf.keras.layers.Dense(self.downsize_input, activation="relu", name="FC_downsize")
+        if self.rescale_input_dim is not None:
+            self.downsize_fc = tf.keras.layers.Dense(self.rescale_input_dim, activation="relu", name="FC_downsize")
             self.downsize_bn = tf.keras.layers.BatchNormalization(axis=-1, name="BN_downsize")
 
         # ISC blocks
@@ -71,7 +71,7 @@ class ImcnnBackbone(tf.keras.Model):
         signal, bc = inputs
         if self.do_normalize:
             signal = self.normalize(signal)
-        if self.downsize_input is not None:
+        if self.rescale_input_dim is not None:
             signal = self.downsize_fc(signal)
             signal = self.downsize_bn(signal)
 
