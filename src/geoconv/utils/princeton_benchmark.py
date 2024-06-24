@@ -65,7 +65,8 @@ def princeton_benchmark(imcnn,
         else:
             prediction = np.array(imcnn([signal, barycentric])).argmax(axis=-1)
 
-        # Create ground-truth/prediction-pairs and prepare data for multiprocessing ([0] because of batched shapes)
+        # Create ground-truth/prediction-pairs and prepare data for multiprocessing
+        # TODO: Account for batch sizes > 1!  'np.stack([ground_truth, prediction], axis=-1)-->[0]<--'
         batched = [(data, reference_mesh) for data in np.stack([ground_truth, prediction], axis=-1)[0]]
 
         # Calculate geodesic distance of ground-truth to prediction on the given reference mesh
