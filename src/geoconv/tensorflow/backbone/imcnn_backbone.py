@@ -13,7 +13,8 @@ class ImcnnBackbone(tf.keras.Model):
                  n_angular,
                  template_radius,
                  variant=None,
-                 downsize_input=None,
+                 rescale_input_dim=None,
+                 normalize=True,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -21,7 +22,7 @@ class ImcnnBackbone(tf.keras.Model):
         # Input configuration
         self.kernel_size = (n_radial, n_angular)
         self.template_radius = template_radius
-        self.downsize_input = downsize_input
+        self.downsize_input = rescale_input_dim
 
         # Output configuration
         self.isc_layer_dims = isc_layer_dims
@@ -37,7 +38,9 @@ class ImcnnBackbone(tf.keras.Model):
             raise RuntimeError("Select a layer type from: ['dirac', 'geodesic', 'zero']")
 
         # Normalize Input
-        self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
+        self.do_normalize = normalize
+        if self.do_normalize:
+            self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
         if self.downsize_input is not None:
             self.downsize_fc = tf.keras.layers.Dense(self.downsize_input, activation="relu", name="FC_downsize")
             self.downsize_bn = tf.keras.layers.BatchNormalization(axis=-1, name="BN_downsize")
@@ -66,7 +69,8 @@ class ImcnnBackbone(tf.keras.Model):
         # Handling Input
         #################
         signal, bc = inputs
-        signal = self.normalize(signal)
+        if self.do_normalize:
+            signal = self.normalize(signal)
         if self.downsize_input is not None:
             signal = self.downsize_fc(signal)
             signal = self.downsize_bn(signal)
