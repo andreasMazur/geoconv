@@ -14,13 +14,21 @@ class HyperModel(kt.HyperModel):
         self.template_radius = template_radius
         self.adapt_data = adapt_data
 
+        self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
+        print("Adapt normalization layer on training data..")
+        self.normalize.adapt(adapt_data)
+        print("Done.")
+
     def build(self, hp):
         # Define model input
         signal_input = tf.keras.layers.Input(shape=(3,), name="Signal")
         bc_input = tf.keras.layers.Input(shape=(541, self.n_radial, self.n_angular, 3, 2), name="BC")
 
+        # Normalize input
+        signal = self.normalize(signal_input)
+
         # Define classifier
-        clf = ModelnetClassifier(
+        signal_output = ModelnetClassifier(
             self.n_radial,
             self.n_angular,
             self.template_radius,
@@ -29,10 +37,9 @@ class HyperModel(kt.HyperModel):
                 hp.Int(name="ISC_2", min_value=4, max_value=256),
                 hp.Int(name="ISC_3", min_value=4, max_value=256),
                 hp.Int(name="ISC_4", min_value=4, max_value=256),
-            ]
-        )
-        clf.backbone.normalize.adapt(self.adapt_data)
-        signal_output = clf([signal_input, bc_input])
+            ],
+            normalize=False
+        )([signal, bc_input])
 
         # Compile model
         imcnn = tf.keras.Model(inputs=[signal_input, bc_input], outputs=signal_output)

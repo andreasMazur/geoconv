@@ -9,7 +9,7 @@ import tensorflow_probability as tfp
 
 
 class ModelnetClassifier(keras.Model):
-    def __init__(self, n_radial, n_angular, template_radius, isc_layer_dims=None, variant=None):
+    def __init__(self, n_radial, n_angular, template_radius, isc_layer_dims=None, variant=None, normalize=True):
         super().__init__()
         isc_layer_dims = [128, 64, 8] if isc_layer_dims is None else isc_layer_dims
         self.backbone = ImcnnBackbone(
@@ -17,7 +17,8 @@ class ModelnetClassifier(keras.Model):
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            variant=variant
+            variant=variant,
+            normalize=normalize
         )
         self.flatten = tf.keras.layers.Flatten()
         self.output_layer = tf.keras.layers.Dense(40)
