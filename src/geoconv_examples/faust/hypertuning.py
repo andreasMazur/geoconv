@@ -33,7 +33,7 @@ class HyperModel(kt.HyperModel):
             isc_layer_dims=[
                 hp.Int(name="ISC_1", min_value=201, max_value=300),
                 hp.Int(name="ISC_2", min_value=101, max_value=200),
-                hp.Int(name="ISC_3", min_value=1, max_value=100),
+                hp.Int(name="ISC_3", min_value=1, max_value=100)
             ],
             normalize=False
         )([signal, bc_input])
@@ -76,7 +76,7 @@ def hyper_tuning(dataset_path, logging_dir, template_configuration):
 
     tuner = kt.Hyperband(
         hypermodel=HyperModel(n_radial, n_angular, template_radius, adapt_data),
-        objective="val_accuracy",
+        objective=kt.Objective("val_faust_vertex_classifier_accuracy", direction="max"),
         max_epochs=200,
         factor=3,
         directory=logging_dir,
