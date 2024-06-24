@@ -5,26 +5,28 @@ from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 import os
 import keras
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 
 class ModelnetClassifier(keras.Model):
-    def __init__(self, n_radial, n_angular, template_radius, variant=None):
+    def __init__(self, n_radial, n_angular, template_radius, isc_layer_dims=None, variant=None):
         super().__init__()
+        isc_layer_dims = [128, 64, 8] if isc_layer_dims is None else isc_layer_dims
         self.backbone = ImcnnBackbone(
-            isc_layer_dims=[128, 64, 32, 16, 8, 4],
+            isc_layer_dims=isc_layer_dims,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
             variant=variant
         )
         self.flatten = tf.keras.layers.Flatten()
-        self.output_layer = keras.layers.Dense(40)
+        self.output_layer = tf.keras.layers.Dense(40)
 
     def call(self, inputs, **kwargs):
         # Embed
         signal = self.backbone(inputs)
         # Flatten embeddings
-        signal = self.flatten(signal)
+        signal = self.flatten(tf.map_fn(tfp.stats.covariance, signal))
         # Output
         return self.output_layer(signal)
 
@@ -78,7 +80,7 @@ def training(dataset_path, logging_dir, template_configurations=None, variant=No
             write_graph=False,
             write_steps_per_second=True,
             update_freq="epoch",
-            profile_batch=(1, 5000)
+            profile_batch=(1, 200)
         )
 
         # Train model
