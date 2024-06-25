@@ -248,7 +248,7 @@ def preprocessed_shape_generator(zipfile_path,
         # Read *.zip-file content without GPC-system directories
         zip_file_content = [x for x in zip_file.files if "gpc_systems" not in x]
     else:
-        # Read entire *zip.file content
+        # Read entire *zip-file content
         zip_file_content = zip_file.files
 
     per_shape_files = []
