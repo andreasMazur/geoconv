@@ -75,14 +75,6 @@ class GPCSystemGroup:
             gpc_system = GPCSystem(source_point, self.object_mesh, use_c=True)
         else:
             gpc_system.soft_clear(source_point)
-        # Check whether initialization distances are larger than given max-radius
-        check_array = np.array([x for x in gpc_system.radial_coordinates if not np.isinf(x)])
-        if check_array.max() > u_max:
-            warnings.warn(
-                f"You chose a 'u_max' to be smaller then {check_array.max()}, which has been seen as an initialization"
-                f" length for a GPC-system. Current GPC-system will only contain initialization vertices.",
-                RuntimeWarning
-            )
 
         ############################################
         # Initialize min-heap over radial distances
