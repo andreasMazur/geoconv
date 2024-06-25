@@ -29,7 +29,8 @@ def princeton_benchmark(imcnn,
     Parameters
     ----------
     imcnn:
-        The Intrinsic Mesh CNN
+        The Intrinsic Mesh CNN. If it has multiple outputs, then this function expects the vertex-classifications
+        to be the first returned tensor.
     test_dataset: tensorflow.data.Dataset
         The test dataset on which to evaluate the Intrinsic Mesh CNN
     ref_mesh_path: str
@@ -60,10 +61,16 @@ def princeton_benchmark(imcnn,
     for ((signal, barycentric), ground_truth) in test_dataset:
         # Get predictions of the model
         if pytorch_model:
-            prediction = np.array(imcnn([signal, barycentric]).cpu()).argmax(axis=-1)
+            prediction = imcnn([signal, barycentric]).cpu()
             ground_truth = ground_truth.cpu()
         else:
-            prediction = np.array(imcnn([signal, barycentric])).argmax(axis=-1)
+            prediction = imcnn([signal, barycentric])
+
+        # Handle situation in which model returns multiple outputs
+        if isinstance(prediction, tuple):
+            prediction = np.array(prediction).argmax(axis=-1)
+        else:
+            prediction = np.array(prediction[0]).argmax(axis=-1)
 
         # Create ground-truth/prediction-pairs and prepare data for multiprocessing
         # TODO: Account for batch sizes > 1!  'np.stack([ground_truth, prediction], axis=-1)-->[0]<--'
@@ -76,6 +83,7 @@ def princeton_benchmark(imcnn,
                 tqdm(batched, total=len(batched), postfix=f"Computing Princeton benchmark for test mesh {mesh_number}")
             )
         mesh_number += 1
+        break
 
     ##########################
     # Sorting geodesic errors
