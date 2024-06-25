@@ -32,7 +32,7 @@ class ModelnetClassifier(keras.Model):
         return self.output_layer(signal)
 
 
-def training(dataset_path, logging_dir, template_configurations=None, variant=None):
+def training(dataset_path, logging_dir, template_configurations=None, variant=None, isc_layer_dims=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -47,7 +47,7 @@ def training(dataset_path, logging_dir, template_configurations=None, variant=No
         test_data = load_preprocessed_modelnet(dataset_path, n_radial, n_angular, template_radius, is_train=False)
 
         # Define and compile model
-        imcnn = ModelnetClassifier(n_radial, n_angular, template_radius, variant=variant)
+        imcnn = ModelnetClassifier(n_radial, n_angular, template_radius, variant=variant, isc_layer_dims=isc_layer_dims)
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = keras.optimizers.AdamW(
             learning_rate=keras.optimizers.schedules.ExponentialDecay(

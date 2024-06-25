@@ -63,7 +63,8 @@ def training(dataset_path,
              reference_mesh_path,
              template_configurations=None,
              variant=None,
-             processes=1):
+             processes=1,
+             isc_layer_dims=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -79,7 +80,9 @@ def training(dataset_path,
         test_data = load_preprocessed_faust(dataset_path, n_radial, n_angular, template_radius, is_train=False)
 
         # Define and compile model
-        imcnn = FaustVertexClassifier(n_radial, n_angular, template_radius, variant=variant)
+        imcnn = FaustVertexClassifier(
+            n_radial, n_angular, template_radius, variant=variant, isc_layer_dims=isc_layer_dims
+        )
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = keras.optimizers.AdamW(
             learning_rate=keras.optimizers.schedules.ExponentialDecay(
