@@ -12,7 +12,7 @@ import trimesh
 import math
 
 
-def compute_gpc_systems_wrapper(shape, output_dir, processes=1):
+def compute_gpc_systems_wrapper(shape, output_dir, processes=1, scale=1.):
     """Wrapper function that computes all GPC systems for one given shape.
 
     Parameters
@@ -23,6 +23,8 @@ def compute_gpc_systems_wrapper(shape, output_dir, processes=1):
         The directory where the GPC-systems shall be stored.
     processes: int
         The amount of processes to be used concurrently.
+    scale: float
+        A coefficient to scale the maximal distance of a GPC-system.
 
     Returns
     -------
@@ -44,7 +46,7 @@ def compute_gpc_systems_wrapper(shape, output_dir, processes=1):
 
         # 3.) Compute GPC-systems
         gpc_systems = GPCSystemGroup(shape, processes=processes)
-        gpc_system_radius = find_largest_one_hop_dist(shape)
+        gpc_system_radius = find_largest_one_hop_dist(shape) * scale
         gpc_systems.compute(u_max=gpc_system_radius)
         gpc_systems.save(f"{output_dir}/gpc_systems")
 
