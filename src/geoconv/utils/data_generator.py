@@ -179,7 +179,8 @@ def preprocessed_shape_generator(zipfile_path,
                                  shuffle_seed=None,
                                  split=None,
                                  verbose=False,
-                                 zero_pad_shapes=True):
+                                 zero_pad_shapes=True,
+                                 filter_gpc_systems=True):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
     This function sorts alphanumerically after the shape-directory name.
@@ -204,6 +205,8 @@ def preprocessed_shape_generator(zipfile_path,
         Adds zero interpolation coefficients to barycentric coordinates tensor and zero signals to signal tensor
         such that every signal- and barycentric coordinates tensor in the dataset has the same dimensionality.
         This allows for batching multiple shapes. The dimensionality is determined by the largest tensor.
+    filter_gpc_systems: bool
+        Whether to exclude gpc-systems from contained zip-files. Reduces time-consumption.
 
     Returns
     -------
@@ -241,8 +244,12 @@ def preprocessed_shape_generator(zipfile_path,
             "Did not find 'most_gpc_systems'-key in dataset properties file. Manually search for most GPC-systems."
         )
 
-    # Read *.zip-file content without GPC-system directories
-    zip_file_content = [x for x in zip_file.files if "gpc_systems" not in x]
+    if filter_gpc_systems:
+        # Read *.zip-file content without GPC-system directories
+        zip_file_content = [x for x in zip_file.files if "gpc_systems" not in x]
+    else:
+        # Read entire *zip.file content
+        zip_file_content = zip_file.files
 
     per_shape_files = []
     for preprocessed_shape_dir in tqdm(preprocessed_shapes, postfix="Preparing generator.."):
