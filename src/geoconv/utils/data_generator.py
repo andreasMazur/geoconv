@@ -1,3 +1,4 @@
+from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.utils.misc import get_faces_of_edge, repair_mesh
 
 from io import BytesIO
@@ -11,6 +12,8 @@ import subprocess
 import random
 import json
 import re
+
+from geoconv.utils.visualization import draw_gpc_on_mesh, draw_gpc_triangles
 
 
 def remove_non_manifold_edges(mesh):
@@ -179,7 +182,7 @@ def preprocessed_shape_generator(zipfile_path,
                                  shuffle_seed=None,
                                  split=None,
                                  verbose=False,
-                                 zero_pad_shapes=True,
+                                 zero_pad_shapes=False,
                                  filter_gpc_systems=True):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
@@ -248,7 +251,7 @@ def preprocessed_shape_generator(zipfile_path,
         # Read *.zip-file content without GPC-system directories
         zip_file_content = [x for x in zip_file.files if "gpc_systems" not in x]
     else:
-        # Read entire *zip-file content
+        # Read entire *.zip-file content
         zip_file_content = zip_file.files
 
     per_shape_files = []
@@ -264,12 +267,8 @@ def preprocessed_shape_generator(zipfile_path,
                 if re.search(filter_str, file_name) is not None:
                     shape_files.append(file_name)
 
-        # Skip files that were not processed completely
-        if len(shape_files) == len(filter_list):
-            per_shape_files.append(shape_files)
-        else:
-            if verbose:
-                print(f"Incomplete shape-directory: {preprocessed_shape_dir}")
+        # Add shape files to list of all shape files
+        per_shape_files.append(shape_files)
 
         # Seek for largest amount of vertices if necessary
         if zero_pad_shapes and search_for_gpc_systems:
@@ -395,7 +394,7 @@ def read_template_configurations(zipfile_path):
         A list of tuples of the form (n_radial, n_angular, template_radius). These configurations have been
         found in the given zipfile.
     """
-    # Load barycentric coordinates
+    # Load zip-file
     zip_file = np.load(zipfile_path)
 
     # Load template configuration dictionary
@@ -406,3 +405,65 @@ def read_template_configurations(zipfile_path):
     for temp_conf in template_configurations.values():
         as_list.append((temp_conf["n_radial"], temp_conf["n_angular"], temp_conf["template_radius"]))
     return as_list
+
+
+def inspect_gpc_systems(zipfile_path, shuffle=True, show_all_gpc_systems=False):
+    """Inspect the GPC-systems within a preprocessed dataset.
+
+    Parameters
+    ----------
+    zipfile_path: str
+        The path to the preprocessed dataset.
+    shuffle: bool
+        Whether to shuffle the dataset
+    show_all_gpc_systems:
+        Whether to only show all GPC-systems. If set to 'False', three random GPC-systems will be displayed.
+    """
+    psg = preprocessed_shape_generator(
+        zipfile_path=zipfile_path,
+        filter_list=["stl", "gpc_systems/.+"],
+        sorting_key=None,
+        shuffle_seed=42 if shuffle else None,
+        split=None,
+        verbose=False,
+        zero_pad_shapes=False,
+        filter_gpc_systems=False
+    )
+    for content_list in psg:
+        # Load GPC-systems and properties from bytes
+        shape_dict = {}
+        shape, content_path = None, None
+        for (content, content_path) in content_list:
+            if content_path[-3:] == "stl":
+                shape = trimesh.load_mesh(BytesIO(content), file_type="stl")
+            elif content_path[-4:] == "json":
+                shape_dict[content_path.split("/")[-1][:-5]] = json.load(BytesIO(content))
+            else:
+                shape_dict[content_path.split("/")[-1][:-4]] = np.load(BytesIO(content))
+
+        assert shape is not None and content_path is not None, "No shape found."
+
+        # Load GPC-systems from dict
+        gpc_systems = GPCSystemGroup(object_mesh=shape)
+        gpc_systems.load(from_dict=shape_dict)
+        indices = list(range(len(shape_dict["properties"].keys())))
+
+        # Get 3 random GPC-systems
+        if not show_all_gpc_systems:
+            random.shuffle(indices)
+            indices = indices[:3]
+
+        # Visualize GPC-systems
+        print(f"Currently observing: {'/'.join(content_path.split('/')[:-1])}")
+        for gpc_system_idx in indices:
+            draw_gpc_triangles(
+                gpc_systems.object_mesh_gpc_systems[gpc_system_idx],
+                plot=True,
+                title=f"GPC-system",
+            )
+            draw_gpc_on_mesh(
+                gpc_system_idx,
+                gpc_systems.object_mesh_gpc_systems[gpc_system_idx].radial_coordinates,
+                gpc_systems.object_mesh_gpc_systems[gpc_system_idx].angular_coordinates,
+                shape
+            )
