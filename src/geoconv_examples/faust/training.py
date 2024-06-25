@@ -108,7 +108,7 @@ def training(dataset_path,
         exp_number = f"{n_radial}_{n_angular}_{template_radius}"
         csv_file_name = f"{logging_dir}/training_{exp_number}.log"
         csv = keras.callbacks.CSVLogger(csv_file_name)
-        stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, min_delta=0.01)
+        stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
         tb = keras.callbacks.TensorBoard(
             log_dir=f"{logging_dir}/tensorboard_{exp_number}",
             histogram_freq=1,
