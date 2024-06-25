@@ -188,23 +188,39 @@ class GPCSystemGroup:
             ):
                 gpc_system.save(f"{path}/{gpc_system_idx}")
 
-    def load(self, path, load_compressed=True):
+    def load(self, path=None, from_dict=None, load_compressed=True):
         """Loads GPC-systems.
 
         Parameters
         ----------
         path: str
             The path from where to load the GPC-systems.
+        from_dict: dict
+            A dictionary from which the GPC-system group shall be initialized.
         load_compressed: bool
             Whether to load from a compressed store-format (cf. self.save()).
         """
+        assert path is not None or from_dict is not None, "Either provide a path or a dictionary to load GPC-systems."
+
         # Initialize GPC-system list
         gpc_systems = []
 
-        ####################################
+        # Load from dictionary
+        if from_dict is not None:
+            for source_point in tqdm(
+                    range(len(from_dict["properties"].keys())), postfix=f"Loading GPC-systems from given dictionary."
+            ):
+                gpc_system = GPCSystem(source_point, self.object_mesh, use_c=True)
+                gpc_system.load(from_dict={
+                    "angular_coordinates": from_dict["angular_coordinates"][f"{source_point}"],
+                    "radial_coordinates": from_dict["radial_coordinates"][f"{source_point}"],
+                    "x_coordinates": from_dict["x_coordinates"][f"{source_point}"],
+                    "y_coordinates": from_dict["y_coordinates"][f"{source_point}"],
+                    "properties": from_dict["properties"][f"{source_point}"]
+                })
+                gpc_systems.append(gpc_system)
         # Load compressed GPC-system format
-        ####################################
-        if load_compressed:
+        elif load_compressed:
             # Load all GPC-systems from compressed file format
             radial_coordinates_dict = np.load(f"{path}/radial_coordinates.npz")
             angular_coordinates_dict = np.load(f"{path}/angular_coordinates.npz")
@@ -224,9 +240,7 @@ class GPCSystemGroup:
                     "properties": properties[f"{source_point}"]
                 })
                 gpc_systems.append(gpc_system)
-        ###############################################################################
         # Load regular GPC-system format (each GPC-system has individual subdirectory)
-        ###############################################################################
         else:
             # Read root-directory of all GPC-systems
             gpc_system_directories = os.listdir(path)
