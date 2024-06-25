@@ -35,9 +35,9 @@ def preprocess(modelnet_path,
             # Remove file-ending from folder name
             output_dir = f"{output_path}/{shape_path}"[:-4]
             if class_names is None:
-                compute_gpc_systems_wrapper(shape, output_dir, processes=processes)
+                compute_gpc_systems_wrapper(shape, output_dir, processes=processes, scale=0.11)
             elif shape_path.split("/")[1] in class_names:
-                compute_gpc_systems_wrapper(shape, output_dir, processes=processes)
+                compute_gpc_systems_wrapper(shape, output_dir, processes=processes, scale=0.11)
 
     ##################################
     # Compute barycentric coordinates
