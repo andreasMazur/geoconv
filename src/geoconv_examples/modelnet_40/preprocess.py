@@ -43,7 +43,7 @@ def preprocess(modelnet_path,
     # Compute barycentric coordinates
     ##################################
     if compute_bc:
-        compute_bc_wrapper(
+        bc_computed = compute_bc_wrapper(
             preprocess_dir=output_path,
             template_sizes=[(3, 6), (2, 9), (5, 8), (4, 10)],
             scales=[0.75, 1.0, 1.25],
@@ -51,6 +51,9 @@ def preprocess(modelnet_path,
             processes=processes,
             shape_path_contains=class_names
         )
+        if not bc_computed:
+            print("Failed to compute all barycentric coordinates. Skip zipping of intermediate results.")
+            return
 
     #############################
     # Zip preprocessed directory
