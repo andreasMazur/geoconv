@@ -96,6 +96,11 @@ def compute_bc_wrapper(preprocess_dir,
     shape_path_contains: list
         A list of strings that is contained in the shape-path. If none of the contained strings are within the
         shape-path, then the shape is skipped.
+
+    Returns
+    -------
+    bool:
+        Whether all barycentric coordinates have been computed.
     """
     # Get average template radius as well as most seen GPC-systems in a shape
     shape_directories, gpc_system_radii, most_gpc_systems = [], [], 0
@@ -131,20 +136,29 @@ def compute_bc_wrapper(preprocess_dir,
 
     # Compute barycentric coordinates
     with Pool(processes=processes) as p:
-        p.starmap(bc_helper, [(d, template_configurations, load_compressed_gpc_systems) for d in shape_directories])
+        all_bc_computed = p.starmap(
+            bc_helper, [(d, template_configurations, load_compressed_gpc_systems) for d in shape_directories]
+        )
 
-    # Add preprocess information to dataset
-    with open(f"{preprocess_dir}/dataset_properties.json", "a") as properties_file:
-        temp_conf_dict = {
-            "preprocessed_shapes": preprocessed_shapes,
-            "most_gpc_systems": most_gpc_systems,
-            "template_configurations": {}
-        }
-        for idx, tconf in enumerate(template_configurations):
-            temp_conf_dict["template_configurations"][f"{idx}"] = {
-                "n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]
+    # Check whether all barycentric coordinates have been computed
+    if not np.all(all_bc_computed):
+        # If not, return 'False' to indicate something went wrong.
+        return False
+    else:
+        # If preprocess succeeded, add preprocess information to dataset
+        with open(f"{preprocess_dir}/dataset_properties.json", "a") as properties_file:
+            temp_conf_dict = {
+                "preprocessed_shapes": preprocessed_shapes,
+                "most_gpc_systems": most_gpc_systems,
+                "template_configurations": {}
             }
-        json.dump(temp_conf_dict, properties_file, indent=4)
+            for idx, tconf in enumerate(template_configurations):
+                temp_conf_dict["template_configurations"][f"{idx}"] = {
+                    "n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]
+                }
+            json.dump(temp_conf_dict, properties_file, indent=4)
+        # Return 'True' to indicate everything worked out.
+        return True
 
 
 def bc_helper(assigned_directories, template_configurations, load_compressed_gpc_systems):
@@ -159,7 +173,13 @@ def bc_helper(assigned_directories, template_configurations, load_compressed_gpc
     load_compressed_gpc_systems: bool
         If 'True', assumes that GPC-systems are stored in the compressed format (cf. GPCSystemGroup.save()).
         Otherwise, assume that each GPC-system for a shape has its own directory.
+
+    Returns
+    -------
+    bool:
+        Whether all GPC-systems were successfully loaded (True = succeeded, False = failed) for BC-computation.
     """
+    loading_succeeded = True
     for shape_dir in assigned_directories:
         gpc_systems = None
         for (n_radial, n_angular, template_radius) in template_configurations:
@@ -169,11 +189,13 @@ def bc_helper(assigned_directories, template_configurations, load_compressed_gpc
 
                 # Load GPC-systems for current mesh
                 if gpc_systems is None:
+                    gpc_systems = GPCSystemGroup(object_mesh=trimesh.load_mesh(f"{shape_dir}/normalized_mesh.stl"))
                     try:
-                        gpc_systems = GPCSystemGroup(object_mesh=trimesh.load_mesh(f"{shape_dir}/normalized_mesh.stl"))
                         gpc_systems.load(f"{shape_dir}/gpc_systems", load_compressed=load_compressed_gpc_systems)
                     except RecursionError:
-                        print(f"*** 'RecursionError' occurred while loading GPC-systems of: {shape_dir} ***")
+                        print(f"*** Recursion occurred error while loading GPC-systems of: {shape_dir}")
+                        loading_succeeded = False
+                        break
 
                 # Compute barycentric coordinates
                 bc = compute_barycentric_coordinates(
@@ -182,3 +204,4 @@ def bc_helper(assigned_directories, template_configurations, load_compressed_gpc
 
                 # Save barycentric coordinates
                 np.save(bc_file_name, bc)
+    return loading_succeeded
