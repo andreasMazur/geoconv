@@ -169,8 +169,11 @@ def bc_helper(assigned_directories, template_configurations, load_compressed_gpc
 
                 # Load GPC-systems for current mesh
                 if gpc_systems is None:
-                    gpc_systems = GPCSystemGroup(object_mesh=trimesh.load_mesh(f"{shape_dir}/normalized_mesh.stl"))
-                    gpc_systems.load(f"{shape_dir}/gpc_systems", load_compressed=load_compressed_gpc_systems)
+                    try:
+                        gpc_systems = GPCSystemGroup(object_mesh=trimesh.load_mesh(f"{shape_dir}/normalized_mesh.stl"))
+                        gpc_systems.load(f"{shape_dir}/gpc_systems", load_compressed=load_compressed_gpc_systems)
+                    except RecursionError:
+                        print(f"*** 'RecursionError' occurred while loading GPC-systems of: {shape_dir} ***")
 
                 # Compute barycentric coordinates
                 bc = compute_barycentric_coordinates(
