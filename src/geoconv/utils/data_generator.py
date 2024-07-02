@@ -174,8 +174,13 @@ def zip_file_generator(zipfile_path,
         # Merge vertices
         shape = repair_mesh(shape)
 
+        # Normalize shape
         if normalize:
-            shape, _ = normalize_mesh(shape)
+            try:
+                shape, geodesic_diameter = normalize_mesh(shape)
+            except RuntimeError:
+                print(f"{shape_path} crashed during normalization.")
+                continue
 
         if shape.vertices.shape[0] > min_vertices and shape.faces.shape[0] > 0:
             if return_filename:
