@@ -16,7 +16,7 @@ import re
 from geoconv.utils.visualization import draw_gpc_on_mesh, draw_gpc_triangles
 
 
-def remove_non_manifold_edges(mesh):
+def remove_nme(mesh):
     """Removes non-manifold edges by removing all their faces.
 
     Parameters
@@ -74,7 +74,8 @@ def zip_file_generator(zipfile_path,
                        timeout_in_sec=20,
                        mp_depth=8,
                        shape_path_contains=None,
-                       epsilon=0.25):
+                       epsilon=0.25,
+                       remove_non_manifold_edges=True):
     """Loads shapes from a given zip-file and removes non-manifold edges.
 
     Parameters
@@ -101,6 +102,8 @@ def zip_file_generator(zipfile_path,
     epsilon: float
         Percentage value that describes how far a down-sampled shape can deviate from the target amount of faces
         given by the parameter 'down_sample'. If 'down_sample' is 'None' this value is not used.
+    remove_non_manifold_edges: bool
+        Whether to remove non-manifold edges.
 
     Returns
     -------
@@ -162,7 +165,8 @@ def zip_file_generator(zipfile_path,
                 continue
 
         # Remove non-manifold edges
-        shape = remove_non_manifold_edges(shape)
+        if remove_non_manifold_edges:
+            shape = remove_nme(shape)
 
         # Merge vertices
         shape = repair_mesh(shape)
