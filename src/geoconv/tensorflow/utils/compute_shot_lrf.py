@@ -138,3 +138,34 @@ def shot_lrf(neighborhoods, radius):
     y_axes = tf.linalg.cross(z_axes, x_axes)
 
     return tf.stack([z_axes, y_axes, x_axes], axis=1)
+
+
+@tf.function
+def logarithmic_map(lrfs, neighborhoods):
+    """Computes projections of neighborhoods into their local reference frames.
+
+    Parameters
+    ----------
+    lrfs: tf.Tensor
+        A 3D-tensor of shape (vertices, 3, 3) that contains the axes of local reference frames.
+    neighborhoods: tf.Tensor
+        A 3D-tensor of shape (vertices, n_neighbors, 3) that contains the neighborhoods around all vertices.
+
+    Returns
+    -------
+    tf.Tensor:
+        A 3D-tensor of shape (vertices, n_neighbors, 2) that contains the coordinates of the neighbor-projections
+        within the tangent plane. Euclidean distance are preserved and used as an approximate to geodesic distances.
+    """
+    # Get tangent plane normals (z-axes of lrfs)
+    normals = lrfs[:, 0, :]
+
+    # Compute tangent plane projections (logarithmic map)
+    scaled_normals = neighborhoods @ tf.expand_dims(normals, axis=-1) * tf.expand_dims(normals, axis=1)
+    projections = neighborhoods - scaled_normals
+
+    # Basis change of neighborhoods into lrf coordinates
+    projections = tf.einsum("vij,vnj->vni", tf.linalg.inv(tf.transpose(lrfs, perm=[0, 2, 1])), projections)[:, :, 1:]
+
+    # Preserve Euclidean metric between original vertices (geodesic distance approximation)
+    return tf.expand_dims(tf.linalg.norm(neighborhoods, axis=-1), axis=-1) * tf.math.l2_normalize(projections, axis=-1)

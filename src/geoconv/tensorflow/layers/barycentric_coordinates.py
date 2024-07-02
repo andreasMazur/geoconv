@@ -1,26 +1,23 @@
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
-from geoconv.tensorflow.utils.compute_shot_lrf import group_neighborhoods, shot_lrf
+from geoconv.tensorflow.utils.compute_shot_lrf import group_neighborhoods, shot_lrf, logarithmic_map
 
 import tensorflow as tf
 
 
-@tf.function
-def logarithmic_map(lrfs, neighborhoods):
-    # Get tangent plane normals (z-axes of lrfs)
-    normals = lrfs[:, 0, :]
-
-    # Compute tangent plane projections (logarithmic map)
-    scaled_normals = neighborhoods @ tf.expand_dims(normals, axis=-1) * tf.expand_dims(normals, axis=1)
-    projections = neighborhoods - scaled_normals
-
-    # Basis change of neighborhoods into lrf coordinates
-    projections = tf.einsum("vij,vnj->vni", tf.linalg.inv(tf.transpose(lrfs, perm=[0, 2, 1])), projections)[:, :, 1:]
-
-    # Preserve Euclidean metric between original vertices (geodesic distance approximation)
-    return tf.expand_dims(tf.linalg.norm(neighborhoods, axis=-1), axis=-1) * tf.math.l2_normalize(projections, axis=-1)
-
-
 class BarycentricCoordinates(tf.keras.layers.Layer):
+    """A parameter-free neural network layer that approximates barycentric coordinates (BC).
+
+    Attributes
+    ----------
+    n_radial: int
+        The amount of radial coordinates of the template for which BC shall be computed.
+    n_angular: int
+        The amount of angular coordinates of the template for which BC shall be computed.
+    radius: float
+        The radius of the neighborhoods which are used for tangent-plane estimations.
+    template_scale: float
+        A scaling factor that is multiple onto the neighborhood radius in order to compute the template radius.
+    """
     def __init__(self, n_radial, n_angular, radius=0.01, template_scale=0.75):
         super().__init__()
         self.radius = radius
@@ -35,10 +32,35 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
 
     @tf.function
     def call(self, vertices):
+        """Computes barycentric coordinates for multiple shapes.
+
+        Parameters
+        ----------
+        vertices: tf.Tensor
+            A 3D-tensor of shape (batch_shapes, n_vertices, 3) that contains the vertices of the shapes.
+
+        Returns
+        -------
+        tf.Tensor:
+            A 5D-tensor of shape (batch_shapes, vertices, n_radial, n_angular, 3, 2) that describes barycentric
+            coordinates.
+        """
         return tf.map_fn(self.call_helper, vertices)
 
     @tf.function
     def call_helper(self, vertices):
+        """Computes barycentric coordinates for a single shape.
+
+        Parameters
+        ----------
+        vertices: tf.Tensor
+            A 2D-tensor of shape (n_vertices, 3) that contains the vertices of the shapes.
+
+        Returns
+        -------
+        tf.Tensor:
+            A 4D-tensor of shape (vertices, n_radial, n_angular, 3, 2) that describes barycentric coordinates.
+        """
         # 1.) Get vertex-neighborhoods
         # 'neighborhoods': (vertices, n_neighbors, 3)
         neighborhoods, neighborhoods_indices = group_neighborhoods(vertices, self.radius)

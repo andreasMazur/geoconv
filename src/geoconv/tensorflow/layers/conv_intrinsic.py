@@ -12,7 +12,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
     Attributes
     ----------
     given_name: str
-
+        The layer name.
     activation_fn: str
         The activation function to use.
     rotation_delta: int
