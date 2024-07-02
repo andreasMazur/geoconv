@@ -19,6 +19,8 @@ def sample_surface(shape, count, output_dir):
     ----------
     shape: trimesh.Trimesh
         The shape to sample from.
+    count: int
+        The amount of vertices to sample from the normalized shape.
     output_dir: str
         The directory where the sample and shape shall be stored.
     """
