@@ -68,7 +68,7 @@ def down_sample_mesh(mesh, target_number_of_triangles):
 def zip_file_generator(zipfile_path,
                        file_type,
                        manifold_plus_executable=None,
-                       down_sample=None,
+                       target_amount_faces=None,
                        return_filename=False,
                        min_vertices=100,
                        timeout_in_sec=20,
@@ -85,7 +85,7 @@ def zip_file_generator(zipfile_path,
         The file type of the CAD models.
     manifold_plus_executable: str
         The path to the manifold+ algorithm.
-    down_sample: int
+    target_amount_faces: int
         The target amount of triangles the mesh shall be down-sampled to.
     return_filename: bool
         Whether to return the filename of the shape within the zip-file.
@@ -154,11 +154,11 @@ def zip_file_generator(zipfile_path,
             os.remove(in_file)
 
         # Simplify shape
-        if down_sample is not None and shape.faces.shape[0] > down_sample:
-            shape = down_sample_mesh(shape, down_sample)
+        if target_amount_faces is not None and shape.faces.shape[0] > target_amount_faces:
+            shape = down_sample_mesh(shape, target_amount_faces)
             # Check result and skip if it is too far from target amount of faces
-            if shape.faces.shape[0] > down_sample + down_sample * epsilon:
-                print(f"*** {shape_path} couldn't be down-sampled close enough to {down_sample}.")
+            if shape.faces.shape[0] > target_amount_faces + target_amount_faces * epsilon:
+                print(f"*** {shape_path} couldn't be down-sampled close enough to {target_amount_faces}.")
                 continue
 
         # Remove non-manifold edges

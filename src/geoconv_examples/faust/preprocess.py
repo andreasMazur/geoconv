@@ -16,7 +16,7 @@ def preprocess(faust_path, output_path, processes, zip_when_done=True, compute_g
             faust_path,
             file_type="ply",
             manifold_plus_executable=None,
-            down_sample=None,
+            target_amount_faces=None,
             return_filename=True,
             shape_path_contains=["registrations"]
         )

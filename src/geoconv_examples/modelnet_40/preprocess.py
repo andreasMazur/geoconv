@@ -24,7 +24,7 @@ def preprocess(modelnet_path,
             modelnet_path,
             file_type="off",
             manifold_plus_executable=manifold_plus_executable,
-            down_sample=down_sample,
+            target_amount_faces=down_sample,
             return_filename=True,
             shape_path_contains=class_names
         )
