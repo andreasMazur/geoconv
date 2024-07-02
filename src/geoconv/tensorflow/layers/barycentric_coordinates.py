@@ -3,9 +3,6 @@ from geoconv.tensorflow.utils.compute_shot_lrf import group_neighborhoods, shot_
 
 import tensorflow as tf
 
-from geoconv.utils.misc import find_largest_one_hop_dist
-from geoconv_examples.stanford_bunny.preprocess_demo import load_bunny
-
 
 @tf.function
 def logarithmic_map(lrfs, neighborhoods):
