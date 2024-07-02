@@ -26,7 +26,8 @@ def preprocess(modelnet_path,
             manifold_plus_executable=manifold_plus_executable,
             target_amount_faces=down_sample,
             return_filename=True,
-            shape_path_contains=class_names
+            shape_path_contains=class_names,
+            normalize=False  # normalize during GPC-system computation to store original geodesic diameter
         )
 
         # Compute GPC-systems
