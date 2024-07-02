@@ -1,5 +1,5 @@
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
-from geoconv.utils.misc import get_faces_of_edge, repair_mesh
+from geoconv.utils.misc import get_faces_of_edge, repair_mesh, normalize_mesh
 
 from io import BytesIO
 from tqdm import tqdm
@@ -75,7 +75,8 @@ def zip_file_generator(zipfile_path,
                        mp_depth=8,
                        shape_path_contains=None,
                        epsilon=0.25,
-                       remove_non_manifold_edges=True):
+                       remove_non_manifold_edges=True,
+                       normalize=False):
     """Loads shapes from a given zip-file and removes non-manifold edges.
 
     Parameters
@@ -104,6 +105,8 @@ def zip_file_generator(zipfile_path,
         given by the parameter 'down_sample'. If 'down_sample' is 'None' this value is not used.
     remove_non_manifold_edges: bool
         Whether to remove non-manifold edges.
+    normalize: bool
+        Whether to normalize the mesh.
 
     Returns
     -------
@@ -170,6 +173,9 @@ def zip_file_generator(zipfile_path,
 
         # Merge vertices
         shape = repair_mesh(shape)
+
+        if normalize:
+            shape, _ = normalize_mesh(shape)
 
         if shape.vertices.shape[0] > min_vertices and shape.faces.shape[0] > 0:
             if return_filename:
