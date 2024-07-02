@@ -181,7 +181,6 @@ def preprocessed_shape_generator(zipfile_path,
                                  sorting_key=None,
                                  shuffle_seed=None,
                                  split=None,
-                                 verbose=False,
                                  zero_pad_shapes=False,
                                  filter_gpc_systems=True):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
