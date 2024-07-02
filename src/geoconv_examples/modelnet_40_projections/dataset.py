@@ -1,5 +1,9 @@
 from geoconv.utils.data_generator import preprocessed_shape_generator
 
+import tensorflow as tf
+import numpy as np
+
+
 MODELNET_CLASSES = {
     "airplane": 0,
     "bathtub": 1,
@@ -54,4 +58,14 @@ def modelnet_generator(dataset_path, is_train):
     psg = preprocessed_shape_generator(dataset_path, filter_list=filter_list, shuffle_seed=42, filter_gpc_systems=False)
 
     for [(vertices, vertices_path)] in psg:
-        yield vertices
+        yield vertices, np.array(MODELNET_CLASSES[vertices_path.split("/")[1]]).reshape(1)
+
+
+def load_preprocessed_modelnet(dataset_path, is_train):
+    return tf.data.Dataset.from_generator(
+        modelnet_generator,
+        args=(dataset_path, is_train),
+        output_signature=(
+            tf.TensorSpec(shape=(None, 3), dtype=tf.float32), tf.TensorSpec(shape=(None,), dtype=tf.float32)
+        )
+    ).batch(4).prefetch(tf.data.AUTOTUNE)
