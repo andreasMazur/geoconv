@@ -12,6 +12,38 @@ import trimesh
 import math
 
 
+def sample_surface(shape, output_dir):
+    """Wrapper function that samples vertices from a shape and stores it.
+
+    Parameters
+    ----------
+    shape: trimesh.Trimesh
+        The shape to sample from.
+    output_dir: str
+        The directory where the sample and shape shall be stored.
+    """
+    # 0.) Check whether file already exist. If so, skip computing GPC-systems.
+    if not os.path.isfile(f"{output_dir}/preprocess_properties.json"):
+        # 1.) Create output dir if not existent
+        os.makedirs(output_dir, exist_ok=True)
+
+        # 2.) Sample from surface
+        vertices = trimesh.sample.sample_surface_even(shape, count=2000)[0]
+
+        # 3.) Save sample and shape
+        np.save(f"{output_dir}/vertices.npy", vertices)
+        shape.export(f"{output_dir}/normalized_mesh.stl")
+
+        # 4.) Log preprocess properties
+        properties_file_path = f"{output_dir}/preprocess_properties.json"
+        with open(properties_file_path, "w") as properties_file:
+            json.dump({"amount_vertices": vertices.shape[0]}, properties_file, indent=4)
+        return True
+    else:
+        print(f"{output_dir}/preprocess_properties.json already exists. Skipping preprocessing.")
+        return False
+
+
 def compute_gpc_systems_wrapper(shape, output_dir, processes=1, scale=1.):
     """Wrapper function that computes all GPC systems for one given shape.
 
