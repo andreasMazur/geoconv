@@ -250,16 +250,17 @@ def preprocessed_shape_generator(zipfile_path,
         preprocessed_shapes = preprocessed_shapes[split]
 
     # Find most GPC-systems for zero-padding
-    search_for_gpc_systems, most_vertices = True, -1
-    try:
-        # Check if dataset properties file contains entry 'most_gpc_systems'
-        dataset_properties = json.load(BytesIO(zip_file["dataset_properties.json"]))
-        most_vertices = dataset_properties["most_gpc_systems"]
-        search_for_gpc_systems = False
-    except KeyError:
-        print(
-            "Did not find 'most_gpc_systems'-key in dataset properties file. Manually search for most GPC-systems."
-        )
+    if zero_pad_shapes:
+        search_for_gpc_systems, most_vertices = True, -1
+        try:
+            # Check if dataset properties file contains entry 'most_gpc_systems'
+            dataset_properties = json.load(BytesIO(zip_file["dataset_properties.json"]))
+            most_vertices = dataset_properties["most_gpc_systems"]
+            search_for_gpc_systems = False
+        except KeyError:
+            print(
+                "Did not find 'most_gpc_systems'-key in dataset properties file. Manually search for most GPC-systems."
+            )
 
     if filter_gpc_systems:
         # Read *.zip-file content without GPC-system directories
