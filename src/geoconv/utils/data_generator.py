@@ -283,7 +283,10 @@ def preprocessed_shape_generator(zipfile_path,
                     shape_files.append(file_name)
 
         # Add shape files to list of all shape files
-        per_shape_files.append(shape_files)
+        if len(shape_files) > 0:
+            per_shape_files.append(shape_files)
+        else:
+            continue
 
         # Seek for largest amount of vertices if necessary
         if zero_pad_shapes and search_for_gpc_systems:
