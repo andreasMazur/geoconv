@@ -12,7 +12,7 @@ import trimesh
 import math
 
 
-def sample_surface(shape, output_dir):
+def sample_surface(shape, count, output_dir):
     """Wrapper function that samples vertices from a shape and stores it.
 
     Parameters
@@ -27,17 +27,29 @@ def sample_surface(shape, output_dir):
         # 1.) Create output dir if not existent
         os.makedirs(output_dir, exist_ok=True)
 
-        # 2.) Sample from surface
-        vertices = trimesh.sample.sample_surface_even(shape, count=2000)[0]
+        # 2.) Normalize shape
+        try:
+            shape, geodesic_diameter = normalize_mesh(shape)
+        except RuntimeError:
+            print(f"{output_dir} crashed during normalization. Skipping preprocessing.")
+            shutil.rmtree(output_dir)
+            return False
 
-        # 3.) Save sample and shape
+        # 3.) Sample from surface
+        vertices = trimesh.sample.sample_surface_even(shape, count=count)[0]
+
+        # 4.) Save sample and shape
         np.save(f"{output_dir}/vertices.npy", vertices)
         shape.export(f"{output_dir}/normalized_mesh.stl")
 
-        # 4.) Log preprocess properties
+        # 5.) Log preprocess properties
         properties_file_path = f"{output_dir}/preprocess_properties.json"
         with open(properties_file_path, "w") as properties_file:
-            json.dump({"amount_vertices": vertices.shape[0]}, properties_file, indent=4)
+            json.dump(
+                {"amount_vertices": vertices.shape[0], "original_geodesic_diameter": geodesic_diameter},
+                properties_file,
+                indent=4
+            )
         return True
     else:
         print(f"{output_dir}/preprocess_properties.json already exists. Skipping preprocessing.")
