@@ -39,6 +39,10 @@ def sample_surface(shape, count, output_dir):
 
         # 3.) Sample from surface
         vertices = trimesh.sample.sample_surface_even(shape, count=count)[0]
+        if vertices.shape[0] < count:
+            # Even sampling might return fewer vertices, but we require same amount of vertices for batching
+            # "Un-even"-sampling guarantees 'count'-many vertices.
+            vertices = trimesh.sample.sample_surface(shape, count=count)[0]
 
         # 4.) Save sample and shape
         np.save(f"{output_dir}/vertices.npy", vertices)
