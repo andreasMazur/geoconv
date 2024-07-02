@@ -1,6 +1,6 @@
 from geoconv.tensorflow.backbone.imcnn_backbone import ImcnnBackbone
 from geoconv.utils.data_generator import read_template_configurations
-from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
+from geoconv_examples.modelnet_40_classic.dataset import load_preprocessed_modelnet
 
 import os
 import keras
