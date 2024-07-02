@@ -36,6 +36,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             ), dtype=tf.float32
         )
 
+    @tf.function
     def call(self, vertices):
         return tf.map_fn(self.call_helper, vertices)
 
@@ -87,19 +88,3 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         # 6.) Return barycentric coordinates tensor
         # (vertices, n_radial, n_angular, 3, 2)
         return tf.stack([tf.transpose(projections_indices, perm=[0, 2, 3, 1]), interpolation_weights], axis=-1)
-
-
-if __name__ == "__main__":
-    # with tf.device("/CPU:0"):
-    bunny = load_bunny(
-        path="/home/andreas/Uni/datasets/stanford-bunny/bunny/reconstruction/bun_zipper.ply",
-        target_triangles_amount=6000
-    )
-    b_layer = BarycentricCoordinates(
-        n_radial=4,
-        n_angular=5,
-        radius=find_largest_one_hop_dist(bunny),
-        template_scale=0.75
-    )
-    for _ in range(100):
-        print(b_layer(bunny.vertices.reshape(1, -1, 3)).shape)
