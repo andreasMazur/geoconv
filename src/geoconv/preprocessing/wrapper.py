@@ -243,7 +243,11 @@ def bc_helper(assigned_directories, template_configurations, load_compressed_gpc
                     try:
                         gpc_systems.load(f"{shape_dir}/gpc_systems", load_compressed=load_compressed_gpc_systems)
                     except RecursionError:
-                        print(f"*** Recursion occurred error while loading GPC-systems of: {shape_dir}")
+                        print(f"*** Recursion-error occurred while loading GPC-systems of: {shape_dir}")
+                        loading_succeeded = False
+                        break
+                    except KeyError:
+                        print(f"*** Key-error occurred while loading GPC-systems of: {shape_dir}")
                         loading_succeeded = False
                         break
 
