@@ -52,7 +52,7 @@ def sample_surface(shape, count, output_dir):
         properties_file_path = f"{output_dir}/preprocess_properties.json"
         with open(properties_file_path, "w") as properties_file:
             json.dump(
-                {"amount_vertices": vertices.shape[0], "original_geodesic_diameter": geodesic_diameter},
+                {"amount_sampled_vertices": vertices.shape[0], "original_geodesic_diameter": geodesic_diameter},
                 properties_file,
                 indent=4
             )
