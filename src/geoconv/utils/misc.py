@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
 
 from scipy.linalg import blas
@@ -137,8 +139,11 @@ def repair_mesh(mesh):
     # Remove degenerate faces
     # mesh.update_faces(mesh.nondegenerate_faces())  # (does not update vertex_adjacency_graph)
 
+    # Observed cases in which loaded mesh has less vertices than this
+    # trimesh.Trimesh(vertices=mesh.vertices, faces=mesh.faces, process=True, validate=True)
+
     # Re-initializing seems like the straight-forward way currently
-    return trimesh.Trimesh(vertices=mesh.vertices, faces=mesh.faces, process=True, validate=True)
+    return trimesh.load_mesh(BytesIO(mesh.export(file_type="stl")), file_type="stl")
 
 
 def compute_geodesic_diameter(mesh):
