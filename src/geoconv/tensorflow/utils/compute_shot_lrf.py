@@ -43,7 +43,8 @@ def group_neighborhoods(vertices, radius, distance_matrix=None):
     Returns
     -------
     tf.Tensor, tf.Tensor:
-        A tuple containing two tensors. The first tensor contains the neighborhoods
+        A tuple containing two tensors. The first tensor describes vertex coordinates in each neighborhood. The second
+        described the vertex indices in each neighborhood.
     """
     # 1.) For each vertex determine local sets of neighbors
     if distance_matrix is None:
@@ -62,7 +63,7 @@ def group_neighborhoods(vertices, radius, distance_matrix=None):
     # 'vertex_neighborhoods': (vertices, n_neighbors, 3)
     vertex_neighborhoods = tf.gather(vertices, neighborhoods_indices, axis=0) - tf.expand_dims(vertices, axis=1)
 
-    # 4.) Account for batching in case a neighborhoods has less than expected neighbors:
+    # 4.) Account for batching in case a neighborhood has less than expected neighbors:
     # Set fill coordinates to edge of neighborhood s.t. their weights for LRF computation will be zero
     set_zero_at = tf.where(neighborhoods_indices == -1)
     updates = tf.tile(
