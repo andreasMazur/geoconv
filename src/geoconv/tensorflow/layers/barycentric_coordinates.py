@@ -1,5 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
-from geoconv.tensorflow.utils.compute_shot_lrf import group_neighborhoods, shot_lrf, logarithmic_map
+from geoconv.tensorflow.utils.compute_shot_lrf import group_neighborhoods, shot_lrf, logarithmic_map, \
+    compute_distance_matrix
 
 import tensorflow as tf
 
@@ -18,17 +19,52 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
     template_scale: float
         A scaling factor that is multiple onto the neighborhood radius in order to compute the template radius.
     """
-    def __init__(self, n_radial, n_angular, radius=0.01, template_scale=0.75):
+    def __init__(self, n_radial, n_angular, n_neighbors, template_scale=0.75):
         super().__init__()
-        self.radius = radius
-        self.template_radius = template_scale * self.radius
+        self.n_neighbors = n_neighbors
         self.n_radial = n_radial
         self.n_angular = n_angular
+        self.template_scale = template_scale
+        self.template = None
+
+    def adapt(self, data=None, template_radius=None):
+        """Sets the template radius to a given or the average neighborhood radius scaled by used defined coefficient.
+
+        Parameters
+        ----------
+        data: tf.Dataset
+            The training data which is used to compute the template radius.
+        template_radius: float
+            The template radius to use to initialize the template.
+
+        Returns
+        -------
+        float:
+            The final template radius.
+        """
+        assert data is not None or template_radius is not None, "Must provide either 'data' or 'template_radius'."
+
+        # If no template radius is given, compute the
+        if template_radius is None:
+            avg_radius = 0
+            for idx, vertices in enumerate(data):
+                distance_matrix = compute_distance_matrix(tf.cast(vertices, tf.float32))
+                radii = tf.gather(
+                    distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.n_neighbors], batch_dims=1
+                )
+                avg_radius = avg_radius + tf.reduce_mean(radii)
+            avg_radius = avg_radius / (idx + 1)
+            template_radius = avg_radius * self.template_scale
+
+        # Initialize template
         self.template = tf.constant(
             create_template_matrix(
-                n_radial=self.n_radial, n_angular=self.n_angular, radius=self.template_radius, in_cart=True
+                n_radial=self.n_radial, n_angular=self.n_angular, radius=template_radius, in_cart=True
             ), dtype=tf.float32
         )
+
+        # Return used template radius
+        return template_radius
 
     @tf.function
     def call(self, vertices):
@@ -61,13 +97,16 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         tf.Tensor:
             A 4D-tensor of shape (vertices, n_radial, n_angular, 3, 2) that describes barycentric coordinates.
         """
+        distance_matrix = compute_distance_matrix(vertices)
+        radii = tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.n_neighbors], batch_dims=1)
+
         # 1.) Get vertex-neighborhoods
         # 'neighborhoods': (vertices, n_neighbors, 3)
-        neighborhoods, neighborhoods_indices = group_neighborhoods(vertices, self.radius)
+        neighborhoods, neighborhoods_indices = group_neighborhoods(vertices, radii, distance_matrix)
 
         # 2.) Get local reference frames
         # 'lrfs': (vertices, 3, 3)
-        lrfs = shot_lrf(neighborhoods, self.radius)
+        lrfs = shot_lrf(neighborhoods, radii)
 
         # 3.) Project neighborhoods into their lrfs using the logarithmic map
         # 'projections': (vertices, n_neighbors, 2)
