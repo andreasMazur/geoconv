@@ -118,7 +118,8 @@ def shot_lrf(neighborhoods, radius):
     neighborhoods: tf.Tensor
         The vertices of the neighborhoods shifted around the neighborhood origin.
     radius: float
-        The radius of the neighborhoods.
+        A 1D-tensor containing the radii of each neighborhood. I.e., its first dimension needs to be of the same size
+        as the first dimension of the 'neighborhoods'-tensor.
 
     Returns
     -------
@@ -129,7 +130,7 @@ def shot_lrf(neighborhoods, radius):
     # 1.) Compute Eigenvectors
     ###########################
     # Calculate neighbor weights
-    distance_weights = tf.cast(radius, tf.float32) - tf.linalg.norm(neighborhoods, axis=-1)
+    distance_weights = tf.expand_dims(radius, axis=-1) - tf.linalg.norm(neighborhoods, axis=-1)
 
     # Compute weighted covariance matrices
     weighted_cov = tf.reshape(1 / tf.reduce_sum(distance_weights, axis=-1), (-1, 1, 1)) * tf.einsum(
