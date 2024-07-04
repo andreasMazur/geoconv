@@ -62,10 +62,9 @@ def group_neighborhoods(vertices, radius, distance_matrix=None):
     # 3.) Shift corresponding vertex-coordinates s.t. neighborhood-origin lies in [0, 0, 0].
     # 'vertex_neighborhoods': (vertices, n_neighbors, 3)
     set_zero_at = tf.where(neighborhoods_indices == -1)
-    zeros = tf.zeros(shape=tf.shape(set_zero_at)[0])
-    vertex_neighborhoods = tf.gather(
-        vertices, tf.tensor_scatter_nd_update(neighborhoods_indices, set_zero_at, tf.cast(zeros, tf.int64)), axis=0
-    ) - tf.expand_dims(vertices, axis=1)
+    zeros = tf.zeros(shape=tf.shape(set_zero_at)[0], dtype=tf.int64)
+    neighborhoods_indices = tf.tensor_scatter_nd_update(neighborhoods_indices, set_zero_at, zeros)
+    vertex_neighborhoods = tf.gather(vertices, neighborhoods_indices, axis=0) - tf.expand_dims(vertices, axis=1)
 
     # 4.) Account for batching in case a neighborhood has less than expected neighbors:
     # Set fill coordinates to edge of neighborhood s.t. their weights for LRF computation will be zero
