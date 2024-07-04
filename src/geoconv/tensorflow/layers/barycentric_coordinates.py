@@ -47,8 +47,8 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         # If no template radius is given, compute the
         if template_radius is None:
             avg_radius = 0
-            for idx, vertices in enumerate(data):
-                distance_matrix = compute_distance_matrix(tf.cast(vertices, tf.float32))
+            for idx, (vertices, labels) in enumerate(data):
+                distance_matrix = compute_distance_matrix(tf.cast(vertices[0], tf.float32))
                 radii = tf.gather(
                     distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.n_neighbors], batch_dims=1
                 )
