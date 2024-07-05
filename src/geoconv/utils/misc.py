@@ -138,12 +138,16 @@ def repair_mesh(mesh):
     # mesh.merge_vertices(merge_tex=True, merge_norm=True)  # (does not update vertex_adjacency_graph)
     # Remove degenerate faces
     # mesh.update_faces(mesh.nondegenerate_faces())  # (does not update vertex_adjacency_graph)
-
-    # Observed cases in which loaded mesh has less vertices than this
+    # Observed cases in which loaded mesh 'trimesh.load_mesh(...)' has less vertices than this:
     # trimesh.Trimesh(vertices=mesh.vertices, faces=mesh.faces, process=True, validate=True)
 
-    # Re-initializing seems like the straight-forward way currently
-    return trimesh.load_mesh(BytesIO(mesh.export(file_type="stl")), file_type="stl")
+    # Merges vertices
+    loaded_mesh = trimesh.load_mesh(BytesIO(mesh.export(file_type="stl")), file_type="stl")
+
+    # Repairs faces
+    mesh = trimesh.Trimesh(vertices=loaded_mesh.vertices, faces=loaded_mesh.faces, process=True, validate=True)
+
+    return mesh
 
 
 def compute_geodesic_diameter(mesh):
