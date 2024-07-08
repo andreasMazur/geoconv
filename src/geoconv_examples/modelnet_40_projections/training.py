@@ -16,7 +16,8 @@ class ModelnetClassifier(tf.keras.Model):
                  adaption_data,
                  isc_layer_dims=None,
                  variant=None,
-                 normalize=True):
+                 normalize=True,
+                 template_radius=None):
         super().__init__()
 
         # BC-layer configuration
@@ -32,7 +33,7 @@ class ModelnetClassifier(tf.keras.Model):
             template_scale=self.template_scale
         )
         self.bc_layer.trainable = False
-        self.template_radius = self.bc_layer.adapt(data=adaption_data)
+        self.template_radius = self.bc_layer.adapt(data=adaption_data, template_radius=template_radius)
 
         # ISC-blocks configuration
         isc_layer_dims = [128, 64, 8] if isc_layer_dims is None else isc_layer_dims
@@ -69,7 +70,8 @@ def training(dataset_path,
              n_neighbors=20,
              variant=None,
              isc_layer_dims=None,
-             learning_rate=0.00165):
+             learning_rate=0.00165,
+             template_radius=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -82,7 +84,8 @@ def training(dataset_path,
             template_scale=template_scale,
             adaption_data=load_preprocessed_modelnet(dataset_path, is_train=True, batch_size=1),
             isc_layer_dims=isc_layer_dims,
-            variant=variant
+            variant=variant,
+            template_radius=template_radius
         )
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
