@@ -169,6 +169,8 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         projections = logarithmic_map(lrfs, neighborhoods)
 
         # 4.) Compute barycentric coordinates
+        # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
+        # 'closest_proj': (vertices, 3, n_radial, n_angular)
         interpolation_weights, closest_proj = compute_bc(self.template, projections)
 
         # 5.) Get projection indices (convert neighborhood indices to shape vertex indices)
