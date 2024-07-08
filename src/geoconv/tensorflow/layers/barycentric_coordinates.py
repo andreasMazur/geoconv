@@ -81,6 +81,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             A 5D-tensor of shape (batch_shapes, vertices, n_radial, n_angular, 3, 2) that describes barycentric
             coordinates.
         """
+        # self.call_helper(vertices[0])
         return tf.map_fn(self.call_helper, vertices)
 
     @tf.function
@@ -113,14 +114,19 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         projections = logarithmic_map(lrfs, neighborhoods)
 
         # 4.) Compute barycentric coordinates
-        # 'closest_proj': (vertices, 3, n_radial, n_angular)
-        closest_proj = tf.argsort(
-            tf.linalg.norm(self.template - tf.expand_dims(tf.expand_dims(projections, axis=2), axis=2), axis=-1), axis=1
-        )[:, :3, :, :]
+        # 4.1) Compute distance to template vertices
+        # 'closest_proj': (vertices, n_neighbors, n_radial, n_angular)
+        closest_proj = self.template - tf.expand_dims(tf.expand_dims(projections, axis=2), axis=2)
 
+        # 4.2) Retrieve indices of three closest projections
+        # 'closest_proj': (vertices, 3, n_radial, n_angular)
+        closest_proj = tf.argsort(tf.linalg.norm(closest_proj, axis=-1), axis=1)[:, :3, :, :]
+
+        # 4.3) Use indices to retrieve coordinates of three closest projections
         # 'projections': (vertices, 3, n_radial, n_angular, 2)
         projections = tf.gather(projections, closest_proj, batch_dims=1)
 
+        # 4.4) Compute barycentric coordinates
         v0 = projections[:, 2] - projections[:, 0]
         v1 = projections[:, 1] - projections[:, 0]
         v2 = self.template - projections[:, 0]
@@ -131,7 +137,8 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         dot11 = tf.einsum("vrai,vrai->vra", v1, v1)
         dot12 = tf.einsum("vrai,vrai->vra", v1, v2)
 
-        denominator = dot00 * dot11 - dot01 * dot01
+        # Add small number to denominator to avoid dividing by zero
+        denominator = (dot00 * dot11 - dot01 * dot01) + 1e-6
 
         point_2_weight = (dot11 * dot02 - dot01 * dot12) / denominator
         point_1_weight = (dot00 * dot12 - dot01 * dot02) / denominator
