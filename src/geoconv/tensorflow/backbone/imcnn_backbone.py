@@ -15,6 +15,7 @@ class ImcnnBackbone(tf.keras.Model):
                  variant=None,
                  rescale_input_dim=None,
                  normalize=True,
+                 dropout_rate=0.2,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,7 +52,7 @@ class ImcnnBackbone(tf.keras.Model):
         self.do_layers = []
         self.amp_layers = []
         for idx in range(len(self.isc_layer_dims)):
-            self.do_layers.append(tf.keras.layers.Dropout(rate=0.2, name=f"DO_layer_{idx}"))
+            self.do_layers.append(tf.keras.layers.Dropout(rate=dropout_rate, name=f"DO_layer_{idx}"))
             self.isc_layers.append(
                 self.layer_type(
                     amt_templates=self.isc_layer_dims[idx],
