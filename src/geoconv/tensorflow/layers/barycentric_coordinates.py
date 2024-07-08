@@ -30,7 +30,7 @@ def compute_bc(template, projections):
     # 'closest_proj': (vertices, n_neighbors, n_radial, n_angular)
     closest_proj = template - tf.expand_dims(tf.expand_dims(projections, axis=2), axis=2)
 
-    # 2) Retrieve indices of three closest projections
+    # 2) Retrieve neighborhood indices of three closest projections (NOT equal to shape vertex indices)
     # 'closest_proj': (vertices, 3, n_radial, n_angular)
     closest_proj = tf.argsort(tf.linalg.norm(closest_proj, axis=-1), axis=1)[:, :3, :, :]
 
@@ -171,7 +171,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         # 4.) Compute barycentric coordinates
         interpolation_weights, closest_proj = compute_bc(self.template, projections)
 
-        # 5.) Get projection indices
+        # 5.) Get projection indices (convert neighborhood indices to shape vertex indices)
         # 'projections_indices': (vertices, 3, n_radial, n_angular)
         projections_indices = tf.cast(tf.gather(neighborhoods_indices, closest_proj, batch_dims=1), tf.float32)
 
