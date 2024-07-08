@@ -1,5 +1,5 @@
-from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
-from geoconv_examples.modelnet_40.training import ModelnetClassifier
+from geoconv_examples.modelnet_40_classic.dataset import load_preprocessed_modelnet
+from geoconv_examples.modelnet_40_classic.training import ModelnetClassifier
 
 import tensorflow as tf
 import keras_tuner as kt
