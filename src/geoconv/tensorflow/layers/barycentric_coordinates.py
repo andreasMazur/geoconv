@@ -8,6 +8,24 @@ import tensorflow as tf
 
 @tf.function
 def compute_bc(template, projections):
+    """Computes barycentric coordinates for a given template in given projections.
+
+    Parameters
+    ----------
+    template: tf.Tensor
+        A 3D-tensor of shape (n_radial, n_angular, 2) that contains 2D cartesian coordinates for template vertices.
+    projections: tf.Tensor
+        A 3D-tensor of shape (vertices, n_neighbors, 2) that contains all projected neighborhoods in 2D cartesian
+        coordinates. I.e., 'projections[i, j]' contains 2D coordinates of vertex 'j' in neighborhood 'i'.
+
+    Returns
+    -------
+    (tf.Tensor, tf.Tensor):
+        A 4D-tensor of shape (vertices, n_radial, n_angular, 3) that contains barycentric coordinates, i.e.,
+        interpolation coefficients, for all template vertices within each projected neighborhood. Additionally,
+        another 4D-tensor of shape (vertices, 3, n_radial, n_angular) that contains the vertex indices of the closest
+        projected vertices to the template vertices in each neighborhood.
+    """
     # 1) Compute distance to template vertices
     # 'closest_proj': (vertices, n_neighbors, n_radial, n_angular)
     closest_proj = template - tf.expand_dims(tf.expand_dims(projections, axis=2), axis=2)
