@@ -81,7 +81,6 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             A 5D-tensor of shape (batch_shapes, vertices, n_radial, n_angular, 3, 2) that describes barycentric
             coordinates.
         """
-        # self.call_helper(vertices[0])
         return tf.map_fn(self.call_helper, vertices)
 
     @tf.function
