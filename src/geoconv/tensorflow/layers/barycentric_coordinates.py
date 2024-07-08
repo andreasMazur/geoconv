@@ -5,6 +5,43 @@ from geoconv.tensorflow.utils.compute_shot_lrf import group_neighborhoods, shot_
 import tensorflow as tf
 
 
+@tf.function
+def compute_bc(template, projections):
+    # 1) Compute distance to template vertices
+    # 'closest_proj': (vertices, n_neighbors, n_radial, n_angular)
+    closest_proj = template - tf.expand_dims(tf.expand_dims(projections, axis=2), axis=2)
+
+    # 2) Retrieve indices of three closest projections
+    # 'closest_proj': (vertices, 3, n_radial, n_angular)
+    closest_proj = tf.argsort(tf.linalg.norm(closest_proj, axis=-1), axis=1)[:, :3, :, :]
+
+    # 3) Use indices to retrieve coordinates of three closest projections
+    # 'projections': (vertices, 3, n_radial, n_angular, 2)
+    projections = tf.gather(projections, closest_proj, batch_dims=1)
+
+    # 4) Compute barycentric coordinates
+    v0 = projections[:, 2] - projections[:, 0]
+    v1 = projections[:, 1] - projections[:, 0]
+    v2 = template - projections[:, 0]
+
+    dot00 = tf.einsum("vrai,vrai->vra", v0, v0)
+    dot01 = tf.einsum("vrai,vrai->vra", v0, v1)
+    dot02 = tf.einsum("vrai,vrai->vra", v0, v2)
+    dot11 = tf.einsum("vrai,vrai->vra", v1, v1)
+    dot12 = tf.einsum("vrai,vrai->vra", v1, v2)
+
+    # Add small number to denominator to avoid dividing by zero
+    denominator = (dot00 * dot11 - dot01 * dot01) + 1e-6
+
+    point_2_weight = (dot11 * dot02 - dot01 * dot12) / denominator
+    point_1_weight = (dot00 * dot12 - dot01 * dot02) / denominator
+    point_0_weight = 1 - point_2_weight - point_1_weight
+
+    interpolation_weights = tf.stack([point_2_weight, point_1_weight, point_0_weight], axis=-1)
+
+    return interpolation_weights, closest_proj
+
+
 class BarycentricCoordinates(tf.keras.layers.Layer):
     """A parameter-free neural network layer that approximates barycentric coordinates (BC).
 
@@ -113,37 +150,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         projections = logarithmic_map(lrfs, neighborhoods)
 
         # 4.) Compute barycentric coordinates
-        # 4.1) Compute distance to template vertices
-        # 'closest_proj': (vertices, n_neighbors, n_radial, n_angular)
-        closest_proj = self.template - tf.expand_dims(tf.expand_dims(projections, axis=2), axis=2)
-
-        # 4.2) Retrieve indices of three closest projections
-        # 'closest_proj': (vertices, 3, n_radial, n_angular)
-        closest_proj = tf.argsort(tf.linalg.norm(closest_proj, axis=-1), axis=1)[:, :3, :, :]
-
-        # 4.3) Use indices to retrieve coordinates of three closest projections
-        # 'projections': (vertices, 3, n_radial, n_angular, 2)
-        projections = tf.gather(projections, closest_proj, batch_dims=1)
-
-        # 4.4) Compute barycentric coordinates
-        v0 = projections[:, 2] - projections[:, 0]
-        v1 = projections[:, 1] - projections[:, 0]
-        v2 = self.template - projections[:, 0]
-
-        dot00 = tf.einsum("vrai,vrai->vra", v0, v0)
-        dot01 = tf.einsum("vrai,vrai->vra", v0, v1)
-        dot02 = tf.einsum("vrai,vrai->vra", v0, v2)
-        dot11 = tf.einsum("vrai,vrai->vra", v1, v1)
-        dot12 = tf.einsum("vrai,vrai->vra", v1, v2)
-
-        # Add small number to denominator to avoid dividing by zero
-        denominator = (dot00 * dot11 - dot01 * dot01) + 1e-6
-
-        point_2_weight = (dot11 * dot02 - dot01 * dot12) / denominator
-        point_1_weight = (dot00 * dot12 - dot01 * dot02) / denominator
-        point_0_weight = 1 - point_2_weight - point_1_weight
-
-        interpolation_weights = tf.stack([point_2_weight, point_1_weight, point_0_weight], axis=-1)
+        interpolation_weights, closest_proj = compute_bc(self.template, projections)
 
         # 5.) Get projection indices
         # 'projections_indices': (vertices, 3, n_radial, n_angular)
