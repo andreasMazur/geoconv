@@ -44,7 +44,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         """
         assert data is not None or template_radius is not None, "Must provide either 'data' or 'template_radius'."
 
-        # If no template radius is given, compute the
+        # If no template radius is given, compute the template radius
         if template_radius is None:
             avg_radius = 0
             for idx, (vertices, labels) in enumerate(data):
