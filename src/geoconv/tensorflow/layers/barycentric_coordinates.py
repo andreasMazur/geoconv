@@ -1,6 +1,7 @@
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
-from geoconv.tensorflow.utils.compute_shot_lrf import group_neighborhoods, shot_lrf, logarithmic_map, \
-    compute_distance_matrix
+from geoconv.tensorflow.utils.compute_shot_lrf import (
+    group_neighborhoods, shot_lrf, logarithmic_map, compute_distance_matrix
+)
 
 import tensorflow as tf
 
