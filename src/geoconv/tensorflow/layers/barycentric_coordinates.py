@@ -49,9 +49,11 @@ def compute_bc(template, projections):
     dot11 = tf.einsum("vrai,vrai->vra", v1, v1)
     dot12 = tf.einsum("vrai,vrai->vra", v1, v2)
 
-    # Avoid dividing by zero
     denominator = dot00 * dot11 - dot01 * dot01
-    denominator = tf.tensor_scatter_nd_update(denominator, tf.where(denominator == 0.), [1e-10])
+
+    # Avoid dividing by zero
+    zero_indices = tf.where(denominator == 0.)
+    denominator = tf.tensor_scatter_nd_update(denominator, zero_indices, tf.fill((tf.shape(zero_indices)[0],), 1e-10))
 
     point_2_weight = (dot11 * dot02 - dot01 * dot12) / denominator
     point_1_weight = (dot00 * dot12 - dot01 * dot02) / denominator
