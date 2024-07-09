@@ -8,7 +8,6 @@ from geoconv_examples.stanford_bunny.preprocess_demo import load_bunny
 
 from matplotlib import pyplot as plt
 
-import os
 import numpy as np
 import trimesh
 import matplotlib as mpl
