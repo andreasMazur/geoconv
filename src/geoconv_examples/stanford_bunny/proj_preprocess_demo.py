@@ -39,9 +39,9 @@ def visualize_interpolations(interpolation_weights, projections_indices, project
             interpolated_template_vertices.append(interpolated_template_vertex)
 
     interpolated_template_vertices = np.array(interpolated_template_vertices).reshape(template.shape)
-    visualize_projected_neighborhood(projections, show=False, color="blue")
+    visualize_projected_neighborhood(projections, show=False, color="blue", alpha=.5)
     visualize_projected_neighborhood(template.reshape(-1, 2), show=False, color="red", alpha=.5)
-    visualize_projected_neighborhood(interpolated_template_vertices.reshape(-1, 2), show=True, color="green")
+    visualize_projected_neighborhood(interpolated_template_vertices.reshape(-1, 2), show=True, color="green", alpha=.5)
 
 
 def visualize_projected_neighborhood(projections, show=True, color="blue", alpha=1.):
@@ -93,10 +93,7 @@ def visualize_distance_matrix(distance_matrix):
     plt.show()
 
 
-def preprocess_demo(path_to_stanford_bunny,
-                    n_radial=3,
-                    n_angular=8,
-                    n_neighbors=10):
+def preprocess_demo(path_to_stanford_bunny, n_radial=5, n_angular=6, n_neighbors=10):
     """Demonstrates and visualizes what the Barycentric-Coordinates layer is doing at the hand of the stanford bunny.
 
     Download the Stanford bunny from here:
@@ -166,7 +163,12 @@ def preprocess_demo(path_to_stanford_bunny,
     # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
     # 'closest_proj': (vertices, 3, n_radial, n_angular)
     # Hereby, 'interpolation_weights[i, j, k, l]' is the BC of neighbor vertex with index 'closest_proj[i, l, j, k]'
+
+    # Plot histogram of interpolation weights
     interpolation_weights, closest_proj = compute_bc(template.astype(np.float32), projections)
+    counts, bins = np.histogram(interpolation_weights.numpy().flatten(), bins=100)
+    plt.hist(bins[:-1], bins, weights=counts, rwidth=0.2)
+    plt.show()
 
     # Visualize three interpolated template vertices in their projected neighborhoods
     for n in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
