@@ -49,8 +49,8 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     Download the Stanford bunny from here:
     https://github.com/alecjacobson/common-3d-test-models/blob/master/data/stanford-bunny.zip
 
-    Unzip the .zip-file and move the 'bun_zipper.ply'-file into the folder where this demo-file
-    is saved.
+    Unzip the .zip-file and move the 'bun_zipper.ply'-file and enter the path to the 'bun_zipper.ply' as argument
+    for 'path_to_stanford_bunny'.
 
     Parameters
     ----------
