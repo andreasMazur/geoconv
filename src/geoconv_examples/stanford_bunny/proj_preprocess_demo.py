@@ -19,14 +19,14 @@ def visualize_interpolations(interpolation_weights, projections_indices, project
 
     Parameters
     ----------
-    interpolation_weights
-    projections_indices
-    projections
-    template
-
-    Returns
-    -------
-
+    interpolation_weights: np.ndarray
+        A 4D-array of shape (vertices, n_radial, n_angular, 3) that contains barycentric coordinates (BC).
+    projections_indices: np.ndarray
+        A 4D-array of shape (vertices, 3, n_radial, n_angular) that contains the indices for the BC-
+    projections: np.ndarray
+        A 3D-array of shape (vertices, n_neighbors, 2) that contains the 2D neighborhood projections.
+    template: np.ndarray
+        A 3D-array of shape (n_radial, n_angular, 2) that contains the 2D template vertices.
     """
     interpolated_template_vertices = []
     for radial_c in range(interpolation_weights.shape[0]):
