@@ -1,5 +1,7 @@
 from geoconv.tensorflow.backbone.imcnn_backbone import ImcnnBackbone
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
+from geoconv.tensorflow.layers.conv_dirac import ConvDirac
+from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
 from geoconv_examples.modelnet_40_projections.dataset import load_preprocessed_modelnet
 
 import os
@@ -98,6 +100,9 @@ def training(dataset_path,
         )
         imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
         imcnn(tf.random.uniform(shape=[1, 2000, 3]))  # tf.TensorShape([None, 2000, 3])
+        imcnn.backbone.normalize.adapt(
+            load_preprocessed_modelnet(dataset_path, is_train=True, batch_size=1, only_signal=True)
+        )
         imcnn.summary()
 
         # Define callbacks
