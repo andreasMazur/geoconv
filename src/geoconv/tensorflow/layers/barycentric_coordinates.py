@@ -49,14 +49,16 @@ def compute_bc(template, projections):
     dot11 = tf.einsum("vrai,vrai->vra", v1, v1)
     dot12 = tf.einsum("vrai,vrai->vra", v1, v2)
 
-    # Add small number to denominator to avoid dividing by zero
-    denominator = (dot00 * dot11 - dot01 * dot01) + 1e-6
+    # Avoid dividing by zero
+    denominator = dot00 * dot11 - dot01 * dot01
+    denominator = tf.tensor_scatter_nd_update(denominator, tf.where(denominator == 0.), [1e-10])
 
     point_2_weight = (dot11 * dot02 - dot01 * dot12) / denominator
     point_1_weight = (dot00 * dot12 - dot01 * dot02) / denominator
     point_0_weight = 1 - point_2_weight - point_1_weight
 
-    interpolation_weights = tf.stack([point_2_weight, point_1_weight, point_0_weight], axis=-1)
+    # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
+    interpolation_weights = tf.stack([point_0_weight, point_1_weight, point_2_weight], axis=-1)
 
     return interpolation_weights, closest_proj
 
