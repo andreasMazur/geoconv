@@ -27,27 +27,29 @@ def compute_bc(template, projections):
         projected vertices to the template vertices in each neighborhood.
     """
     # 1) Compute distance to template vertices
-    # 'closest_proj': (vertices, n_neighbors, n_radial, n_angular)
-    closest_proj = template - tf.expand_dims(tf.expand_dims(projections, axis=2), axis=2)
+    projections = tf.expand_dims(tf.expand_dims(projections, axis=2), axis=2)
 
-    # 2) Retrieve neighborhood indices of three closest projections (NOT equal to shape vertex indices)
-    # 'closest_proj': (vertices, 3, n_radial, n_angular)
-    closest_proj = tf.argsort(tf.linalg.norm(closest_proj, axis=-1), axis=1)[:, :3, :, :]
+    # 'closest_proj_indices': (vertices, n_neighbors, n_radial, n_angular, 2)
+    closest_proj_indices = template - projections
+
+    # 2) Retrieve neighborhood indices of two closest projections (NOT equal to shape vertex indices)
+    # 'closest_proj_indices': (vertices, 2, n_radial, n_angular)
+    closest_proj_indices = tf.argsort(tf.linalg.norm(closest_proj_indices, axis=-1), axis=1)[:, :2, :, :]
 
     # 3) Use indices to retrieve coordinates of three closest projections
-    # 'projections': (vertices, 3, n_radial, n_angular, 2)
-    projections = tf.gather(projections, closest_proj, batch_dims=1)
+    # 'projections': (vertices, 2, n_radial, n_angular, 2)
+    closest_proj = tf.gather(tf.squeeze(projections), closest_proj_indices, batch_dims=1)
 
     # 4) Compute barycentric coordinates
-    v0 = projections[:, 2] - projections[:, 0]
-    v1 = projections[:, 1] - projections[:, 0]
-    v2 = template - projections[:, 0]
+    v0 = projections - closest_proj[:, None, 0]
+    v1 = closest_proj[:, 1] - closest_proj[:, 0]
+    v2 = template - closest_proj[:, 0]
 
-    dot00 = tf.einsum("vrai,vrai->vra", v0, v0)
-    dot01 = tf.einsum("vrai,vrai->vra", v0, v1)
-    dot02 = tf.einsum("vrai,vrai->vra", v0, v2)
-    dot11 = tf.einsum("vrai,vrai->vra", v1, v1)
-    dot12 = tf.einsum("vrai,vrai->vra", v1, v2)
+    dot00 = tf.einsum("vnrai,vnrai->vnra", v0, v0)
+    dot01 = tf.einsum("vnrai,vrai->vnra", v0, v1)
+    dot02 = tf.einsum("vnrai,vrai->vnra", v0, v2)
+    dot11 = tf.expand_dims(tf.einsum("vrai,vrai->vra", v1, v1), axis=1)
+    dot12 = tf.expand_dims(tf.einsum("vrai,vrai->vra", v1, v2), axis=1)
 
     denominator = dot00 * dot11 - dot01 * dot01
 
@@ -59,10 +61,20 @@ def compute_bc(template, projections):
     point_1_weight = (dot00 * dot12 - dot01 * dot02) / denominator
     point_0_weight = 1 - point_2_weight - point_1_weight
 
-    # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
+    # 'interpolation_weights': (vertices, n_neighbors, n_radial, n_angular, 3)
     interpolation_weights = tf.stack([point_0_weight, point_1_weight, point_2_weight], axis=-1)
 
-    return interpolation_weights, closest_proj
+    # Reshape for simplicity: (vertices, n_radial, n_angular, n_neighbors, 3)
+    interpolation_weights = tf.transpose(interpolation_weights, perm=[0, 2, 3, 1, 4])
+
+    # Choose interpolation weights with the smallest norm for numerical stability
+    interpolation_weight_indices = tf.argsort(tf.linalg.norm(interpolation_weights, axis=-1))[:, :, :, 0]
+    interpolation_weights = tf.gather(interpolation_weights, interpolation_weight_indices, batch_dims=3)
+    closest_proj_indices = tf.concat(
+        [closest_proj_indices, tf.expand_dims(interpolation_weight_indices, axis=1)], axis=1
+    )
+
+    return interpolation_weights, closest_proj_indices
 
 
 class BarycentricCoordinates(tf.keras.layers.Layer):
