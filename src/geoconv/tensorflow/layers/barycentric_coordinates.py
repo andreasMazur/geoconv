@@ -2,12 +2,13 @@ from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
 from geoconv.tensorflow.utils.compute_shot_lrf import (
     group_neighborhoods, shot_lrf, logarithmic_map, compute_distance_matrix
 )
+from geoconv.preprocessing.barycentric_coordinates import compute_barycentric
 
 import tensorflow as tf
 import numpy as np
 
 
-# @tf.function
+@tf.function
 def compute_bc(template, projections):
     """Computes barycentric coordinates for a given template in given projections.
 
@@ -41,7 +42,7 @@ def compute_bc(template, projections):
     # 'closet_proj': (vertices, n_radial, n_angular, 1, 2)
     closet_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, 0], batch_dims=1)[:, :, :, None, :]
     # 'other_proj':  (vertices, n_radial, n_angular, n_neighbors - 1, 2)
-    other_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, 1:], batch_dims=1)
+    other_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, :], batch_dims=1)
 
     # 4) Compute barycentric coordinates
     v0 = other_proj - closet_proj
@@ -61,7 +62,7 @@ def compute_bc(template, projections):
     zero_indices = tf.where(denominator == 0.)
     denominator = tf.tensor_scatter_nd_update(denominator, zero_indices, tf.fill((tf.shape(zero_indices)[0],), 1e-10))
 
-    point_2_weight = tf.einsum("vran,vram->vranm", dot02, dot11) - tf.einsum("vranm,vram->vranm", dot01, dot12)
+    point_2_weight = tf.einsum("vram,vran->vranm", dot11, dot02) - tf.einsum("vranm,vram->vranm", dot01, dot12)
     point_2_weight = point_2_weight / denominator
 
     point_1_weight = tf.einsum("vran,vram->vranm", dot00, dot12) - tf.einsum("vranm,vran->vranm", dot01, dot02)
@@ -70,7 +71,7 @@ def compute_bc(template, projections):
     point_0_weight = 1 - point_2_weight - point_1_weight
 
     # 'interpolation_weights': (vertices, radial, angular, n_neighbors - 1, n_neighbors - 1, 3)
-    interpolation_weights = tf.stack([point_0_weight, point_1_weight, point_2_weight], axis=-1)
+    interpolation_weights = tf.stack([point_0_weight, point_2_weight, point_1_weight], axis=-1)
 
     # Select BC with smallest inf-norm
     interpolation_w_indices = tf.linalg.norm(interpolation_weights, axis=-1, ord=np.inf)
@@ -86,8 +87,11 @@ def compute_bc(template, projections):
     # Gather corresponding BC
     interpolation_weights = tf.gather_nd(interpolation_weights, bc_indices, batch_dims=3)
 
+    # Convert BC-indices
+    bc_indices = tf.gather(closest_idx_hierarchy, bc_indices, batch_dims=3)
+
     # Group all associated BC-indices
-    bc_indices = tf.concat([tf.cast(closest_idx_hierarchy[:, :, :, 0, None], tf.int64), bc_indices], axis=-1)
+    bc_indices = tf.concat([tf.cast(closest_idx_hierarchy[:, :, :, 0, None], tf.int32), bc_indices], axis=-1)
 
     return interpolation_weights, bc_indices
 
