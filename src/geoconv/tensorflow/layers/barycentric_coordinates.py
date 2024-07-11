@@ -2,13 +2,12 @@ from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
 from geoconv.tensorflow.utils.compute_shot_lrf import (
     group_neighborhoods, shot_lrf, logarithmic_map, compute_distance_matrix
 )
-from geoconv.preprocessing.barycentric_coordinates import compute_barycentric
 
 import tensorflow as tf
 import numpy as np
 
 
-@tf.function
+# @tf.function
 def compute_bc(template, projections):
     """Computes barycentric coordinates for a given template in given projections.
 
@@ -73,8 +72,15 @@ def compute_bc(template, projections):
     # 'interpolation_weights': (vertices, radial, angular, n_neighbors - 1, n_neighbors - 1, 3)
     interpolation_weights = tf.stack([point_0_weight, point_2_weight, point_1_weight], axis=-1)
 
-    # Select BC with smallest inf-norm
+    # Encourage using BC with smallest inf-norm
     interpolation_w_indices = tf.linalg.norm(interpolation_weights, axis=-1, ord=np.inf)
+
+    # Encourage using BC which are non-negative
+    interpolation_w_indices = interpolation_w_indices + tf.reduce_sum(
+        tf.keras.activations.relu(-interpolation_weights), axis=-1
+    )
+
+    # Select BC
     s = tf.shape(interpolation_w_indices)
     interpolation_w_indices = tf.reshape(interpolation_w_indices, (s[0], s[1], s[2], s[3] * s[4]))
     interpolation_w_indices = tf.argmin(interpolation_w_indices, axis=-1)
