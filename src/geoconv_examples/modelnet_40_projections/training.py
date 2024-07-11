@@ -17,8 +17,10 @@ class ModelnetClassifier(tf.keras.Model):
                  isc_layer_dims=None,
                  variant=None,
                  normalize=True,
-                 template_radius=None):
+                 template_radius=None,
+                 modelnet10=False):
         super().__init__()
+        self.modelnet10 = modelnet10
 
         # BC-layer configuration
         self.n_radial = n_radial
@@ -48,7 +50,7 @@ class ModelnetClassifier(tf.keras.Model):
 
         # Output configuration
         self.flatten = tf.keras.layers.Flatten()
-        self.output_layer = tf.keras.layers.Dense(40)
+        self.output_layer = tf.keras.layers.Dense(10 if self.modelnet10 else 40)
 
     def call(self, inputs, **kwargs):
         # Estimate barycentric coordinates
@@ -71,7 +73,8 @@ def training(dataset_path,
              variant=None,
              isc_layer_dims=None,
              learning_rate=0.00165,
-             template_radius=None):
+             template_radius=None,
+             modelnet10=False):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -82,10 +85,11 @@ def training(dataset_path,
             n_angular=n_angular,
             n_neighbors=n_neighbors,
             template_scale=template_scale,
-            adaption_data=load_preprocessed_modelnet(dataset_path, is_train=True, batch_size=1),
+            adaption_data=load_preprocessed_modelnet(dataset_path, is_train=True, batch_size=1, modelnet10=modelnet10),
             isc_layer_dims=isc_layer_dims,
             variant=variant,
-            template_radius=template_radius
+            template_radius=template_radius,
+            modelnet10=modelnet10
         )
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
@@ -99,7 +103,9 @@ def training(dataset_path,
         imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
         imcnn(tf.random.uniform(shape=[1, 2000, 3]))  # tf.TensorShape([None, 2000, 3])
         imcnn.backbone.normalize.adapt(
-            load_preprocessed_modelnet(dataset_path, is_train=True, batch_size=1, only_signal=True)
+            load_preprocessed_modelnet(
+                dataset_path, is_train=True, batch_size=1, only_signal=True, modelnet10=modelnet10
+            )
         )
         imcnn.summary()
 
@@ -118,8 +124,8 @@ def training(dataset_path,
         )
 
         # Load data
-        train_data = load_preprocessed_modelnet(dataset_path, is_train=True)
-        test_data = load_preprocessed_modelnet(dataset_path, is_train=False)
+        train_data = load_preprocessed_modelnet(dataset_path, is_train=True, modelnet10=modelnet10)
+        test_data = load_preprocessed_modelnet(dataset_path, is_train=False, modelnet10=modelnet10)
 
         # Train model
         imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=test_data, epochs=200)
