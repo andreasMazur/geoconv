@@ -48,16 +48,16 @@ MODELNET_CLASSES = {
 }
 
 MODELNET10_CLASSES = {
-    "bathtub": 1,
-    "bed": 2,
-    "chair": 3,
-    "desk": 4,
-    "dresser": 5,
-    "monitor": 6,
-    "night_stand": 7,
-    "sofa": 8,
-    "table": 9,
-    "toilet": 10
+    "bathtub": 0,
+    "bed": 1,
+    "chair": 2,
+    "desk": 3,
+    "dresser": 4,
+    "monitor": 5,
+    "night_stand": 6,
+    "sofa": 7,
+    "table": 8,
+    "toilet": 9
 }
 
 
