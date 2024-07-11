@@ -21,7 +21,7 @@ def visualize_interpolations(interpolation_weights, projections_indices, project
     interpolation_weights: np.ndarray
         A 3D-array of shape (n_radial, n_angular, 3) that contains barycentric coordinates (BC).
     projections_indices: np.ndarray
-        A 3D-array of shape (3, n_radial, n_angular) that contains the indices for the BC-
+        A 3D-array of shape (n_radial, n_angular, 3) that contains the indices for the BC-
     projections: np.ndarray
         A 2D-array of shape (n_neighbors, 2) that contains the 2D neighborhood projections.
     template: np.ndarray
@@ -32,14 +32,14 @@ def visualize_interpolations(interpolation_weights, projections_indices, project
         for angular_c in range(interpolation_weights.shape[1]):
             interpolated_template_vertex = []
             for idx in range(3):
-                closest_neighbor = projections[projections_indices[idx, radial_c, angular_c]]
+                closest_neighbor = projections[projections_indices[radial_c, angular_c, idx]]
                 interpolation_coefficient = interpolation_weights[radial_c, angular_c, idx]
                 interpolated_template_vertex.append(interpolation_coefficient * closest_neighbor)
             interpolated_template_vertex = sum(interpolated_template_vertex)
             interpolated_template_vertices.append(interpolated_template_vertex)
 
     interpolated_template_vertices = np.array(interpolated_template_vertices).reshape(template.shape)
-    visualize_projected_neighborhood(projections, show=False, color="blue", alpha=.5)
+    visualize_projected_neighborhood(projections, show=False, color="blue", alpha=1.)
     visualize_projected_neighborhood(template.reshape(-1, 2), show=False, color="red", alpha=.5)
     visualize_projected_neighborhood(interpolated_template_vertices.reshape(-1, 2), show=True, color="green", alpha=.5)
 
@@ -161,13 +161,13 @@ def preprocess_demo(path_to_stanford_bunny, n_radial=5, n_angular=6, n_neighbors
 
     # Step 7: Compute interpolation coefficients for the template vertices within the projections
     # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
-    # 'closest_proj': (vertices, 3, n_radial, n_angular)
-    # Hereby, 'interpolation_weights[i, j, k, l]' is the BC of neighbor vertex with index 'closest_proj[i, l, j, k]'
+    # 'closest_proj': (vertices, n_radial, n_angular, 3)
+    # Hereby, 'interpolation_weights[i, j, k, l]' is the BC of neighbor vertex with index 'closest_proj[i, j, k, l]'
 
     # Plot histogram of interpolation weights
     interpolation_weights, closest_proj = compute_bc(template.astype(np.float32), projections)
     counts, bins = np.histogram(interpolation_weights.numpy().flatten(), bins=100)
-    plt.hist(bins[:-1], bins, weights=counts, rwidth=0.2)
+    plt.hist(bins[:-1], bins, weights=counts, rwidth=0.5)
     plt.show()
 
     # Visualize three interpolated template vertices in their projected neighborhoods
