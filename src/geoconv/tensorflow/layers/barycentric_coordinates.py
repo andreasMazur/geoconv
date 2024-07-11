@@ -41,7 +41,7 @@ def compute_bc(template, projections):
     # 'closet_proj': (vertices, n_radial, n_angular, 1, 2)
     closet_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, 0], batch_dims=1)[:, :, :, None, :]
     # 'other_proj':  (vertices, n_radial, n_angular, n_neighbors - 1, 2)
-    other_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, :], batch_dims=1)
+    other_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, 1:], batch_dims=1)
 
     # 4) Compute barycentric coordinates
     v0 = other_proj - closet_proj
@@ -93,8 +93,16 @@ def compute_bc(template, projections):
     # Gather corresponding BC
     interpolation_weights = tf.gather_nd(interpolation_weights, bc_indices, batch_dims=3)
 
+    # Filter negative interpolation coefficients and ones
+    to_filter = tf.where(tf.logical_or(interpolation_weights < 0, interpolation_weights == 1.))[:, :3]
+    interpolation_weights = tf.tensor_scatter_nd_update(
+        interpolation_weights,
+        to_filter,
+        tf.tile([[0., 0., 0.]], multiples=[tf.shape(to_filter)[0], 1])
+    )
+
     # Convert BC-indices
-    bc_indices = tf.gather(closest_idx_hierarchy, bc_indices, batch_dims=3)
+    bc_indices = tf.gather(closest_idx_hierarchy[:, :, :, 1:], bc_indices, batch_dims=3)
 
     # Group all associated BC-indices
     bc_indices = tf.concat([tf.cast(closest_idx_hierarchy[:, :, :, 0, None], tf.int32), bc_indices], axis=-1)
