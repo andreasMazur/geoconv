@@ -4,9 +4,10 @@ from geoconv.tensorflow.utils.compute_shot_lrf import (
 )
 
 import tensorflow as tf
+import numpy as np
 
 
-@tf.function
+# @tf.function
 def compute_bc(template, projections):
     """Computes barycentric coordinates for a given template in given projections.
 
@@ -23,58 +24,55 @@ def compute_bc(template, projections):
     (tf.Tensor, tf.Tensor):
         A 4D-tensor of shape (vertices, n_radial, n_angular, 3) that contains barycentric coordinates, i.e.,
         interpolation coefficients, for all template vertices within each projected neighborhood. Additionally,
-        another 4D-tensor of shape (vertices, 3, n_radial, n_angular) that contains the vertex indices of the closest
+        another 4D-tensor of shape (vertices, n_radial, n_angular, 3) that contains the vertex indices of the closest
         projected vertices to the template vertices in each neighborhood.
     """
     # 1) Compute distance to template vertices
-    projections = tf.expand_dims(tf.expand_dims(projections, axis=2), axis=2)
+    projections = tf.expand_dims(tf.expand_dims(projections, axis=1), axis=1)
 
-    # 'closest_proj_indices': (vertices, n_neighbors, n_radial, n_angular, 2)
-    closest_proj_indices = template - projections
+    # 'closest_idx_hierarchy': (vertices, n_radial, n_angular, n_neighbors, 2)
+    closest_idx_hierarchy = tf.expand_dims(template, axis=2) - projections
 
     # 2) Retrieve neighborhood indices of two closest projections (NOT equal to shape vertex indices)
-    # 'closest_proj_indices': (vertices, 2, n_radial, n_angular)
-    closest_proj_indices = tf.argsort(tf.linalg.norm(closest_proj_indices, axis=-1), axis=1)[:, :2, :, :]
+    # 'closest_idx_hierarchy': (vertices, n_radial, n_angular, n_neighbors)
+    closest_idx_hierarchy = tf.argsort(tf.linalg.norm(closest_idx_hierarchy, axis=-1), axis=-1)
 
     # 3) Use indices to retrieve coordinates of three closest projections
-    # 'projections': (vertices, 2, n_radial, n_angular, 2)
-    closest_proj = tf.gather(tf.squeeze(projections), closest_proj_indices, batch_dims=1)
+    # 'closet_proj': (vertices, n_radial, n_angular, 1, 2)
+    closet_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, 0], batch_dims=1)[:, :, :, None, :]
+    # 'other_proj':  (vertices, n_radial, n_angular, n_neighbors - 1, 2)
+    other_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, 1:], batch_dims=1)
 
     # 4) Compute barycentric coordinates
-    v0 = projections - closest_proj[:, None, 0]
-    v1 = closest_proj[:, 1] - closest_proj[:, 0]
-    v2 = template - closest_proj[:, 0]
+    v0 = other_proj - closet_proj
+    v1 = other_proj - closet_proj
+    v2 = tf.expand_dims(template, axis=-2) - closet_proj
 
-    dot00 = tf.einsum("vnrai,vnrai->vnra", v0, v0)
-    dot01 = tf.einsum("vnrai,vrai->vnra", v0, v1)
-    dot02 = tf.einsum("vnrai,vrai->vnra", v0, v2)
-    dot11 = tf.expand_dims(tf.einsum("vrai,vrai->vra", v1, v1), axis=1)
-    dot12 = tf.expand_dims(tf.einsum("vrai,vrai->vra", v1, v2), axis=1)
+    dot00 = tf.einsum("vrani,vrani->vran", v0, v0)
+    dot01 = tf.einsum("vrani,vrami->vranm", v0, v1)  # dot01[..., n, m] = dot product of neighbor n with neighbor m
+    dot02 = tf.einsum("vrani,vrai->vran", v0, tf.squeeze(v2))
 
-    denominator = dot00 * dot11 - dot01 * dot01
+    dot11 = tf.einsum("vrani,vrani->vran", v1, v1)
+    dot12 = tf.einsum("vrani,vrai->vran", v1, tf.squeeze(v2))
+
+    denominator = tf.einsum("vran,vram->vranm", dot00, dot11) - dot01 * dot01
 
     # Avoid dividing by zero
     zero_indices = tf.where(denominator == 0.)
     denominator = tf.tensor_scatter_nd_update(denominator, zero_indices, tf.fill((tf.shape(zero_indices)[0],), 1e-10))
 
-    point_2_weight = (dot11 * dot02 - dot01 * dot12) / denominator
-    point_1_weight = (dot00 * dot12 - dot01 * dot02) / denominator
+    point_2_weight = (tf.einsum("vran,vram->vranm", dot02, dot11) - tf.einsum("vranm,vram->vranm", dot01, dot12))
+    point_2_weight = point_2_weight / denominator
+
+    point_1_weight = tf.einsum("vran,vram->vranm", dot00, dot12) - tf.einsum("vranm,vran->vranm", dot01, dot02)
+    point_1_weight = point_1_weight / denominator
+
     point_0_weight = 1 - point_2_weight - point_1_weight
 
-    # 'interpolation_weights': (vertices, n_neighbors, n_radial, n_angular, 3)
+    # 'interpolation_weights': (vertices, radial, angular, n_neighbors - 1, n_neighbors - 1, 3)
     interpolation_weights = tf.stack([point_0_weight, point_1_weight, point_2_weight], axis=-1)
 
-    # Reshape for simplicity: (vertices, n_radial, n_angular, n_neighbors, 3)
-    interpolation_weights = tf.transpose(interpolation_weights, perm=[0, 2, 3, 1, 4])
-
-    # Choose interpolation weights with the smallest norm for numerical stability
-    interpolation_weight_indices = tf.argsort(tf.linalg.norm(interpolation_weights, axis=-1))[:, :, :, 0]
-    interpolation_weights = tf.gather(interpolation_weights, interpolation_weight_indices, batch_dims=3)
-    closest_proj_indices = tf.concat(
-        [closest_proj_indices, tf.expand_dims(interpolation_weight_indices, axis=1)], axis=1
-    )
-
-    return interpolation_weights, closest_proj_indices
+    return interpolation_weights, closest_idx_hierarchy
 
 
 class BarycentricCoordinates(tf.keras.layers.Layer):
@@ -186,13 +184,13 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
 
         # 4.) Compute barycentric coordinates
         # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
-        # 'closest_proj': (vertices, 3, n_radial, n_angular)
+        # 'closest_proj': (vertices, n_radial, n_angular, 3)
         interpolation_weights, closest_proj = compute_bc(self.template, projections)
 
         # 5.) Get projection indices (convert neighborhood indices to shape vertex indices)
-        # 'projections_indices': (vertices, 3, n_radial, n_angular)
+        # 'projections_indices': (vertices, n_radial, n_angular, 3)
         projections_indices = tf.cast(tf.gather(neighborhoods_indices, closest_proj, batch_dims=1), tf.float32)
 
         # 6.) Return barycentric coordinates tensor
         # (vertices, n_radial, n_angular, 3, 2)
-        return tf.stack([tf.transpose(projections_indices, perm=[0, 2, 3, 1]), interpolation_weights], axis=-1)
+        return tf.stack([projections_indices, interpolation_weights], axis=-1)
