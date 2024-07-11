@@ -61,7 +61,7 @@ def compute_bc(template, projections):
     zero_indices = tf.where(denominator == 0.)
     denominator = tf.tensor_scatter_nd_update(denominator, zero_indices, tf.fill((tf.shape(zero_indices)[0],), 1e-10))
 
-    point_2_weight = (tf.einsum("vran,vram->vranm", dot02, dot11) - tf.einsum("vranm,vram->vranm", dot01, dot12))
+    point_2_weight = tf.einsum("vran,vram->vranm", dot02, dot11) - tf.einsum("vranm,vram->vranm", dot01, dot12)
     point_2_weight = point_2_weight / denominator
 
     point_1_weight = tf.einsum("vran,vram->vranm", dot00, dot12) - tf.einsum("vranm,vran->vranm", dot01, dot02)
@@ -72,7 +72,24 @@ def compute_bc(template, projections):
     # 'interpolation_weights': (vertices, radial, angular, n_neighbors - 1, n_neighbors - 1, 3)
     interpolation_weights = tf.stack([point_0_weight, point_1_weight, point_2_weight], axis=-1)
 
-    return interpolation_weights, closest_idx_hierarchy
+    # Select BC with smallest inf-norm
+    interpolation_w_indices = tf.linalg.norm(interpolation_weights, axis=-1, ord=np.inf)
+    s = tf.shape(interpolation_w_indices)
+    interpolation_w_indices = tf.reshape(interpolation_w_indices, (s[0], s[1], s[2], s[3] * s[4]))
+    interpolation_w_indices = tf.argmin(interpolation_w_indices, axis=-1)
+
+    # Collect indices for best BC
+    row_indices = tf.floor(interpolation_w_indices / tf.cast(s[3], tf.int64))
+    col_indices = tf.cast(interpolation_w_indices, tf.float64) - row_indices * tf.cast(s[3], tf.float64)
+    bc_indices = tf.stack([tf.cast(row_indices, tf.int64), tf.cast(col_indices, tf.int64)], axis=-1)
+
+    # Gather corresponding BC
+    interpolation_weights = tf.gather_nd(interpolation_weights, bc_indices, batch_dims=3)
+
+    # Group all associated BC-indices
+    bc_indices = tf.concat([tf.cast(closest_idx_hierarchy[:, :, :, 0, None], tf.int64), bc_indices], axis=-1)
+
+    return interpolation_weights, bc_indices
 
 
 class BarycentricCoordinates(tf.keras.layers.Layer):
