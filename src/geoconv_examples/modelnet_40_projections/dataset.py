@@ -47,12 +47,27 @@ MODELNET_CLASSES = {
     "xbox": 39
 }
 
+MODELNET10_CLASSES = {
+    "bathtub": 1,
+    "bed": 2,
+    "chair": 3,
+    "desk": 4,
+    "dresser": 5,
+    "monitor": 6,
+    "night_stand": 7,
+    "sofa": 8,
+    "table": 9,
+    "toilet": 10
+}
 
-def modelnet_generator(dataset_path, is_train, only_signal=False):
-    if is_train:
-        filter_list = ["train.*vertices"]
+
+def modelnet_generator(dataset_path, is_train, only_signal=False, modelnet10=False):
+    prefix = "train" if is_train else "test"
+    if modelnet10:
+        filter_list = list(MODELNET10_CLASSES.keys())
+        filter_list = [f"{prefix}/{c}_.*/vertices" for c in filter_list]
     else:
-        filter_list = ["test.*vertices"]
+        filter_list = [f"{prefix}.*vertices"]
 
     # Load sampled vertices from preprocessed dataset
     psg = preprocessed_shape_generator(dataset_path, filter_list=filter_list, shuffle_seed=42, filter_gpc_systems=False)
@@ -61,7 +76,10 @@ def modelnet_generator(dataset_path, is_train, only_signal=False):
         if only_signal:
             yield vertices
         else:
-            yield vertices, np.array(MODELNET_CLASSES[vertices_path.split("/")[1]]).reshape(1)
+            if modelnet10:
+                yield vertices, np.array(MODELNET10_CLASSES[vertices_path.split("/")[1]]).reshape(1)
+            else:
+                yield vertices, np.array(MODELNET_CLASSES[vertices_path.split("/")[1]]).reshape(1)
 
 
 def load_preprocessed_modelnet(dataset_path, is_train, batch_size=4, only_signal=False):
