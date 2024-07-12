@@ -2,9 +2,15 @@ from geoconv.tensorflow.backbone.imcnn_backbone import ImcnnBackbone
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 from geoconv_examples.modelnet_40_projections.dataset import load_preprocessed_modelnet
 
+import tensorflow_probability as tfp
 import tensorflow as tf
 import keras_tuner as kt
 import os
+
+
+class Covariance(tf.keras.layers.Layer):
+    def call(self, inputs):
+        return tf.map_fn(tfp.stats.covariance, inputs)
 
 
 class HyperModel(kt.HyperModel):
@@ -55,6 +61,7 @@ class HyperModel(kt.HyperModel):
         )([signal, bc])
 
         # Output
+        signal = Covariance()(signal)
         signal = tf.keras.layers.Flatten()(signal)
         signal_output = tf.keras.layers.Dense(10)(signal)  # Work on modelnet10 for now
 
