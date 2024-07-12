@@ -9,7 +9,14 @@ import tensorflow_probability as tfp
 
 
 class ModelnetClassifier(keras.Model):
-    def __init__(self, n_radial, n_angular, template_radius, isc_layer_dims=None, variant=None, normalize=True):
+    def __init__(self,
+                 n_radial,
+                 n_angular,
+                 template_radius,
+                 isc_layer_dims=None,
+                 variant=None,
+                 normalize=True,
+                 modelnet10=False):
         super().__init__()
         isc_layer_dims = [128, 64, 8] if isc_layer_dims is None else isc_layer_dims
         self.backbone = ImcnnBackbone(
@@ -21,7 +28,7 @@ class ModelnetClassifier(keras.Model):
             normalize=normalize
         )
         self.flatten = tf.keras.layers.Flatten()
-        self.output_layer = tf.keras.layers.Dense(40)
+        self.output_layer = tf.keras.layers.Dense(10 if modelnet10 else 40)
 
     def call(self, inputs, **kwargs):
         # Embed
@@ -37,7 +44,8 @@ def training(dataset_path,
              template_configurations=None,
              variant=None,
              isc_layer_dims=None,
-             learning_rate=0.00165):
+             learning_rate=0.00165,
+             modelnet10=False):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -48,11 +56,22 @@ def training(dataset_path,
     # Run experiments
     for (n_radial, n_angular, template_radius) in template_configurations:
         # Load data
-        train_data = load_preprocessed_modelnet(dataset_path, n_radial, n_angular, template_radius, is_train=True)
-        test_data = load_preprocessed_modelnet(dataset_path, n_radial, n_angular, template_radius, is_train=False)
+        train_data = load_preprocessed_modelnet(
+            dataset_path, n_radial, n_angular, template_radius, is_train=True, modelnet10=modelnet10
+        )
+        test_data = load_preprocessed_modelnet(
+            dataset_path, n_radial, n_angular, template_radius, is_train=False, modelnet10=modelnet10
+        )
 
         # Define and compile model
-        imcnn = ModelnetClassifier(n_radial, n_angular, template_radius, variant=variant, isc_layer_dims=isc_layer_dims)
+        imcnn = ModelnetClassifier(
+            n_radial,
+            n_angular,
+            template_radius,
+            variant=variant,
+            isc_layer_dims=isc_layer_dims,
+            modelnet10=modelnet10
+        )
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = keras.optimizers.AdamW(
             learning_rate=keras.optimizers.schedules.ExponentialDecay(
@@ -69,7 +88,14 @@ def training(dataset_path,
         print("Adapt normalization layer on training data..")
         imcnn.backbone.normalize.adapt(
             load_preprocessed_modelnet(
-                dataset_path, n_radial, n_angular, template_radius, is_train=True, only_signal=True
+                dataset_path,
+                n_radial,
+                n_angular,
+                template_radius,
+                is_train=True,
+                only_signal=True,
+                batch=1,
+                modelnet10=modelnet10
             )
         )
         print("Done.")

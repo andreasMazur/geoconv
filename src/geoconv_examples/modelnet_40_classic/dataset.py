@@ -50,12 +50,35 @@ MODELNET_CLASSES = {
     "xbox": 39
 }
 
+MODELNET10_CLASSES = {
+    "bathtub": 0,
+    "bed": 1,
+    "chair": 2,
+    "desk": 3,
+    "dresser": 4,
+    "monitor": 5,
+    "night_stand": 6,
+    "sofa": 7,
+    "table": 8,
+    "toilet": 9
+}
 
-def modelnet_generator(dataset_path, n_radial, n_angular, template_radius, is_train, only_signal=False, batch=1):
-    if is_train:
-        filter_list = ["train.*stl", f"train.*BC_{n_radial}_{n_angular}_{template_radius}"]
+
+def modelnet_generator(dataset_path,
+                       n_radial,
+                       n_angular,
+                       template_radius,
+                       is_train,
+                       only_signal=False,
+                       batch=1,
+                       modelnet10=False):
+    prefix = "train" if is_train else "test"
+    if modelnet10:
+        classes = list(MODELNET10_CLASSES.keys())
+        filter_list = [f"{prefix}/{c}_.*stl" for c in classes]
+        filter_list += [f"{prefix}/{c}_.*BC_{n_radial}_{n_angular}_{template_radius}" for c in classes]
     else:
-        filter_list = ["test.*stl", f"test.*BC_{n_radial}_{n_angular}_{template_radius}"]
+        filter_list = [f"{prefix}.*stl", f"{prefix}.*BC_{n_radial}_{n_angular}_{template_radius}"]
 
     # Load preprocessed shapes
     psg = preprocessed_shape_generator(dataset_path, filter_list=filter_list, batch=batch, shuffle_seed=42)
@@ -74,10 +97,20 @@ def modelnet_generator(dataset_path, n_radial, n_angular, template_radius, is_tr
         if only_signal:
             yield vertices
         else:
-            yield (vertices, bc), np.array(MODELNET_CLASSES[stl_path.split("/")[1]]).reshape(1)
+            if modelnet10:
+                yield (vertices, bc), np.array(MODELNET10_CLASSES[stl_path.split("/")[1]]).reshape(1)
+            else:
+                yield (vertices, bc), np.array(MODELNET_CLASSES[stl_path.split("/")[1]]).reshape(1)
 
 
-def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius, is_train, only_signal=False, batch=8):
+def load_preprocessed_modelnet(path_to_zip,
+                               n_radial,
+                               n_angular,
+                               template_radius,
+                               is_train,
+                               only_signal=False,
+                               batch=8,
+                               modelnet10=False):
     if only_signal:
         output_signature = tf.TensorSpec(shape=(None, 3), dtype=tf.float32)
     else:
@@ -91,6 +124,15 @@ def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius
 
     return tf.data.Dataset.from_generator(
         modelnet_generator,
-        args=(path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, only_signal, batch),
+        args=(
+            path_to_zip,
+            n_radial,
+            n_angular,
+            np.array(template_radius, np.float64),
+            is_train,
+            only_signal,
+            batch,
+            modelnet10
+        ),
         output_signature=output_signature
     ).batch(batch).prefetch(tf.data.AUTOTUNE)
