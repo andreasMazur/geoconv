@@ -50,8 +50,10 @@ class HyperModel(kt.HyperModel):
         # Embed
         signal = ImcnnBackbone(
             isc_layer_dims=[
-                hp.Int(name="ISC_1", min_value=4, max_value=256),
-                hp.Int(name="ISC_2", min_value=4, max_value=256),
+                hp.Int(name="ISC_1", min_value=96, max_value=400),
+                hp.Int(name="ISC_2", min_value=96, max_value=400),
+                hp.Int(name="ISC_3", min_value=96, max_value=400),
+                hp.Int(name="ISC_4", min_value=96, max_value=400),
             ],
             n_radial=self.n_radial,
             n_angular=self.n_angular,
@@ -70,7 +72,7 @@ class HyperModel(kt.HyperModel):
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=hp.Float("initial_learning_rate", min_value=0.0001, max_value=0.01),
+                initial_learning_rate=hp.Float("initial_learning_rate", min_value=0.0005, max_value=0.005),
                 decay_steps=500,
                 decay_rate=0.99
             ),

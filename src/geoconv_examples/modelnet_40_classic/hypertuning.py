@@ -7,12 +7,13 @@ import os
 
 
 class HyperModel(kt.HyperModel):
-    def __init__(self, n_radial, n_angular, template_radius, adapt_data):
+    def __init__(self, n_radial, n_angular, template_radius, adapt_data, modelnet10):
         super().__init__()
         self.n_radial = n_radial
         self.n_angular = n_angular
         self.template_radius = template_radius
         self.adapt_data = adapt_data
+        self.modelnet10 = modelnet10
 
         self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
         print("Adapt normalization layer on training data..")
@@ -33,12 +34,13 @@ class HyperModel(kt.HyperModel):
             self.n_angular,
             self.template_radius,
             isc_layer_dims=[
-                hp.Int(name="ISC_1", min_value=4, max_value=256),
-                hp.Int(name="ISC_2", min_value=4, max_value=256),
-                hp.Int(name="ISC_3", min_value=4, max_value=256),
-                hp.Int(name="ISC_4", min_value=4, max_value=256),
+                hp.Int(name="ISC_1", min_value=96, max_value=400),
+                hp.Int(name="ISC_2", min_value=96, max_value=400),
+                hp.Int(name="ISC_3", min_value=96, max_value=400),
+                hp.Int(name="ISC_4", min_value=96, max_value=400),
             ],
-            normalize=False
+            normalize=False,
+            modelnet10=self.modelnet10
         )([signal, bc_input])
 
         # Compile model
@@ -46,7 +48,7 @@ class HyperModel(kt.HyperModel):
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=hp.Float("initial_learning_rate", min_value=0.001, max_value=0.005),
+                initial_learning_rate=hp.Float("initial_learning_rate", min_value=0.0005, max_value=0.005),
                 decay_steps=500,
                 decay_rate=0.99
             ),
@@ -62,20 +64,31 @@ class HyperModel(kt.HyperModel):
         return imcnn
 
 
-def hyper_tuning(dataset_path, logging_dir, template_configuration):
+def hyper_tuning(dataset_path, logging_dir, template_configuration, modelnet10):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
     # Run hyper-tuning
     n_radial, n_angular, template_radius = template_configuration
-    train_data = load_preprocessed_modelnet(dataset_path, n_radial, n_angular, template_radius, is_train=True)
-    test_data = load_preprocessed_modelnet(dataset_path, n_radial, n_angular, template_radius, is_train=False)
+    train_data = load_preprocessed_modelnet(
+        dataset_path, n_radial, n_angular, template_radius, is_train=True, modelnet10=modelnet10
+    )
+    test_data = load_preprocessed_modelnet(
+        dataset_path, n_radial, n_angular, template_radius, is_train=False, modelnet10=modelnet10
+    )
     adapt_data = load_preprocessed_modelnet(
-        dataset_path, n_radial, n_angular, template_radius, is_train=True, only_signal=True
+        dataset_path,
+        n_radial,
+        n_angular,
+        template_radius,
+        is_train=True,
+        only_signal=True,
+        modelnet10=modelnet10,
+        batch=1
     )
 
     tuner = kt.Hyperband(
-        hypermodel=HyperModel(n_radial, n_angular, template_radius, adapt_data),
+        hypermodel=HyperModel(n_radial, n_angular, template_radius, adapt_data, modelnet10),
         objective="val_accuracy",
         max_epochs=200,
         factor=3,
