@@ -51,23 +51,22 @@ MODELNET_CLASSES = {
 }
 
 
-def modelnet_generator(dataset_path, n_radial, n_angular, template_radius, is_train, only_signal=False):
+def modelnet_generator(dataset_path, n_radial, n_angular, template_radius, is_train, only_signal=False, batch=1):
     if is_train:
         filter_list = ["train.*stl", f"train.*BC_{n_radial}_{n_angular}_{template_radius}"]
     else:
         filter_list = ["test.*stl", f"test.*BC_{n_radial}_{n_angular}_{template_radius}"]
 
     # Load preprocessed shapes
-    psg = preprocessed_shape_generator(dataset_path, filter_list=filter_list, zero_pad_shapes=True, shuffle_seed=42)
+    psg = preprocessed_shape_generator(dataset_path, filter_list=filter_list, batch=batch, shuffle_seed=42)
 
-    for elements in psg:
-        bc = elements[1][0]
+    for ((stl, stl_path), (bc, bc_path)) in psg:
         if is_train:
             noise = np.abs(np.random.normal(size=(bc.shape[0], n_radial, n_angular, 3, 2), scale=1e-5))
             noise[:, :, :, :, 0] = 0
             bc = bc + noise
 
-        vertices = trimesh.load_mesh(BytesIO(elements[0][0]), file_type="stl").vertices
+        vertices = trimesh.load_mesh(BytesIO(stl), file_type="stl").vertices
         # Zero pad signal
         while vertices.shape[0] < bc.shape[0]:
             vertices = np.concatenate([vertices, np.zeros_like(vertices)[:bc.shape[0] - vertices.shape[0]]])
@@ -75,7 +74,7 @@ def modelnet_generator(dataset_path, n_radial, n_angular, template_radius, is_tr
         if only_signal:
             yield vertices
         else:
-            yield (vertices, bc), np.array(MODELNET_CLASSES[elements[0][1].split("/")[1]]).reshape(1)
+            yield (vertices, bc), np.array(MODELNET_CLASSES[stl_path.split("/")[1]]).reshape(1)
 
 
 def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius, is_train, only_signal=False):

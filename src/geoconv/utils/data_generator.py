@@ -13,6 +13,7 @@ import subprocess
 import random
 import json
 import re
+import math
 
 
 def remove_nme(mesh):
@@ -195,7 +196,7 @@ def preprocessed_shape_generator(zipfile_path,
                                  sorting_key=None,
                                  shuffle_seed=None,
                                  split=None,
-                                 zero_pad_shapes=False,
+                                 batch=None,
                                  filter_gpc_systems=True):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
@@ -215,12 +216,9 @@ def preprocessed_shape_generator(zipfile_path,
         Whether to randomly shuffle the data with the given seed. If no seed is given, no shuffling will be performed.
     split: list
         List of integers which are yielded from the list of all shapes.
-    verbose: bool
-        Whether to print incomplete shape directories.
-    zero_pad_shapes: bool
-        Adds zero interpolation coefficients to barycentric coordinates tensor and zero signals to signal tensor
-        such that every signal- and barycentric coordinates tensor in the dataset has the same dimensionality.
-        This allows for batching multiple shapes. The dimensionality is determined by the largest tensor.
+    batch: int
+        Adds zero interpolation coefficients to arrays such that every array in the current batch has the same
+         dimensionality. This allows for batching multiple shapes.
     filter_gpc_systems: bool
         Whether to exclude gpc-systems from contained zip-files. Reduces time-consumption.
 
@@ -248,19 +246,6 @@ def preprocessed_shape_generator(zipfile_path,
         preprocessed_shapes = np.array(preprocessed_shapes)
         preprocessed_shapes = preprocessed_shapes[split]
 
-    # Find most GPC-systems for zero-padding
-    if zero_pad_shapes:
-        search_for_gpc_systems, most_vertices = True, -1
-        try:
-            # Check if dataset properties file contains entry 'most_gpc_systems'
-            dataset_properties = json.load(BytesIO(zip_file["dataset_properties.json"]))
-            most_vertices = dataset_properties["most_gpc_systems"]
-            search_for_gpc_systems = False
-        except KeyError:
-            print(
-                "Did not find 'most_gpc_systems'-key in dataset properties file. Manually search for most GPC-systems."
-            )
-
     if filter_gpc_systems:
         # Read *.zip-file content without GPC-system directories
         zip_file_content = [x for x in zip_file.files if "gpc_systems" not in x]
@@ -287,38 +272,42 @@ def preprocessed_shape_generator(zipfile_path,
         else:
             continue
 
-        # Seek for largest amount of vertices if necessary
-        if zero_pad_shapes and search_for_gpc_systems:
-            # Iterate over shape files
-            mesh_properties = f"{'/'.join(shape_files[0].split('/')[:-1])}/preprocess_properties.json"
-            n_vertices = json.load(BytesIO(zip_file[mesh_properties]))["amount_gpc_systems"]
-            if n_vertices > most_vertices:
-                most_vertices = n_vertices
-
     # Shuffle shapes
     if shuffle_seed is not None:
         random.seed(shuffle_seed)
         random.shuffle(per_shape_files)
 
+    # Batching
+    if batch is not None:
+        n_batches = math.ceil(len(per_shape_files) / batch)
+        per_shape_files = [per_shape_files[i * batch:(i * batch) + batch] for i in range(n_batches)]
+
     # Yield prepared data
-    for shape_files in per_shape_files:
-        # Zero padding
-        if zero_pad_shapes:
-            return_list = []
-            for shape_file in shape_files:
-                # Load content
-                content = zip_file[shape_file]
-                # Filter for arrays and zero pad them
-                if isinstance(content, np.ndarray):
-                    # Zero pad (assumes first dimension represent vertices)
-                    while content.shape[0] < most_vertices:
-                        content = np.concatenate([content, np.zeros_like(content)[:most_vertices - content.shape[0]]])
-                # Add padded content to list 'return_list'
-                return_list.append((content, shape_file))
-            yield return_list
-        # No zero padding
+    for batched_shape_files in per_shape_files:
+        if batch is not None:
+            # Prepare current batch by zero-padding seen arrays to similar size.
+            # Thereby, amount of zero-padding depends on largest array seen within the batch
+            content_list = [[zip_file[file] for file in shape_files] for shape_files in batched_shape_files]
+            most_vertices = np.max([
+                arr.shape[0] for arr in [content for shape_content in content_list for content in shape_content]
+                if isinstance(arr, np.ndarray)
+            ])
+
+            # Yield content from current batch
+            for shape_content, shape_paths in zip(content_list, batched_shape_files):
+                # Check content on whether it has to be zero padded (assumes first dimension represent vertices)
+                yield_list = []
+                for content, content_path in zip(shape_content, shape_paths):
+                    if isinstance(content, np.ndarray):
+                        while content.shape[0] < most_vertices:
+                            content = np.concatenate(
+                                [content, np.zeros_like(content)[:most_vertices - content.shape[0]]]
+                            )
+                    yield_list.append((content, content_path))
+
+                yield yield_list
         else:
-            yield [(zip_file[shape_file], shape_file) for shape_file in shape_files]
+            yield [(zip_file[shape_file], shape_file) for shape_file in batched_shape_files]
 
 
 def preprocessed_properties_generator(zipfile_path, return_filename=False, sorting_key=None):
@@ -442,7 +431,7 @@ def inspect_gpc_systems(zipfile_path, shuffle=True, show_all_gpc_systems=False):
         sorting_key=None,
         shuffle_seed=42 if shuffle else None,
         split=None,
-        zero_pad_shapes=False,
+        batch=False,
         filter_gpc_systems=False
     )
     for content_list in psg:
