@@ -77,7 +77,7 @@ def modelnet_generator(dataset_path, n_radial, n_angular, template_radius, is_tr
             yield (vertices, bc), np.array(MODELNET_CLASSES[stl_path.split("/")[1]]).reshape(1)
 
 
-def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius, is_train, only_signal=False):
+def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius, is_train, only_signal=False, batch=8):
     if only_signal:
         output_signature = tf.TensorSpec(shape=(None, 3), dtype=tf.float32)
     else:
@@ -91,6 +91,6 @@ def load_preprocessed_modelnet(path_to_zip, n_radial, n_angular, template_radius
 
     return tf.data.Dataset.from_generator(
         modelnet_generator,
-        args=(path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, only_signal),
+        args=(path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, only_signal, batch),
         output_signature=output_signature
-    ).batch(8).prefetch(tf.data.AUTOTUNE)
+    ).batch(batch).prefetch(tf.data.AUTOTUNE)
