@@ -442,7 +442,6 @@ def inspect_gpc_systems(zipfile_path, shuffle=True, show_all_gpc_systems=False):
         sorting_key=None,
         shuffle_seed=42 if shuffle else None,
         split=None,
-        verbose=False,
         zero_pad_shapes=False,
         filter_gpc_systems=False
     )
