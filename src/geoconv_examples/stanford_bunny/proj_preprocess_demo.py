@@ -163,9 +163,9 @@ def preprocess_demo(path_to_stanford_bunny, n_radial=5, n_angular=6, n_neighbors
     # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
     # 'closest_proj': (vertices, n_radial, n_angular, 3)
     # Hereby, 'interpolation_weights[i, j, k, l]' is the BC of neighbor vertex with index 'closest_proj[i, j, k, l]'
+    interpolation_weights, closest_proj = compute_bc(template.astype(np.float32), projections)
 
     # Plot histogram of interpolation weights
-    interpolation_weights, closest_proj = compute_bc(template.astype(np.float32), projections)
     counts, bins = np.histogram(interpolation_weights.numpy().flatten(), bins=100)
     plt.hist(bins[:-1], bins, weights=counts, rwidth=0.5)
     plt.show()
