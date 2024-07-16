@@ -5,7 +5,6 @@ from geoconv_examples.modelnet_40_classic.dataset import load_preprocessed_model
 import os
 import keras
 import tensorflow as tf
-import tensorflow_probability as tfp
 
 
 class ModelnetClassifier(keras.Model):
@@ -25,16 +24,19 @@ class ModelnetClassifier(keras.Model):
             n_angular=n_angular,
             template_radius=template_radius,
             variant=variant,
-            normalize=normalize
+            normalize=normalize,
+            dropout_rate=0.0,
+            rescale_input_dim=64
         )
         self.flatten = tf.keras.layers.Flatten()
-        self.output_layer = tf.keras.layers.Dense(10 if modelnet10 else 40)
+        self.output_layer = tf.keras.layers.Dense(2 if modelnet10 else 40)  # TODO: 10 if modelnet10 else 40
 
     def call(self, inputs, **kwargs):
         # Embed
         signal = self.backbone(inputs)
         # Flatten embeddings
-        signal = self.flatten(tf.map_fn(tfp.stats.covariance, signal))
+        # signal = self.flatten(tf.map_fn(tfp.stats.covariance, signal))
+        signal = self.flatten(signal)
         # Output
         return self.output_layer(signal)
 
@@ -45,7 +47,8 @@ def training(dataset_path,
              variant=None,
              isc_layer_dims=None,
              learning_rate=0.00165,
-             modelnet10=False):
+             modelnet10=False,
+             gif="./gif.json"):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -57,10 +60,10 @@ def training(dataset_path,
     for (n_radial, n_angular, template_radius) in template_configurations:
         # Load data
         train_data = load_preprocessed_modelnet(
-            dataset_path, n_radial, n_angular, template_radius, is_train=True, modelnet10=modelnet10
+            dataset_path, n_radial, n_angular, template_radius, is_train=True, modelnet10=modelnet10, gen_info_file=gif
         )
         test_data = load_preprocessed_modelnet(
-            dataset_path, n_radial, n_angular, template_radius, is_train=False, modelnet10=modelnet10
+            dataset_path, n_radial, n_angular, template_radius, is_train=False, modelnet10=modelnet10, gen_info_file=gif
         )
 
         # Define and compile model
@@ -83,7 +86,7 @@ def training(dataset_path,
         )
         imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
         imcnn.build(
-            input_shape=[tf.TensorShape([None, 541, 3]), tf.TensorShape([None, 541, n_radial, n_angular, 3, 2])]
+            input_shape=[tf.TensorShape([None, 2086, 3]), tf.TensorShape([None, 2086, n_radial, n_angular, 3, 2])]
         )
         print("Adapt normalization layer on training data..")
         imcnn.backbone.normalize.adapt(
@@ -95,7 +98,8 @@ def training(dataset_path,
                 is_train=True,
                 only_signal=True,
                 batch=1,
-                modelnet10=modelnet10
+                modelnet10=modelnet10,
+                gen_info_file=gif
             )
         )
         print("Done.")
