@@ -198,7 +198,8 @@ def preprocessed_shape_generator(zipfile_path,
                                  split=None,
                                  batch=None,
                                  filter_gpc_systems=True,
-                                 zero_pad=None):
+                                 zero_pad=None,
+                                 gen_info_file=""):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
     This function sorts alphanumerically after the shape-directory name.
@@ -224,6 +225,10 @@ def preprocessed_shape_generator(zipfile_path,
         Whether to exclude gpc-systems from contained zip-files. Reduces time-consumption.
     zero_pad: int
         A fixed number to which the shapes are padded to.
+    gen_info_file: str
+        A file where the generator can store data that was computed during generator preparation. If file already
+        exists, the generator will load the information stored there instead of conducting the preparation process
+        again.
 
     Returns
     -------
@@ -256,24 +261,38 @@ def preprocessed_shape_generator(zipfile_path,
         # Read entire *.zip-file content
         zip_file_content = zip_file.files
 
-    per_shape_files = []
-    for preprocessed_shape_dir in tqdm(preprocessed_shapes, postfix="Preparing generator.."):
-        # Iterate over shape's data and collect with filters
-        preprocessed_shape_dir = [x for x in zip_file_content if preprocessed_shape_dir in x]
+    if os.path.exists(gen_info_file):
+        # Load preparation results
+        with open(gen_info_file, "r") as gen_info_fd:
+            psf_dict = json.load(gen_info_fd)
+        per_shape_files = [psf for psf in psf_dict.values()]
+    else:
+        per_shape_files = []
+        for preprocessed_shape_dir in tqdm(preprocessed_shapes, postfix="Preparing generator.."):
+            # Iterate over shape's data and collect with filters
+            preprocessed_shape_dir = [x for x in zip_file_content if preprocessed_shape_dir in x]
 
-        # Seek for file-names that contain a given filter string as a sub-string
-        shape_files = []
-        for filter_str in filter_list:
-            for file_name in preprocessed_shape_dir:
-                # Check whether regular expression can be found. If so, put file into shape files list.
-                if re.search(filter_str, file_name) is not None:
-                    shape_files.append(file_name)
+            # Seek for file-names that contain a given filter string as a sub-string
+            shape_files = []
+            for filter_str in filter_list:
+                for file_name in preprocessed_shape_dir:
+                    # Check whether regular expression can be found. If so, put file into shape files list.
+                    if re.search(filter_str, file_name) is not None:
+                        shape_files.append(file_name)
 
-        # Add shape files to list of all shape files
-        if len(shape_files) > 0:
-            per_shape_files.append(shape_files)
-        else:
-            continue
+            # Add shape files to list of all shape files
+            if len(shape_files) > 0:
+                per_shape_files.append(shape_files)
+            else:
+                continue
+
+            # Store generator's preparation results
+            if len(gen_info_file) > 0:
+                psf_dict = {}
+                for psf in per_shape_files:
+                    psf_dict["/".join(psf[0].split("/")[:-1])] = psf
+                with open(gen_info_file, "w") as gen_info_fd:
+                    json.dump(psf_dict, gen_info_fd, indent=4)
 
     # Shuffle shapes
     if shuffle_seed is not None:
