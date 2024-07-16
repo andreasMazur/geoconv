@@ -50,18 +50,19 @@ MODELNET_CLASSES = {
     "xbox": 39
 }
 
-MODELNET10_CLASSES = {
-    "bathtub": 0,
-    "bed": 1,
-    "chair": 2,
-    "desk": 3,
-    "dresser": 4,
-    "monitor": 5,
-    "night_stand": 6,
-    "sofa": 7,
-    "table": 8,
-    "toilet": 9
-}
+# MODELNET10_CLASSES = {
+#     "bathtub": 0,
+#     "bed": 1,
+#     "chair": 2,
+#     "desk": 3,
+#     "dresser": 4,
+#     "monitor": 5,
+#     "night_stand": 6,
+#     "sofa": 7,
+#     "table": 8,
+#     "toilet": 9
+# }
+MODELNET10_CLASSES = {"cup": 0, "bowl": 1}
 
 
 def modelnet_generator(dataset_path,
@@ -71,7 +72,8 @@ def modelnet_generator(dataset_path,
                        is_train,
                        only_signal=False,
                        batch=1,
-                       modelnet10=False):
+                       modelnet10=False,
+                       gen_info_file=""):
     prefix = "train" if is_train else "test"
     if modelnet10:
         classes = list(MODELNET10_CLASSES.keys())
@@ -81,7 +83,9 @@ def modelnet_generator(dataset_path,
         filter_list = [f"{prefix}.*stl", f"{prefix}.*BC_{n_radial}_{n_angular}_{template_radius}"]
 
     # Load preprocessed shapes
-    psg = preprocessed_shape_generator(dataset_path, filter_list=filter_list, batch=batch, shuffle_seed=42)
+    psg = preprocessed_shape_generator(
+        dataset_path, filter_list=filter_list, batch=batch, shuffle_seed=42, zero_pad=2086, gen_info_file=gen_info_file
+    )
 
     for ((stl, stl_path), (bc, bc_path)) in psg:
         if is_train:
@@ -109,8 +113,9 @@ def load_preprocessed_modelnet(path_to_zip,
                                template_radius,
                                is_train,
                                only_signal=False,
-                               batch=8,
-                               modelnet10=False):
+                               batch=1,
+                               modelnet10=False,
+                               gen_info_file=""):
     if only_signal:
         output_signature = tf.TensorSpec(shape=(None, 3), dtype=tf.float32)
     else:
@@ -132,7 +137,8 @@ def load_preprocessed_modelnet(path_to_zip,
             is_train,
             only_signal,
             batch,
-            modelnet10
+            modelnet10,
+            gen_info_file
         ),
         output_signature=output_signature
     ).batch(batch).prefetch(tf.data.AUTOTUNE)
