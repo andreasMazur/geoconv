@@ -63,7 +63,13 @@ def training(dataset_path,
             dataset_path, n_radial, n_angular, template_radius, is_train=True, modelnet10=modelnet10, gen_info_file=gif
         )
         test_data = load_preprocessed_modelnet(
-            dataset_path, n_radial, n_angular, template_radius, is_train=False, modelnet10=modelnet10, gen_info_file=gif
+            dataset_path,
+            n_radial,
+            n_angular,
+            template_radius,
+            is_train=False,
+            modelnet10=modelnet10,
+            gen_info_file=f"{gif[:-4]}_test.json"
         )
 
         # Define and compile model
