@@ -197,7 +197,8 @@ def preprocessed_shape_generator(zipfile_path,
                                  shuffle_seed=None,
                                  split=None,
                                  batch=None,
-                                 filter_gpc_systems=True):
+                                 filter_gpc_systems=True,
+                                 zero_pad=None):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
     This function sorts alphanumerically after the shape-directory name.
@@ -221,6 +222,8 @@ def preprocessed_shape_generator(zipfile_path,
          dimensionality. This allows for batching multiple shapes.
     filter_gpc_systems: bool
         Whether to exclude gpc-systems from contained zip-files. Reduces time-consumption.
+    zero_pad: int
+        A fixed number to which the shapes are padded to.
 
     Returns
     -------
@@ -288,10 +291,13 @@ def preprocessed_shape_generator(zipfile_path,
             # Prepare current batch by zero-padding seen arrays to similar size.
             # Thereby, amount of zero-padding depends on largest array seen within the batch
             content_list = [[zip_file[file] for file in shape_files] for shape_files in batched_shape_files]
-            most_vertices = np.max([
-                arr.shape[0] for arr in [content for shape_content in content_list for content in shape_content]
-                if isinstance(arr, np.ndarray)
-            ])
+            if zero_pad is None:
+                most_vertices = np.max([
+                    arr.shape[0] for arr in [content for shape_content in content_list for content in shape_content]
+                    if isinstance(arr, np.ndarray)
+                ])
+            else:
+                most_vertices = zero_pad
 
             # Yield content from current batch
             for shape_content, shape_paths in zip(content_list, batched_shape_files):
