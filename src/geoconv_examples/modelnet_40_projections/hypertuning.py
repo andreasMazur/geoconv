@@ -97,10 +97,14 @@ def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_fil
 
     # Run hyper-tuning
     n_radial, n_angular, template_radius = template_configuration
-    train_data = load_preprocessed_modelnet(dataset_path, is_train=True, modelnet10=True, gen_info_file=gen_info_file_1)
-    test_data = load_preprocessed_modelnet(dataset_path, is_train=False, modelnet10=True, gen_info_file=gen_info_file_2)
+    train_data = load_preprocessed_modelnet(
+        dataset_path, is_train=True, modelnet10=True, gen_info_file=gen_info_file_1, batch_size=1
+    )
+    test_data = load_preprocessed_modelnet(
+        dataset_path, is_train=False, modelnet10=True, gen_info_file=gen_info_file_2, batch_size=1
+    )
     adapt_data = load_preprocessed_modelnet(
-        dataset_path, is_train=True, only_signal=True, modelnet10=True, gen_info_file=gen_info_file_1
+        dataset_path, is_train=True, only_signal=True, modelnet10=True, gen_info_file=gen_info_file_1, batch_size=1
     )
 
     tuner = kt.Hyperband(
