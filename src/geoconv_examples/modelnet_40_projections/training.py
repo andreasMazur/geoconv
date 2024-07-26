@@ -74,7 +74,11 @@ def training(dataset_path,
              isc_layer_dims=None,
              learning_rate=0.00165,
              template_radius=None,
-             modelnet10=False):
+             modelnet10=False,
+             gen_info_file=None):
+    if gen_info_file is None:
+        gen_info_file = "generator_info.json"
+
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -85,7 +89,13 @@ def training(dataset_path,
             n_angular=n_angular,
             n_neighbors=n_neighbors,
             template_scale=template_scale,
-            adaption_data=load_preprocessed_modelnet(dataset_path, is_train=True, batch_size=1, modelnet10=modelnet10),
+            adaption_data=load_preprocessed_modelnet(
+                dataset_path,
+                is_train=True,
+                batch_size=1,
+                modelnet10=modelnet10,
+                gen_info_file=f"{logging_dir}/{gen_info_file}"
+            ),
             isc_layer_dims=isc_layer_dims,
             variant=variant,
             template_radius=template_radius,
@@ -104,7 +114,12 @@ def training(dataset_path,
         imcnn(tf.random.uniform(shape=[1, 2000, 3]))  # tf.TensorShape([None, 2000, 3])
         imcnn.backbone.normalize.adapt(
             load_preprocessed_modelnet(
-                dataset_path, is_train=True, batch_size=1, only_signal=True, modelnet10=modelnet10
+                dataset_path,
+                is_train=True,
+                batch_size=1,
+                only_signal=True,
+                modelnet10=modelnet10,
+                gen_info_file=f"{logging_dir}/{gen_info_file}"
             )
         )
         imcnn.summary()
@@ -124,8 +139,12 @@ def training(dataset_path,
         )
 
         # Load data
-        train_data = load_preprocessed_modelnet(dataset_path, is_train=True, modelnet10=modelnet10)
-        test_data = load_preprocessed_modelnet(dataset_path, is_train=False, modelnet10=modelnet10)
+        train_data = load_preprocessed_modelnet(
+            dataset_path, is_train=True, modelnet10=modelnet10, gen_info_file=f"{logging_dir}/{gen_info_file}"
+        )
+        test_data = load_preprocessed_modelnet(
+            dataset_path, is_train=False, modelnet10=modelnet10, gen_info_file=f"{logging_dir}/test_{gen_info_file}"
+        )
 
         # Train model
         imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=test_data, epochs=200)
