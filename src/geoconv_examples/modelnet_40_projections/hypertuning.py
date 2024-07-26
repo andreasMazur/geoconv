@@ -88,16 +88,19 @@ class HyperModel(kt.HyperModel):
         return imcnn
 
 
-def hyper_tuning(dataset_path, logging_dir, template_configuration):
+def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_file):
+    gen_info_file_1 = f"{logging_dir}/{gen_info_file}"
+    gen_info_file_2 = f"{logging_dir}/test_{gen_info_file}"
+
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
     # Run hyper-tuning
     n_radial, n_angular, template_radius = template_configuration
-    train_data = load_preprocessed_modelnet(dataset_path, is_train=True, modelnet10=True)
-    test_data = load_preprocessed_modelnet(dataset_path, is_train=False, modelnet10=True)
+    train_data = load_preprocessed_modelnet(dataset_path, is_train=True, modelnet10=True, gen_info_file=gen_info_file_1)
+    test_data = load_preprocessed_modelnet(dataset_path, is_train=False, modelnet10=True, gen_info_file=gen_info_file_2)
     adapt_data = load_preprocessed_modelnet(
-        dataset_path, is_train=True, only_signal=True, modelnet10=True
+        dataset_path, is_train=True, only_signal=True, modelnet10=True, gen_info_file=gen_info_file_1
     )
 
     tuner = kt.Hyperband(
