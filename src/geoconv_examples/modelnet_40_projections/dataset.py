@@ -71,7 +71,7 @@ def modelnet_generator(dataset_path, is_train, only_signal=False, modelnet10=Fal
 
     # Load sampled vertices from preprocessed dataset
     psg = preprocessed_shape_generator(
-        dataset_path, filter_list=filter_list, shuffle_seed=None, filter_gpc_systems=False, gen_info_file=gen_info_file
+        dataset_path, filter_list=filter_list, shuffle_seed=42, filter_gpc_systems=False, gen_info_file=gen_info_file
     )
 
     for [(vertices, vertices_path)] in psg:
