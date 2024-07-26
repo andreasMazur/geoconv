@@ -61,7 +61,7 @@ MODELNET10_CLASSES = {
 }
 
 
-def modelnet_generator(dataset_path, is_train, only_signal=False, modelnet10=False):
+def modelnet_generator(dataset_path, is_train, only_signal=False, modelnet10=False, gen_info_file=""):
     prefix = "train" if is_train else "test"
     if modelnet10:
         filter_list = list(MODELNET10_CLASSES.keys())
@@ -70,7 +70,9 @@ def modelnet_generator(dataset_path, is_train, only_signal=False, modelnet10=Fal
         filter_list = [f"{prefix}.*vertices"]
 
     # Load sampled vertices from preprocessed dataset
-    psg = preprocessed_shape_generator(dataset_path, filter_list=filter_list, shuffle_seed=42, filter_gpc_systems=False)
+    psg = preprocessed_shape_generator(
+        dataset_path, filter_list=filter_list, shuffle_seed=None, filter_gpc_systems=False, gen_info_file=gen_info_file
+    )
 
     for [(vertices, vertices_path)] in psg:
         if only_signal:
@@ -82,7 +84,12 @@ def modelnet_generator(dataset_path, is_train, only_signal=False, modelnet10=Fal
                 yield vertices, np.array(MODELNET_CLASSES[vertices_path.split("/")[1]]).reshape(1)
 
 
-def load_preprocessed_modelnet(dataset_path, is_train, batch_size=4, only_signal=False, modelnet10=False):
+def load_preprocessed_modelnet(dataset_path,
+                               is_train,
+                               batch_size=4,
+                               only_signal=False,
+                               modelnet10=False,
+                               gen_info_file=""):
     if only_signal:
         output_signature = tf.TensorSpec(shape=(None, 3), dtype=tf.float32)
     else:
@@ -91,6 +98,6 @@ def load_preprocessed_modelnet(dataset_path, is_train, batch_size=4, only_signal
         )
     return tf.data.Dataset.from_generator(
         modelnet_generator,
-        args=(dataset_path, is_train, only_signal, modelnet10),
+        args=(dataset_path, is_train, only_signal, modelnet10, gen_info_file),
         output_signature=output_signature
     ).batch(batch_size).prefetch(tf.data.AUTOTUNE)
