@@ -238,7 +238,6 @@ def preprocessed_shape_generator(zipfile_path,
     # Load the zip-file
     print(f"\nLoading shape data from zip-file.. ({zipfile_path})")
     zip_file = np.load(zipfile_path)
-    print("Done.")
 
     # Get shape directories
     preprocessed_shapes = ["/".join(fn.split("/")[:-1]) for fn in zip_file.files if "preprocess_properties.json" in fn]
