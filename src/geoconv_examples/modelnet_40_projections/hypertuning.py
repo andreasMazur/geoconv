@@ -50,9 +50,10 @@ class HyperModel(kt.HyperModel):
         # Embed
         signal = ImcnnBackbone(
             isc_layer_dims=[
-                hp.Int(name="ISC_1", min_value=96, max_value=200),
-                hp.Int(name="ISC_2", min_value=96, max_value=200),
-                hp.Int(name="ISC_3", min_value=96, max_value=200)
+                hp.Int(name="ISC_1", min_value=50, max_value=100),
+                hp.Int(name="ISC_2", min_value=50, max_value=100),
+                hp.Int(name="ISC_3", min_value=50, max_value=100),
+                hp.Int(name="ISC_4", min_value=50, max_value=100)
             ],
             n_radial=self.n_radial,
             n_angular=self.n_angular,
