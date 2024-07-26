@@ -29,7 +29,7 @@ class ModelnetClassifier(keras.Model):
             rescale_input_dim=64
         )
         self.flatten = tf.keras.layers.Flatten()
-        self.output_layer = tf.keras.layers.Dense(2 if modelnet10 else 40)  # TODO: 10 if modelnet10 else 40
+        self.output_layer = tf.keras.layers.Dense(10 if modelnet10 else 40)
 
     def call(self, inputs, **kwargs):
         # Embed

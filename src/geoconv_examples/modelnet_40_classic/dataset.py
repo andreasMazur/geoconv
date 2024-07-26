@@ -50,19 +50,18 @@ MODELNET_CLASSES = {
     "xbox": 39
 }
 
-# MODELNET10_CLASSES = {
-#     "bathtub": 0,
-#     "bed": 1,
-#     "chair": 2,
-#     "desk": 3,
-#     "dresser": 4,
-#     "monitor": 5,
-#     "night_stand": 6,
-#     "sofa": 7,
-#     "table": 8,
-#     "toilet": 9
-# }
-MODELNET10_CLASSES = {"cup": 0, "bowl": 1}
+MODELNET10_CLASSES = {
+    "bathtub": 0,
+    "bed": 1,
+    "chair": 2,
+    "desk": 3,
+    "dresser": 4,
+    "monitor": 5,
+    "night_stand": 6,
+    "sofa": 7,
+    "table": 8,
+    "toilet": 9
+}
 
 
 def modelnet_generator(dataset_path,
