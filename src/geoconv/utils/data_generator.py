@@ -286,18 +286,18 @@ def preprocessed_shape_generator(zipfile_path,
             else:
                 continue
 
-            # Store generator's preparation results
-            if len(gen_info_file) > 0:
-                psf_dict = {}
-                for psf in per_shape_files:
-                    psf_dict["/".join(psf[0].split("/")[:-1])] = psf
-                with open(gen_info_file, "w") as gen_info_fd:
-                    json.dump(psf_dict, gen_info_fd, indent=4)
-
         # Shuffle shapes
         if shuffle_seed is not None:
             random.seed(shuffle_seed)
             random.shuffle(per_shape_files)
+
+        # Store generator's preparation results
+        if len(gen_info_file) > 0:
+            psf_dict = {}
+            for psf in per_shape_files:
+                psf_dict["/".join(psf[0].split("/")[:-1])] = psf
+            with open(gen_info_file, "w") as gen_info_fd:
+                json.dump(psf_dict, gen_info_fd, indent=4)
 
     # Batching
     if batch is not None:
