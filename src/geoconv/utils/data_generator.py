@@ -263,6 +263,7 @@ def preprocessed_shape_generator(zipfile_path,
 
     if os.path.exists(gen_info_file):
         # Load preparation results
+        print(f"Reloading generator information from: {gen_info_file}")
         with open(gen_info_file, "r") as gen_info_fd:
             psf_dict = json.load(gen_info_fd)
         per_shape_files = [psf for psf in psf_dict.values()]
