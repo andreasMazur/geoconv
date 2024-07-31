@@ -18,6 +18,7 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinat
             - 0 -> "train"
             - 1 -> "validation"
             - 2 -> "test"
+            - 3 -> "all"
         Depending on the choice, the training-, validation or testing data set will be returned. The split is equal to
         the one given in:
         > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
@@ -58,8 +59,12 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinat
             indices = range(70, 80)
         elif set_type == 2:
             indices = range(80, 100)
+        elif set_type == 3:
+            indices = range(100)
         else:
-            raise RuntimeError(f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test'].")
+            raise RuntimeError(
+                f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test', 3: 'all']."
+            )
     else:
         indices = set_indices
 
@@ -95,7 +100,8 @@ def load_preprocessed_faust(path_to_zip,
                             signal_dim,
                             kernel_size=(2, 4),
                             set_type=0,
-                            only_signal=False):
+                            only_signal=False,
+                            return_coordinates=False):
     """Returns a 'tensorflow.data.Dataset' of the preprocessed MPI-FAUST geoconv_examples.
 
     Requires that preprocessing already happened. This function operates directly on the resulting 'zip'-file.
@@ -119,6 +125,9 @@ def load_preprocessed_faust(path_to_zip,
         > Jonathan Masci and Davide Boscaini et al.
     only_signal: bool
         Return only the signal matrices. Helpful for keras.Normalization(axis=-1).adapt(data)
+    return_coordinates: bool
+        Whether to return the coordinates of the mesh vertices. Requires coordinates to be contained in preprocessed
+        dataset.
 
     Returns
     -------
@@ -128,15 +137,25 @@ def load_preprocessed_faust(path_to_zip,
     if only_signal:
         output_signature = tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32)
     else:
-        output_signature = (
-            (
-                tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
-                tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32)  # Barycentric Coordinates
-            ),
-            tf.TensorSpec(shape=(None,), dtype=tf.float32)
-        )
+        if return_coordinates:
+            output_signature = (
+                (
+                    tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
+                    tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32),  # Barycentric Coordinates
+                    tf.TensorSpec(shape=(None, 3,), dtype=tf.float32),  # Coordinates
+                ),
+                tf.TensorSpec(shape=(None,), dtype=tf.float32)
+            )
+        else:
+            output_signature = (
+                (
+                    tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
+                    tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32)  # Barycentric Coordinates
+                ),
+                tf.TensorSpec(shape=(None,), dtype=tf.float32)
+            )
     return tf.data.Dataset.from_generator(
         faust_generator,
-        args=(path_to_zip, set_type, only_signal),
+        args=(path_to_zip, set_type, only_signal, return_coordinates),
         output_signature=output_signature
     )
