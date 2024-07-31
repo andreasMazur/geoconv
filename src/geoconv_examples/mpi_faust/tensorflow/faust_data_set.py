@@ -6,7 +6,7 @@ import os
 import random
 
 
-def faust_generator(path_to_zip, set_type=0, only_signal=False):
+def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinates=False, set_indices=None):
     """Reads one element of preprocessed FAUST-geoconv_examples into memory per 'next'-call.
 
     Parameters
@@ -24,6 +24,13 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
         > Jonathan Masci and Davide Boscaini et al.
     only_signal: bool
         Return only the signal matrices. Helpful for keras.Normalization(axis=-1).adapt(data)
+    return_coordinates: bool
+        Whether to return the coordinates of the mesh vertices. Requires coordinates to be contained in preprocessed
+        dataset.
+    set_indices: list
+        A list of integer values that determine which meshes shall be returned. If it is set to 'None', the set
+        type determine which meshes will be returned. Defaults to 'None'. Adds noise to barycentric coordinates
+        if set type is set to 0.
 
     Returns
     -------
@@ -38,16 +45,23 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
     BC = [file_name for file_name in file_names if file_name.startswith("BC")]
     GT = [file_name for file_name in file_names if file_name.startswith("GT")]
     SIGNAL.sort(key=get_file_number), BC.sort(key=get_file_number), GT.sort(key=get_file_number)
+    if return_coordinates:
+        COORD = [file_name for file_name in file_names if file_name.startswith("COORD")]
+        COORD.sort(key=get_file_number)
 
-    if set_type == 0:
-        indices = list(range(70))
-        random.shuffle(indices)
-    elif set_type == 1:
-        indices = range(70, 80)
-    elif set_type == 2:
-        indices = range(80, 100)
+    # Set iteration indices according to set type
+    if set_indices is None:
+        if set_type == 0:
+            indices = list(range(70))
+            random.shuffle(indices)
+        elif set_type == 1:
+            indices = range(70, 80)
+        elif set_type == 2:
+            indices = range(80, 100)
+        else:
+            raise RuntimeError(f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test'].")
     else:
-        raise RuntimeError(f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test'].")
+        indices = set_indices
 
     for idx in indices:
         # Read signal
@@ -70,7 +84,11 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
         if only_signal:
             yield signal
         else:
-            yield (signal, bc), gt
+            if return_coordinates:
+                coord = tf.cast(dataset[COORD[idx]], tf.float32)
+                yield (signal, bc, coord), gt
+            else:
+                yield (signal, bc), gt
 
 
 def load_preprocessed_faust(path_to_zip,
