@@ -3,7 +3,7 @@ requires = ["setuptools>=68.2.2", "numpy>=1.22.0, <=1.26.4"]
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.6"
+version = "0.0.7"
 authors = [{name = "Andreas Mazur"}]
 maintainers = [{name = "Andreas Mazur"}]
 name = "geoconv"
