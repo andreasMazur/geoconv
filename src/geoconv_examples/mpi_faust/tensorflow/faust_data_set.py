@@ -6,7 +6,7 @@ import os
 import random
 
 
-def faust_generator(path_to_zip, set_type=0, only_signal=False):
+def faust_generator(path_to_zip, set_type=0, only_signal=False, return_coordinates=False, set_indices=None):
     """Reads one element of preprocessed FAUST-geoconv_examples into memory per 'next'-call.
 
     Parameters
@@ -18,12 +18,20 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
             - 0 -> "train"
             - 1 -> "validation"
             - 2 -> "test"
+            - 3 -> "all"
         Depending on the choice, the training-, validation or testing data set will be returned. The split is equal to
         the one given in:
         > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
         > Jonathan Masci and Davide Boscaini et al.
     only_signal: bool
         Return only the signal matrices. Helpful for keras.Normalization(axis=-1).adapt(data)
+    return_coordinates: bool
+        Whether to return the coordinates of the mesh vertices. Requires coordinates to be contained in preprocessed
+        dataset.
+    set_indices: list
+        A list of integer values that determine which meshes shall be returned. If it is set to 'None', the set
+        type determine which meshes will be returned. Defaults to 'None'. Adds noise to barycentric coordinates
+        if set type is set to 0.
 
     Returns
     -------
@@ -38,16 +46,27 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
     BC = [file_name for file_name in file_names if file_name.startswith("BC")]
     GT = [file_name for file_name in file_names if file_name.startswith("GT")]
     SIGNAL.sort(key=get_file_number), BC.sort(key=get_file_number), GT.sort(key=get_file_number)
+    if return_coordinates:
+        COORD = [file_name for file_name in file_names if file_name.startswith("COORD")]
+        COORD.sort(key=get_file_number)
 
-    if set_type == 0:
-        indices = list(range(70))
-        random.shuffle(indices)
-    elif set_type == 1:
-        indices = range(70, 80)
-    elif set_type == 2:
-        indices = range(80, 100)
+    # Set iteration indices according to set type
+    if set_indices is None:
+        if set_type == 0:
+            indices = list(range(70))
+            random.shuffle(indices)
+        elif set_type == 1:
+            indices = range(70, 80)
+        elif set_type == 2:
+            indices = range(80, 100)
+        elif set_type == 3:
+            indices = range(100)
+        else:
+            raise RuntimeError(
+                f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test', 3: 'all']."
+            )
     else:
-        raise RuntimeError(f"There is no 'set_type'={set_type}. Choose from: [0: 'train', 1: 'val', 2: 'test'].")
+        indices = set_indices
 
     for idx in indices:
         # Read signal
@@ -70,14 +89,19 @@ def faust_generator(path_to_zip, set_type=0, only_signal=False):
         if only_signal:
             yield signal
         else:
-            yield (signal, bc), gt
+            if return_coordinates:
+                coord = tf.cast(dataset[COORD[idx]], tf.float32)
+                yield (signal, bc, coord), gt
+            else:
+                yield (signal, bc), gt
 
 
 def load_preprocessed_faust(path_to_zip,
                             signal_dim,
                             kernel_size=(2, 4),
                             set_type=0,
-                            only_signal=False):
+                            only_signal=False,
+                            return_coordinates=False):
     """Returns a 'tensorflow.data.Dataset' of the preprocessed MPI-FAUST geoconv_examples.
 
     Requires that preprocessing already happened. This function operates directly on the resulting 'zip'-file.
@@ -101,6 +125,9 @@ def load_preprocessed_faust(path_to_zip,
         > Jonathan Masci and Davide Boscaini et al.
     only_signal: bool
         Return only the signal matrices. Helpful for keras.Normalization(axis=-1).adapt(data)
+    return_coordinates: bool
+        Whether to return the coordinates of the mesh vertices. Requires coordinates to be contained in preprocessed
+        dataset.
 
     Returns
     -------
@@ -110,15 +137,25 @@ def load_preprocessed_faust(path_to_zip,
     if only_signal:
         output_signature = tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32)
     else:
-        output_signature = (
-            (
-                tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
-                tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32)  # Barycentric Coordinates
-            ),
-            tf.TensorSpec(shape=(None,), dtype=tf.float32)
-        )
+        if return_coordinates:
+            output_signature = (
+                (
+                    tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
+                    tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32),  # Barycentric Coordinates
+                    tf.TensorSpec(shape=(None, 3,), dtype=tf.float32),  # Coordinates
+                ),
+                tf.TensorSpec(shape=(None,), dtype=tf.float32)
+            )
+        else:
+            output_signature = (
+                (
+                    tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
+                    tf.TensorSpec(shape=(None,) + kernel_size + (3, 2), dtype=tf.float32)  # Barycentric Coordinates
+                ),
+                tf.TensorSpec(shape=(None,), dtype=tf.float32)
+            )
     return tf.data.Dataset.from_generator(
         faust_generator,
-        args=(path_to_zip, set_type, only_signal),
+        args=(path_to_zip, set_type, only_signal, return_coordinates),
         output_signature=output_signature
     )
