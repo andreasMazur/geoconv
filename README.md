@@ -44,6 +44,11 @@ minimal example below or the `geoconv_examples`-package for how you configure In
     pip install pyshot@git+https://github.com/uhlmanngroup/pyshot@master
     ```
 
+4. In case OpenGL context cannot be created:
+    ```bash
+    conda install -c conda-forge libstdcxx-ng
+    ```
+
 ### Minimal Example (TensorFlow)
 
 ```python
