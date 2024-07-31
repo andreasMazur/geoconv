@@ -140,11 +140,12 @@ class Imcnn(nn.Module):
                    dataset,
                    loss_fn,
                    opt,
-                   decay_rate,
-                   decay_steps,
+                   decay_rate=0.95,
+                   decay_steps=500,
                    verbose=True,
                    epoch=None,
-                   prev_steps=None):
+                   prev_steps=None,
+                   use_lr_decay=False):
         self.train()
         epoch_accuracy = 0.
         epoch_loss = 0.
@@ -158,7 +159,8 @@ class Imcnn(nn.Module):
             loss.backward()
             opt.step()
 
-            custom_exp_scheduler(opt, prev_steps + step, decay_rate=decay_rate, decay_steps=decay_steps)
+            if use_lr_decay:
+                custom_exp_scheduler(opt, prev_steps + step, decay_rate=decay_rate, decay_steps=decay_steps)
 
             # Statistics
             epoch_accuracy = epoch_accuracy + multiclass_accuracy(pred, gt).detach()
