@@ -1,9 +1,10 @@
-from geoconv.tensorflow.backbone.imcnn_backbone import ISCBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
+from geoconv.tensorflow.layers.conv_dirac import ConvDirac
+from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
 from geoconv_examples.modelnet_40_projections.dataset import load_preprocessed_modelnet
 
-import tensorflow_probability as tfp
 import tensorflow as tf
+import tensorflow_probability as tfp
 import keras_tuner as kt
 import os
 
@@ -14,58 +15,57 @@ class Covariance(tf.keras.layers.Layer):
 
 
 class HyperModel(kt.HyperModel):
-    def __init__(self, n_radial, n_angular, template_radius, adapt_data, n_neighbors):
+    def __init__(self,
+                 n_neighbors,
+                 n_radial,
+                 n_angular,
+                 template_radius,
+                 modelnet10=False):
         super().__init__()
-        self.n_radial = n_radial
-        self.n_angular = n_angular
-        self.template_radius = template_radius
-        self.adapt_data = adapt_data
 
-        self.n_neighbors = n_neighbors
-
-        # Barycentric coordinates layer
+        # Init barycentric coordinates layer
         self.bc_layer = BarycentricCoordinates(
-            self.n_radial,
-            self.n_angular,
-            n_neighbors=self.n_neighbors,
-            template_scale=None  # Initialize directly with template radius for now
+            n_radial=n_radial,
+            n_angular=n_angular,
+            n_neighbors=n_neighbors,
+            template_scale=None
         )
-        self.bc_layer.trainable = False
-        self.template_radius = self.bc_layer.adapt(template_radius=template_radius)
+        self.bc_layer.adapt(template_radius=template_radius)
 
-        # Normalization layer
-        self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
-        self.normalize.adapt(adapt_data)
+        # Init angular max-pooling layer
+        self.amp = AngularMaxPooling()
+
+        # Remember template radius
+        self.template_radius = template_radius
+
+        # Remember dataset type
+        self.modelnet10 = modelnet10
 
     def build(self, hp):
-        # Define model input
-        signal_input = tf.keras.layers.Input(shape=(2000, 3), name="Signal")
+        # Get input
+        signal_input = tf.keras.layers.Input(shape=(2000, 3), name="3D coordinates")
 
-        # Get BC
+        # Compute barycentric coordinates
         bc = self.bc_layer(signal_input)
 
-        # Normalize input
-        signal = self.normalize(signal_input)
+        # Compute vertex embeddings
+        embedding = signal_input
+        for idx in range(3):
+            embedding = ConvDirac(
+                amt_templates=hp.Int(name=f"ISC_layer_{idx}", min_value=8, max_value=32),
+                template_radius=self.template_radius,
+                activation="relu",
+                name=f"ISC_layer_{idx}",
+                rotation_delta=1
+            )([embedding, bc])
+            embedding = self.amp(embedding)
 
-        # Embed
-        signal = ISCBlock(
-            isc_layer_dims=[
-                hp.Int(name="ISC_1", min_value=50, max_value=100),
-                hp.Int(name="ISC_2", min_value=50, max_value=100),
-                hp.Int(name="ISC_3", min_value=50, max_value=100),
-                hp.Int(name="ISC_4", min_value=50, max_value=100)
-            ],
-            n_radial=self.n_radial,
-            n_angular=self.n_angular,
-            template_radius=self.template_radius,
-            variant="dirac",
-            normalize=False
-        )([signal, bc])
+        # Compute flat covariance matrices
+        embedding = Covariance()(embedding)
+        embedding = tf.keras.layers.Flatten()(embedding)
 
-        # Output
-        signal = Covariance()(signal)
-        signal = tf.keras.layers.Flatten()(signal)
-        signal_output = tf.keras.layers.Dense(10)(signal)  # Work on modelnet10 for now
+        # Compute output logits
+        signal_output = tf.keras.layers.Dense(10 if self.modelnet10 else 40)(embedding)
 
         # Compile model
         imcnn = tf.keras.Model(inputs=signal_input, outputs=signal_output)
@@ -79,36 +79,29 @@ class HyperModel(kt.HyperModel):
             weight_decay=0.005
         )
         imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
-        imcnn.build(
-            input_shape=[
-                tf.TensorShape([None, 541, 3]), tf.TensorShape([None, 541, self.n_radial, self.n_angular, 3, 2])
-            ]
-        )
 
         return imcnn
 
 
-def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_file):
-    gen_info_file_1 = f"{logging_dir}/{gen_info_file}"
-    gen_info_file_2 = f"{logging_dir}/test_{gen_info_file}"
-
+def hyper_tuning(dataset_path,
+                 logging_dir,
+                 template_configuration,
+                 n_neighbors,
+                 modelnet10=True,
+                 gen_info_file=None,
+                 batch_size=1):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
-    # Run hyper-tuning
     n_radial, n_angular, template_radius = template_configuration
-    train_data = load_preprocessed_modelnet(
-        dataset_path, is_train=True, modelnet10=True, gen_info_file=gen_info_file_1, batch_size=1
-    )
-    test_data = load_preprocessed_modelnet(
-        dataset_path, is_train=False, modelnet10=True, gen_info_file=gen_info_file_2, batch_size=1
-    )
-    adapt_data = load_preprocessed_modelnet(
-        dataset_path, is_train=True, only_signal=True, modelnet10=True, gen_info_file=gen_info_file_1, batch_size=1
-    )
-
     tuner = kt.Hyperband(
-        hypermodel=HyperModel(n_radial, n_angular, template_radius, adapt_data, n_neighbors=10),
+        hypermodel=HyperModel(
+            n_neighbors,
+            n_radial,
+            n_angular,
+            template_radius,
+            modelnet10
+        ),
         objective="val_accuracy",
         max_epochs=200,
         factor=3,
@@ -116,6 +109,23 @@ def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_fil
         project_name="modelnet_40_hyper_tuning"
     )
 
+    # Setup datasets
+    train_data = load_preprocessed_modelnet(
+        dataset_path,
+        is_train=True,
+        modelnet10=modelnet10,
+        gen_info_file=f"{logging_dir}/{gen_info_file}",
+        batch_size=batch_size
+    )
+    test_data = load_preprocessed_modelnet(
+        dataset_path,
+        is_train=False,
+        modelnet10=modelnet10,
+        gen_info_file=f"{logging_dir}/test_{gen_info_file}",
+        batch_size=batch_size
+    )
+
+    # Start hyperparameter tuning
     stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, min_delta=0.01)
     tuner.search(x=train_data, validation_data=test_data, epochs=200, callbacks=[stop])
 
