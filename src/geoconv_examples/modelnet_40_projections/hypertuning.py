@@ -78,7 +78,7 @@ class HyperModel(kt.HyperModel):
             ),
             weight_decay=0.005
         )
-        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
+        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
 
         return imcnn
 
