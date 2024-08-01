@@ -1,4 +1,4 @@
-from geoconv.tensorflow.backbone.imcnn_backbone import ImcnnBackbone
+from geoconv.tensorflow.backbone.imcnn_backbone import ISCBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 from geoconv_examples.modelnet_40_projections.dataset import load_preprocessed_modelnet
 
@@ -48,7 +48,7 @@ class HyperModel(kt.HyperModel):
         signal = self.normalize(signal_input)
 
         # Embed
-        signal = ImcnnBackbone(
+        signal = ISCBlock(
             isc_layer_dims=[
                 hp.Int(name="ISC_1", min_value=50, max_value=100),
                 hp.Int(name="ISC_2", min_value=50, max_value=100),

@@ -1,81 +1,57 @@
-from geoconv.tensorflow.backbone.imcnn_backbone import ImcnnBackbone
-from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
+from geoconv_examples.modelnet_40_projections.classifier import ModelNetClf
 from geoconv_examples.modelnet_40_projections.dataset import load_preprocessed_modelnet
 
 import os
 import tensorflow as tf
-import tensorflow_probability as tfp
 
 
-class ModelnetClassifier(tf.keras.Model):
-    def __init__(self,
-                 n_radial,
-                 n_angular,
-                 n_neighbors,
-                 template_scale,
-                 adaption_data,
-                 isc_layer_dims=None,
-                 variant=None,
-                 normalize=True,
-                 template_radius=None,
-                 modelnet10=False):
-        super().__init__()
-        self.modelnet10 = modelnet10
+def model_configuration(n_neighbors,
+                        n_radial,
+                        n_angular,
+                        template_radius,
+                        isc_layer_dims,
+                        modelnet10,
+                        learning_rate):
+    # Define model
+    imcnn = ModelNetClf(
+        n_neighbors=n_neighbors,
+        n_radial=n_radial,
+        n_angular=n_angular,
+        template_radius=template_radius,
+        isc_layer_dims=isc_layer_dims,
+        modelnet10=modelnet10
+    )
 
-        # BC-layer configuration
-        self.n_radial = n_radial
-        self.n_angular = n_angular
-        self.n_neighbors = n_neighbors
-        self.template_scale = template_scale
+    # Define loss and optimizer
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    opt = tf.keras.optimizers.AdamW(
+        learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=learning_rate,
+            decay_steps=500,
+            decay_rate=0.99
+        ),
+        weight_decay=0.005
+    )
 
-        self.bc_layer = BarycentricCoordinates(
-            self.n_radial,
-            self.n_angular,
-            n_neighbors=self.n_neighbors,
-            template_scale=self.template_scale
-        )
-        self.bc_layer.trainable = False
-        self.template_radius = self.bc_layer.adapt(data=adaption_data, template_radius=template_radius)
+    # Compile the model
+    imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
+    imcnn(tf.random.uniform(shape=[1, 2000, 3]))
+    imcnn.summary()
 
-        # ISC-blocks configuration
-        isc_layer_dims = [128, 64, 8] if isc_layer_dims is None else isc_layer_dims
-        self.backbone = ImcnnBackbone(
-            isc_layer_dims=isc_layer_dims,
-            n_radial=n_radial,
-            n_angular=n_angular,
-            template_radius=self.template_radius,
-            variant=variant,
-            normalize=normalize
-        )
-
-        # Output configuration
-        self.flatten = tf.keras.layers.Flatten()
-        self.output_layer = tf.keras.layers.Dense(10 if self.modelnet10 else 40)
-
-    def call(self, inputs, **kwargs):
-        # Estimate barycentric coordinates
-        bc = self.bc_layer(inputs)
-
-        # Embed
-        signal = self.backbone([inputs, bc])
-
-        # Compute covariance matrix from vertex-embeddings
-        signal = self.flatten(tf.map_fn(tfp.stats.covariance, signal))
-
-        # Classify covariance matrix
-        return self.output_layer(signal)
+    return imcnn
 
 
 def training(dataset_path,
              logging_dir,
              template_configurations=None,
-             n_neighbors=20,
-             variant=None,
+             n_neighbors=10,
              isc_layer_dims=None,
              learning_rate=0.00165,
              template_radius=None,
              modelnet10=False,
-             gen_info_file=None):
+             gen_info_file=None,
+             batch_size=1):
+    # Set filename for generator
     if gen_info_file is None:
         gen_info_file = "generator_info.json"
 
@@ -83,46 +59,16 @@ def training(dataset_path,
     os.makedirs(logging_dir, exist_ok=True)
 
     for (n_radial, n_angular, template_scale) in template_configurations:
-        # Define and compile model
-        imcnn = ModelnetClassifier(
-            n_radial=n_radial,
-            n_angular=n_angular,
-            n_neighbors=n_neighbors,
-            template_scale=template_scale,
-            adaption_data=load_preprocessed_modelnet(
-                dataset_path,
-                is_train=True,
-                batch_size=1,
-                modelnet10=modelnet10,
-                gen_info_file=f"{logging_dir}/{gen_info_file}"
-            ),
-            isc_layer_dims=isc_layer_dims,
-            variant=variant,
-            template_radius=template_radius,
-            modelnet10=modelnet10
+        # Get classification model
+        imcnn = model_configuration(
+            n_neighbors,
+            n_radial,
+            n_angular,
+            template_radius,
+            isc_layer_dims,
+            modelnet10,
+            learning_rate
         )
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        opt = tf.keras.optimizers.AdamW(
-            learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=learning_rate,
-                decay_steps=500,
-                decay_rate=0.99
-            ),
-            weight_decay=0.005
-        )
-        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
-        imcnn(tf.random.uniform(shape=[1, 2000, 3]))  # tf.TensorShape([None, 2000, 3])
-        imcnn.backbone.normalize.adapt(
-            load_preprocessed_modelnet(
-                dataset_path,
-                is_train=True,
-                batch_size=1,
-                only_signal=True,
-                modelnet10=modelnet10,
-                gen_info_file=f"{logging_dir}/{gen_info_file}"
-            )
-        )
-        imcnn.summary()
 
         # Define callbacks
         exp_number = f"{n_radial}_{n_angular}_{template_scale}"
@@ -140,10 +86,18 @@ def training(dataset_path,
 
         # Load data
         train_data = load_preprocessed_modelnet(
-            dataset_path, is_train=True, modelnet10=modelnet10, gen_info_file=f"{logging_dir}/{gen_info_file}"
+            dataset_path,
+            is_train=True,
+            modelnet10=modelnet10,
+            gen_info_file=f"{logging_dir}/{gen_info_file}",
+            batch_size=batch_size
         )
         test_data = load_preprocessed_modelnet(
-            dataset_path, is_train=False, modelnet10=modelnet10, gen_info_file=f"{logging_dir}/test_{gen_info_file}"
+            dataset_path,
+            is_train=False,
+            modelnet10=modelnet10,
+            gen_info_file=f"{logging_dir}/test_{gen_info_file}",
+            batch_size=batch_size
         )
 
         # Train model
