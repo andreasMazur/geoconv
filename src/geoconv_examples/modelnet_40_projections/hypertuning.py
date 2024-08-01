@@ -20,7 +20,7 @@ class HyperModel(kt.HyperModel):
                  n_radial,
                  n_angular,
                  template_radius,
-                 modelnet10=False):
+                 modelnet10=True):
         super().__init__()
 
         # Init barycentric coordinates layer
