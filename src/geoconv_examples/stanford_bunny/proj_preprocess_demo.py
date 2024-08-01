@@ -27,6 +27,8 @@ def visualize_interpolations(interpolation_weights, projections_indices, project
     template: np.ndarray
         A 3D-array of shape (n_radial, n_angular, 2) that contains the 2D template vertices.
     """
+    plt.rcParams['text.usetex'] = True
+
     interpolated_template_vertices = []
     for radial_c in range(interpolation_weights.shape[0]):
         for angular_c in range(interpolation_weights.shape[1]):
@@ -37,11 +39,17 @@ def visualize_interpolations(interpolation_weights, projections_indices, project
                 interpolated_template_vertex.append(interpolation_coefficient * closest_neighbor)
             interpolated_template_vertex = sum(interpolated_template_vertex)
             interpolated_template_vertices.append(interpolated_template_vertex)
-
     interpolated_template_vertices = np.array(interpolated_template_vertices).reshape(template.shape)
+
     visualize_projected_neighborhood(projections, show=False, color="blue", alpha=1.)
     visualize_projected_neighborhood(template.reshape(-1, 2), show=False, color="red", alpha=.5)
-    visualize_projected_neighborhood(interpolated_template_vertices.reshape(-1, 2), show=True, color="green", alpha=.5)
+    visualize_projected_neighborhood(interpolated_template_vertices.reshape(-1, 2), show=False, color="green", alpha=.5)
+
+    plt.title("Interpolated template vertices")
+    plt.text(0.005, 0.006, r"\textbf{Interpolated}", color="green")
+    plt.text(0.005, 0.005, r"\textbf{Not interpolated}", color="red")
+    plt.text(0.005, 0.004, r"\textbf{Projected mesh vertices}", color="blue")
+    plt.show()
 
 
 def visualize_projected_neighborhood(projections, show=True, color="blue", alpha=1.):
@@ -168,6 +176,9 @@ def preprocess_demo(path_to_stanford_bunny, n_radial=5, n_angular=6, n_neighbors
     # Plot histogram of interpolation weights
     counts, bins = np.histogram(interpolation_weights.numpy().flatten(), bins=100)
     plt.hist(bins[:-1], bins, weights=counts, rwidth=0.5)
+    plt.title("Histogram of barycentric coordinates")
+    plt.xlabel("barycentric coordinates")
+    plt.ylabel("Count")
     plt.show()
 
     # Visualize three interpolated template vertices in their projected neighborhoods
