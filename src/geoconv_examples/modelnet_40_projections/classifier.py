@@ -1,5 +1,6 @@
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 from geoconv.tensorflow.layers.conv_dirac import ConvDirac
+from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
 from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
 
 import tensorflow as tf
@@ -34,15 +35,26 @@ class ModelNetClf(tf.keras.Model):
         # Init ISC block
         self.isc_layers = []
         for idx in range(len(isc_layer_dims)):
-            self.isc_layers.append(
-                ConvDirac(
-                    amt_templates=isc_layer_dims[idx],
-                    template_radius=template_radius,
-                    activation="relu",
-                    name=f"ISC_layer_{idx}",
-                    rotation_delta=1
+            if variant == "dirac":
+                self.isc_layers.append(
+                    ConvDirac(
+                        amt_templates=isc_layer_dims[idx],
+                        template_radius=template_radius,
+                        activation="relu",
+                        name=f"ISC_layer_{idx}",
+                        rotation_delta=1
+                    )
                 )
-            )
+            else:
+                self.isc_layers.append(
+                    ConvGeodesic(
+                        amt_templates=isc_layer_dims[idx],
+                        template_radius=template_radius,
+                        activation="relu",
+                        name=f"ISC_layer_{idx}",
+                        rotation_delta=1
+                    )
+                )
         self.amp = AngularMaxPooling()
 
         # Define classification layer
