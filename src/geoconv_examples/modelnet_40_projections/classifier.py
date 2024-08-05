@@ -13,7 +13,8 @@ class ModelNetClf(tf.keras.Model):
                  n_angular,
                  template_radius,
                  isc_layer_dims,
-                 modelnet10=False):
+                 modelnet10=False,
+                 variant=None):
         super().__init__()
 
         # Init barycentric coordinates layer
@@ -24,6 +25,11 @@ class ModelNetClf(tf.keras.Model):
             template_scale=None
         )
         self.bc_layer.adapt(template_radius=template_radius)
+
+        # Determine which layer type shall be used
+        variant = "dirac" if variant is None else variant
+        if variant not in ["dirac", "geodesic"]:
+            raise RuntimeError("Please select a valid variant from ['dirac', 'geodesic'].")
 
         # Init ISC block
         self.isc_layers = []

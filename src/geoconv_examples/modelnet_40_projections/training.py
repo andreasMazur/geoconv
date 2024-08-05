@@ -11,7 +11,8 @@ def model_configuration(n_neighbors,
                         template_radius,
                         isc_layer_dims,
                         modelnet10,
-                        learning_rate):
+                        learning_rate,
+                        variant):
     # Define model
     imcnn = ModelNetClf(
         n_neighbors=n_neighbors,
@@ -19,7 +20,8 @@ def model_configuration(n_neighbors,
         n_angular=n_angular,
         template_radius=template_radius,
         isc_layer_dims=isc_layer_dims,
-        modelnet10=modelnet10
+        modelnet10=modelnet10,
+        variant=variant
     )
 
     # Define loss and optimizer
@@ -50,7 +52,8 @@ def training(dataset_path,
              template_radius=None,
              modelnet10=False,
              gen_info_file=None,
-             batch_size=1):
+             batch_size=1,
+             variant=None):
     # Set filename for generator
     if gen_info_file is None:
         gen_info_file = "generator_info.json"
@@ -67,7 +70,8 @@ def training(dataset_path,
             template_radius,
             isc_layer_dims,
             modelnet10,
-            learning_rate
+            learning_rate,
+            variant
         )
 
         # Define callbacks
