@@ -91,14 +91,14 @@ def training(dataset_path,
         # Load data
         train_data = load_preprocessed_modelnet(
             dataset_path,
-            is_train=True,
+            set_type="train",
             modelnet10=modelnet10,
             gen_info_file=f"{logging_dir}/{gen_info_file}",
             batch_size=batch_size
         )
         test_data = load_preprocessed_modelnet(
             dataset_path,
-            is_train=False,
+            set_type="test",
             modelnet10=modelnet10,
             gen_info_file=f"{logging_dir}/test_{gen_info_file}",
             batch_size=batch_size
