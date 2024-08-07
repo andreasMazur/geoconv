@@ -67,8 +67,11 @@ def modelnet_generator(dataset_path,
                        modelnet10=False,
                        gen_info_file="",
                        labels_as_str=False):
+    if isinstance(set_type, bytes):
+        set_type = set_type.decode("utf-8")
+
     if set_type not in ["train", "test", "all"]:
-        raise RuntimeError("Unknown dataset type. Please select from: ['train', 'test', 'all'].")
+        raise RuntimeError(f"Unknown dataset type: '{set_type}' Please select from: ['train', 'test', 'all'].")
 
     set_type = "" if set_type == "all" else set_type
     if modelnet10:
