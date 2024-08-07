@@ -95,7 +95,7 @@ def modelnet_generator(dataset_path,
 
 
 def load_preprocessed_modelnet(dataset_path,
-                               is_train,
+                               set_type,
                                batch_size=4,
                                only_signal=False,
                                modelnet10=False,
@@ -108,6 +108,6 @@ def load_preprocessed_modelnet(dataset_path,
         )
     return tf.data.Dataset.from_generator(
         modelnet_generator,
-        args=(dataset_path, is_train, only_signal, modelnet10, gen_info_file),
+        args=(dataset_path, set_type, only_signal, modelnet10, gen_info_file),
         output_signature=output_signature
     ).batch(batch_size).prefetch(tf.data.AUTOTUNE)
