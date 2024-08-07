@@ -61,13 +61,21 @@ MODELNET10_CLASSES = {
 }
 
 
-def modelnet_generator(dataset_path, is_train, only_signal=False, modelnet10=False, gen_info_file=""):
-    prefix = "train" if is_train else "test"
+def modelnet_generator(dataset_path,
+                       set_type,
+                       only_signal=False,
+                       modelnet10=False,
+                       gen_info_file="",
+                       labels_as_str=False):
+    if set_type not in ["train", "test", "all"]:
+        raise RuntimeError("Unknown dataset type. Please select from: ['train', 'test', 'all'].")
+
+    set_type = "" if set_type == "all" else set_type
     if modelnet10:
         filter_list = list(MODELNET10_CLASSES.keys())
-        filter_list = [f"{prefix}/{c}_.*/vertices" for c in filter_list]
+        filter_list = [f"{set_type}/{c}_.*/vertices" for c in filter_list]
     else:
-        filter_list = [f"{prefix}.*vertices"]
+        filter_list = [f"{set_type}.*vertices"]
 
     # Load sampled vertices from preprocessed dataset
     psg = preprocessed_shape_generator(
@@ -78,7 +86,9 @@ def modelnet_generator(dataset_path, is_train, only_signal=False, modelnet10=Fal
         if only_signal:
             yield vertices
         else:
-            if modelnet10:
+            if labels_as_str:
+                yield vertices, vertices_path.split("/")[1]
+            elif modelnet10:
                 yield vertices, np.array(MODELNET10_CLASSES[vertices_path.split("/")[1]]).reshape(1)
             else:
                 yield vertices, np.array(MODELNET_CLASSES[vertices_path.split("/")[1]]).reshape(1)
