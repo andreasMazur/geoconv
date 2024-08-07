@@ -76,7 +76,8 @@ def zip_file_generator(zipfile_path,
                        shape_path_contains=None,
                        epsilon=0.25,
                        remove_non_manifold_edges=True,
-                       normalize=False):
+                       normalize=False,
+                       repair_shapes=True):
     """Loads shapes from a given zip-file and removes non-manifold edges.
 
     Parameters
@@ -107,6 +108,8 @@ def zip_file_generator(zipfile_path,
         Whether to remove non-manifold edges.
     normalize: bool
         Whether to normalize the mesh.
+    repair_shapes: bool
+        Whether to merge close vertices and remove degenerate faces.
 
     Returns
     -------
@@ -172,7 +175,8 @@ def zip_file_generator(zipfile_path,
             shape = remove_nme(shape)
 
         # Merge vertices
-        shape = repair_mesh(shape)
+        if repair_shapes:
+            shape = repair_mesh(shape)
 
         # Normalize shape
         if normalize:
