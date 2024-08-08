@@ -30,7 +30,9 @@ class ModelNetClf(tf.keras.Model):
         # Determine which layer type shall be used
         variant = "dirac" if variant is None else variant
         if variant not in ["dirac", "geodesic"]:
-            raise RuntimeError("Please select a valid variant from ['dirac', 'geodesic'].")
+            raise RuntimeError(
+                f"'{variant}' is not a valid network type. Please select a valid variant from ['dirac', 'geodesic']."
+            )
 
         # Init ISC block
         self.isc_layers = []
