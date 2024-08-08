@@ -2,6 +2,7 @@ from geoconv_examples.modelnet_40_projections.classifier import ModelNetClf
 from geoconv_examples.modelnet_40_projections.dataset import load_preprocessed_modelnet
 
 import os
+import sys
 import tensorflow as tf
 
 
@@ -53,13 +54,27 @@ def training(dataset_path,
              modelnet10=False,
              gen_info_file=None,
              batch_size=1,
-             variant=None):
+             variant=None,
+             set_mem_growth=False,
+             redirect_output=False):
+    # Create logging dir
+    os.makedirs(logging_dir, exist_ok=True)
+
+    # Redirect output (stdout/stderr)
+    if redirect_output is not None:
+        sys.stdout = open(f"{logging_dir}/stdout.txt", "a")
+        sys.stderr = open(f"{logging_dir}/stderr.txt", "a")
+
+    # Set memory growth, e.g., for training multiple models on one GPU
+    if set_mem_growth:
+        gpus = tf.config.experimental.list_physical_devices('GPU')
+        assert len(gpus) > 0, "No GPUs found!"
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+
     # Set filename for generator
     if gen_info_file is None:
         gen_info_file = "generator_info.json"
-
-    # Create logging dir
-    os.makedirs(logging_dir, exist_ok=True)
 
     for (n_radial, n_angular, template_scale) in template_configurations:
         # Get classification model
