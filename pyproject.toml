@@ -70,8 +70,14 @@ pytorch = [
     "torchaudio",
     "torcheval"
 ]
-tensorflow = ["tensorflow"]
-tensorflow_gpu = ["tensorflow[and-cuda]"]
+tensorflow = [
+    "tensorflow",
+    "tensorflow-probability"
+]
+tensorflow_gpu = [
+    "tensorflow[and-cuda]",
+    "tensorflow-probability"
+]
 
 [project.urls]
 Repository = "https://github.com/andreasMazur/geoconv"
