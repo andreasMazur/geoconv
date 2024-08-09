@@ -37,7 +37,7 @@ def model_configuration(n_neighbors,
     )
 
     # Compile the model
-    imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
+    imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
     imcnn(tf.random.uniform(shape=[1, 2000, 3]))
     imcnn.summary()
 
