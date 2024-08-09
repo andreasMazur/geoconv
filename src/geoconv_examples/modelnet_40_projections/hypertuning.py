@@ -50,9 +50,9 @@ class HyperModel(kt.HyperModel):
 
         # Compute vertex embeddings
         embedding = signal_input
-        for idx in range(3):
+        for idx in range(20):
             embedding = ConvDirac(
-                amt_templates=hp.Int(name=f"ISC_layer_{idx}", min_value=8, max_value=32),
+                amt_templates=25,
                 template_radius=self.template_radius,
                 activation="relu",
                 name=f"ISC_layer_{idx}",
@@ -72,13 +72,13 @@ class HyperModel(kt.HyperModel):
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=hp.Float("initial_learning_rate", min_value=0.0005, max_value=0.005),
+                initial_learning_rate=hp.Float("initial_learning_rate", min_value=0.0001, max_value=0.01),
                 decay_steps=500,
                 decay_rate=0.99
             ),
             weight_decay=0.005
         )
-        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
+        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
 
         return imcnn
 
@@ -112,14 +112,14 @@ def hyper_tuning(dataset_path,
     # Setup datasets
     train_data = load_preprocessed_modelnet(
         dataset_path,
-        is_train=True,
+        set_type="train",
         modelnet10=modelnet10,
         gen_info_file=f"{logging_dir}/{gen_info_file}",
         batch_size=batch_size
     )
     test_data = load_preprocessed_modelnet(
         dataset_path,
-        is_train=False,
+        set_type="test",
         modelnet10=modelnet10,
         gen_info_file=f"{logging_dir}/test_{gen_info_file}",
         batch_size=batch_size
