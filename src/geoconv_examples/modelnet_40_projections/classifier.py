@@ -7,6 +7,12 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 
+class Covariance(tf.keras.layers.Layer):
+    @tf.function
+    def call(self, inputs):
+        return tf.map_fn(tfp.stats.covariance, inputs)
+
+
 class ModelNetClf(tf.keras.Model):
     def __init__(self,
                  n_neighbors,
@@ -58,6 +64,7 @@ class ModelNetClf(tf.keras.Model):
                     )
                 )
         self.amp = AngularMaxPooling()
+        self.cov = Covariance()
 
         # Define classification layer
         self.flatten = tf.keras.layers.Flatten()
@@ -75,7 +82,8 @@ class ModelNetClf(tf.keras.Model):
             embedding = self.amp(embedding)
 
         # Compute covariance matrix from vertex-embeddings
-        embedding = self.flatten(tf.map_fn(tfp.stats.covariance, embedding))
+        embedding = self.cov(embedding)
+        embedding = self.flatten(embedding)
 
         # Return classification logits
         return self.clf(embedding)
