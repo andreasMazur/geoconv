@@ -61,7 +61,7 @@ def training(dataset_path,
     os.makedirs(logging_dir, exist_ok=True)
 
     # Redirect output (stdout/stderr)
-    if redirect_output is not None:
+    if redirect_output:
         sys.stdout = open(f"{logging_dir}/stdout.txt", "a")
         sys.stderr = open(f"{logging_dir}/stderr.txt", "a")
 
