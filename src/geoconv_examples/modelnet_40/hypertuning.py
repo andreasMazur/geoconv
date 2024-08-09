@@ -1,7 +1,7 @@
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 from geoconv.tensorflow.layers.conv_dirac import ConvDirac
 from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
-from geoconv_examples.modelnet_40_projections.dataset import load_preprocessed_modelnet
+from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 
 import tensorflow as tf
 import tensorflow_probability as tfp

@@ -1,5 +1,5 @@
-from geoconv_examples.modelnet_40_projections.classifier import ModelNetClf
-from geoconv_examples.modelnet_40_projections.dataset import load_preprocessed_modelnet
+from geoconv_examples.modelnet_40.classifier import ModelNetClf
+from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 
 import os
 import sys
