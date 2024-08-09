@@ -43,9 +43,15 @@ def compute_bc(preprocess_dir):
         (3, 6, gpc_system_radius * .75),
         (3, 6, gpc_system_radius),
         (3, 6, gpc_system_radius * 1.25),
+        (2, 9, gpc_system_radius * .75),
+        (2, 9, gpc_system_radius),
+        (2, 9, gpc_system_radius * 1.25),
         (5, 8, gpc_system_radius * .75),
         (5, 8, gpc_system_radius),
-        (5, 8, gpc_system_radius * 1.25)
+        (5, 8, gpc_system_radius * 1.25),
+        (4, 10, gpc_system_radius * .75),
+        (4, 10, gpc_system_radius),
+        (4, 10, gpc_system_radius * 1.25)
     ]
 
     for (n_radial, n_angular, template_radius) in template_configurations:
@@ -53,6 +59,18 @@ def compute_bc(preprocess_dir):
             gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius
         )
         np.save(f"{preprocess_dir}/BC_{n_radial}_{n_angular}_{template_radius}.npy", bc)
+
+    with open(f"{'/'.join(preprocess_dir.split('/')[:-1])}/dataset_properties.json", "a") as properties_file:
+        temp_conf_dict = {
+            "preprocessed_shapes": -1,
+            "most_gpc_systems": -1,
+            "template_configurations": {}
+        }
+        for idx, tconf in enumerate(template_configurations):
+            temp_conf_dict["template_configurations"][f"{idx}"] = {
+                "n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]
+            }
+        json.dump(temp_conf_dict, properties_file, indent=4)
 
 
 def preprocess(output_path, processes):
