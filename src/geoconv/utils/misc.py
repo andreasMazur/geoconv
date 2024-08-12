@@ -242,3 +242,23 @@ def find_largest_one_hop_dist(object_mesh):
     """
     all_edges = object_mesh.vertices[object_mesh.edges]
     return np.linalg.norm(all_edges[:, 0, :] - all_edges[:, 1, :], axis=-1).max()
+
+
+def compute_distance_matrix(vertices):
+    """Computes the Euclidean distance between given vertices.
+
+    Parameters
+    ----------
+    vertices: np.ndarray
+        The vertices to compute the distance between.
+
+    Returns
+    -------
+    np.ndarray:
+        A square distance matrix for the given vertices.
+    """
+    norm = np.einsum("ij,ij->i", vertices, vertices)
+    norm = np.reshape(norm, (-1, 1)) - 2 * np.einsum("ik,jk->ij", vertices, vertices) + np.reshape(norm, (1, -1))
+    norm[np.isnan(np.sqrt(norm))] = 0.
+
+    return np.sqrt(norm)
