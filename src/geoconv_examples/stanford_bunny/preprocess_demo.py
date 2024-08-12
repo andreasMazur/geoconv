@@ -1,6 +1,6 @@
 from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.utils.visualization import draw_gpc_triangles, draw_gpc_on_mesh, draw_barycentric_coordinates
-from geoconv.utils.misc import reconstruct_template, find_largest_one_hop_dist, normalize_mesh
+from geoconv.utils.misc import reconstruct_template, find_largest_one_hop_dist, normalize_mesh, compute_distance_matrix
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates, create_template_matrix
 
 import open3d as o3d
@@ -43,7 +43,8 @@ def load_bunny(path, target_triangles_amount=6000):
 def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
                     n_radial=3,
                     n_angular=8,
-                    processes=1):
+                    processes=1,
+                    k_th_neighbor=20):
     """Demonstrates and visualizes GeoConv's preprocessing at the hand of the stanford bunny.
 
     Download the Stanford bunny from here:
@@ -62,6 +63,8 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
         The amount of angular coordinates for the template in your geodesic convolution.
     processes: int
         The amount of concurrent processes that shall compute the GPC-systems.
+    k_th_neighbor: int
+        The k-th nearest neighbor for calculating the local GPC-system radius.
     """
     target_dir = "./preprocess_demo_plots"
     if not os.path.exists(target_dir):
@@ -72,15 +75,11 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
 
     # Find the smallest distance from a center vertex in the bunny mesh to one of its one-hop neighbors.
     bunny, _ = normalize_mesh(bunny, geodesic_diameter=0.25270776231631265)
-    u_max = find_largest_one_hop_dist(bunny)
 
-    # Set the maximal radial distance for the GPC-systems
-    u_max = u_max + u_max * .1
-
-    # Select the template radius to be 3/4-th of the GPC-systems max-radius to increase the likelihood of
-    # the template vertices to fall into the GPC-system and not exceed its bounds.
-    template_radius = u_max * 0.75
-    print(f"GPC-system max.-radius: {u_max} | Template max.-radius: {template_radius}")
+    # Use distance of k-th nearest neighbor for maximum GPC-system radius
+    distance_matrix = compute_distance_matrix(bunny.vertices)
+    distance_matrix.sort(axis=-1)
+    u_max = distance_matrix[:, k_th_neighbor]
 
     # Compute and store the GPC-systems for the bunny mesh.
     gpc_systems_path = f"{os.path.dirname(path_to_stanford_bunny)}/bunny_gpc_systems"
@@ -91,6 +90,9 @@ def preprocess_demo(path_to_stanford_bunny="bun_zipper.ply",
     else:
         gpc_systems = GPCSystemGroup(bunny, processes=processes)
         gpc_systems.load(gpc_systems_path)
+
+    # Select the template radius to be the average GPC-system radius
+    template_radius = u_max.mean()
 
     # Compute the barycentric coordinates for the template in the computed GPC-systems.
     bc = compute_barycentric_coordinates(
