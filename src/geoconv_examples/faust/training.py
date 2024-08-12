@@ -1,4 +1,6 @@
-from geoconv.tensorflow.backbone.imcnn_backbone import ImcnnBackbone
+from geoconv.tensorflow.layers.conv_dirac import ConvDirac
+from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
+from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
 from geoconv.utils.data_generator import read_template_configurations
 from geoconv.utils.princeton_benchmark import princeton_benchmark
 from geoconv_examples.faust.dataset import load_preprocessed_faust
@@ -17,45 +19,57 @@ def reconstruction_loss(y_true, y_pred):
 
 class FaustVertexClassifier(keras.Model):
     def __init__(self,
-                 n_radial,
-                 n_angular,
                  template_radius,
                  isc_layer_dims=None,
                  variant=None,
-                 normalize=True,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
-        isc_layer_dims = [128, 64, 8] if isc_layer_dims is None else isc_layer_dims
-        self.backbone_encoder = ImcnnBackbone(
-            isc_layer_dims=isc_layer_dims,
-            n_radial=n_radial,
-            n_angular=n_angular,
-            template_radius=template_radius,
-            variant=variant,
-            normalize=normalize
-        )
-        self.backbone_decoder = ImcnnBackbone(
-            isc_layer_dims=isc_layer_dims[1::-1] + [SIG_DIM],
-            n_radial=n_radial,
-            n_angular=n_angular,
-            template_radius=template_radius,
-            variant=variant,
-            normalize=False
-        )
+
+        # Determine which layer type shall be used
+        variant = "dirac" if variant is None else variant
+        if variant not in ["dirac", "geodesic"]:
+            raise RuntimeError(
+                f"'{variant}' is not a valid network type. Please select a valid variant from ['dirac', 'geodesic']."
+            )
+
+        # Init ISC block
+        self.isc_layers = []
+        for idx in range(len(isc_layer_dims)):
+            if variant == "dirac":
+                self.isc_layers.append(
+                    ConvDirac(
+                        amt_templates=isc_layer_dims[idx],
+                        template_radius=template_radius,
+                        activation="relu",
+                        name=f"ISC_layer_{idx}",
+                        rotation_delta=1
+                    )
+                )
+            else:
+                self.isc_layers.append(
+                    ConvGeodesic(
+                        amt_templates=isc_layer_dims[idx],
+                        template_radius=template_radius,
+                        activation="relu",
+                        name=f"ISC_layer_{idx}",
+                        rotation_delta=1
+                    )
+                )
+        self.amp = AngularMaxPooling()
+
         self.output_dense = keras.layers.Dense(6890, name="output")
 
     def call(self, inputs, **kwargs):
         signal, bc = inputs
 
-        # Embed
-        embedding = self.backbone_encoder([signal, bc])
-
-        # Reconstruct
-        reconstruction = self.backbone_decoder([embedding, bc])
+        # Compute vertex embeddings
+        for idx in range(len(self.isc_layers)):
+            signal = self.isc_layers[idx]([signal, bc])
+            signal = self.amp(signal)
 
         # Output
-        return self.output_dense(embedding), signal - reconstruction
+        return self.output_dense(signal)
 
 
 def training(dataset_path,
@@ -65,7 +79,8 @@ def training(dataset_path,
              variant=None,
              processes=1,
              isc_layer_dims=None,
-             learning_rate=0.00165):
+             learning_rate=0.00165,
+             gen_info_file=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -73,17 +88,33 @@ def training(dataset_path,
     if template_configurations is None:
         template_configurations = read_template_configurations(dataset_path)
 
+    # Set filename for generator
+    if gen_info_file is None:
+        gen_info_file = "generator_info.json"
+
     # Run experiments
     for (n_radial, n_angular, template_radius) in template_configurations:
 
         # Load data
-        train_data = load_preprocessed_faust(dataset_path, n_radial, n_angular, template_radius, is_train=True)
-        test_data = load_preprocessed_faust(dataset_path, n_radial, n_angular, template_radius, is_train=False)
+        train_data = load_preprocessed_faust(
+            dataset_path,
+            n_radial,
+            n_angular,
+            template_radius,
+            is_train=True,
+            gen_info_file=f"{logging_dir}/{gen_info_file}"
+        )
+        test_data = load_preprocessed_faust(
+            dataset_path,
+            n_radial,
+            n_angular,
+            template_radius,
+            is_train=False,
+            gen_info_file=f"{logging_dir}/test_{gen_info_file}"
+        )
 
         # Define and compile model
-        imcnn = FaustVertexClassifier(
-            n_radial, n_angular, template_radius, variant=variant, isc_layer_dims=isc_layer_dims
-        )
+        imcnn = FaustVertexClassifier(template_radius, isc_layer_dims=isc_layer_dims, variant=variant)
         loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = keras.optimizers.AdamW(
             learning_rate=keras.optimizers.schedules.ExponentialDecay(
@@ -97,11 +128,6 @@ def training(dataset_path,
         imcnn.build(
             input_shape=[tf.TensorShape([None, 6890, SIG_DIM]), tf.TensorShape([None, 6890, n_radial, n_angular, 3, 2])]
         )
-        print("Adapt normalization layer on training data..")
-        imcnn.backbone_encoder.normalize.adapt(
-            load_preprocessed_faust(dataset_path, n_radial, n_angular, template_radius, is_train=True, only_signal=True)
-        )
-        print("Done.")
         imcnn.summary()
 
         # Define callbacks
@@ -123,7 +149,14 @@ def training(dataset_path,
         imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
 
         # Evaluate model with Princeton benchmark
-        test_data = load_preprocessed_faust(dataset_path, n_radial, n_angular, template_radius, is_train=False)
+        test_data = load_preprocessed_faust(
+            dataset_path,
+            n_radial,
+            n_angular,
+            template_radius,
+            is_train=False,
+            gen_info_file=f"{logging_dir}/test_{gen_info_file}"
+        )
         princeton_benchmark(
             imcnn=imcnn,
             test_dataset=test_data,

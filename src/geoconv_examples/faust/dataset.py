@@ -4,15 +4,23 @@ import tensorflow as tf
 import numpy as np
 
 
-def faust_generator(dataset_path, n_radial, n_angular, template_radius, is_train, only_signal=False, seed=42):
+def faust_generator(dataset_path,
+                    n_radial,
+                    n_angular,
+                    template_radius,
+                    is_train,
+                    only_signal=False,
+                    seed=42,
+                    gen_info_file=""):
     split_indices = list(range(80)) if is_train else list(range(80, 100))
 
     # Load barycentric coordinates
     psg = preprocessed_shape_generator(
         dataset_path,
         filter_list=["SIGNAL", f"BC_{n_radial}_{n_angular}_{template_radius}"],
-        shuffle_seed=seed,
-        split=split_indices
+        shuffle_seed=int(seed),
+        split=split_indices,
+        gen_info_file=gen_info_file
     )
 
     # Set seed for permutations
@@ -76,7 +84,9 @@ def load_preprocessed_faust(path_to_zip,
                             n_angular,
                             template_radius,
                             is_train,
-                            only_signal=False):
+                            only_signal=False,
+                            seed=42,
+                            gen_info_file=""):
     if only_signal:
         output_signature = tf.TensorSpec(shape=(None, 544), dtype=tf.float32)  # Signal
     else:
@@ -91,7 +101,14 @@ def load_preprocessed_faust(path_to_zip,
     return tf.data.Dataset.from_generator(
         faust_generator,
         args=(
-            path_to_zip, n_radial, n_angular, np.array(template_radius, np.float64), is_train, only_signal
+            path_to_zip,  # dataset_path
+            n_radial,  # n_radial
+            n_angular,  # n_angular
+            np.array(template_radius, np.float64),  # template_radius
+            is_train,  # is_train
+            only_signal,  # only_signal
+            seed,  # seed
+            gen_info_file  # gen_info_file
         ),
         output_signature=output_signature
     ).batch(1).prefetch(tf.data.AUTOTUNE)
