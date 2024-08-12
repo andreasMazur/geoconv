@@ -6,7 +6,6 @@ from multiprocessing import Pool
 from tqdm import tqdm
 
 import numpy as np
-import warnings
 import heapq
 import os
 import json
