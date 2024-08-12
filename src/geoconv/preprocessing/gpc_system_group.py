@@ -34,7 +34,7 @@ class GPCSystemGroup:
             gpc_systems = p.starmap(
                 self.compute_gpc_system,
                 tqdm(
-                    [(vi, u_max) for vi in vertex_indices],
+                    [(vi, u_max) for vi in vertex_indices],  # TODO: u_max[vi]  <-- vertex wise radii
                     total=n_vertices,
                     postfix="Computing GPC-systems"
                 )
@@ -225,8 +225,8 @@ class GPCSystemGroup:
             for source_point in tqdm(range(len(properties.keys())), postfix=f"Loading GPC-systems from: '{path}'"):
                 gpc_system = GPCSystem(source_point, self.object_mesh, use_c=True)
                 gpc_system.load(from_dict={
-                    "angular_coordinates": radial_coordinates_dict[f"{source_point}"],
-                    "radial_coordinates": angular_coordinates_dict[f"{source_point}"],
+                    "angular_coordinates": angular_coordinates_dict[f"{source_point}"],
+                    "radial_coordinates": radial_coordinates_dict[f"{source_point}"],
                     "x_coordinates": x_coordinates_dict[f"{source_point}"],
                     "y_coordinates": y_coordinates_dict[f"{source_point}"],
                     "properties": properties[f"{source_point}"]
