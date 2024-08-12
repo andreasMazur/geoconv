@@ -20,13 +20,13 @@ class GPCSystemGroup:
         self.processes = processes
         self.object_mesh_gpc_systems = None
 
-    def compute(self, u_max=.04):
+    def compute(self, u_max):
         """Computes geodesic polar coordinates for all vertices within an object mesh.
 
         Parameters
         ----------
-        u_max: float
-            The maximal radius for each GPC-system.
+        u_max: np.ndarray
+            The maximal radius for each local GPC-system.
         """
         n_vertices = self.object_mesh.vertices.shape[0]
         vertex_indices = np.arange(n_vertices)
@@ -34,7 +34,7 @@ class GPCSystemGroup:
             gpc_systems = p.starmap(
                 self.compute_gpc_system,
                 tqdm(
-                    [(vi, u_max) for vi in vertex_indices],  # TODO: u_max[vi]  <-- vertex wise radii
+                    [(vi, u_max[vi]) for vi in vertex_indices],
                     total=n_vertices,
                     postfix="Computing GPC-systems"
                 )
