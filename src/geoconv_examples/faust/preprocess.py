@@ -1,6 +1,7 @@
 from geoconv.preprocessing.wrapper import compute_gpc_systems_wrapper, compute_bc_wrapper
 from geoconv.utils.data_generator import zip_file_generator
 from geoconv.utils.misc import find_largest_one_hop_dist
+from geoconv_examples.faust.geodesic_diameters import GEODESIC_DIAMETERS
 
 import shutil
 import pyshot
@@ -23,13 +24,15 @@ def preprocess(faust_path, output_path, processes, zip_when_done=True, compute_g
         )
 
         # Compute GPC-systems
-        for shape, shape_path in shape_generator:
+        for shape_idx, (shape, shape_path) in enumerate(shape_generator):
             print(f"*** Preprocessing: '{shape_path}'")
             # Remove file-ending from folder name
             output_dir = f"{output_path}/{shape_path}"[:-4]
 
             # Compute GPC-systems
-            compute_gpc_systems_wrapper(shape, output_dir, processes=processes)
+            compute_gpc_systems_wrapper(
+                shape, output_dir, processes=processes, geodesic_diameter=GEODESIC_DIAMETERS[shape_idx]
+            )
 
             # Compute SHOT-descriptor
             radius = find_largest_one_hop_dist(shape) * 2.5
