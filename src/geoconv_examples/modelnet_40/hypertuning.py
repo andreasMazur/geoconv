@@ -50,7 +50,7 @@ class HyperModel(kt.HyperModel):
 
         # Compute vertex embeddings
         embedding = signal_input
-        for idx in range(20):
+        for idx in range(5):
             embedding = ConvDirac(
                 amt_templates=25,
                 template_radius=self.template_radius,
