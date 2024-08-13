@@ -52,7 +52,7 @@ class HyperModel(kt.HyperModel):
         embedding = signal_input
         for idx in range(5):
             embedding = ConvDirac(
-                amt_templates=25,
+                amt_templates=hp.Int(name=f"ISC_{idx}", min_value=50, max_value=400),
                 template_radius=self.template_radius,
                 activation="relu",
                 name=f"ISC_layer_{idx}",
