@@ -80,7 +80,7 @@ def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_fil
 
     tuner = kt.Hyperband(
         hypermodel=HyperModel(n_radial, n_angular, template_radius),
-        objective=kt.Objective("val_faust_vertex_classifier_accuracy", direction="max"),
+        objective=kt.Objective("val_accuracy", direction="max"),
         max_epochs=200,
         factor=3,
         directory=logging_dir,
