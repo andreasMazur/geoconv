@@ -11,10 +11,7 @@ import os
 
 
 SIG_DIM = 544
-
-
-def reconstruction_loss(y_true, y_pred):
-    return tf.math.reduce_mean(tf.math.abs(y_pred))
+AMOUNT_VERTICES = 6890
 
 
 class FaustVertexClassifier(keras.Model):
@@ -58,7 +55,7 @@ class FaustVertexClassifier(keras.Model):
                 )
         self.amp = AngularMaxPooling()
 
-        self.output_dense = keras.layers.Dense(6890, name="output")
+        self.output_dense = keras.layers.Dense(AMOUNT_VERTICES, name="output")
 
     def call(self, inputs, **kwargs):
         signal, bc = inputs
@@ -124,9 +121,12 @@ def training(dataset_path,
             ),
             weight_decay=0.005
         )
-        imcnn.compile(optimizer=opt, loss=[loss, reconstruction_loss], metrics=["accuracy"])
+        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
         imcnn.build(
-            input_shape=[tf.TensorShape([None, 6890, SIG_DIM]), tf.TensorShape([None, 6890, n_radial, n_angular, 3, 2])]
+            input_shape=[
+                tf.TensorShape([None, AMOUNT_VERTICES, SIG_DIM]),
+                tf.TensorShape([None, AMOUNT_VERTICES, n_radial, n_angular, 3, 2])
+            ]
         )
         imcnn.summary()
 
