@@ -6,7 +6,6 @@ from geoconv.utils.princeton_benchmark import princeton_benchmark
 from geoconv_examples.faust.dataset import load_preprocessed_faust
 
 import tensorflow as tf
-import keras
 import os
 
 
@@ -14,14 +13,16 @@ SIG_DIM = 544
 AMOUNT_VERTICES = 6890
 
 
-class FaustVertexClassifier(keras.Model):
+class FaustVertexClassifier(tf.keras.Model):
     def __init__(self,
                  template_radius,
                  isc_layer_dims=None,
                  variant=None,
+                 normalize_input=True,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
+        self.normalize_input = normalize_input
 
         # Determine which layer type shall be used
         variant = "dirac" if variant is None else variant
@@ -30,7 +31,7 @@ class FaustVertexClassifier(keras.Model):
                 f"'{variant}' is not a valid network type. Please select a valid variant from ['dirac', 'geodesic']."
             )
 
-        # Init ISC block
+        # Initialize ISC blocks
         self.isc_layers = []
         for idx in range(len(isc_layer_dims)):
             if variant == "dirac":
@@ -53,12 +54,21 @@ class FaustVertexClassifier(keras.Model):
                         rotation_delta=1
                     )
                 )
-        self.amp = AngularMaxPooling()
 
-        self.output_dense = keras.layers.Dense(AMOUNT_VERTICES, name="output")
+        # Auxiliary layers
+        self.amp = AngularMaxPooling()
+        if self.normalize_input:
+            self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
+        self.dropout = tf.keras.layers.Dropout(rate=0.1)
+
+        # Classification layer
+        self.output_dense = tf.keras.layers.Dense(AMOUNT_VERTICES, name="output")
 
     def call(self, inputs, **kwargs):
         signal, bc = inputs
+        if self.normalize_input:
+            signal = self.normalize(signal)
+        signal = self.dropout(signal)
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
@@ -111,10 +121,12 @@ def training(dataset_path,
         )
 
         # Define and compile model
-        imcnn = FaustVertexClassifier(template_radius, isc_layer_dims=isc_layer_dims, variant=variant)
-        loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        opt = keras.optimizers.AdamW(
-            learning_rate=keras.optimizers.schedules.ExponentialDecay(
+        imcnn = FaustVertexClassifier(
+            template_radius, isc_layer_dims=isc_layer_dims, variant=variant, normalize_input=True
+        )
+        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        opt = tf.keras.optimizers.AdamW(
+            learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=learning_rate,
                 decay_steps=500,
                 decay_rate=0.99
@@ -130,12 +142,25 @@ def training(dataset_path,
         )
         imcnn.summary()
 
+        # Adapt normalization: Normalize each vertex-feature-dimension (axis=-1) with individual mean and variance
+        imcnn.normalize.adapt(
+            load_preprocessed_faust(
+                dataset_path,
+                n_radial,
+                n_angular,
+                template_radius,
+                is_train=True,
+                gen_info_file=f"{logging_dir}/{gen_info_file}",
+                only_signal=True
+            )
+        )
+
         # Define callbacks
         exp_number = f"{n_radial}_{n_angular}_{template_radius}"
         csv_file_name = f"{logging_dir}/training_{exp_number}.log"
-        csv = keras.callbacks.CSVLogger(csv_file_name)
-        stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
-        tb = keras.callbacks.TensorBoard(
+        csv = tf.keras.callbacks.CSVLogger(csv_file_name)
+        stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
+        tb = tf.keras.callbacks.TensorBoard(
             log_dir=f"{logging_dir}/tensorboard_{exp_number}",
             histogram_freq=1,
             write_graph=False,

@@ -7,27 +7,35 @@ import os
 
 
 class HyperModel(kt.HyperModel):
-    def __init__(self, n_radial, n_angular, template_radius):
+    def __init__(self, n_radial, n_angular, template_radius, adapt_data):
         super().__init__()
         self.n_radial = n_radial
         self.n_angular = n_angular
         self.template_radius = template_radius
+        self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
+        self.normalize.adapt(adapt_data)
 
     def build(self, hp):
         # Define model input
         signal_input = tf.keras.layers.Input(shape=(AMOUNT_VERTICES, SIG_DIM), name="Signal")
         bc_input = tf.keras.layers.Input(shape=(AMOUNT_VERTICES, self.n_radial, self.n_angular, 3, 2), name="BC")
 
+        # Normalize input
+        signal = self.normalize(signal_input)
+
+        # Predict vertex embeddings
         vertex_predictions = FaustVertexClassifier(
             self.template_radius,
             isc_layer_dims=[
                 hp.Int(name="ISC_1", min_value=50, max_value=400),
                 hp.Int(name="ISC_2", min_value=50, max_value=400),
                 hp.Int(name="ISC_3", min_value=50, max_value=400),
-                hp.Int(name="ISC_4", min_value=50, max_value=400)
+                hp.Int(name="ISC_4", min_value=50, max_value=400),
+                hp.Int(name="ISC_5", min_value=50, max_value=400)
             ],
-            variant="dirac"
-        )([signal_input, bc_input])
+            variant="dirac",
+            normalize_input=False
+        )([signal, bc_input])
 
         # Compile model
         imcnn = tf.keras.Model(inputs=[signal_input, bc_input], outputs=vertex_predictions)
@@ -59,7 +67,7 @@ def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_fil
     if gen_info_file is None:
         gen_info_file = "generator_info.json"
 
-    # Run hyper-tuning
+    # Load datasets
     n_radial, n_angular, template_radius = template_configuration
     train_data = load_preprocessed_faust(
         dataset_path,
@@ -78,8 +86,25 @@ def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_fil
         gen_info_file=f"{logging_dir}/test_{gen_info_file}"
     )
 
+    # Initialize hypermodel
+    hyper_model = HyperModel(
+        n_radial,
+        n_angular,
+        template_radius,
+        load_preprocessed_faust(
+            dataset_path,
+            n_radial,
+            n_angular,
+            template_radius,
+            is_train=True,
+            gen_info_file=f"{logging_dir}/{gen_info_file}",
+            only_signal=True
+        )
+    )
+
+    # Run hyper-tuning
     tuner = kt.Hyperband(
-        hypermodel=HyperModel(n_radial, n_angular, template_radius),
+        hypermodel=hyper_model,
         objective=kt.Objective("val_accuracy", direction="max"),
         max_epochs=200,
         factor=3,
