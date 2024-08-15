@@ -82,7 +82,8 @@ def load_preprocessed_faust(path_to_zip,
                             is_train,
                             only_signal=False,
                             seed=42,
-                            gen_info_file=""):
+                            gen_info_file="",
+                            batch_size=1):
     if only_signal:
         output_signature = tf.TensorSpec(shape=(None, 544), dtype=tf.float32)  # Signal
     else:
@@ -107,4 +108,4 @@ def load_preprocessed_faust(path_to_zip,
             gen_info_file  # gen_info_file
         ),
         output_signature=output_signature
-    ).batch(1).prefetch(tf.data.AUTOTUNE)
+    ).batch(batch_size).prefetch(tf.data.AUTOTUNE)
