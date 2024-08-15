@@ -66,11 +66,7 @@ def princeton_benchmark(imcnn,
         else:
             prediction = imcnn([signal, barycentric])
 
-        # Handle situation in which model returns multiple outputs
-        if isinstance(prediction, tuple):
-            prediction = np.array(prediction).argmax(axis=-1)
-        else:
-            prediction = np.array(prediction[0]).argmax(axis=-1)
+        prediction = np.array(prediction).argmax(axis=-1)
 
         # Create ground-truth/prediction-pairs and prepare data for multiprocessing
         # TODO: Account for batch sizes > 1!  'np.stack([ground_truth, prediction], axis=-1)-->[0]<--'
