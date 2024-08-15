@@ -61,7 +61,7 @@ class FaustVertexClassifier(tf.keras.Model):
         self.amp = AngularMaxPooling()
         if self.normalize_input:
             self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
-        self.dropout = tf.keras.layers.Dropout(rate=0.1)
+        self.dropout = tf.keras.layers.Dropout(rate=0.3)
 
         # Classification layer
         self.output_dense = tf.keras.layers.Dense(AMOUNT_VERTICES, name="output")
@@ -113,7 +113,8 @@ def training(dataset_path,
             n_angular,
             template_radius,
             is_train=True,
-            gen_info_file=f"{logging_dir}/{gen_info_file}"
+            gen_info_file=f"{logging_dir}/{gen_info_file}",
+            batch_size=2
         )
         test_data = load_preprocessed_faust(
             dataset_path,
@@ -121,7 +122,8 @@ def training(dataset_path,
             n_angular,
             template_radius,
             is_train=False,
-            gen_info_file=f"{logging_dir}/test_{gen_info_file}"
+            gen_info_file=f"{logging_dir}/test_{gen_info_file}",
+            batch_size=2
         )
 
         # Define and compile model
@@ -184,7 +186,8 @@ def training(dataset_path,
             n_angular,
             template_radius,
             is_train=False,
-            gen_info_file=f"{logging_dir}/test_{gen_info_file}"
+            gen_info_file=f"{logging_dir}/test_{gen_info_file}",
+            batch_size=1
         )
         princeton_benchmark(
             imcnn=imcnn,
