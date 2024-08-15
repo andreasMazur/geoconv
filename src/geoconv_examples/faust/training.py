@@ -33,6 +33,7 @@ class FaustVertexClassifier(tf.keras.Model):
 
         # Initialize ISC blocks
         self.isc_layers = []
+        self.batch_normalizations = []
         for idx in range(len(isc_layer_dims)):
             if variant == "dirac":
                 self.isc_layers.append(
@@ -54,6 +55,7 @@ class FaustVertexClassifier(tf.keras.Model):
                         rotation_delta=1
                     )
                 )
+            self.batch_normalizations.append(tf.keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_{idx}"))
 
         # Auxiliary layers
         self.amp = AngularMaxPooling()
@@ -72,8 +74,10 @@ class FaustVertexClassifier(tf.keras.Model):
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
+            signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
             signal = self.amp(signal)
+            signal = self.batch_normalizations[idx](signal)
 
         # Output
         return self.output_dense(signal)
