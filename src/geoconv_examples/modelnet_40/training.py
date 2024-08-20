@@ -37,7 +37,7 @@ def model_configuration(n_neighbors,
     )
 
     # Compile the model
-    imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
+    imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
     imcnn(tf.random.uniform(shape=[1, 2000, 3]))
     imcnn.summary()
 
@@ -120,5 +120,5 @@ def training(dataset_path,
         )
 
         # Train model
-        imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=test_data, epochs=200, run_eagerly=True)
+        imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=test_data, epochs=200)
         imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
