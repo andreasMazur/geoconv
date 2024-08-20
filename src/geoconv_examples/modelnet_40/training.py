@@ -120,5 +120,5 @@ def training(dataset_path,
         )
 
         # Train model
-        imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=test_data, epochs=200)
+        imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=test_data, epochs=200, run_eagerly=True)
         imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
