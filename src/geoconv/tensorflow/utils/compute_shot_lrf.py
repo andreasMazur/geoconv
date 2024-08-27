@@ -96,7 +96,7 @@ def disambiguate_axes(neighborhood_vertices, eigen_vectors):
     Returns
     -------
     tf.Tensor:
-        The disambiguated Eigenvalues.
+        The disambiguated Eigenvectors.
     """
     neg_eigen_vectors = -eigen_vectors
     ev_count = tf.math.count_nonzero(tf.einsum("nvk,nk->nv", neighborhood_vertices, eigen_vectors) >= 0, axis=-1)
