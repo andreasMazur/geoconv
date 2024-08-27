@@ -53,18 +53,18 @@ class ModelNetClf(tf.keras.Model):
                 )
             )
         self.cov = Covariance()
+        self.dropout = tf.keras.layers.Dropout(rate=0.2)
 
         # Define classification layer
         self.flatten = tf.keras.layers.Flatten()
         self.clf = tf.keras.layers.Dense(units=10 if modelnet10 else 40)
 
     def call(self, inputs, **kwargs):
-        embedding = inputs
-
         # Compute barycentric coordinates
         bc = self.bc_layer(inputs)
 
         # Compute vertex embeddings
+        embedding = self.dropout(inputs)
         for idx in range(len(self.isc_layers)):
             embedding = self.isc_layers[idx]([embedding, bc])
 
