@@ -1,6 +1,7 @@
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 from geoconv.tensorflow.layers.conv_dirac import ConvDirac
 from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
+from geoconv_examples.modelnet_40.classifier import ModelNetClf
 from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 
 import tensorflow as tf
@@ -24,48 +25,23 @@ class HyperModel(kt.HyperModel):
         super().__init__()
 
         # Init barycentric coordinates layer
-        self.bc_layer = BarycentricCoordinates(
+        self.modelnet_clf = ModelNetClf(
+            n_neighbors=n_neighbors,
             n_radial=n_radial,
             n_angular=n_angular,
-            n_neighbors=n_neighbors,
-            template_scale=None
+            template_radius=template_radius,
+            isc_layer_dims=[64, 64, 128, 128, 256, 256, 512, 512],
+            modelnet10=modelnet10,
+            variant="dirac",
+            rotation_delta=4
         )
-        self.bc_layer.adapt(template_radius=template_radius)
-
-        # Init angular max-pooling layer
-        self.amp = AngularMaxPooling()
-
-        # Remember template radius
-        self.template_radius = template_radius
-
-        # Remember dataset type
-        self.modelnet10 = modelnet10
 
     def build(self, hp):
         # Get input
         signal_input = tf.keras.layers.Input(shape=(2000, 3), name="3D coordinates")
 
-        # Compute barycentric coordinates
-        bc = self.bc_layer(signal_input)
-
-        # Compute vertex embeddings
-        embedding = signal_input
-        for idx in range(5):
-            embedding = ConvDirac(
-                amt_templates=hp.Int(name=f"ISC_{idx}", min_value=50, max_value=400),
-                template_radius=self.template_radius,
-                activation="relu",
-                name=f"ISC_layer_{idx}",
-                rotation_delta=1
-            )([embedding, bc])
-            embedding = self.amp(embedding)
-
-        # Compute flat covariance matrices
-        embedding = Covariance()(embedding)
-        embedding = tf.keras.layers.Flatten()(embedding)
-
-        # Compute output logits
-        signal_output = tf.keras.layers.Dense(10 if self.modelnet10 else 40)(embedding)
+        # Get signal embedding
+        signal_output = self.modelnet_clf(signal_input)
 
         # Compile model
         imcnn = tf.keras.Model(inputs=signal_input, outputs=signal_output)
