@@ -21,7 +21,8 @@ class ModelNetClf(tf.keras.Model):
                  template_radius,
                  isc_layer_dims,
                  modelnet10=False,
-                 variant=None):
+                 variant=None,
+                 rotation_delta=1):
         super().__init__()
 
         # Init barycentric coordinates layer
@@ -50,7 +51,7 @@ class ModelNetClf(tf.keras.Model):
                         template_radius=template_radius,
                         activation="relu",
                         name=f"ISC_layer_{idx}",
-                        rotation_delta=1
+                        rotation_delta=rotation_delta
                     )
                 )
             else:
@@ -60,7 +61,7 @@ class ModelNetClf(tf.keras.Model):
                         template_radius=template_radius,
                         activation="relu",
                         name=f"ISC_layer_{idx}",
-                        rotation_delta=1
+                        rotation_delta=rotation_delta
                     )
                 )
         self.amp = AngularMaxPooling()

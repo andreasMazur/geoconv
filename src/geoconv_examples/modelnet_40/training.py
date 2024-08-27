@@ -13,7 +13,8 @@ def model_configuration(n_neighbors,
                         isc_layer_dims,
                         modelnet10,
                         learning_rate,
-                        variant):
+                        variant,
+                        rotation_delta):
     # Define model
     imcnn = ModelNetClf(
         n_neighbors=n_neighbors,
@@ -22,7 +23,8 @@ def model_configuration(n_neighbors,
         template_radius=template_radius,
         isc_layer_dims=isc_layer_dims,
         modelnet10=modelnet10,
-        variant=variant
+        variant=variant,
+        rotation_delta=rotation_delta
     )
 
     # Define loss and optimizer
@@ -56,7 +58,8 @@ def training(dataset_path,
              batch_size=1,
              variant=None,
              set_mem_growth=False,
-             redirect_output=False):
+             redirect_output=False,
+             rotation_delta=1):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -86,7 +89,8 @@ def training(dataset_path,
             isc_layer_dims,
             modelnet10,
             learning_rate,
-            variant
+            variant,
+            rotation_delta
         )
 
         # Define callbacks
