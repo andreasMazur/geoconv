@@ -18,6 +18,7 @@ class ResNetBlock(tf.keras.Model):
         assert conv_type in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
         self.layer_type = ConvGeodesic if conv_type == "geodesic" else ConvDirac
 
+        # block 1
         self.conv1 = self.layer_type(
             amt_templates=amt_templates,
             template_radius=template_radius,
@@ -25,6 +26,9 @@ class ResNetBlock(tf.keras.Model):
             name="ResNetBlock_1",
             rotation_delta=rotation_delta
         )
+        self.bn1 = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
+
+        # block 2
         self.conv2 = self.layer_type(
             amt_templates=amt_templates,
             template_radius=template_radius,
@@ -32,6 +36,8 @@ class ResNetBlock(tf.keras.Model):
             name="ResNetBlock_2",
             rotation_delta=rotation_delta
         )
+        self.bn2 = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
+
         self.amp = AngularMaxPooling()
         self.add = tf.keras.layers.Add()
 
@@ -44,6 +50,7 @@ class ResNetBlock(tf.keras.Model):
                 name="ResNetBlock_rescale",
                 rotation_delta=rotation_delta
             )
+            self.bn_rescale = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
         self.output_activation = tf.keras.activations.get(activation)
 
     def call(self, inputs, **kwargs):
@@ -52,13 +59,17 @@ class ResNetBlock(tf.keras.Model):
         # F(x)
         signal = self.conv1([input_signal, bc])
         signal = self.amp(signal)
+        signal = self.bn1(signal)
+
         signal = self.conv2([signal, bc])
         signal = self.amp(signal)
+        signal = self.bn2(signal)
 
         if self.rescale:
             # W x
             input_signal = self.conv_rescale([input_signal, bc])
             input_signal = self.amp(input_signal)
+            input_signal = self.bn_rescale(input_signal)
 
         # F(x) + W x
         signal = self.add([signal, input_signal])
