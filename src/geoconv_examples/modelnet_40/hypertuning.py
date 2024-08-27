@@ -48,7 +48,7 @@ class HyperModel(kt.HyperModel):
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=hp.Float("initial_learning_rate", min_value=0.0001, max_value=0.01),
+                initial_learning_rate=hp.Float("initial_learning_rate", min_value=0.00001, max_value=0.001),
                 decay_steps=500,
                 decay_rate=0.99
             ),
