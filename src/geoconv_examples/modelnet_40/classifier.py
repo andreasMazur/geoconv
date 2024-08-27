@@ -1,7 +1,5 @@
+from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
-from geoconv.tensorflow.layers.conv_dirac import ConvDirac
-from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
-from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
 
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -44,27 +42,16 @@ class ModelNetClf(tf.keras.Model):
         # Init ISC block
         self.isc_layers = []
         for idx in range(len(isc_layer_dims)):
-            if variant == "dirac":
-                self.isc_layers.append(
-                    ConvDirac(
-                        amt_templates=isc_layer_dims[idx],
-                        template_radius=template_radius,
-                        activation="relu",
-                        name=f"ISC_layer_{idx}",
-                        rotation_delta=rotation_delta
-                    )
+            self.isc_layers.append(
+                ResNetBlock(
+                    amt_templates=isc_layer_dims[idx],
+                    template_radius=template_radius,
+                    rotation_delta=rotation_delta,
+                    conv_type=variant,
+                    activation="relu",
+                    input_dim=3 if idx == 0 else isc_layer_dims[idx - 1]
                 )
-            else:
-                self.isc_layers.append(
-                    ConvGeodesic(
-                        amt_templates=isc_layer_dims[idx],
-                        template_radius=template_radius,
-                        activation="relu",
-                        name=f"ISC_layer_{idx}",
-                        rotation_delta=rotation_delta
-                    )
-                )
-        self.amp = AngularMaxPooling()
+            )
         self.cov = Covariance()
 
         # Define classification layer
@@ -80,7 +67,6 @@ class ModelNetClf(tf.keras.Model):
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
             embedding = self.isc_layers[idx]([embedding, bc])
-            embedding = self.amp(embedding)
 
         # Compute covariance matrix from vertex-embeddings
         embedding = self.cov(embedding)
