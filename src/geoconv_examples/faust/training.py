@@ -74,7 +74,6 @@ class FaustVertexClassifier(tf.keras.Model):
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
-            signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
             signal = self.amp(signal)
             signal = self.batch_normalizations[idx](signal)
