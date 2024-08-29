@@ -1,6 +1,6 @@
 from geoconv.utils.data_generator import read_template_configurations
 from geoconv.utils.princeton_benchmark import princeton_benchmark
-from geoconv_examples.faust.classifer_unet import FaustVertexClassifier, AMOUNT_VERTICES
+from geoconv_examples.faust.classifer import FaustVertexClassifier, AMOUNT_VERTICES
 from geoconv_examples.faust.dataset import load_preprocessed_faust
 
 import tensorflow as tf
