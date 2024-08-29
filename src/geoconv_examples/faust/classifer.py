@@ -1,3 +1,4 @@
+from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.conv_dirac import ConvDirac
 from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
 from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
@@ -6,6 +7,7 @@ import tensorflow as tf
 
 
 AMOUNT_VERTICES = 6890
+SIG_DIM = 544
 
 
 class FaustVertexClassifier(tf.keras.Model):
@@ -26,10 +28,6 @@ class FaustVertexClassifier(tf.keras.Model):
             raise RuntimeError(
                 f"'{variant}' is not a valid network type. Please select a valid variant from ['dirac', 'geodesic']."
             )
-        if variant == "dirac":
-            self.layer_type = ConvDirac
-        else:
-            self.layer_type = ConvGeodesic
 
         ##############
         # Down blocks
@@ -38,30 +36,26 @@ class FaustVertexClassifier(tf.keras.Model):
         self.batch_normalizations_down = []
         for idx in range(len(isc_layer_dims) - 1):
             self.isc_layers_down.append(
-                self.layer_type(
+                ResNetBlock(
                     amt_templates=isc_layer_dims[idx],
                     template_radius=template_radius,
+                    rotation_delta=rotation_delta,
+                    conv_type=variant,
                     activation="elu",
-                    name=f"ISC_layer_down_{idx}",
-                    rotation_delta=rotation_delta
+                    input_dim=SIG_DIM if idx == 0 else isc_layer_dims[idx - 1]
                 )
-            )
-            self.batch_normalizations_down.append(
-                tf.keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_down_{idx}")
             )
 
         ###############
         # Middle block
         ###############
-        self.isc_layers_middle = ConvDirac(
+        self.isc_layers_middle = ResNetBlock(
             amt_templates=isc_layer_dims[-1],
             template_radius=template_radius,
+            rotation_delta=rotation_delta,
+            conv_type=variant,
             activation="elu",
-            name=f"ISC_layer_middle",
-            rotation_delta=1
-        )
-        self.batch_normalizations_middle = tf.keras.layers.BatchNormalization(
-            axis=-1, name=f"BN_layer_middle"
+            input_dim=isc_layer_dims[-2]
         )
 
         ############
@@ -73,18 +67,17 @@ class FaustVertexClassifier(tf.keras.Model):
         isc_layer_dims = isc_layer_dims[1::-1]
         for idx in range(len(isc_layer_dims)):
             self.isc_layers_up.append(
-                ConvDirac(
+                ResNetBlock(
                     amt_templates=isc_layer_dims[idx],
                     template_radius=template_radius,
+                    rotation_delta=rotation_delta,
+                    conv_type=variant,
                     activation="elu",
-                    name=f"ISC_layer_up_{idx}",
-                    rotation_delta=1
+                    input_dim=isc_layer_dims[-1] if idx == 0 else isc_layer_dims[idx - 1] * 2
                 )
             )
-            self.batch_normalizations_up.append(tf.keras.layers.BatchNormalization(axis=-1, name=f"BN_layer_up_{idx}"))
 
         # Auxiliary layers
-        self.amp = AngularMaxPooling()
         if self.normalize_input:
             self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
         self.dropout = tf.keras.layers.Dropout(rate=0.2)
@@ -105,21 +98,15 @@ class FaustVertexClassifier(tf.keras.Model):
         down_scaling = []
         for idx in range(len(self.isc_layers_down)):
             signal = self.isc_layers_down[idx]([signal, bc])
-            signal = self.amp(signal)
-            signal = self.batch_normalizations_down[idx](signal)
             down_scaling.append(signal)
 
         # Middle
         signal = self.isc_layers_middle([signal, bc])
-        signal = self.amp(signal)
-        signal = self.batch_normalizations_middle(signal)
 
         # Compute vertex embeddings (up-scaling)
         down_scaling = down_scaling[::-1]
         for idx in range(len(self.isc_layers_up)):
             signal = self.isc_layers_up[idx]([signal, bc])
-            signal = self.amp(signal)
-            signal = self.batch_normalizations_up[idx](signal)
             signal = self.concat([signal, down_scaling[idx]])
 
         # Output
