@@ -35,7 +35,7 @@ class FaustVertexClassifier(tf.keras.Model):
                     ConvDirac(
                         amt_templates=isc_layer_dims[idx],
                         template_radius=template_radius,
-                        activation="relu",
+                        activation="elu",
                         name=f"ISC_layer_{idx}",
                         rotation_delta=1
                     )
@@ -45,7 +45,7 @@ class FaustVertexClassifier(tf.keras.Model):
                     ConvGeodesic(
                         amt_templates=isc_layer_dims[idx],
                         template_radius=template_radius,
-                        activation="relu",
+                        activation="elu",
                         name=f"ISC_layer_{idx}",
                         rotation_delta=1
                     )
