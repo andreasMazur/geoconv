@@ -49,8 +49,9 @@ class FaustVertexClassifier(tf.keras.Model):
         ###############
         # Middle block
         ###############
+        middle_block_dim = isc_layer_dims[-1]
         self.isc_layers_middle = ResNetBlock(
-            amt_templates=isc_layer_dims[-1],
+            amt_templates=middle_block_dim,
             template_radius=template_radius,
             rotation_delta=rotation_delta,
             conv_type=variant,
@@ -64,16 +65,16 @@ class FaustVertexClassifier(tf.keras.Model):
         self.isc_layers_up = []
         self.batch_normalizations_up = []
 
-        isc_layer_dims = isc_layer_dims[1::-1]
-        for idx in range(len(isc_layer_dims)):
+        isc_layer_dims = isc_layer_dims[::-1]
+        for idx in range(len(isc_layer_dims) -1):
             self.isc_layers_up.append(
                 ResNetBlock(
-                    amt_templates=isc_layer_dims[idx],
+                    amt_templates=isc_layer_dims[idx + 1],
                     template_radius=template_radius,
                     rotation_delta=rotation_delta,
                     conv_type=variant,
                     activation="elu",
-                    input_dim=isc_layer_dims[-1] if idx == 0 else isc_layer_dims[idx - 1] * 2
+                    input_dim=isc_layer_dims[idx] + isc_layer_dims[idx + 1]
                 )
             )
 
@@ -106,8 +107,8 @@ class FaustVertexClassifier(tf.keras.Model):
         # Compute vertex embeddings (up-scaling)
         down_scaling = down_scaling[::-1]
         for idx in range(len(self.isc_layers_up)):
-            signal = self.isc_layers_up[idx]([signal, bc])
             signal = self.concat([signal, down_scaling[idx]])
+            signal = self.isc_layers_up[idx]([signal, bc])
 
         # Output
         return self.output_dense(signal)
