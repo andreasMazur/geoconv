@@ -34,7 +34,7 @@ class FaustVertexClassifier(tf.keras.Model):
         ##############
         self.isc_layers_down = []
         self.batch_normalizations_down = []
-        for idx in range(len(isc_layer_dims) - 1):
+        for idx in range(len(isc_layer_dims)):
             self.isc_layers_down.append(
                 ResNetBlock(
                     amt_templates=isc_layer_dims[idx],
@@ -56,7 +56,7 @@ class FaustVertexClassifier(tf.keras.Model):
             rotation_delta=rotation_delta,
             conv_type=variant,
             activation="elu",
-            input_dim=isc_layer_dims[-2]
+            input_dim=isc_layer_dims[-1]
         )
 
         ############
@@ -66,7 +66,7 @@ class FaustVertexClassifier(tf.keras.Model):
         self.batch_normalizations_up = []
 
         isc_layer_dims = isc_layer_dims[::-1]
-        for idx in range(len(isc_layer_dims) -1):
+        for idx in range(len(isc_layer_dims) - 1):
             self.isc_layers_up.append(
                 ResNetBlock(
                     amt_templates=isc_layer_dims[idx + 1],
@@ -74,7 +74,7 @@ class FaustVertexClassifier(tf.keras.Model):
                     rotation_delta=rotation_delta,
                     conv_type=variant,
                     activation="elu",
-                    input_dim=isc_layer_dims[idx] + isc_layer_dims[idx + 1]
+                    input_dim=isc_layer_dims[idx] * 2
                 )
             )
 
