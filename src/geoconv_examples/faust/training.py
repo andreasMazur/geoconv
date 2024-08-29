@@ -1,6 +1,6 @@
 from geoconv.utils.data_generator import read_template_configurations
 from geoconv.utils.princeton_benchmark import princeton_benchmark
-from geoconv_examples.faust.classifier import FaustVertexClassifier, AMOUNT_VERTICES
+from geoconv_examples.faust.classifer_unet import FaustVertexClassifier, AMOUNT_VERTICES
 from geoconv_examples.faust.dataset import load_preprocessed_faust
 
 import tensorflow as tf
@@ -18,7 +18,9 @@ def training(dataset_path,
              processes=1,
              isc_layer_dims=None,
              learning_rate=0.00165,
-             gen_info_file=None):
+             gen_info_file=None,
+             rotation_delta=1,
+             batch_size=1):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -41,7 +43,7 @@ def training(dataset_path,
             template_radius,
             is_train=True,
             gen_info_file=f"{logging_dir}/{gen_info_file}",
-            batch_size=2
+            batch_size=batch_size
         )
         test_data = load_preprocessed_faust(
             dataset_path,
@@ -50,23 +52,27 @@ def training(dataset_path,
             template_radius,
             is_train=False,
             gen_info_file=f"{logging_dir}/test_{gen_info_file}",
-            batch_size=2
+            batch_size=batch_size
         )
 
         # Define and compile model
         imcnn = FaustVertexClassifier(
-            template_radius, isc_layer_dims=isc_layer_dims, variant=variant, normalize_input=True
+            template_radius,
+            isc_layer_dims=isc_layer_dims,
+            variant=variant,
+            normalize_input=True,
+            rotation_delta=rotation_delta
         )
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=learning_rate,
                 decay_steps=500,
-                decay_rate=0.99
+                decay_rate=0.99999
             ),
             weight_decay=0.005
         )
-        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
+        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
         imcnn.build(
             input_shape=[
                 tf.TensorShape([None, AMOUNT_VERTICES, SIG_DIM]),
