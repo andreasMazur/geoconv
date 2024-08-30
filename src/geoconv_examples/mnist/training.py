@@ -82,10 +82,15 @@ def training(bc_path, logging_dir, k=5, template_configurations=None, variant=No
                 update_freq="epoch",
                 profile_batch=(1, 100)
             )
+            save = tf.keras.callbacks.ModelCheckpoint(
+                filepath=f"{logging_dir}/saved_imcnn_{exp_number}",
+                monitor="val_loss",
+                save_best_only=True,
+                save_freq="epoch"
+            )
 
             # Train model
-            imcnn.fit(x=train_data, callbacks=[tb, csv], validation_data=val_data, epochs=5)
-            imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
+            imcnn.fit(x=train_data, callbacks=[tb, csv, save], validation_data=val_data, epochs=5)
 
         # Process logs
         process_logs(

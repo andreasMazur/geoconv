@@ -105,10 +105,15 @@ def training(dataset_path,
             update_freq="epoch",
             profile_batch=(1, 80)
         )
+        save = tf.keras.callbacks.ModelCheckpoint(
+            filepath=f"{logging_dir}/saved_imcnn_{exp_number}",
+            monitor="val_loss",
+            save_best_only=True,
+            save_freq="epoch"
+        )
 
         # Train model
-        imcnn.fit(x=train_data, callbacks=[stop, tb, csv], validation_data=test_data, epochs=200)
-        imcnn.save(f"{logging_dir}/saved_imcnn_{exp_number}")
+        imcnn.fit(x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=200)
 
         # Evaluate model with Princeton benchmark
         test_data = load_preprocessed_faust(
