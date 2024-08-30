@@ -1,7 +1,4 @@
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
-from geoconv.tensorflow.layers.conv_dirac import ConvDirac
-from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
-from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
 
 import tensorflow as tf
 
@@ -13,10 +10,11 @@ SIG_DIM = 544
 class FaustVertexClassifier(tf.keras.Model):
     def __init__(self,
                  template_radius,
-                 isc_layer_dims=None,
+                 isc_layer_dims,
                  variant=None,
                  normalize_input=True,
                  rotation_delta=1,
+                 include_clf=True,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -84,7 +82,10 @@ class FaustVertexClassifier(tf.keras.Model):
         self.dropout = tf.keras.layers.Dropout(rate=0.2)
 
         # Classification layer
-        self.output_dense = tf.keras.layers.Dense(AMOUNT_VERTICES, name="output")
+        if include_clf:
+            self.output_layer = tf.keras.layers.Dense(AMOUNT_VERTICES, name="output")
+        else:
+            self.output_layer = tf.keras.layers.Identity(name="output")
 
         # Concat layer
         self.concat = tf.keras.layers.Concatenate()
@@ -111,4 +112,4 @@ class FaustVertexClassifier(tf.keras.Model):
             signal = self.isc_layers_up[idx]([signal, bc])
 
         # Output
-        return self.output_dense(signal)
+        return self.output_layer(signal)
