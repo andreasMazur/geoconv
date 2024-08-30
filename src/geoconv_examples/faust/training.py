@@ -58,7 +58,8 @@ def training(dataset_path,
             isc_layer_dims=isc_layer_dims,
             variant=variant,
             normalize_input=True,
-            rotation_delta=rotation_delta
+            rotation_delta=rotation_delta,
+            include_clf=True
         )
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
@@ -69,7 +70,7 @@ def training(dataset_path,
             ),
             weight_decay=0.005
         )
-        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
+        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
         imcnn.build(
             input_shape=[
                 tf.TensorShape([None, AMOUNT_VERTICES, SIG_DIM]),
