@@ -2,6 +2,7 @@ from geoconv.utils.data_generator import read_template_configurations
 from geoconv.utils.princeton_benchmark import princeton_benchmark
 from geoconv_examples.faust.classifer import FaustVertexClassifier, AMOUNT_VERTICES, SIG_DIM
 from geoconv_examples.faust.dataset import load_preprocessed_faust
+from geoconv_examples.faust_embedding.siamese_net import load_siamese
 
 import tensorflow as tf
 import os
@@ -17,7 +18,8 @@ def training(dataset_path,
              learning_rate=0.00165,
              gen_info_file=None,
              rotation_delta=1,
-             batch_size=1):
+             batch_size=1,
+             load_model_from=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -52,15 +54,46 @@ def training(dataset_path,
             batch_size=batch_size
         )
 
-        # Define and compile model
-        imcnn = FaustVertexClassifier(
-            template_radius,
-            isc_layer_dims=isc_layer_dims,
-            variant=variant,
-            normalize_input=True,
-            rotation_delta=rotation_delta,
-            include_clf=True
-        )
+        # Build model
+        if load_model_from is None:
+            imcnn = FaustVertexClassifier(
+                template_radius,
+                isc_layer_dims=isc_layer_dims,
+                variant=variant,
+                normalize_input=True,
+                rotation_delta=rotation_delta
+            )
+            imcnn.build(
+                input_shape=[
+                    tf.TensorShape([None, AMOUNT_VERTICES, SIG_DIM]),
+                    tf.TensorShape([None, AMOUNT_VERTICES, n_radial, n_angular, 3, 2])
+                ]
+            )
+            # Adapt normalization: Normalize each vertex-feature-dimension (axis=-1) with individual mean and variance
+            imcnn.normalize.adapt(
+                load_preprocessed_faust(
+                    dataset_path,
+                    n_radial,
+                    n_angular,
+                    template_radius,
+                    is_train=True,
+                    gen_info_file=f"{logging_dir}/{gen_info_file}",
+                    only_signal=True
+                )
+            )
+        else:
+            imcnn = load_siamese(
+                path=load_model_from,
+                template_radius=0.011938334610679726,
+                n_radial=n_radial,
+                n_angular=n_angular,
+                isc_layer_dims=isc_layer_dims,
+                variant=variant,
+                normalize_input=True,
+                rotation_delta=rotation_delta
+            )
+
+        # Compile model
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
@@ -71,26 +104,7 @@ def training(dataset_path,
             weight_decay=0.005
         )
         imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
-        imcnn.build(
-            input_shape=[
-                tf.TensorShape([None, AMOUNT_VERTICES, SIG_DIM]),
-                tf.TensorShape([None, AMOUNT_VERTICES, n_radial, n_angular, 3, 2])
-            ]
-        )
         imcnn.summary()
-
-        # Adapt normalization: Normalize each vertex-feature-dimension (axis=-1) with individual mean and variance
-        imcnn.normalize.adapt(
-            load_preprocessed_faust(
-                dataset_path,
-                n_radial,
-                n_angular,
-                template_radius,
-                is_train=True,
-                gen_info_file=f"{logging_dir}/{gen_info_file}",
-                only_signal=True
-            )
-        )
 
         # Define callbacks
         exp_number = f"{n_radial}_{n_angular}_{template_radius}"
