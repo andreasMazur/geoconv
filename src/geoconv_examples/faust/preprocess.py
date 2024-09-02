@@ -8,7 +8,13 @@ import pyshot
 import numpy as np
 
 
-def preprocess(faust_path, output_path, processes, zip_when_done=True, compute_gpc=True, compute_bc=True):
+def preprocess(faust_path,
+               output_path,
+               processes,
+               zip_when_done=True,
+               compute_gpc=True,
+               compute_bc=True,
+               k_th_neighbor=20):
     assert compute_gpc or compute_bc, "You must either set 'compute_gpc' or 'compute_bc' to 'True'."
 
     if compute_gpc:
@@ -31,7 +37,11 @@ def preprocess(faust_path, output_path, processes, zip_when_done=True, compute_g
 
             # Compute GPC-systems
             compute_gpc_systems_wrapper(
-                shape, output_dir, processes=processes, geodesic_diameter=GEODESIC_DIAMETERS[shape_idx]
+                shape,
+                output_dir,
+                processes=processes,
+                geodesic_diameter=GEODESIC_DIAMETERS[shape_idx],
+                k_th_neighbor=k_th_neighbor
             )
 
             # Compute SHOT-descriptor
