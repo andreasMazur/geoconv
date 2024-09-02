@@ -74,7 +74,7 @@ def training(dataset_path,
             losses = {
                 "output_1": cosine_loss, "output_2": tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
             }
-            imcnn.compile(optimizer=opt, loss=losses, metrics={"output_2": "accuracy"}, run_eagerly=True)
+            imcnn.compile(optimizer=opt, loss=losses, metrics={"output_2": "accuracy"})
             imcnn.build(
                 input_shape=[
                     tf.TensorShape([None, AMOUNT_VERTICES, SIG_DIM]),
