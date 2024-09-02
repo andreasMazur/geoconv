@@ -13,8 +13,11 @@ import os
 
 
 class MNISTClassifier(keras.Model):
-    def __init__(self, template_radius, variant=None):
+    def __init__(self, template_radius, variant=None, isc_layer_dims=None):
         super().__init__()
+
+        if isc_layer_dims is None:
+            isc_layer_dims = [128]
 
         if variant is None or variant == "dirac":
             self.layer_type = ConvDirac
@@ -25,35 +28,34 @@ class MNISTClassifier(keras.Model):
         else:
             raise RuntimeError("Select a layer type from: ['dirac', 'geodesic', 'zero']")
 
-        self.conv1 = self.layer_type(
-            amt_templates=16,
-            template_radius=template_radius,
-            activation="elu",
-            rotation_delta=1
-        )
-        self.conv2 = self.layer_type(
-            amt_templates=16,
-            template_radius=template_radius,
-            activation="elu",
-            rotation_delta=1
-        )
+        self.convs = [
+            self.layer_type(
+                amt_templates=n,
+                template_radius=template_radius,
+                activation="elu",
+                rotation_delta=1
+            ) for n in isc_layer_dims
+        ]
         self.amp = AngularMaxPooling()
         self.flatten = tf.keras.layers.Flatten()
         self.output_layer = keras.layers.Dense(10)
 
     def call(self, inputs, **kwargs):
         signal, bc = inputs
-        signal = self.conv1([signal, bc])
-        signal = self.amp(signal)
-        signal = self.conv2([signal, bc])
-        signal = self.amp(signal)
+        for layer in self.convs:
+            signal = layer([signal, bc])
+            signal = self.amp(signal)
         signal = self.flatten(signal)
         return self.output_layer(signal)
 
 
-def training(bc_path, logging_dir, k=5, template_configurations=None, variant=None, batch_size=8):
+def training(bc_path, logging_dir, k=5, template_configurations=None, variant=None, batch_size=8, isc_layer_dims=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
+
+    # Setup default layer parameterization if not given
+    if isc_layer_dims is None:
+        isc_layer_dims = [128]
 
     # Prepare k-fold cross-validation
     splits = tfds.even_splits("all", n=k)
@@ -85,7 +87,7 @@ def training(bc_path, logging_dir, k=5, template_configurations=None, variant=No
             )
 
             # Define and compile model
-            imcnn = MNISTClassifier(template_radius, variant=variant)
+            imcnn = MNISTClassifier(template_radius, variant=variant, isc_layer_dims=isc_layer_dims)
             loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
             imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"])
 
