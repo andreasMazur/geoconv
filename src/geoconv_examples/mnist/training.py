@@ -26,13 +26,13 @@ class MNISTClassifier(keras.Model):
             raise RuntimeError("Select a layer type from: ['dirac', 'geodesic', 'zero']")
 
         self.conv1 = self.layer_type(
-            amt_templates=128,
+            amt_templates=64,
             template_radius=template_radius,
             activation="relu",
             rotation_delta=1
         )
         self.conv2 = self.layer_type(
-            amt_templates=128,
+            amt_templates=64,
             template_radius=template_radius,
             activation="relu",
             rotation_delta=1
