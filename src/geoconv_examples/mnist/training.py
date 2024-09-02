@@ -43,7 +43,7 @@ class MNISTClassifier(keras.Model):
         return self.output_layer(signal)
 
 
-def training(bc_path, logging_dir, k=5, template_configurations=None, variant=None):
+def training(bc_path, logging_dir, k=5, template_configurations=None, variant=None, batch_size=8):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -60,9 +60,21 @@ def training(bc_path, logging_dir, k=5, template_configurations=None, variant=No
         for exp_no in range(len(splits)):
             # Load data
             train_data = load_preprocessed_mnist(
-                bc_path, n_radial, n_angular, template_radius, set_type=splits[:exp_no] + splits[exp_no+1:]
+                bc_path,
+                n_radial,
+                n_angular,
+                template_radius,
+                set_type=splits[:exp_no] + splits[exp_no+1:],
+                batch_size=batch_size
             )
-            val_data = load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_type=splits[exp_no])
+            val_data = load_preprocessed_mnist(
+                bc_path,
+                n_radial,
+                n_angular,
+                template_radius,
+                set_type=splits[exp_no],
+                batch_size=batch_size
+            )
 
             # Define and compile model
             imcnn = MNISTClassifier(template_radius, variant=variant)

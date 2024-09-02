@@ -4,7 +4,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 
-def load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_type):
+def load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_type, batch_size=8):
     """Adds barycentric coordinates to the MNIST dataset and reshapes images to vectors.
 
     Parameters
@@ -50,4 +50,4 @@ def load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_t
 
         # Apply 'make_compatible' to each element of MNIST
         dataset = dataset.map(make_compatible)
-    return dataset.batch(1).prefetch(tf.data.AUTOTUNE)
+    return dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
