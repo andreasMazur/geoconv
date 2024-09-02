@@ -32,7 +32,7 @@ def compute_bc(preprocess_dir):
 
     with open(f"{preprocess_dir}/preprocess_properties.json") as properties_file:
         properties = json.load(properties_file)
-        gpc_system_radius = properties["gpc_system_radius"]
+        gpc_system_radius = np.mean(properties["gpc_system_radius"])
 
     # Load GPC-systems
     gpc_systems = GPCSystemGroup(object_mesh=trimesh.load_mesh(f"{preprocess_dir}/normalized_mesh.stl"))
@@ -48,10 +48,7 @@ def compute_bc(preprocess_dir):
         (2, 9, gpc_system_radius * 1.25),
         (5, 8, gpc_system_radius * .75),
         (5, 8, gpc_system_radius),
-        (5, 8, gpc_system_radius * 1.25),
-        (4, 10, gpc_system_radius * .75),
-        (4, 10, gpc_system_radius),
-        (4, 10, gpc_system_radius * 1.25)
+        (5, 8, gpc_system_radius * 1.25)
     ]
 
     for (n_radial, n_angular, template_radius) in template_configurations:
@@ -76,7 +73,7 @@ def compute_bc(preprocess_dir):
 def preprocess(output_path, processes):
     # Preprocess flat grid
     grid = create_grid(n_vertices=28)  # MNIST-images are 28x28
-    compute_gpc_systems_wrapper(grid, f"{output_path}/grid", processes=processes)
+    compute_gpc_systems_wrapper(grid, f"{output_path}/grid", processes=processes, k_th_neighbor=10)
     compute_bc(f"{output_path}/grid")
 
     print(f"Barycentric coordinates done. Zipping..")
