@@ -70,10 +70,10 @@ def compute_bc(preprocess_dir):
         json.dump(temp_conf_dict, properties_file, indent=4)
 
 
-def preprocess(output_path, processes):
+def preprocess(output_path, processes, k_th_neighbor=10):
     # Preprocess flat grid
     grid = create_grid(n_vertices=28)  # MNIST-images are 28x28
-    compute_gpc_systems_wrapper(grid, f"{output_path}/grid", processes=processes, k_th_neighbor=10)
+    compute_gpc_systems_wrapper(grid, f"{output_path}/grid", processes=processes, k_th_neighbor=k_th_neighbor)
     compute_bc(f"{output_path}/grid")
 
     print(f"Barycentric coordinates done. Zipping..")
