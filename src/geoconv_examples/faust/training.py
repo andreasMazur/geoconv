@@ -19,7 +19,8 @@ def training(dataset_path,
              gen_info_file=None,
              rotation_delta=1,
              batch_size=1,
-             load_model_from=None):
+             load_model_from=None,
+             middle_layer_dim=1024):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -59,6 +60,7 @@ def training(dataset_path,
             imcnn = FaustVertexClassifier(
                 template_radius,
                 isc_layer_dims=isc_layer_dims,
+                middle_layer_dim=middle_layer_dim,
                 variant=variant,
                 normalize_input=True,
                 rotation_delta=rotation_delta

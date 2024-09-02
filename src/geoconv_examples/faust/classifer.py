@@ -11,6 +11,7 @@ class FaustVertexClassifier(tf.keras.Model):
     def __init__(self,
                  template_radius,
                  isc_layer_dims,
+                 middle_layer_dim=1024,
                  variant=None,
                  normalize_input=True,
                  rotation_delta=1,
@@ -47,9 +48,8 @@ class FaustVertexClassifier(tf.keras.Model):
         ###############
         # Middle block
         ###############
-        middle_block_dim = isc_layer_dims[-1]
         self.isc_layers_middle = ResNetBlock(
-            amt_templates=middle_block_dim,
+            amt_templates=middle_layer_dim,
             template_radius=template_radius,
             rotation_delta=rotation_delta,
             conv_type=variant,
@@ -64,15 +64,15 @@ class FaustVertexClassifier(tf.keras.Model):
         self.batch_normalizations_up = []
 
         isc_layer_dims = isc_layer_dims[::-1]
-        for idx in range(len(isc_layer_dims) - 1):
+        for idx in range(len(isc_layer_dims)):
             self.isc_layers_up.append(
                 ResNetBlock(
-                    amt_templates=isc_layer_dims[idx + 1],
+                    amt_templates=isc_layer_dims[idx],
                     template_radius=template_radius,
                     rotation_delta=rotation_delta,
                     conv_type=variant,
                     activation="elu",
-                    input_dim=isc_layer_dims[idx] * 2
+                    input_dim=-1
                 )
             )
 
@@ -86,7 +86,7 @@ class FaustVertexClassifier(tf.keras.Model):
             self.clf = tf.keras.Sequential(
             [
                 tf.keras.layers.Dense(256, activation="elu"),
-                tf.keras.layers.Dense(AMOUNT_VERTICES, name="logits_output")
+                tf.keras.layers.Dense(AMOUNT_VERTICES, name="output")
             ]
         )
         else:
