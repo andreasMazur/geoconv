@@ -67,6 +67,12 @@ class SiameseIMCNN(tf.keras.Model):
             rotation_delta=rotation_delta,
             include_clf=False
         )
+        self.clf = tf.keras.Sequential(
+            [
+                tf.keras.layers.Dense(3445, activation="elu"),
+                tf.keras.layers.Dense(AMOUNT_VERTICES, name="logits_output")
+            ]
+        )
 
     def call(self, inputs, **kwargs):
         signal_ref, bc_ref, signal, bc = inputs
@@ -74,4 +80,6 @@ class SiameseIMCNN(tf.keras.Model):
         embedding_ref = tf.nn.softmax(self.backbone([signal_ref, bc_ref]), axis=-1)
         embedding = tf.nn.softmax(self.backbone([signal, bc]), axis=-1)
 
-        return tf.stack([embedding_ref, embedding], axis=0)
+        logits = self.clf(embedding)
+
+        return tf.stack([embedding_ref, embedding], axis=0), logits
