@@ -73,12 +73,12 @@ pytorch = [
 tensorflow = [
     "tensorflow",
     "tensorflow-probability",
-    "tfds"
+    "tensorflow-datasets"
 ]
 tensorflow_gpu = [
     "tensorflow[and-cuda]",
     "tensorflow-probability",
-    "tfds"
+    "tensorflow-datasets"
 ]
 
 [project.urls]
