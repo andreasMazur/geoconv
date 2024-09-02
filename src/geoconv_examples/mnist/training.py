@@ -28,7 +28,7 @@ class MNISTClassifier(keras.Model):
         self.conv = self.layer_type(
             amt_templates=128,
             template_radius=template_radius,
-            activation="relu",
+            activation="elu",
             rotation_delta=1
         )
         self.amp = AngularMaxPooling()
