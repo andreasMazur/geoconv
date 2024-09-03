@@ -151,14 +151,15 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
 
         # If no template radius is given, compute the template radius
         if template_radius is None:
-            avg_radius = 0
+            avg_radius, vertices_count = 0, 0
             for idx, (vertices, _) in enumerate(data):
                 distance_matrix = compute_distance_matrix(tf.cast(vertices[0], tf.float32))
                 radii = tf.gather(
                     distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.n_neighbors], batch_dims=1
                 )
-                avg_radius = avg_radius + tf.reduce_mean(radii)
-            avg_radius = avg_radius / (idx + 1)
+                avg_radius = avg_radius + tf.reduce_sum(radii)
+                vertices_count = vertices_count + tf.cast(tf.shape(radii)[0], tf.float32)
+            avg_radius = avg_radius / vertices_count
             template_radius = avg_radius * self.template_scale
 
         # Initialize template
