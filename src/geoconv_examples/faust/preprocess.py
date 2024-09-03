@@ -14,7 +14,8 @@ def preprocess(faust_path,
                zip_when_done=True,
                compute_gpc=True,
                compute_bc=True,
-               k_th_neighbor=20):
+               k_th_neighbor=20,
+               template_size=None):
     assert compute_gpc or compute_bc, "You must either set 'compute_gpc' or 'compute_bc' to 'True'."
 
     if compute_gpc:
@@ -63,7 +64,7 @@ def preprocess(faust_path,
         # Compute BC
         compute_bc_wrapper(
             preprocess_dir=output_path,
-            template_sizes=[(3, 6), (2, 9), (5, 8), (4, 10)],
+            template_sizes=[(3, 6), (2, 9), (5, 8), (4, 10)] if template_size is None else template_size,
             scales=[0.75, 1.0, 1.25],
             load_compressed_gpc_systems=True,
             processes=processes
