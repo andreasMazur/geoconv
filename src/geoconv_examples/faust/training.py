@@ -98,7 +98,7 @@ def training(dataset_path,
         exp_number = f"{n_radial}_{n_angular}_{template_radius}"
         csv_file_name = f"{logging_dir}/training_{exp_number}.log"
         csv = tf.keras.callbacks.CSVLogger(csv_file_name)
-        stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=20)
+        stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10)
         tb = tf.keras.callbacks.TensorBoard(
             log_dir=f"{logging_dir}/tensorboard_{exp_number}",
             histogram_freq=1,
@@ -115,7 +115,7 @@ def training(dataset_path,
         )
 
         # Train model
-        imcnn.fit(x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=1)
+        imcnn.fit(x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=200)
 
         # Load best model
         imcnn_best = tf.keras.models.load_model(f"{logging_dir}/saved_imcnn_{exp_number}")
