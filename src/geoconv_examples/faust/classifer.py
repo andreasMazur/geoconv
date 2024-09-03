@@ -79,7 +79,7 @@ class FaustVertexClassifier(tf.keras.Model):
         # Auxiliary layers
         if self.normalize_input:
             self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
-        self.dropout = tf.keras.layers.Dropout(rate=0.2)
+        self.dropout = tf.keras.layers.Dropout(rate=0.3)
 
         # Classification layer
         if include_clf:
