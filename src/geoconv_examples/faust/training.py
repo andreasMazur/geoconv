@@ -19,7 +19,6 @@ def training(dataset_path,
              gen_info_file=None,
              rotation_delta=1,
              batch_size=1,
-             load_model_from=None,
              middle_layer_dim=1024):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
@@ -33,7 +32,7 @@ def training(dataset_path,
         gen_info_file = "generator_info.json"
 
     # Run experiments
-    for (n_radial, n_angular, template_radius) in template_configurations:
+    for (n_radial, n_angular, template_radius) in template_configurations[:1]:
 
         # Load data
         train_data = load_preprocessed_faust(
@@ -56,44 +55,32 @@ def training(dataset_path,
         )
 
         # Build model
-        if load_model_from is None:
-            imcnn = FaustVertexClassifier(
+        imcnn = FaustVertexClassifier(
+            template_radius,
+            isc_layer_dims=isc_layer_dims,
+            middle_layer_dim=middle_layer_dim,
+            variant=variant,
+            normalize_input=True,
+            rotation_delta=rotation_delta
+        )
+        imcnn.build(
+            input_shape=[
+                tf.TensorShape([None, AMOUNT_VERTICES, SIG_DIM]),
+                tf.TensorShape([None, AMOUNT_VERTICES, n_radial, n_angular, 3, 2])
+            ]
+        )
+        # Adapt normalization: Normalize each vertex-feature-dimension (axis=-1) with individual mean and variance
+        imcnn.normalize.adapt(
+            load_preprocessed_faust(
+                dataset_path,
+                n_radial,
+                n_angular,
                 template_radius,
-                isc_layer_dims=isc_layer_dims,
-                middle_layer_dim=middle_layer_dim,
-                variant=variant,
-                normalize_input=True,
-                rotation_delta=rotation_delta
+                is_train=True,
+                gen_info_file=f"{logging_dir}/{gen_info_file}",
+                only_signal=True
             )
-            imcnn.build(
-                input_shape=[
-                    tf.TensorShape([None, AMOUNT_VERTICES, SIG_DIM]),
-                    tf.TensorShape([None, AMOUNT_VERTICES, n_radial, n_angular, 3, 2])
-                ]
-            )
-            # Adapt normalization: Normalize each vertex-feature-dimension (axis=-1) with individual mean and variance
-            imcnn.normalize.adapt(
-                load_preprocessed_faust(
-                    dataset_path,
-                    n_radial,
-                    n_angular,
-                    template_radius,
-                    is_train=True,
-                    gen_info_file=f"{logging_dir}/{gen_info_file}",
-                    only_signal=True
-                )
-            )
-        else:
-            imcnn = load_siamese(
-                path=load_model_from,
-                template_radius=0.011938334610679726,
-                n_radial=n_radial,
-                n_angular=n_angular,
-                isc_layer_dims=isc_layer_dims,
-                variant=variant,
-                normalize_input=True,
-                rotation_delta=rotation_delta
-            )
+        )
 
         # Compile model
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
@@ -129,7 +116,25 @@ def training(dataset_path,
         )
 
         # Train model
-        imcnn.fit(x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=200)
+        imcnn.fit(x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=1)
+
+        # Load best model
+        imcnn_best = tf.keras.models.load_model(f"{logging_dir}/saved_imcnn_{exp_number}")
+        imcnn = FaustVertexClassifier(
+            template_radius,
+            isc_layer_dims=isc_layer_dims,
+            middle_layer_dim=middle_layer_dim,
+            variant=variant,
+            normalize_input=True,
+            rotation_delta=rotation_delta
+        )
+        imcnn.build(
+            input_shape=[
+                tf.TensorShape([None, AMOUNT_VERTICES, SIG_DIM]),
+                tf.TensorShape([None, AMOUNT_VERTICES, n_radial, n_angular, 3, 2])
+            ]
+        )
+        imcnn.set_weights(imcnn_best.get_weights())
 
         # Evaluate model with Princeton benchmark
         test_data = load_preprocessed_faust(
