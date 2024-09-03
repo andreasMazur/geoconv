@@ -40,12 +40,12 @@ def compute_bc(preprocess_dir):
 
     # Define template configurations
     template_configurations = [
+        (3, 4, gpc_system_radius * .75),
+        (3, 4, gpc_system_radius),
+        (3, 4, gpc_system_radius * 1.25),
         (3, 6, gpc_system_radius * .75),
         (3, 6, gpc_system_radius),
         (3, 6, gpc_system_radius * 1.25),
-        (2, 9, gpc_system_radius * .75),
-        (2, 9, gpc_system_radius),
-        (2, 9, gpc_system_radius * 1.25),
         (5, 8, gpc_system_radius * .75),
         (5, 8, gpc_system_radius),
         (5, 8, gpc_system_radius * 1.25)
