@@ -2,7 +2,6 @@ from geoconv.utils.data_generator import read_template_configurations
 from geoconv.utils.princeton_benchmark import princeton_benchmark
 from geoconv_examples.faust.classifer import FaustVertexClassifier, AMOUNT_VERTICES, SIG_DIM
 from geoconv_examples.faust.dataset import load_preprocessed_faust
-from geoconv_examples.faust_embedding.siamese_net import load_siamese
 
 import tensorflow as tf
 import os
