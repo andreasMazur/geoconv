@@ -37,7 +37,7 @@ def compute_bc(template, projections):
     # 'closest_idx_hierarchy': (vertices, n_radial, n_angular, n_neighbors)
     closest_idx_hierarchy = tf.argsort(tf.linalg.norm(closest_idx_hierarchy, axis=-1), axis=-1)
 
-    # 3) Use indices to retrieve coordinates of three closest projections
+    # 3) Determine 'closest' and 'other' projections
     # 'closet_proj': (vertices, n_radial, n_angular, 1, 2)
     closet_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, 0], batch_dims=1)[:, :, :, None, :]
     # 'other_proj':  (vertices, n_radial, n_angular, n_neighbors - 1, 2)
