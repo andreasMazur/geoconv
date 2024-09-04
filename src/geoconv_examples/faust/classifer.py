@@ -84,12 +84,7 @@ class FaustVertexClassifier(tf.keras.Model):
 
         # Classification layer
         if include_clf:
-            self.clf = tf.keras.Sequential(
-            [
-                tf.keras.layers.Dense(256, activation="elu"),
-                tf.keras.layers.Dense(AMOUNT_VERTICES, name="output")
-            ]
-        )
+            self.clf = tf.keras.layers.Dense(AMOUNT_VERTICES, name="output")
         else:
             self.clf = tf.keras.layers.Identity(name="output")
 
