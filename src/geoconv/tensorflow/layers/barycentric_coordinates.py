@@ -7,7 +7,7 @@ import tensorflow as tf
 import numpy as np
 
 
-@tf.function
+# @tf.function
 def compute_bc(template, projections):
     """Computes barycentric coordinates for a given template in given projections.
 
@@ -72,29 +72,30 @@ def compute_bc(template, projections):
     # 'interpolation_weights': (vertices, radial, angular, n_neighbors - 1, n_neighbors - 1, 3)
     interpolation_weights = tf.stack([point_0_weight, point_2_weight, point_1_weight], axis=-1)
 
-    # Encourage using BC with smallest inf-norm
-    interpolation_w_indices = tf.linalg.norm(interpolation_weights, axis=-1, ord=np.inf)
-
-    # Encourage using BC which are non-negative
-    interpolation_w_indices = interpolation_w_indices + tf.reduce_sum(
-        tf.keras.activations.relu(-interpolation_weights), axis=-1
+    # Set negative and zero interpolation values to infinity
+    to_filter = tf.where(interpolation_weights <= 0.)
+    interpolation_weights = tf.tensor_scatter_nd_update(
+        interpolation_weights, to_filter, tf.fill(tf.shape(to_filter)[0], np.inf)
     )
 
-    # Select BC
+    # Encourage using BC with smallest inf-norm
+    interpolation_w_indices = tf.linalg.norm(tf.math.square(interpolation_weights), axis=-1, ord=np.inf)
+
+    # From all possible interpolation weights, select BC with smallest sup-norm
     s = tf.shape(interpolation_w_indices)
     interpolation_w_indices = tf.reshape(interpolation_w_indices, (s[0], s[1], s[2], s[3] * s[4]))
     interpolation_w_indices = tf.argmin(interpolation_w_indices, axis=-1)
 
-    # Collect indices for best BC
+    # Recompute integer into (row, column)-tuple, so we can select from 'interpolation_weights'
     row_indices = tf.floor(interpolation_w_indices / tf.cast(s[3], tf.int64))
     col_indices = tf.cast(interpolation_w_indices, tf.float64) - row_indices * tf.cast(s[3], tf.float64)
-    bc_indices = tf.stack([tf.cast(row_indices, tf.int64), tf.cast(col_indices, tf.int64)], axis=-1)
+    interpolation_w_indices = tf.stack([tf.cast(row_indices, tf.int64), tf.cast(col_indices, tf.int64)], axis=-1)
 
-    # Gather corresponding BC
-    interpolation_weights = tf.gather_nd(interpolation_weights, bc_indices, batch_dims=3)
+    # Gather corresponding BC using the found tuples
+    interpolation_weights = tf.gather_nd(interpolation_weights, interpolation_w_indices, batch_dims=3)
 
-    # Filter negative interpolation coefficients and ones
-    to_filter = tf.where(tf.logical_or(interpolation_weights < 0, interpolation_weights == 1.))[:, :3]
+    # Replace infinity interpolation coefficients with zeros to cancel any contribution of this template vertex
+    to_filter = tf.where(interpolation_weights == np.inf)[:, :3]
     interpolation_weights = tf.tensor_scatter_nd_update(
         interpolation_weights,
         to_filter,
@@ -102,12 +103,14 @@ def compute_bc(template, projections):
     )
 
     # Convert BC-indices
-    bc_indices = tf.gather(closest_idx_hierarchy[:, :, :, 1:], bc_indices, batch_dims=3)
+    interpolation_w_indices = tf.gather(closest_idx_hierarchy[:, :, :, 1:], interpolation_w_indices, batch_dims=3)
 
     # Group all associated BC-indices
-    bc_indices = tf.concat([tf.cast(closest_idx_hierarchy[:, :, :, 0, None], tf.int32), bc_indices], axis=-1)
+    interpolation_w_indices = tf.concat(
+        [tf.cast(closest_idx_hierarchy[:, :, :, 0, None], tf.int32), interpolation_w_indices], axis=-1
+    )
 
-    return interpolation_weights, bc_indices
+    return interpolation_weights, interpolation_w_indices
 
 
 class BarycentricCoordinates(tf.keras.layers.Layer):
