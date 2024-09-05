@@ -19,7 +19,8 @@ def training(dataset_path,
              rotation_delta=1,
              batch_size=1,
              middle_layer_dim=1024,
-             dropout_rate=0.3):
+             dropout_rate=0.3,
+             output_rotation_delta=1):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -62,7 +63,8 @@ def training(dataset_path,
             variant=variant,
             normalize_input=True,
             rotation_delta=rotation_delta,
-            dropout_rate=dropout_rate
+            dropout_rate=dropout_rate,
+            output_rotation_delta=output_rotation_delta
         )
         imcnn.build(
             input_shape=[

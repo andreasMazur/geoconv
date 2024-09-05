@@ -1,5 +1,6 @@
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.conv_dirac import ConvDirac
+from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
 from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
 
 import tensorflow as tf
@@ -18,6 +19,7 @@ class FaustVertexClassifier(tf.keras.Model):
                  normalize_input=True,
                  rotation_delta=1,
                  dropout_rate=0.3,
+                 output_rotation_delta=1,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -84,12 +86,13 @@ class FaustVertexClassifier(tf.keras.Model):
         self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
 
         # Classification layer
-        self.clf = ConvDirac(
+        clf_type = ConvDirac if variant == "dirac" else ConvGeodesic
+        self.clf = clf_type(
             amt_templates=AMOUNT_VERTICES,
             template_radius=template_radius,
             activation="linear",
             name="output",
-            rotation_delta=8
+            rotation_delta=output_rotation_delta
         )
         self.amp = AngularMaxPooling()
 
