@@ -32,7 +32,7 @@ def training(dataset_path,
         gen_info_file = "generator_info.json"
 
     # Run experiments
-    for (n_radial, n_angular, template_radius) in template_configurations[:1]:
+    for (n_radial, n_angular, template_radius) in template_configurations:
 
         # Load data
         train_data = load_preprocessed_faust(
