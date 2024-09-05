@@ -20,6 +20,7 @@ class FaustVertexClassifier(tf.keras.Model):
                  rotation_delta=1,
                  dropout_rate=0.3,
                  output_rotation_delta=1,
+                 l2_reg=0.3,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -92,7 +93,9 @@ class FaustVertexClassifier(tf.keras.Model):
             template_radius=template_radius,
             activation="linear",
             name="output",
-            rotation_delta=output_rotation_delta
+            rotation_delta=output_rotation_delta,
+            template_regularizer=tf.keras.regularizers.L2(l2=l2_reg),
+            bias_regularizer=tf.keras.regularizers.L2(l2=l2_reg)
         )
         self.amp = AngularMaxPooling()
 
