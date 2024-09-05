@@ -75,7 +75,7 @@ def compute_bc(template, projections):
     # Set negative and zero interpolation values to infinity
     to_filter = tf.where(interpolation_weights <= 0.)
     interpolation_weights = tf.tensor_scatter_nd_update(
-        interpolation_weights, to_filter, tf.fill(tf.shape(to_filter)[0], np.inf)
+        interpolation_weights, to_filter, tf.fill((tf.shape(to_filter)[0],), np.inf)
     )
 
     # Encourage using BC with smallest inf-norm
