@@ -21,6 +21,7 @@ class FaustVertexClassifier(tf.keras.Model):
                  dropout_rate=0.3,
                  output_rotation_delta=1,
                  l1_reg=0.3,
+                 clf_output=True,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -87,17 +88,21 @@ class FaustVertexClassifier(tf.keras.Model):
         self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
 
         # Classification layer
-        clf_type = ConvDirac if variant == "dirac" else ConvGeodesic
-        self.clf = clf_type(
-            amt_templates=AMOUNT_VERTICES,
-            template_radius=template_radius,
-            activation="linear",
-            name="output",
-            rotation_delta=output_rotation_delta,
-            template_regularizer=tf.keras.regularizers.L1(l1=l1_reg),
-            bias_regularizer=None
-        )
-        self.amp = AngularMaxPooling()
+        self.clf_output = clf_output
+        if clf_output:
+            clf_type = ConvDirac if variant == "dirac" else ConvGeodesic
+            self.clf = clf_type(
+                amt_templates=AMOUNT_VERTICES,
+                template_radius=template_radius,
+                activation="linear",
+                name="output",
+                rotation_delta=output_rotation_delta,
+                template_regularizer=tf.keras.regularizers.L1(l1=l1_reg),
+                bias_regularizer=None
+            )
+            self.amp = AngularMaxPooling()
+        else:
+            self.clf = tf.keras.layers.Identity(name="output")
 
         # Concat layer
         self.concat = tf.keras.layers.Concatenate()
@@ -125,5 +130,8 @@ class FaustVertexClassifier(tf.keras.Model):
             signal = self.isc_layers_up[idx]([signal, bc])
 
         # Output
-        signal = self.clf([signal, bc])
-        return self.amp(signal)
+        if self.clf_output:
+            signal = self.clf([signal, bc])
+            return self.amp(signal)
+        else:
+            return self.clf(signal)
