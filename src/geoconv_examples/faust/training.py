@@ -22,7 +22,8 @@ def training(dataset_path,
              dropout_rate=0.3,
              output_rotation_delta=1,
              l1_reg=0.3,
-             signal_dim=SIG_DIM):
+             signal_dim=SIG_DIM,
+             initializer="glorot_uniform"):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -69,7 +70,8 @@ def training(dataset_path,
             rotation_delta=rotation_delta,
             dropout_rate=dropout_rate,
             output_rotation_delta=output_rotation_delta,
-            l1_reg=l1_reg
+            l1_reg=l1_reg,
+            initializer=initializer
         )
         imcnn.build(
             input_shape=[

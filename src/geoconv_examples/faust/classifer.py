@@ -23,6 +23,7 @@ class FaustVertexClassifier(tf.keras.Model):
                  l1_reg=0.3,
                  clf_output=True,
                  signal_dim=SIG_DIM,
+                 initializer="glorot_uniform",
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -48,7 +49,8 @@ class FaustVertexClassifier(tf.keras.Model):
                     rotation_delta=rotation_delta,
                     conv_type=variant,
                     activation="elu",
-                    input_dim=signal_dim if idx == 0 else isc_layer_dims[idx - 1]
+                    input_dim=signal_dim if idx == 0 else isc_layer_dims[idx - 1],
+                    initializer=initializer
                 )
             )
 
@@ -61,7 +63,8 @@ class FaustVertexClassifier(tf.keras.Model):
             rotation_delta=rotation_delta,
             conv_type=variant,
             activation="elu",
-            input_dim=isc_layer_dims[-1]
+            input_dim=isc_layer_dims[-1],
+            initializer=initializer
         )
 
         ############
@@ -79,7 +82,8 @@ class FaustVertexClassifier(tf.keras.Model):
                     rotation_delta=rotation_delta,
                     conv_type=variant,
                     activation="elu",
-                    input_dim=-1
+                    input_dim=-1,
+                    initializer=initializer
                 )
             )
 
@@ -99,7 +103,8 @@ class FaustVertexClassifier(tf.keras.Model):
                 name="output",
                 rotation_delta=output_rotation_delta,
                 template_regularizer=tf.keras.regularizers.L1(l1=l1_reg),
-                bias_regularizer=None
+                bias_regularizer=None,
+                initializer=initializer
             )
             self.amp = AngularMaxPooling()
         else:
