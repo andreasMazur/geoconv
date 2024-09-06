@@ -45,7 +45,7 @@ def preprocess(faust_path,
                 k_th_neighbor=k_th_neighbor
             )
 
-            # Concatenate with vertex coordinates with SHOT-descriptor
+            # Compute SHOT-descriptor
             radius = find_largest_one_hop_dist(shape) * 2.5
             shot_descriptor = pyshot.get_descriptors(
                 shape.vertices,
@@ -58,7 +58,7 @@ def preprocess(faust_path,
                 use_interpolation=True,
                 use_normalization=True
             )
-            np.save(f"{output_dir}/SIGNAL.npy", np.concatenate([shape.vertices, shot_descriptor], axis=-1))
+            np.save(f"{output_dir}/SIGNAL.npy", shot_descriptor)
 
     if compute_bc:
         # Compute BC
