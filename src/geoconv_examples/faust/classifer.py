@@ -22,6 +22,7 @@ class FaustVertexClassifier(tf.keras.Model):
                  output_rotation_delta=1,
                  l1_reg=0.3,
                  clf_output=True,
+                 signal_dim=SIG_DIM,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -47,7 +48,7 @@ class FaustVertexClassifier(tf.keras.Model):
                     rotation_delta=rotation_delta,
                     conv_type=variant,
                     activation="elu",
-                    input_dim=SIG_DIM if idx == 0 else isc_layer_dims[idx - 1]
+                    input_dim=signal_dim if idx == 0 else isc_layer_dims[idx - 1]
                 )
             )
 

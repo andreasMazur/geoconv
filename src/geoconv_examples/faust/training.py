@@ -21,7 +21,8 @@ def training(dataset_path,
              middle_layer_dim=1024,
              dropout_rate=0.3,
              output_rotation_delta=1,
-             l1_reg=0.3):
+             l1_reg=0.3,
+             signal_dim=SIG_DIM):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -44,7 +45,8 @@ def training(dataset_path,
             template_radius,
             is_train=True,
             gen_info_file=f"{logging_dir}/{gen_info_file}",
-            batch_size=batch_size
+            batch_size=batch_size,
+            signal_dim=signal_dim
         )
         test_data = load_preprocessed_faust(
             dataset_path,
@@ -53,7 +55,8 @@ def training(dataset_path,
             template_radius,
             is_train=False,
             gen_info_file=f"{logging_dir}/test_{gen_info_file}",
-            batch_size=batch_size
+            batch_size=batch_size,
+            signal_dim=signal_dim
         )
 
         # Build model
@@ -70,7 +73,7 @@ def training(dataset_path,
         )
         imcnn.build(
             input_shape=[
-                tf.TensorShape([None, AMOUNT_VERTICES, SIG_DIM]),
+                tf.TensorShape([None, AMOUNT_VERTICES, signal_dim]),
                 tf.TensorShape([None, AMOUNT_VERTICES, n_radial, n_angular, 3, 2])
             ]
         )
@@ -83,7 +86,8 @@ def training(dataset_path,
                 template_radius,
                 is_train=True,
                 gen_info_file=f"{logging_dir}/{gen_info_file}",
-                only_signal=True
+                only_signal=True,
+                signal_dim=signal_dim
             )
         )
 
@@ -150,7 +154,8 @@ def training(dataset_path,
             template_radius,
             is_train=False,
             gen_info_file=f"{logging_dir}/test_{gen_info_file}",
-            batch_size=1
+            batch_size=1,
+            signal_dim=signal_dim
         )
         princeton_benchmark(
             imcnn=imcnn,

@@ -1,4 +1,5 @@
 from geoconv.utils.data_generator import preprocessed_shape_generator
+from geoconv_examples.faust.classifer import SIG_DIM
 
 import tensorflow as tf
 import numpy as np
@@ -83,14 +84,15 @@ def load_preprocessed_faust(path_to_zip,
                             only_signal=False,
                             seed=42,
                             gen_info_file="",
-                            batch_size=1):
+                            batch_size=1,
+                            signal_dim=SIG_DIM):
     if only_signal:
-        output_signature = tf.TensorSpec(shape=(None, 544), dtype=tf.float32)  # Signal
+        output_signature = tf.TensorSpec(shape=(None, signal_dim), dtype=tf.float32)  # Signal
     else:
         output_signature = (
             (
-                tf.TensorSpec(shape=(None, 544,), dtype=tf.float32),  # Signal
-                tf.TensorSpec(shape=(None,) + (n_radial, n_angular) + (3, 2), dtype=tf.float32)  # Barycentric Coordinates
+                tf.TensorSpec(shape=(None, signal_dim,), dtype=tf.float32),  # Signal
+                tf.TensorSpec(shape=(None,) + (n_radial, n_angular) + (3, 2), dtype=tf.float32)  # BC
             ),
             tf.TensorSpec(shape=(None,), dtype=tf.float32)
         )
