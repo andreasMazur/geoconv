@@ -32,7 +32,7 @@ class HyperModel(kt.HyperModel):
             normalize_input=False,
             rotation_delta=2,
             dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.9),
-            output_rotation_delta=1,
+            output_rotation_delta=2,
             l1_reg=hp.Float("l1_reg_coefficient", min_value=0.00001, max_value=0.001),
             initializer="glorot_uniform"
         )([signal, bc_input])
