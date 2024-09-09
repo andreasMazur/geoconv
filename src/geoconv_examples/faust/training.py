@@ -96,11 +96,6 @@ def training(dataset_path,
         # Compile model
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
-            # learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-            #     initial_learning_rate=learning_rate,
-            #     decay_steps=500,
-            #     decay_rate=0.99999
-            # ),
             learning_rate=learning_rate,
             weight_decay=0.005
         )

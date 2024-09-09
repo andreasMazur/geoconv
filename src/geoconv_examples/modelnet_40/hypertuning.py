@@ -47,11 +47,7 @@ class HyperModel(kt.HyperModel):
         imcnn = tf.keras.Model(inputs=signal_input, outputs=signal_output)
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
-            learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=hp.Float("initial_learning_rate", min_value=0.00001, max_value=0.001),
-                decay_steps=500,
-                decay_rate=0.99
-            ),
+            learning_rate=hp.Float("initial_learning_rate", min_value=0.00001, max_value=0.001),
             weight_decay=0.005
         )
         imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
