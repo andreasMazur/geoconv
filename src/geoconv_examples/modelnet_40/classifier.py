@@ -1,5 +1,5 @@
-from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
+from geoconv_examples.faust.classifer import FaustVertexClassifier
 
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -39,21 +39,22 @@ class ModelNetClf(tf.keras.Model):
                 f"'{variant}' is not a valid network type. Please select a valid variant from ['dirac', 'geodesic']."
             )
 
-        # Init ISC block
-        self.isc_layers = []
-        for idx in range(len(isc_layer_dims)):
-            self.isc_layers.append(
-                ResNetBlock(
-                    amt_templates=isc_layer_dims[idx],
-                    template_radius=template_radius,
-                    rotation_delta=rotation_delta,
-                    conv_type=variant,
-                    activation="relu",
-                    input_dim=3 if idx == 0 else isc_layer_dims[idx - 1]
-                )
-            )
+        # Define vertex embedding architecture
+        self.embedder = FaustVertexClassifier(
+            template_radius,
+            isc_layer_dims=isc_layer_dims,
+            middle_layer_dim=64,
+            variant=variant,
+            normalize_input=True,
+            rotation_delta=rotation_delta,
+            dropout_rate=0.3,
+            l1_reg=0.0,
+            initializer="glorot_uniform",
+            clf_output=False
+        )
+
+        # Define covariance layer
         self.cov = Covariance()
-        self.dropout = tf.keras.layers.Dropout(rate=0.2)
 
         # Define classification layer
         self.flatten = tf.keras.layers.Flatten()
@@ -64,9 +65,7 @@ class ModelNetClf(tf.keras.Model):
         bc = self.bc_layer(inputs)
 
         # Compute vertex embeddings
-        embedding = self.dropout(inputs)
-        for idx in range(len(self.isc_layers)):
-            embedding = self.isc_layers[idx]([embedding, bc])
+        embedding = self.embedder([inputs, bc])
 
         # Compute covariance matrix from vertex-embeddings
         embedding = self.cov(embedding)
