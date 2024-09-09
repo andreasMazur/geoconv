@@ -30,7 +30,7 @@ class HyperModel(kt.HyperModel):
             middle_layer_dim=64,
             variant="dirac",
             normalize_input=False,
-            rotation_delta=1,
+            rotation_delta=2,
             dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.9),
             output_rotation_delta=1,
             l1_reg=hp.Float("l1_reg_coefficient", min_value=0.00001, max_value=0.001),
@@ -71,7 +71,8 @@ def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_fil
         n_angular,
         template_radius,
         is_train=True,
-        gen_info_file=f"{logging_dir}/{gen_info_file}"
+        gen_info_file=f"{logging_dir}/{gen_info_file}",
+        batch_size=1
     )
     test_data = load_preprocessed_faust(
         dataset_path,
@@ -79,7 +80,8 @@ def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_fil
         n_angular,
         template_radius,
         is_train=False,
-        gen_info_file=f"{logging_dir}/test_{gen_info_file}"
+        gen_info_file=f"{logging_dir}/test_{gen_info_file}",
+        batch_size=1
     )
 
     # Initialize hypermodel
@@ -94,7 +96,8 @@ def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_fil
             template_radius,
             is_train=True,
             gen_info_file=f"{logging_dir}/{gen_info_file}",
-            only_signal=True
+            only_signal=True,
+            batch_size=1
         )
     )
 
@@ -108,7 +111,7 @@ def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_fil
         project_name="faust_hyper_tuning"
     )
 
-    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, min_delta=0.01)
+    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, min_delta=0.01)
     tuner.search(x=train_data, validation_data=test_data, epochs=200, callbacks=[stop])
 
     # Print best hyperparameters
