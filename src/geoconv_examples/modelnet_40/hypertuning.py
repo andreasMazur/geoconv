@@ -30,7 +30,7 @@ class HyperModel(kt.HyperModel):
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            isc_layer_dims=[64, 64, 128, 128, 256, 256, 512, 512],
+            isc_layer_dims=[64, 128, 256],
             modelnet10=modelnet10,
             variant="dirac",
             rotation_delta=4
