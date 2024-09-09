@@ -26,26 +26,22 @@ class HyperModel(kt.HyperModel):
         # Predict vertex embeddings
         vertex_predictions = FaustVertexClassifier(
             self.template_radius,
-            isc_layer_dims=[
-                hp.Int(name="ISC_1", min_value=50, max_value=400),
-                hp.Int(name="ISC_2", min_value=50, max_value=400),
-                hp.Int(name="ISC_3", min_value=50, max_value=400),
-                hp.Int(name="ISC_4", min_value=50, max_value=400),
-                hp.Int(name="ISC_5", min_value=50, max_value=400)
-            ],
+            isc_layer_dims=[256, 128, 64, 32, 16],
+            middle_layer_dim=64,
             variant="dirac",
-            normalize_input=False
+            normalize_input=False,
+            rotation_delta=1,
+            dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.9),
+            output_rotation_delta=1,
+            l1_reg=hp.Float("l1_reg_coefficient", min_value=0.00001, max_value=0.001),
+            initializer="glorot_uniform"
         )([signal, bc_input])
 
         # Compile model
         imcnn = tf.keras.Model(inputs=[signal_input, bc_input], outputs=vertex_predictions)
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
-            learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=hp.Float("initial_learning_rate", min_value=0.0001, max_value=0.01),
-                decay_steps=500,
-                decay_rate=0.99
-            ),
+            learning_rate=hp.Float("initial_learning_rate", min_value=0.00001, max_value=0.01),
             weight_decay=0.005
         )
         imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
