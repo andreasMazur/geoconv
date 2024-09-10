@@ -115,8 +115,10 @@ def training(dataset_path,
             update_freq="epoch",
             profile_batch=(1, 80)
         )
+
+        saving_path = f"{logging_dir}/saved_imcnn_{exp_number}"
         save = tf.keras.callbacks.ModelCheckpoint(
-            filepath=f"{logging_dir}/saved_imcnn_{exp_number}",
+            filepath=saving_path,
             monitor="val_loss",
             save_best_only=True,
             save_freq="epoch"
@@ -126,7 +128,7 @@ def training(dataset_path,
         imcnn.fit(x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=200)
 
         # Load best model
-        imcnn_best = tf.keras.models.load_model(f"{logging_dir}/saved_imcnn_{exp_number}")
+        imcnn_best = tf.keras.models.load_model(saving_path)
         imcnn = FaustVertexClassifier(
             template_radius,
             isc_layer_dims=isc_layer_dims,
