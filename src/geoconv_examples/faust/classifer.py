@@ -119,7 +119,7 @@ class FaustVertexClassifier(tf.keras.Model):
             signal = self.normalize(signal)
 
         # Compute vertex embeddings (down-scaling)
-        down_scaling = [signal]
+        down_scaling = []
         for idx in range(len(self.isc_layers_down)):
             signal = self.dropout(signal)
             signal = self.isc_layers_down[idx]([signal, bc])
@@ -136,7 +136,7 @@ class FaustVertexClassifier(tf.keras.Model):
             signal = self.isc_layers_up[idx]([signal, bc])
 
         # Output
-        signal = self.concat([signal, down_scaling[-1]])
+        # signal = self.concat([signal, down_scaling[-1]])
         if self.clf_output:
             signal = self.clf([signal, bc])
             return self.amp(signal)
