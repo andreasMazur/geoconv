@@ -11,15 +11,21 @@ def preprocess(modelnet_path,
                target_amount_faces=3000,
                zip_when_done=True,
                class_names=None):
-    # Initialize shape generator
+    # Initialize shape generator,
     shape_generator = zip_file_generator(
-        modelnet_path,
+        zipfile_path=modelnet_path,
         file_type="off",
         manifold_plus_executable=manifold_plus_executable,
         target_amount_faces=target_amount_faces,
         return_filename=True,
+        min_vertices=100,
+        timeout_in_sec=20,
+        mp_depth=8,
         shape_path_contains=class_names,
-        normalize=False  # normalize during GPC-system computation to store original geodesic diameter
+        epsilon=0.25,
+        remove_non_manifold_edges=True,
+        normalize=False,  # normalize during sampling to store original geodesic diameter
+        repair_shapes=True
     )
 
     # Sample from each shape and save them
