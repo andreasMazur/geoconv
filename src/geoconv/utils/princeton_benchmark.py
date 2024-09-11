@@ -52,11 +52,16 @@ def princeton_benchmark(imcnn,
     pytorch_model: bool
         Whether a pytorch model is given.
     """
-
+    ###########################
+    # Normalize reference mesh
+    ###########################
     reference_mesh = trimesh.load_mesh(ref_mesh_path)
     if normalize:
         reference_mesh, _ = normalize_mesh(reference_mesh, geodesic_diameter=geodesic_diameter)
 
+    #######################################################
+    # Compute geodesic errors on normalized reference mesh
+    #######################################################
     mesh_number = 0
     for ((signal, barycentric), ground_truth) in test_dataset:
         # Get predictions of the model
@@ -80,30 +85,29 @@ def princeton_benchmark(imcnn,
             )
         mesh_number += 1
 
-    ##########################
-    # Sorting geodesic errors
-    ##########################
+    ###########################
+    # Princeton benchmark plot
+    ###########################
+    # We are interested in the percentage 'p' of vertices that are predicted within a vicinity of geodesic error 'x'.
+    # That is, when [e_1, ..., e_n] represent geodesic errors for all 'n' predictions, we have to calculate:
+    # p(x) = len([e_1, ..., e_n | e_i <= x]) / n
+
+    # Geodesic errors: [e_1, ..., e_n]
     geodesic_errors = np.array(geodesic_errors)
-    geodesic_errors.sort()
-    amt_values = geodesic_errors.shape[0]
+    np.save(f"{file_name}.npy", geodesic_errors)
 
-    # Create plot-values: y-values = accuracy, x-values = geodesic errors
-    arr = np.array([((i + 1) / amt_values, x) for (i, x) in zip(range(amt_values), geodesic_errors)])
-    np.save(f"{file_name}.npy", arr)
-
-    ###############################################################
-    # One y-value per x-value: Take highest percentage per x-value
-    ###############################################################
-    unique_x_values = np.unique(arr[:, 1])
-    unique_values = []
-    for unique_x in unique_x_values:
-        unique_values.append(arr[np.where(arr[:, 1] == unique_x)[0][-1]])
-    unique_values = np.array(unique_values)
+    # As x-values we select the uniquely occurring geodesic errors in [e_1, ..., e_n]
+    n = len(geodesic_errors)
+    x_values = np.unique(geodesic_errors)
+    y_values = []
+    for x in x_values:
+        y_values.append(len([e for e in geodesic_errors if e <= x]) / n)
+    y_values = np.array(y_values)
 
     ###########
     # Plotting
     ###########
-    plt.plot(unique_values[:, 1], unique_values[:, 0], label=curve_label)
+    plt.step(x_values, y_values, where="post", label=curve_label)
     plt.title(plot_title)
     plt.xlabel("geodesic error")
     plt.ylabel("% correct correspondences")
@@ -123,7 +127,7 @@ def geodesic_alg_wrapper(ground_truth_and_prediction, reference_mesh):
     Parameters
     ----------
     ground_truth_and_prediction: np.ndarray
-        Simple array with two entries. First entry is the index of the ground truth vertex.
+        Simple 1D array with two entries. First entry is the index of the ground truth vertex.
         The second entry is the index of the predicted vertex.
     reference_mesh: trimesh.Trimesh
         The triangle mesh on which the geodesic distances will be calculated.
