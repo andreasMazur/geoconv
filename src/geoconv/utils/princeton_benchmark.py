@@ -19,7 +19,8 @@ def princeton_benchmark(imcnn,
                         plot=True,
                         processes=1,
                         geodesic_diameter=None,
-                        pytorch_model=False):
+                        pytorch_model=False,
+                        add_csv=True):
     """Plots the accuracy w.r.t. a gradually changing geodesic error
 
     Princeton benchmark has been introduced in:
@@ -51,6 +52,8 @@ def princeton_benchmark(imcnn,
         The geodesic diameter of the reference mesh
     pytorch_model: bool
         Whether a pytorch model is given.
+    add_csv: bool
+        Whether to store the plot additionally as a csv-file.
     """
     ###########################
     # Normalize reference mesh
@@ -105,7 +108,11 @@ def princeton_benchmark(imcnn,
     for x in x_values:
         y_values.append(len([e for e in geodesic_errors if e <= x]) / n)
     y_values = np.array(y_values)
-    np.save(f"{file_name}_plot_values.npy", np.stack([x_values, y_values], axis=-1))
+
+    plot = np.stack([x_values, y_values], axis=-1)
+    np.save(f"{file_name}_plot_values.npy", plot)
+    if add_csv:
+        np.savetxt(f"{file_name}_plot_values.csv", plot, delimiter=",", fmt="%.18f")
 
     ###########
     # Plotting
