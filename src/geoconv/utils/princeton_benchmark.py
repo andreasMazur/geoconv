@@ -84,6 +84,7 @@ def princeton_benchmark(imcnn,
                 tqdm(batched, total=len(batched), postfix=f"Computing Princeton benchmark for test mesh {mesh_number}")
             )
         mesh_number += 1
+        break
 
     ###########################
     # Princeton benchmark plot
@@ -97,7 +98,7 @@ def princeton_benchmark(imcnn,
     np.save(f"{file_name}_geodesic_errors.npy", geodesic_errors)
 
     # As x-values we select the uniquely occurring geodesic errors in [e_1, ..., e_n]
-    n = len(geodesic_errors)
+    n = geodesic_errors.shape[0]
     x_values = np.unique(geodesic_errors)
     y_values = []
     for x in x_values:
