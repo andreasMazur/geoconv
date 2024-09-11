@@ -84,7 +84,6 @@ def princeton_benchmark(imcnn,
                 tqdm(batched, total=len(batched), postfix=f"Computing Princeton benchmark for test mesh {mesh_number}")
             )
         mesh_number += 1
-        break
 
     ###########################
     # Princeton benchmark plot
