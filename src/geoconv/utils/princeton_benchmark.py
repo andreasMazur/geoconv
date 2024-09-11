@@ -9,6 +9,35 @@ import trimesh
 import numpy as np
 
 
+def plot_geodesic_errors_scalar_field(mesh, geodesic_errors, cmap_str="Reds"):
+    cmap = plt.get_cmap(cmap_str)
+    point_cloud = trimesh.PointCloud(vertices=mesh.vertices, colors=cmap(geodesic_errors))
+    point_cloud.show()
+
+
+def geodesic_alg_wrapper(ground_truth_and_prediction, reference_mesh):
+    """A wrapper function for PyGeodesicAlgorithmExact
+
+    Required, since 'geodesic.PyGeodesicAlgorithmExact' can't be directly used as an argument for 'Pool.starmap'.
+
+    Parameters
+    ----------
+    ground_truth_and_prediction: np.ndarray
+        Simple 1D array with two entries. First entry is the index of the ground truth vertex.
+        The second entry is the index of the predicted vertex.
+    reference_mesh: trimesh.Trimesh
+        The triangle mesh on which the geodesic distances will be calculated.
+
+    Returns
+    -------
+    float:
+        The geodesic distance between the ground truth and predicted vertex.
+    """
+    geoalg = geodesic.PyGeodesicAlgorithmExact(reference_mesh.vertices, reference_mesh.faces)
+    gt, pred = ground_truth_and_prediction
+    return geoalg.geodesicDistance(pred, gt)[0]
+
+
 def princeton_benchmark(imcnn,
                         test_dataset,
                         ref_mesh_path,
@@ -130,26 +159,3 @@ def princeton_benchmark(imcnn,
     if plot:
         plt.show()
     plt.close()
-
-
-def geodesic_alg_wrapper(ground_truth_and_prediction, reference_mesh):
-    """A wrapper function for PyGeodesicAlgorithmExact
-
-    Required, since 'geodesic.PyGeodesicAlgorithmExact' can't be directly used as an argument for 'Pool.starmap'.
-
-    Parameters
-    ----------
-    ground_truth_and_prediction: np.ndarray
-        Simple 1D array with two entries. First entry is the index of the ground truth vertex.
-        The second entry is the index of the predicted vertex.
-    reference_mesh: trimesh.Trimesh
-        The triangle mesh on which the geodesic distances will be calculated.
-
-    Returns
-    -------
-    float:
-        The geodesic distance between the ground truth and predicted vertex.
-    """
-    geoalg = geodesic.PyGeodesicAlgorithmExact(reference_mesh.vertices, reference_mesh.faces)
-    gt, pred = ground_truth_and_prediction
-    return geoalg.geodesicDistance(pred, gt)[0]
