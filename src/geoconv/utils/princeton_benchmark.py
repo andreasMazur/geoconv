@@ -10,6 +10,18 @@ import numpy as np
 
 
 def plot_geodesic_errors_scalar_field(mesh, geodesic_errors, cmap_str="Reds"):
+    """This function plots the given geodesic errors for a given mesh.
+
+    Parameters
+    ----------
+    mesh: trimesh.Trimesh
+        The mesh on top of which the geodesic errors will be plotted.
+    geodesic_errors: np.ndarray
+        A 1D array containing scalar values that describe the geodesic error of the predictions for the respective
+        vertices.
+    cmap_str: str
+        A string that describes the colormap to use when plotting the scalar field.
+    """
     cmap = plt.get_cmap(cmap_str)
     point_cloud = trimesh.PointCloud(vertices=mesh.vertices, colors=cmap(geodesic_errors))
     point_cloud.show()
