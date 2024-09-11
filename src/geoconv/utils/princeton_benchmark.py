@@ -90,11 +90,11 @@ def princeton_benchmark(imcnn,
     ###########################
     # We are interested in the percentage 'p' of vertices that are predicted within a vicinity of geodesic error 'x'.
     # That is, when [e_1, ..., e_n] represent geodesic errors for all 'n' predictions, we have to calculate:
-    # p(x) = len([e_1, ..., e_n | e_i <= x]) / n
+    # p(x) = len([e_i | e_i in [e_1, ..., e_n], e_i <= x]) / n
 
     # Geodesic errors: [e_1, ..., e_n]
     geodesic_errors = np.array(geodesic_errors)
-    np.save(f"{file_name}.npy", geodesic_errors)
+    np.save(f"{file_name}_geodesic_errors.npy", geodesic_errors)
 
     # As x-values we select the uniquely occurring geodesic errors in [e_1, ..., e_n]
     n = len(geodesic_errors)
@@ -103,6 +103,7 @@ def princeton_benchmark(imcnn,
     for x in x_values:
         y_values.append(len([e for e in geodesic_errors if e <= x]) / n)
     y_values = np.array(y_values)
+    np.save(f"{file_name}_plot_values.npy", np.stack([x_values, y_values], axis=-1))
 
     ###########
     # Plotting
