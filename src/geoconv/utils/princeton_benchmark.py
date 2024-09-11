@@ -108,12 +108,15 @@ def princeton_benchmark(imcnn,
     ###########
     # Plotting
     ###########
-    plt.step(x_values, y_values, where="post", label=curve_label)
+    if curve_label is None:
+        plt.step(x_values, y_values, where="post")
+    else:
+        plt.step(x_values, y_values, where="post", label=curve_label)
+        plt.legend()
     plt.title(plot_title)
     plt.xlabel("geodesic error")
     plt.ylabel("% correct correspondences")
     plt.grid()
-    plt.legend()
     plt.savefig(f"{file_name}.svg")
     if plot:
         plt.show()
