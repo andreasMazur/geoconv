@@ -63,6 +63,7 @@ def princeton_benchmark(imcnn,
     # Compute geodesic errors on normalized reference mesh
     #######################################################
     mesh_number = 0
+    geodesic_errors = []
     for ((signal, barycentric), ground_truth) in test_dataset:
         # Get predictions of the model
         if pytorch_model:
@@ -79,10 +80,11 @@ def princeton_benchmark(imcnn,
 
         # Calculate geodesic distance of ground-truth to prediction on the given reference mesh
         with Pool(processes) as p:
-            geodesic_errors = p.starmap(
+            mesh_errors = p.starmap(
                 geodesic_alg_wrapper,
                 tqdm(batched, total=len(batched), postfix=f"Computing Princeton benchmark for test mesh {mesh_number}")
             )
+        geodesic_errors.append(mesh_errors)
         mesh_number += 1
 
     ###########################
@@ -93,7 +95,7 @@ def princeton_benchmark(imcnn,
     # p(x) = len([e_i | e_i in [e_1, ..., e_n], e_i <= x]) / n
 
     # Geodesic errors: [e_1, ..., e_n]
-    geodesic_errors = np.array(geodesic_errors)
+    geodesic_errors = np.array(geodesic_errors).reshape(-1)
     np.save(f"{file_name}_geodesic_errors.npy", geodesic_errors)
 
     # As x-values we select the uniquely occurring geodesic errors in [e_1, ..., e_n]
