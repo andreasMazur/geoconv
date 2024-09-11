@@ -109,10 +109,10 @@ def princeton_benchmark(imcnn,
         y_values.append(len([e for e in geodesic_errors if e <= x]) / n)
     y_values = np.array(y_values)
 
-    plot = np.stack([x_values, y_values], axis=-1)
-    np.save(f"{file_name}_plot_values.npy", plot)
+    x_y_values = np.stack([x_values, y_values], axis=-1)
+    np.save(f"{file_name}_plot_values.npy", x_y_values)
     if add_csv:
-        np.savetxt(f"{file_name}_plot_values.csv", plot, delimiter=",", fmt="%.18f")
+        np.savetxt(f"{file_name}_plot_values.csv", x_y_values, delimiter=",", fmt="%.18f")
 
     ###########
     # Plotting
