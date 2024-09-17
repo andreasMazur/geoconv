@@ -20,7 +20,8 @@ class ModelNetClf(tf.keras.Model):
                  isc_layer_dims,
                  modelnet10=False,
                  variant=None,
-                 rotation_delta=1):
+                 rotation_delta=1,
+                 dropout_rate=0.3):
         super().__init__()
 
         # Init barycentric coordinates layer
@@ -47,7 +48,7 @@ class ModelNetClf(tf.keras.Model):
             variant=variant,
             normalize_input=True,
             rotation_delta=rotation_delta,
-            dropout_rate=0.3,
+            dropout_rate=dropout_rate,
             l1_reg=0.0,
             initializer="glorot_uniform",
             clf_output=False
