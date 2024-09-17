@@ -2,54 +2,8 @@ from geoconv_examples.modelnet_40.classifier import ModelNetClf
 from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 
 import tensorflow as tf
-import tensorflow_probability as tfp
 import keras_tuner as kt
 import os
-
-
-class Covariance(tf.keras.layers.Layer):
-    def call(self, inputs):
-        return tf.map_fn(tfp.stats.covariance, inputs)
-
-
-class HyperModel(kt.HyperModel):
-    def __init__(self,
-                 n_neighbors,
-                 n_radial,
-                 n_angular,
-                 template_radius,
-                 modelnet10=True):
-        super().__init__()
-
-        # Init barycentric coordinates layer
-        self.modelnet_clf = ModelNetClf(
-            n_neighbors=n_neighbors,
-            n_radial=n_radial,
-            n_angular=n_angular,
-            template_radius=template_radius,
-            isc_layer_dims=[64, 128, 256],
-            modelnet10=modelnet10,
-            variant="dirac",
-            rotation_delta=4
-        )
-
-    def build(self, hp):
-        # Get input
-        signal_input = tf.keras.layers.Input(shape=(2000, 3), name="3D coordinates")
-
-        # Get signal embedding
-        signal_output = self.modelnet_clf(signal_input)
-
-        # Compile model
-        imcnn = tf.keras.Model(inputs=signal_input, outputs=signal_output)
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        opt = tf.keras.optimizers.AdamW(
-            learning_rate=hp.Float("initial_learning_rate", min_value=0.00001, max_value=0.001),
-            weight_decay=0.005
-        )
-        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
-
-        return imcnn
 
 
 def hyper_tuning(dataset_path,
@@ -63,14 +17,37 @@ def hyper_tuning(dataset_path,
     os.makedirs(logging_dir, exist_ok=True)
 
     n_radial, n_angular, template_radius = template_configuration
+
+    def build_hypermodel(hp):
+        # Get input
+        signal_input = tf.keras.layers.Input(shape=(2000, 3), name="3D coordinates")
+
+        # Get signal embedding
+        signal_output = ModelNetClf(
+            n_neighbors=n_neighbors,
+            n_radial=n_radial,
+            n_angular=n_angular,
+            template_radius=template_radius,
+            isc_layer_dims=[64, 128, 256],
+            modelnet10=modelnet10,
+            variant="dirac",
+            rotation_delta=4,
+            dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.99)
+        )(signal_input)
+
+        # Compile model
+        imcnn = tf.keras.Model(inputs=signal_input, outputs=signal_output)
+        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        opt = tf.keras.optimizers.AdamW(
+            learning_rate=0.00016212,
+            weight_decay=0.005
+        )
+        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
+
+        return imcnn
+
     tuner = kt.Hyperband(
-        hypermodel=HyperModel(
-            n_neighbors,
-            n_radial,
-            n_angular,
-            template_radius,
-            modelnet10
-        ),
+        hypermodel=build_hypermodel,
         objective="val_accuracy",
         max_epochs=200,
         factor=3,
