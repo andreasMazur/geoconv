@@ -171,3 +171,27 @@ def princeton_benchmark(imcnn,
     if plot:
         plt.show()
     plt.close()
+
+
+def compute_auc(pb_plot):
+    """Computes the area under the princeton benchmark plot.
+
+    The higher the number, the more precise the benchmarked model.
+
+    Parameters
+    ----------
+    pb_plot: np.ndarray
+        A 2D array that contains the values used for the princeton benchmark plot.
+
+    Returns
+    -------
+    float:
+        A real number describing how precise the benchmarked model is. If the mesh on which the princeton benchmark was
+        computed has a normalized geodesic diameter, the return value will be in between the interval [0, 1].
+    """
+    rectangle_areas = []
+    for i in range(pb_plot.shape[0] - 1):
+        del_x = pb_plot[i + 1, 0] - pb_plot[i, 0]
+        y = pb_plot[i, 1]
+        rectangle_areas.append(del_x * y)
+    return np.sum(rectangle_areas)
