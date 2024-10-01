@@ -15,7 +15,8 @@ def model_configuration(n_neighbors,
                         learning_rate,
                         variant,
                         rotation_delta,
-                        dropout_rate):
+                        dropout_rate,
+                        middle_layer_dim):
     # Define model
     imcnn = ModelNetClf(
         n_neighbors=n_neighbors,
@@ -26,7 +27,8 @@ def model_configuration(n_neighbors,
         modelnet10=modelnet10,
         variant=variant,
         rotation_delta=rotation_delta,
-        dropout_rate=dropout_rate
+        dropout_rate=dropout_rate,
+        middle_layer_dim=middle_layer_dim
     )
 
     # Define loss and optimizer
@@ -58,7 +60,8 @@ def training(dataset_path,
              set_mem_growth=False,
              redirect_output=False,
              rotation_delta=1,
-             dropout_rate=0.28087):
+             dropout_rate=0.28087,
+             middle_layer_dim=16):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -90,7 +93,8 @@ def training(dataset_path,
             learning_rate,
             variant,
             rotation_delta,
-            dropout_rate
+            dropout_rate,
+            middle_layer_dim
         )
 
         # Define callbacks

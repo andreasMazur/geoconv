@@ -21,7 +21,8 @@ class ModelNetClf(tf.keras.Model):
                  modelnet10=False,
                  variant=None,
                  rotation_delta=1,
-                 dropout_rate=0.3):
+                 dropout_rate=0.3,
+                 middle_layer_dim=16):
         super().__init__()
 
         # Init barycentric coordinates layer
@@ -44,7 +45,7 @@ class ModelNetClf(tf.keras.Model):
         self.embedder = FaustVertexClassifier(
             template_radius,
             isc_layer_dims=isc_layer_dims,
-            middle_layer_dim=64,
+            middle_layer_dim=middle_layer_dim,
             variant=variant,
             normalize_input=True,
             rotation_delta=rotation_delta,
