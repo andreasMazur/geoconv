@@ -28,19 +28,19 @@ def hyper_tuning(dataset_path,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            isc_layer_dims=[64, 128, 256],
+            isc_layer_dims=[64, 32, 32, 16],
             modelnet10=modelnet10,
             variant="dirac",
-            rotation_delta=4,
-            dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.99)
+            rotation_delta=1,
+            dropout_rate=0.28087
         )(signal_input)
 
         # Compile model
         imcnn = tf.keras.Model(inputs=signal_input, outputs=signal_output)
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
-            learning_rate=0.00016212,
-            weight_decay=0.005
+            learning_rate=hp.Float("learning_rate", min_value=0.00001, max_value=0.001),
+            weight_decay=hp.Float("learning_rate", min_value=0.001, max_value=0.1)
         )
         imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
 
