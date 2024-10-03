@@ -40,7 +40,7 @@ def hyper_tuning(dataset_path,
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
             learning_rate=hp.Float("learning_rate", min_value=0.00001, max_value=0.001),
-            weight_decay=hp.Float("learning_rate", min_value=0.001, max_value=0.1)
+            weight_decay=hp.Float("weight_decay", min_value=0.001, max_value=0.1)
         )
         imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
 
