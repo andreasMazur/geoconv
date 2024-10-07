@@ -16,7 +16,8 @@ def model_configuration(n_neighbors,
                         variant,
                         rotation_delta,
                         dropout_rate,
-                        middle_layer_dim):
+                        middle_layer_dim,
+                        weight_decay):
     # Define model
     imcnn = ModelNetClf(
         n_neighbors=n_neighbors,
@@ -35,7 +36,7 @@ def model_configuration(n_neighbors,
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     opt = tf.keras.optimizers.AdamW(
         learning_rate=learning_rate,
-        weight_decay=0.005
+        weight_decay=weight_decay
     )
 
     # Compile the model
@@ -61,7 +62,8 @@ def training(dataset_path,
              redirect_output=False,
              rotation_delta=1,
              dropout_rate=0.28087,
-             middle_layer_dim=16):
+             middle_layer_dim=16,
+             weight_decay=0.0075707):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -94,7 +96,8 @@ def training(dataset_path,
             variant,
             rotation_delta,
             dropout_rate,
-            middle_layer_dim
+            middle_layer_dim,
+            weight_decay
         )
 
         # Define callbacks
