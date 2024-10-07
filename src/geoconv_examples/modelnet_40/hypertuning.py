@@ -12,7 +12,8 @@ def hyper_tuning(dataset_path,
                  n_neighbors,
                  modelnet10=True,
                  gen_info_file=None,
-                 batch_size=1):
+                 batch_size=1,
+                 rotation_delta=1):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -31,7 +32,7 @@ def hyper_tuning(dataset_path,
             isc_layer_dims=[64, 32, 32, 16],
             modelnet10=modelnet10,
             variant="dirac",
-            rotation_delta=1,
+            rotation_delta=rotation_delta,
             dropout_rate=0.28087
         )(signal_input)
 
