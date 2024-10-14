@@ -62,6 +62,32 @@ def sample_surface(shape, count, output_dir):
         return False
 
 
+def sample_surface_new(shape, count, output_dir):
+    """Wrapper function that samples vertices from a shape and stores it.
+
+    Parameters
+    ----------
+    shape: trimesh.Trimesh
+        The shape to sample from.
+    count: int
+        The amount of vertices to sample from the normalized shape.
+    output_dir: str
+        The directory where the sample and shape shall be stored.
+    """
+    # Determine length of largest axis (= scale)
+    scale = 1 / shape.vertices.max(axis=0).max()
+
+    # Scale the largest axis to one (and other dimensions by same factor / uniform scaling)
+    shape.vertices = shape.vertices * scale
+
+    # Sample point cloud
+    vertices = trimesh.sample.sample_surface(shape, count=count)[0]
+
+    # Save point cloud (create output dir if not existent)
+    os.makedirs(output_dir, exist_ok=True)
+    np.save(f"{output_dir}/vertices.npy", vertices)
+
+
 def compute_gpc_systems_wrapper(shape, output_dir, processes=1, k_th_neighbor=20, geodesic_diameter=None):
     """Wrapper function that computes all GPC systems for one given shape.
 
