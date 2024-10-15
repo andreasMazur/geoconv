@@ -55,6 +55,7 @@ def group_neighborhoods(vertices, radius, distance_matrix=None):
     # 2.) Get neighborhood vertex indices (with zero padding accounting for different amount of vertices)
     indices = tf.where(neighborhood_mask)
     # 'neighborhoods_indices': (vertices, n_neighbors)
+    # 'n_neighbors' is not necessarily equal to 'n_neighbors' in 'BarycentricCoordinates'-layer!
     neighborhoods_indices = tf.RaggedTensor.from_value_rowids(
         values=indices[:, 1], value_rowids=indices[:, 0]
     ).to_tensor(default_value=-1)
