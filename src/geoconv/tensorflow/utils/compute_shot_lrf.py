@@ -49,7 +49,7 @@ def group_neighborhoods(vertices, distance_matrix=None, neighbors=25):
     if distance_matrix is None:
         distance_matrix = compute_distance_matrix(vertices)
 
-    # 2.) Get neighborhood vertex indices (with zero padding accounting for different amount of vertices)
+    # 2.) Get neighborhood vertex indices
     # 'neighborhoods_indices': (vertices, n_neighbors)
     neighborhoods_indices = tf.math.top_k(-distance_matrix, neighbors)[1]
 
