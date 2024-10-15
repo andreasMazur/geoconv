@@ -27,8 +27,12 @@ def compute_distance_matrix(vertices):
 
 
 @tf.function
-def group_neighborhoods(vertices, radii, neighbors, distance_matrix=None):
+def group_neighborhoods(vertices, radii, n_neighbors, distance_matrix=None):
     """Finds and groups vertex-neighborhoods for a given radius.
+
+    Collect neighbors in a given radius. From all vertices select the closest 'n_neighbors' many.
+    If any of the selected exceeds the maximum radius, its coordinates are set to the maximum distance from
+    the origin (keeping those neighbors allows for batching).
 
     Parameters
     ----------
@@ -37,7 +41,7 @@ def group_neighborhoods(vertices, radii, neighbors, distance_matrix=None):
     radii: tf.Tensor
         A 1D-tensor containing the radii of each neighborhood. I.e., its first dimension needs to be of the same size
         as the first dimension of the 'vertices'-tensor.
-    neighbors: int
+    n_neighbors: int
         The amount of neighbors per neighborhood.
     distance_matrix: tf.Tensor
         The Euclidean distance matrix for the given vertices.
@@ -54,7 +58,7 @@ def group_neighborhoods(vertices, radii, neighbors, distance_matrix=None):
 
     # 2.) Get neighborhood vertex indices
     # 'neighborhoods_indices': (vertices, n_neighbors)
-    neighbor_distances, neighborhoods_indices = tf.math.top_k(-distance_matrix, neighbors)
+    neighbor_distances, neighborhoods_indices = tf.math.top_k(-distance_matrix, n_neighbors)
     neighbor_distances = -neighbor_distances
 
     # 3.) Shift corresponding vertex-coordinates s.t. neighborhood-origin lies in [0, 0, 0].
