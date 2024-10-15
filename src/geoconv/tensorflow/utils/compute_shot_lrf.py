@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-# @tf.function
+@tf.function
 def compute_distance_matrix(vertices):
     """Computes the Euclidean distance between given vertices.
 
@@ -26,18 +26,21 @@ def compute_distance_matrix(vertices):
     return tf.sqrt(norm)
 
 
-# @tf.function
-def group_neighborhoods(vertices, distance_matrix=None, neighbors=25):
+@tf.function
+def group_neighborhoods(vertices, radii, neighbors, distance_matrix=None):
     """Finds and groups vertex-neighborhoods for a given radius.
 
     Parameters
     ----------
     vertices: tf.Tensor
         All vertices of a mesh.
-    distance_matrix: tf.Tensor
-        The Euclidean distance matrix for the given vertices.
+    radii: tf.Tensor
+        A 1D-tensor containing the radii of each neighborhood. I.e., its first dimension needs to be of the same size
+        as the first dimension of the 'vertices'-tensor.
     neighbors: int
         The amount of neighbors per neighborhood.
+    distance_matrix: tf.Tensor
+        The Euclidean distance matrix for the given vertices.
 
     Returns
     -------
@@ -51,11 +54,20 @@ def group_neighborhoods(vertices, distance_matrix=None, neighbors=25):
 
     # 2.) Get neighborhood vertex indices
     # 'neighborhoods_indices': (vertices, n_neighbors)
-    neighborhoods_indices = tf.math.top_k(-distance_matrix, neighbors)[1]
+    neighbor_distances, neighborhoods_indices = tf.math.top_k(-distance_matrix, neighbors)
+    neighbor_distances = -neighbor_distances
 
     # 3.) Shift corresponding vertex-coordinates s.t. neighborhood-origin lies in [0, 0, 0].
     # 'vertex_neighborhoods': (vertices, n_neighbors, 3)
     vertex_neighborhoods = tf.gather(vertices, neighborhoods_indices, axis=0) - tf.expand_dims(vertices, axis=1)
+
+    # 4.) Account for batching in case a neighborhood has less than expected neighbors:
+    # Set fill coordinates to edge of neighborhood s.t. their weights for LRF computation will be zero
+    set_zero_at = tf.where(neighbor_distances > tf.reshape(radii, (-1, 1)))
+    updates = tf.tile(
+        tf.expand_dims(tf.sqrt((tf.gather(radii, set_zero_at[:, 0]) ** 2) / 3), axis=-1), multiples=[1, 3]
+    )
+    vertex_neighborhoods = tf.tensor_scatter_nd_update(vertex_neighborhoods, set_zero_at, updates)
 
     return vertex_neighborhoods, neighborhoods_indices
 

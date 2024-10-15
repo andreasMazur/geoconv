@@ -190,6 +190,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             A 5D-tensor of shape (batch_shapes, vertices, n_radial, n_angular, 3, 2) that describes barycentric
             coordinates.
         """
+        self.call_helper(vertices[0])
         return tf.map_fn(self.call_helper, vertices)
 
     @tf.function
@@ -206,14 +207,15 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         tf.Tensor:
             A 4D-tensor of shape (vertices, n_radial, n_angular, 3, 2) that describes barycentric coordinates.
         """
+        distance_matrix = compute_distance_matrix(vertices)
+        radii = tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.n_neighbors], batch_dims=1)
+
         # 1.) Get vertex-neighborhoods
         # 'neighborhoods': (vertices, n_neighbors, 3)
-        distance_matrix = compute_distance_matrix(vertices)
-        neighborhoods, neighborhoods_indices = group_neighborhoods(vertices, distance_matrix, self.n_neighbors)
+        neighborhoods, neighborhoods_indices = group_neighborhoods(vertices, radii, self.n_neighbors, distance_matrix)
 
         # 2.) Get local reference frames
         # 'lrfs': (vertices, 3, 3)
-        radii = tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.n_neighbors], batch_dims=1)
         lrfs = shot_lrf(neighborhoods, radii)
 
         # 3.) Project neighborhoods into their lrfs using the logarithmic map
