@@ -140,7 +140,7 @@ def preprocess_demo(path_to_stanford_bunny, n_radial=5, n_angular=6, n_neighbors
 
     # Step 3: Determine vertex-neighborhoods
     # 'neighborhoods': (vertices, n_neighbors, 3)
-    neighborhoods, neighborhoods_indices = group_neighborhoods(bunny_vertices, radii, distance_matrix)
+    neighborhoods, neighborhoods_indices = group_neighborhoods(bunny_vertices, radii, n_neighbors, distance_matrix)
 
     # Visualize three neighborhoods
     for n in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
