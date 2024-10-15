@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-@tf.function
+@tf.function(jit_compile=True)
 def compute_distance_matrix(vertices):
     """Computes the Euclidean distance between given vertices.
 
@@ -26,7 +26,7 @@ def compute_distance_matrix(vertices):
     return tf.sqrt(norm)
 
 
-@tf.function
+@tf.function(jit_compile=True)
 def group_neighborhoods(vertices, radii, n_neighbors, distance_matrix=None):
     """Finds and groups vertex-neighborhoods for a given radius.
 
@@ -76,7 +76,7 @@ def group_neighborhoods(vertices, radii, n_neighbors, distance_matrix=None):
     return vertex_neighborhoods, neighborhoods_indices
 
 
-@tf.function
+@tf.function(jit_compile=True)
 def disambiguate_axes(neighborhood_vertices, eigen_vectors):
     """Disambiguate axes returned by local Eigenvalue analysis.
 
@@ -106,7 +106,7 @@ def disambiguate_axes(neighborhood_vertices, eigen_vectors):
     )
 
 
-@tf.function
+@tf.function(jit_compile=True)
 def shot_lrf(neighborhoods, radius):
     """Computes SHOT local reference frames.
 
@@ -151,7 +151,7 @@ def shot_lrf(neighborhoods, radius):
     return tf.stack([z_axes, y_axes, x_axes], axis=1)
 
 
-@tf.function
+@tf.function(jit_compile=True)
 def logarithmic_map(lrfs, neighborhoods):
     """Computes projections of neighborhoods into their local reference frames.
 

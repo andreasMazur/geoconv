@@ -175,7 +175,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         # Return used template radius
         return template_radius
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def call(self, vertices):
         """Computes barycentric coordinates for multiple shapes.
 
@@ -190,10 +190,9 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             A 5D-tensor of shape (batch_shapes, vertices, n_radial, n_angular, 3, 2) that describes barycentric
             coordinates.
         """
-        self.call_helper(vertices[0])
         return tf.map_fn(self.call_helper, vertices)
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def call_helper(self, vertices):
         """Computes barycentric coordinates for a single shape.
 
