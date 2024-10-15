@@ -87,6 +87,10 @@ def sample_surface_new(shape, count, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     np.save(f"{output_dir}/vertices.npy", vertices)
 
+    # Properties file is mandatory, so that data-loader can find shape-directories
+    with open(f"{output_dir}/preprocess_properties.json", "w") as properties_file:
+        json.dump({}, properties_file, indent=4)
+
 
 def compute_gpc_systems_wrapper(shape, output_dir, processes=1, k_th_neighbor=20, geodesic_diameter=None):
     """Wrapper function that computes all GPC systems for one given shape.
