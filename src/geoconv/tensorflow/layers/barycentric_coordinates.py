@@ -211,7 +211,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
 
         # 1.) Get vertex-neighborhoods
         # 'neighborhoods': (vertices, n_neighbors, 3)
-        neighborhoods, neighborhoods_indices = group_neighborhoods(vertices, radii, distance_matrix)
+        neighborhoods, neighborhoods_indices = group_neighborhoods(vertices, radii, distance_matrix, self.n_neighbors)
 
         # 2.) Get local reference frames
         # 'lrfs': (vertices, 3, 3)
