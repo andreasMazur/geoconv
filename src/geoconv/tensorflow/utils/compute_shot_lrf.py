@@ -27,7 +27,7 @@ def compute_distance_matrix(vertices):
 
 
 @tf.function
-def group_neighborhoods(vertices, radius, distance_matrix=None):
+def group_neighborhoods(vertices, radius, distance_matrix=None, neighbor_limit=100):
     """Finds and groups vertex-neighborhoods for a given radius.
 
     Parameters
@@ -39,6 +39,8 @@ def group_neighborhoods(vertices, radius, distance_matrix=None):
         as the first dimension of the 'vertices'-tensor.
     distance_matrix: tf.Tensor
         The Euclidean distance matrix for the given vertices.
+    neighbor_limit: int
+        An upper limit to the amount of neighbors.
 
     Returns
     -------
@@ -58,7 +60,7 @@ def group_neighborhoods(vertices, radius, distance_matrix=None):
     # 'n_neighbors' is not necessarily equal to 'n_neighbors' in 'BarycentricCoordinates'-layer!
     neighborhoods_indices = tf.RaggedTensor.from_value_rowids(
         values=indices[:, 1], value_rowids=indices[:, 0]
-    ).to_tensor(default_value=-1)
+    ).to_tensor(default_value=-1)[:, :neighbor_limit]
 
     # 3.) Shift corresponding vertex-coordinates s.t. neighborhood-origin lies in [0, 0, 0].
     # 'vertex_neighborhoods': (vertices, n_neighbors, 3)
