@@ -6,6 +6,8 @@ from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPool
 import tensorflow as tf
 import tensorflow_probability as tfp
 
+from geoconv.tensorflow.layers.tangent_projections import TangentProjections
+
 
 class Covariance(tf.keras.layers.Layer):
     @tf.function
@@ -40,6 +42,9 @@ class ModelNetClf(tf.keras.Model):
 
         # Input normalization
         self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
+
+        # Tangent projections
+        self.projection_layer = TangentProjections(n_neighbors=n_neighbors)
 
         #################
         # EMBEDDING PART
@@ -80,7 +85,9 @@ class ModelNetClf(tf.keras.Model):
         bc = self.bc_layer(inputs)
 
         # Normalize signal
-        signal = self.normalize(inputs)
+        signal = self.projection_layer(inputs)
+        signal = tf.reshape(signal, (tf.shape(inputs)[0], tf.shape(inputs)[1], -1))
+        signal = self.normalize(signal)
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
