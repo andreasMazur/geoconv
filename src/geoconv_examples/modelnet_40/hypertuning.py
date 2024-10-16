@@ -29,18 +29,27 @@ def hyper_tuning(dataset_path,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            isc_layer_dims=[64, 32, 32, 16],
+            isc_layer_dims=[
+                hp.Int("dim_1", min_value=8, max_value=128),
+                hp.Int("dim_2", min_value=8, max_value=128),
+                hp.Int("dim_3", min_value=8, max_value=128),
+                hp.Int("dim_4", min_value=8, max_value=128),
+                hp.Int("dim_5", min_value=8, max_value=128),
+                hp.Int("dim_6", min_value=8, max_value=128),
+                hp.Int("dim_7", min_value=8, max_value=128),
+                hp.Int("dim_8", min_value=8, max_value=128)
+            ],
             modelnet10=modelnet10,
             variant="dirac",
             rotation_delta=rotation_delta,
-            dropout_rate=0.28087
+            dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.5)
         )(signal_input)
 
         # Compile model
         imcnn = tf.keras.Model(inputs=signal_input, outputs=signal_output)
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
-            learning_rate=hp.Float("learning_rate", min_value=0.00001, max_value=0.001),
+            learning_rate=hp.Float("learning_rate", min_value=0.00001, max_value=0.01),
             weight_decay=hp.Float("weight_decay", min_value=0.001, max_value=0.1)
         )
         imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
