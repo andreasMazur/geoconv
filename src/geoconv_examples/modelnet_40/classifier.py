@@ -1,12 +1,11 @@
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
+from geoconv.tensorflow.layers.tangent_projections import TangentProjections
 from geoconv.tensorflow.layers.conv_dirac import ConvDirac
 from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
 from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
 
 import tensorflow as tf
 import tensorflow_probability as tfp
-
-from geoconv.tensorflow.layers.tangent_projections import TangentProjections
 
 
 class Covariance(tf.keras.layers.Layer):
