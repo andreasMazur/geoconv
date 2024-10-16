@@ -84,9 +84,12 @@ class ModelNetClf(tf.keras.Model):
         # Compute barycentric coordinates from 3D coordinates
         bc = self.bc_layer(inputs)
 
-        # Normalize signal
+        # Get input data
         signal = self.projection_layer(inputs)
-        signal = tf.reshape(signal, (tf.shape(inputs)[0], tf.shape(inputs)[1], -1))
+        input_shape = tf.shape(signal)
+        signal = tf.reshape(signal, (input_shape[0], input_shape[1], input_shape[2] * input_shape[3]))
+
+        # Normalize signal
         signal = self.normalize(signal)
 
         # Compute vertex embeddings
