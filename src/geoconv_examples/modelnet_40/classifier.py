@@ -5,7 +5,6 @@ from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPool
 
 import tensorflow as tf
 import tensorflow_probability as tfp
-import trimesh
 
 
 class Covariance(tf.keras.layers.Layer):
