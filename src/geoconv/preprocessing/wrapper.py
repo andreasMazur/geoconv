@@ -24,56 +24,6 @@ def sample_surface(shape, count, output_dir):
     output_dir: str
         The directory where the sample and shape shall be stored.
     """
-    # 0.) Check whether file already exist. If so, skip computing GPC-systems.
-    if not os.path.isfile(f"{output_dir}/preprocess_properties.json"):
-        # 1.) Create output dir if not existent
-        os.makedirs(output_dir, exist_ok=True)
-
-        # 2.) Normalize shape
-        try:
-            shape, geodesic_diameter = normalize_mesh(shape)
-        except RuntimeError:
-            print(f"{output_dir} crashed during normalization. Skipping preprocessing.")
-            shutil.rmtree(output_dir)
-            return False
-
-        # 3.) Sample from surface
-        vertices = trimesh.sample.sample_surface_even(shape, count=count)[0]
-        if vertices.shape[0] < count:
-            # Even sampling might return fewer vertices, but we require same amount of vertices for batching
-            # "Un-even"-sampling guarantees 'count'-many vertices.
-            vertices = trimesh.sample.sample_surface(shape, count=count)[0]
-
-        # 4.) Save sample and shape
-        np.save(f"{output_dir}/vertices.npy", vertices)
-        shape.export(f"{output_dir}/normalized_mesh.stl")
-
-        # 5.) Log preprocess properties
-        properties_file_path = f"{output_dir}/preprocess_properties.json"
-        with open(properties_file_path, "w") as properties_file:
-            json.dump(
-                {"amount_sampled_vertices": vertices.shape[0], "original_geodesic_diameter": geodesic_diameter},
-                properties_file,
-                indent=4
-            )
-        return True
-    else:
-        print(f"{output_dir}/preprocess_properties.json already exists. Skipping preprocessing.")
-        return False
-
-
-def sample_surface_new(shape, count, output_dir):
-    """Wrapper function that samples vertices from a shape and stores it.
-
-    Parameters
-    ----------
-    shape: trimesh.Trimesh
-        The shape to sample from.
-    count: int
-        The amount of vertices to sample from the normalized shape.
-    output_dir: str
-        The directory where the sample and shape shall be stored.
-    """
     # Determine length of largest axis (= scale)
     scale = 1 / shape.vertices.max(axis=0).max()
 

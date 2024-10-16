@@ -1,4 +1,4 @@
-from geoconv.preprocessing.wrapper import sample_surface, sample_surface_new
+from geoconv.preprocessing.wrapper import sample_surface
 from geoconv.utils.data_generator import zip_file_generator
 
 import shutil
@@ -28,7 +28,7 @@ def preprocess(modelnet_path,
     for shape, shape_path in shape_generator:
         sys.stdout.write(f"\rProcessing shape: {shape_path}")
         output_dir = f"{output_path}/{shape_path}"[:-4]
-        sample_surface_new(shape, count, output_dir)
+        sample_surface(shape, count, output_dir)
 
     # Zip preprocessed directory
     if zip_when_done:
