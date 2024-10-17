@@ -107,7 +107,7 @@ def training(dataset_path,
             set_type="train",
             modelnet10=modelnet10,
             gen_info_file=f"{logging_dir}/{gen_info_file}",
-            batch_size=batch_size,
+            batch_size=1,
             only_signal=True
         ).map(imcnn.coordinates_to_input)
         imcnn.normalize.adapt(adapt_data)

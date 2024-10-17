@@ -13,7 +13,8 @@ def hyper_tuning(dataset_path,
                  modelnet10=True,
                  gen_info_file=None,
                  batch_size=1,
-                 rotation_delta=1):
+                 rotation_delta=1,
+                 use_covariance=True):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -23,8 +24,8 @@ def hyper_tuning(dataset_path,
         # Get input
         signal_input = tf.keras.layers.Input(shape=(2000, 3), name="3D coordinates")
 
-        # Get signal embedding
-        signal_output = ModelNetClf(
+        # Configure classifier
+        clf = ModelNetClf(
             n_neighbors=n_neighbors,
             n_radial=n_radial,
             n_angular=n_angular,
@@ -33,8 +34,26 @@ def hyper_tuning(dataset_path,
             modelnet10=modelnet10,
             variant="dirac",
             rotation_delta=rotation_delta,
-            dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.5)
-        )(signal_input)
+            dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.5),
+            use_covariance=use_covariance
+        )
+
+        # Adapt normalization layer on training data
+        print("Adapting normalization layer to training data...")
+        clf(tf.random.uniform(shape=[1, 2000, 3]))
+        adapt_data = load_preprocessed_modelnet(
+            dataset_path,
+            set_type="train",
+            modelnet10=modelnet10,
+            gen_info_file=f"{logging_dir}/{gen_info_file}",
+            batch_size=1,
+            only_signal=True
+        ).map(clf.coordinates_to_input)
+        clf.normalize.adapt(adapt_data)
+        print("Done!")
+
+        # Get signal embedding
+        signal_output = clf(signal_input)
 
         # Compile model
         imcnn = tf.keras.Model(inputs=signal_input, outputs=signal_output)
