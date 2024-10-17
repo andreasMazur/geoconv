@@ -74,6 +74,7 @@ class ModelNetClf(tf.keras.Model):
         ######################
         # Define covariance layer
         self.cov = Covariance()
+        self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
 
         # Define classification layer
         self.flatten = tf.keras.layers.Flatten()
@@ -99,8 +100,10 @@ class ModelNetClf(tf.keras.Model):
             signal = self.bn_layers[idx](signal)
 
         # Compute covariance matrix from vertex-embeddings
-        signal = self.cov(signal)
-        signal = self.flatten(signal)
+        # signal = self.cov(signal)
+        # signal = self.flatten(signal)
+
+        signal = self.pool(signal)
 
         # Return classification logits
         return self.clf(signal)
