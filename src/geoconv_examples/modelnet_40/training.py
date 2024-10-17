@@ -100,19 +100,6 @@ def training(dataset_path,
             use_covariance
         )
 
-        # Load adaptation data for normalization layer
-        print("Adapting normalization layer to training data...")
-        adapt_data = load_preprocessed_modelnet(
-            dataset_path,
-            set_type="train",
-            modelnet10=modelnet10,
-            gen_info_file=f"{logging_dir}/{gen_info_file}",
-            batch_size=1,
-            only_signal=True
-        ).map(imcnn.coordinates_to_input)
-        imcnn.normalize.adapt(adapt_data)
-        print("Done!")
-
         # Define callbacks
         exp_number = f"{n_radial}_{n_angular}_{template_scale}"
         csv_file_name = f"{logging_dir}/training_{exp_number}.log"

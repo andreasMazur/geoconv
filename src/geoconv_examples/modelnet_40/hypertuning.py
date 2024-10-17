@@ -38,20 +38,6 @@ def hyper_tuning(dataset_path,
             use_covariance=use_covariance
         )
 
-        # Adapt normalization layer on training data
-        print("Adapting normalization layer to training data...")
-        clf(tf.random.uniform(shape=[1, 2000, 3]))
-        adapt_data = load_preprocessed_modelnet(
-            dataset_path,
-            set_type="train",
-            modelnet10=modelnet10,
-            gen_info_file=f"{logging_dir}/{gen_info_file}",
-            batch_size=1,
-            only_signal=True
-        ).map(clf.coordinates_to_input)
-        clf.normalize.adapt(adapt_data)
-        print("Done!")
-
         # Get signal embedding
         signal_output = clf(signal_input)
 
