@@ -50,7 +50,7 @@ def training(dataset_path,
              template_configurations=None,
              n_neighbors=10,
              isc_layer_dims=None,
-             learning_rate=0.00165,
+             learning_rate=0.0025153,
              template_radius=None,
              modelnet10=False,
              gen_info_file=None,
@@ -59,8 +59,8 @@ def training(dataset_path,
              set_mem_growth=False,
              redirect_output=False,
              rotation_delta=1,
-             dropout_rate=0.28087,
-             weight_decay=0.0075707):
+             dropout_rate=0.23747,
+             weight_decay=0.01358):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
