@@ -16,7 +16,8 @@ def model_configuration(n_neighbors,
                         variant,
                         rotation_delta,
                         dropout_rate,
-                        weight_decay):
+                        weight_decay,
+                        use_covariance):
     # Define model
     imcnn = ModelNetClf(
         n_neighbors=n_neighbors,
@@ -27,7 +28,8 @@ def model_configuration(n_neighbors,
         modelnet10=modelnet10,
         variant=variant,
         rotation_delta=rotation_delta,
-        dropout_rate=dropout_rate
+        dropout_rate=dropout_rate,
+        use_covariance=use_covariance
     )
 
     # Define loss and optimizer
@@ -60,7 +62,8 @@ def training(dataset_path,
              redirect_output=False,
              rotation_delta=1,
              dropout_rate=0.23747,
-             weight_decay=0.01358):
+             weight_decay=0.01358,
+             use_covariance=True):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -93,8 +96,22 @@ def training(dataset_path,
             variant,
             rotation_delta,
             dropout_rate,
-            weight_decay
+            weight_decay,
+            use_covariance
         )
+
+        # Load adaptation data for normalization layer
+        print("Adapting normalization layer to training data...")
+        adapt_data = load_preprocessed_modelnet(
+            dataset_path,
+            set_type="train",
+            modelnet10=modelnet10,
+            gen_info_file=f"{logging_dir}/{gen_info_file}",
+            batch_size=batch_size,
+            only_signal=True
+        ).map(imcnn.coordinates_to_input)
+        imcnn.normalize.adapt(adapt_data)
+        print("Done!")
 
         # Define callbacks
         exp_number = f"{n_radial}_{n_angular}_{template_scale}"
