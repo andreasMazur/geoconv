@@ -99,6 +99,8 @@ class ModelNetClf(tf.keras.Model):
         if self.use_covariance:
             return self.cov(projection)
         else:
+            proj_shape = tf.shape(projection)
+            projection = tf.reshape(projection, (proj_shape[0], proj_shape[1], proj_shape[2] * proj_shape[3]))
             return projection
 
     def call(self, inputs, **kwargs):
