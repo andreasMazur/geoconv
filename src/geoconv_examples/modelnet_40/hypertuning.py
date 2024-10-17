@@ -13,8 +13,7 @@ def hyper_tuning(dataset_path,
                  modelnet10=True,
                  gen_info_file=None,
                  batch_size=1,
-                 rotation_delta=1,
-                 use_covariance=True):
+                 rotation_delta=1):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -34,8 +33,7 @@ def hyper_tuning(dataset_path,
             modelnet10=modelnet10,
             variant="dirac",
             rotation_delta=rotation_delta,
-            dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.5),
-            use_covariance=use_covariance
+            dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.5)
         )
 
         # Get signal embedding

@@ -28,8 +28,7 @@ class ModelNetClf(tf.keras.Model):
                  modelnet10=False,
                  variant=None,
                  rotation_delta=1,
-                 dropout_rate=0.3,
-                 use_covariance=True):
+                 dropout_rate=0.3):
         super().__init__()
 
         #############
@@ -44,8 +43,13 @@ class ModelNetClf(tf.keras.Model):
         )
         self.bc_layer.adapt(template_radius=template_radius)
 
-        # Input normalization
-        self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
+        # Input normalization (adapted to ModelNet40)
+        self.normalize = tf.keras.layers.Normalization(
+            axis=-1,
+            name="input_normalization",
+            # mean=VERTEX_MEANS[n_neighbors],
+            # variance=VERTEX_VARS[n_neighbors]
+        )
 
         # Tangent projections
         self.projection_layer = TangentProjections(n_neighbors=n_neighbors)
@@ -88,20 +92,13 @@ class ModelNetClf(tf.keras.Model):
             tf.keras.layers.Dense(units=10 if modelnet10 else 40),
         ])
 
-        self.use_covariance = use_covariance
-        self.cov = Covariance()
-
     def coordinates_to_input(self, coordinates):
         # Project into tangent planes
         projection = self.projection_layer(coordinates)
 
-        # Return covariance matrix
-        if self.use_covariance:
-            return self.cov(projection)
-        else:
-            proj_shape = tf.shape(projection)
-            projection = tf.reshape(projection, (proj_shape[0], proj_shape[1], proj_shape[2] * proj_shape[3]))
-            return projection
+        proj_shape = tf.shape(projection)
+        projection = tf.reshape(projection, (proj_shape[0], proj_shape[1], proj_shape[2] * proj_shape[3]))
+        return projection
 
     def call(self, inputs, **kwargs):
         # Compute barycentric coordinates from 3D coordinates
