@@ -28,7 +28,8 @@ class ModelNetClf(tf.keras.Model):
                  modelnet10=False,
                  variant=None,
                  rotation_delta=1,
-                 dropout_rate=0.3):
+                 dropout_rate=0.3,
+                 use_covariance=True):
         super().__init__()
 
         #############
@@ -87,6 +88,7 @@ class ModelNetClf(tf.keras.Model):
             tf.keras.layers.Dense(units=10 if modelnet10 else 40),
         ])
 
+        self.use_covariance = use_covariance
         self.cov = Covariance()
 
     def coordinates_to_input(self, coordinates):
@@ -94,7 +96,10 @@ class ModelNetClf(tf.keras.Model):
         projection = self.projection_layer(coordinates)
 
         # Return covariance matrix
-        return self.cov(projection)
+        if self.use_covariance:
+            return self.cov(projection)
+        else:
+            return projection
 
     def call(self, inputs, **kwargs):
         # Compute barycentric coordinates from 3D coordinates
