@@ -11,7 +11,11 @@ import tensorflow_probability as tfp
 class Covariance(tf.keras.layers.Layer):
     @tf.function
     def call(self, inputs):
-        return tf.map_fn(tfp.stats.covariance, inputs)
+        def compute_cov(x):
+            x = tfp.stats.covariance(x, sample_axis=1)
+            x_shape = tf.shape(x)
+            return tf.reshape(x, [x_shape[0], x_shape[1] * x_shape[2]])
+        return tf.map_fn(compute_cov, inputs)
 
 
 class ModelNetClf(tf.keras.Model):
@@ -75,8 +79,15 @@ class ModelNetClf(tf.keras.Model):
         self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
 
         # Define classification layer
-        self.flatten = tf.keras.layers.Flatten()
-        self.clf = tf.keras.layers.Dense(units=10 if modelnet10 else 40)
+        self.clf = tf.keras.models.Sequential([
+            tf.keras.layers.Dense(512, activation="elu"),
+            tf.keras.layers.Dropout(rate=dropout_rate),
+            tf.keras.layers.Dense(256, activation="elu"),
+            tf.keras.layers.Dropout(rate=dropout_rate),
+            tf.keras.layers.Dense(units=10 if modelnet10 else 40),
+        ])
+
+        self.cov = Covariance()
 
     def call(self, inputs, **kwargs):
         # Compute barycentric coordinates from 3D coordinates
@@ -84,8 +95,7 @@ class ModelNetClf(tf.keras.Model):
 
         # Get input data
         signal = self.projection_layer(inputs)
-        input_shape = tf.shape(signal)
-        signal = tf.reshape(signal, (input_shape[0], input_shape[1], input_shape[2] * input_shape[3]))
+        signal = self.cov(signal)
 
         # Normalize signal
         signal = self.normalize(signal)
