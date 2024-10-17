@@ -89,13 +89,19 @@ class ModelNetClf(tf.keras.Model):
 
         self.cov = Covariance()
 
+    def coordinates_to_input(self, coordinates):
+        # Project into tangent planes
+        projection = self.projection_layer(coordinates)
+
+        # Return covariance matrix
+        return self.cov(projection)
+
     def call(self, inputs, **kwargs):
         # Compute barycentric coordinates from 3D coordinates
         bc = self.bc_layer(inputs)
 
         # Get input data
-        signal = self.projection_layer(inputs)
-        signal = self.cov(signal)
+        signal = self.coordinates_to_input(inputs)
 
         # Normalize signal
         signal = self.normalize(signal)
