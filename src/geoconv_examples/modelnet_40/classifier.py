@@ -112,7 +112,7 @@ class ModelNetClf(tf.keras.Model):
         )
 
         # Tangent projections
-        self.projection_layer = TangentProjections(n_neighbors=n_neighbors)
+        self.projection_layer = TangentProjections(n_neighbors=n_neighbors, n_bins=4)
 
         #################
         # EMBEDDING PART
@@ -153,16 +153,11 @@ class ModelNetClf(tf.keras.Model):
         ])
 
     def call(self, inputs, **kwargs):
-        # Compute barycentric coordinates from 3D coordinates
-        bc = self.bc_layer(inputs)
-
         # Project into tangent planes
         signal = self.projection_layer(inputs)
-        proj_shape = tf.shape(signal)
-        signal = tf.reshape(signal, (proj_shape[0], proj_shape[1], proj_shape[2] * proj_shape[3]))
 
-        # Normalize signal
-        signal = self.normalize(signal)
+        # Compute barycentric coordinates from 3D coordinates
+        bc = self.bc_layer(inputs)
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
