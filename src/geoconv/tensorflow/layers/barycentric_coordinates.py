@@ -127,9 +127,10 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
     template_scale: float
         A scaling factor that is multiple onto the neighborhood radius in order to compute the template radius.
     """
-    def __init__(self, n_radial, n_angular, n_neighbors, template_scale=0.75):
+    def __init__(self, n_radial, n_angular, n_neighbors, template_scale=0.75, neighbor_limit=20):
         super().__init__()
         self.n_neighbors = n_neighbors
+        self.neighbor_limit = neighbor_limit
         self.n_radial = n_radial
         self.n_angular = n_angular
         self.template_scale = template_scale
@@ -175,7 +176,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         # Return used template radius
         return template_radius
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def call(self, vertices):
         """Computes barycentric coordinates for multiple shapes.
 
@@ -192,7 +193,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         """
         return tf.map_fn(self.call_helper, vertices)
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def call_helper(self, vertices):
         """Computes barycentric coordinates for a single shape.
 
@@ -207,15 +208,19 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             A 4D-tensor of shape (vertices, n_radial, n_angular, 3, 2) that describes barycentric coordinates.
         """
         distance_matrix = compute_distance_matrix(vertices)
-        radii = tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.n_neighbors], batch_dims=1)
+        radius = tf.reduce_mean(
+            tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.n_neighbors], batch_dims=1)
+        )
 
         # 1.) Get vertex-neighborhoods
         # 'neighborhoods': (vertices, n_neighbors, 3)
-        neighborhoods, neighborhoods_indices = group_neighborhoods(vertices, radii, self.n_neighbors, distance_matrix)
+        neighborhoods, neighborhoods_indices = group_neighborhoods(
+            vertices, radius, neighbor_limit=self.neighbor_limit, distance_matrix=distance_matrix
+        )
 
         # 2.) Get local reference frames
         # 'lrfs': (vertices, 3, 3)
-        lrfs = shot_lrf(neighborhoods, radii)
+        lrfs = shot_lrf(neighborhoods, radius)
 
         # 3.) Project neighborhoods into their lrfs using the logarithmic map
         # 'projections': (vertices, n_neighbors, 2)
