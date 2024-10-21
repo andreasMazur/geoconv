@@ -122,8 +122,6 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         The amount of radial coordinates of the template for which BC shall be computed.
     n_angular: int
         The amount of angular coordinates of the template for which BC shall be computed.
-    template_scale: float
-        A scaling factor that is multiple onto the neighborhood radius in order to compute the template radius.
     """
     def __init__(self, n_radial, n_angular, neighbors_for_lrf=15, lrf_neighbor_limit=32):
         super().__init__()
