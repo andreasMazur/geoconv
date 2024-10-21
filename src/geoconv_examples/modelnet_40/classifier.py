@@ -1,6 +1,5 @@
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
-from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
 
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -86,7 +85,7 @@ class ModelNetClf(tf.keras.Model):
         bc = self.bc_layer(inputs)
 
         # Shift point-cloud centroid into 0
-        signal = self.center(inputs)
+        # signal = self.center(inputs)
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
