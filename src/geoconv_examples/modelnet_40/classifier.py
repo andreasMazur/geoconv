@@ -57,7 +57,7 @@ class ModelNetClf(tf.keras.Model):
         assert variant in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
 
         # Define vertex embedding architecture
-        self.isc_layers, self.bn_layers = [], []
+        self.isc_layers = []
         for idx, dim in enumerate(isc_layer_dims):
             self.isc_layers.append(
                 ResNetBlock(
