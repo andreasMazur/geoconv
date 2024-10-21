@@ -15,15 +15,17 @@ def compute_distance_matrix(vertices):
     tf.Tensor:
         A square distance matrix for the given vertices.
     """
+    vertices = tf.cast(vertices, tf.float64)
+    
     norm = tf.einsum("ij,ij->i", vertices, vertices)
     norm = tf.reshape(norm, (-1, 1)) - 2 * tf.einsum("ik,jk->ij", vertices, vertices) + tf.reshape(norm, (1, -1))
 
     where_nans = tf.where(tf.math.is_nan(tf.sqrt(norm)))
     norm = tf.tensor_scatter_nd_update(
-        norm, where_nans, tf.zeros(shape=(tf.shape(where_nans)[0],), dtype=tf.float32)
+        norm, where_nans, tf.zeros(shape=(tf.shape(where_nans)[0],), dtype=tf.float64)
     )
 
-    return tf.sqrt(norm)
+    return tf.cast(tf.sqrt(norm), tf.float32)
 
 
 @tf.function(jit_compile=True)
