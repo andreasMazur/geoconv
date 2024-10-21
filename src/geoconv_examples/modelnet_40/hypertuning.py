@@ -9,7 +9,7 @@ import os
 def hyper_tuning(dataset_path,
                  logging_dir,
                  template_configuration,
-                 n_neighbors,
+                 neighbors_for_lrf,
                  modelnet10=True,
                  gen_info_file=None,
                  batch_size=1,
@@ -25,7 +25,7 @@ def hyper_tuning(dataset_path,
 
         # Configure classifier
         clf = ModelNetClf(
-            n_neighbors=n_neighbors,
+            neighbors_for_lrf=neighbors_for_lrf,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,

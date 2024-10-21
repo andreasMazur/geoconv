@@ -20,7 +20,7 @@ class Covariance(tf.keras.layers.Layer):
 
 class ModelNetClf(tf.keras.Model):
     def __init__(self,
-                 n_neighbors,
+                 neighbors_for_lrf,
                  n_radial,
                  n_angular,
                  template_radius,
@@ -38,10 +38,7 @@ class ModelNetClf(tf.keras.Model):
         #############
         # Init barycentric coordinates layer
         self.bc_layer = BarycentricCoordinates(
-            n_radial=n_radial,
-            n_angular=n_angular,
-            n_neighbors=n_neighbors,
-            template_scale=None
+            n_radial=n_radial, n_angular=n_angular, neighbors_for_lrf=neighbors_for_lrf
         )
         self.bc_layer.adapt(template_radius=template_radius)
 

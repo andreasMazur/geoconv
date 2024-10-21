@@ -6,7 +6,7 @@ import sys
 import tensorflow as tf
 
 
-def model_configuration(n_neighbors,
+def model_configuration(neighbors_for_lrf,
                         n_radial,
                         n_angular,
                         template_radius,
@@ -20,7 +20,7 @@ def model_configuration(n_neighbors,
                         pooling):
     # Define model
     imcnn = ModelNetClf(
-        n_neighbors=n_neighbors,
+        neighbors_for_lrf=neighbors_for_lrf,
         n_radial=n_radial,
         n_angular=n_angular,
         template_radius=template_radius,

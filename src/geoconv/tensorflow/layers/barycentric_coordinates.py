@@ -122,27 +122,29 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         The amount of radial coordinates of the template for which BC shall be computed.
     n_angular: int
         The amount of angular coordinates of the template for which BC shall be computed.
-    radius: float
-        The radius of the neighborhoods which are used for tangent-plane estimations.
     template_scale: float
         A scaling factor that is multiple onto the neighborhood radius in order to compute the template radius.
     """
-    def __init__(self, n_radial, n_angular, n_neighbors, template_scale=0.75, neighbor_limit=32):
+    def __init__(self, n_radial, n_angular, neighbors_for_lrf=15, lrf_neighbor_limit=32):
         super().__init__()
-        self.n_neighbors = n_neighbors
-        self.neighbor_limit = neighbor_limit
         self.n_radial = n_radial
         self.n_angular = n_angular
-        self.template_scale = template_scale
         self.template = None
 
-    def adapt(self, data=None, template_radius=None):
+        self.neighbors_for_lrf = neighbors_for_lrf
+        self.lrf_neighbor_limit = lrf_neighbor_limit
+
+    def adapt(self, data=None, n_neighbors=None, template_scale=None, template_radius=None):
         """Sets the template radius to a given or the average neighborhood radius scaled by used defined coefficient.
 
         Parameters
         ----------
         data: tf.Dataset
             The training data which is used to compute the template radius.
+        n_neighbors: int
+            The amount of closest neighbors to consider to compute the template radius.
+        template_scale: float
+            The scaling factor to multiply on the template.
         template_radius: float
             The template radius to use to initialize the template.
 
@@ -152,6 +154,10 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             The final template radius.
         """
         assert data is not None or template_radius is not None, "Must provide either 'data' or 'template_radius'."
+        if None not in [data, n_neighbors, template_scale]:
+            assert data is not None, "If 'template_radius' is not given, you must provide 'data'."
+            assert n_neighbors is not None, "If 'template_radius' is not given, you must provide 'n_neighbors'."
+            assert template_scale is not None, "If 'template_radius' is not given, you must provide 'template_scale'."
 
         # If no template radius is given, compute the template radius
         if template_radius is None:
@@ -159,12 +165,12 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             for idx, (vertices, _) in enumerate(data):
                 distance_matrix = compute_distance_matrix(tf.cast(vertices[0], tf.float32))
                 radii = tf.gather(
-                    distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.n_neighbors], batch_dims=1
+                    distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, n_neighbors], batch_dims=1
                 )
                 avg_radius = avg_radius + tf.reduce_sum(radii)
                 vertices_count = vertices_count + tf.cast(tf.shape(radii)[0], tf.float32)
             avg_radius = avg_radius / vertices_count
-            template_radius = avg_radius * self.template_scale
+            template_radius = avg_radius * template_scale
 
         # Initialize template
         self.template = tf.constant(
@@ -212,13 +218,13 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         # 'radius': ()
         distance_matrix = compute_distance_matrix(vertices)
         radius = tf.reduce_mean(
-            tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.n_neighbors], batch_dims=1)
+            tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.neighbors_for_lrf], batch_dims=1)
         )
 
         # 2.) Get vertex-neighborhoods
         # 'neighborhoods': (vertices, n_neighbors, 3)
         neighborhoods, neighborhoods_indices = group_neighborhoods(
-            vertices, radius, neighbor_limit=self.neighbor_limit, distance_matrix=distance_matrix
+            vertices, radius, neighbor_limit=self.lrf_neighbor_limit, distance_matrix=distance_matrix
         )
 
         # 3.) Get local reference frames
