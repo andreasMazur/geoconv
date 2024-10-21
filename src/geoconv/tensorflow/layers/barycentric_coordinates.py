@@ -176,7 +176,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         # Return used template radius
         return template_radius
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def call(self, vertices):
         """Computes barycentric coordinates for multiple shapes.
 
@@ -193,7 +193,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         """
         return tf.map_fn(self.call_helper, vertices)
 
-    @tf.function
+    @tf.function(jit_compile=True)
     def call_helper(self, vertices):
         """Computes barycentric coordinates for a single shape.
 
@@ -207,34 +207,37 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         tf.Tensor:
             A 4D-tensor of shape (vertices, n_radial, n_angular, 3, 2) that describes barycentric coordinates.
         """
+        # 1.) Compute radius for local parameterization spaces. Keep it equal for all for comparability.
+        # 'distance_matrix': (vertices, vertices)
+        # 'radius': ()
         distance_matrix = compute_distance_matrix(vertices)
         radius = tf.reduce_mean(
             tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.n_neighbors], batch_dims=1)
         )
 
-        # 1.) Get vertex-neighborhoods
+        # 2.) Get vertex-neighborhoods
         # 'neighborhoods': (vertices, n_neighbors, 3)
         neighborhoods, neighborhoods_indices = group_neighborhoods(
             vertices, radius, neighbor_limit=self.neighbor_limit, distance_matrix=distance_matrix
         )
 
-        # 2.) Get local reference frames
+        # 3.) Get local reference frames
         # 'lrfs': (vertices, 3, 3)
         lrfs = shot_lrf(neighborhoods, radius)
 
-        # 3.) Project neighborhoods into their lrfs using the logarithmic map
+        # 4.) Project neighborhoods into their lrfs using the logarithmic map
         # 'projections': (vertices, n_neighbors, 2)
         projections = logarithmic_map(lrfs, neighborhoods)
 
-        # 4.) Compute barycentric coordinates
+        # 5.) Compute barycentric coordinates
         # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
         # 'closest_proj': (vertices, n_radial, n_angular, 3)
         interpolation_weights, closest_proj = compute_bc(self.template, projections)
 
-        # 5.) Get projection indices (convert neighborhood indices to shape vertex indices)
+        # 6.) Get projection indices (convert neighborhood indices to shape vertex indices)
         # 'projections_indices': (vertices, n_radial, n_angular, 3)
         projections_indices = tf.cast(tf.gather(neighborhoods_indices, closest_proj, batch_dims=1), tf.float32)
 
-        # 6.) Return barycentric coordinates tensor
+        # 7.) Return barycentric coordinates tensor
         # (vertices, n_radial, n_angular, 3, 2)
         return tf.stack([projections_indices, interpolation_weights], axis=-1)
