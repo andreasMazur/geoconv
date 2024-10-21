@@ -29,7 +29,8 @@ class ModelNetClf(tf.keras.Model):
                  variant=None,
                  rotation_delta=1,
                  dropout_rate=0.3,
-                 initializer="glorot_uniform"):
+                 initializer="glorot_uniform",
+                 pooling="cov"):
         super().__init__()
 
         #############
@@ -72,7 +73,11 @@ class ModelNetClf(tf.keras.Model):
         ######################
         # CLASSIFICATION PART
         ######################
-        self.pool = Covariance()
+        assert pooling in ["cov", "max"], "Please set your pooling to either 'cov' or 'max'."
+        if pooling == "cov":
+            self.pool = Covariance()
+        else:
+            self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
 
         # Define classification layer
         self.clf = tf.keras.layers.Dense(units=10 if modelnet10 else 40)

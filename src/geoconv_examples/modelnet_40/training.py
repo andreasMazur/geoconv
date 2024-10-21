@@ -16,7 +16,8 @@ def model_configuration(n_neighbors,
                         variant,
                         rotation_delta,
                         dropout_rate,
-                        weight_decay):
+                        weight_decay,
+                        pooling):
     # Define model
     imcnn = ModelNetClf(
         n_neighbors=n_neighbors,
@@ -27,7 +28,8 @@ def model_configuration(n_neighbors,
         modelnet10=modelnet10,
         variant=variant,
         rotation_delta=rotation_delta,
-        dropout_rate=dropout_rate
+        dropout_rate=dropout_rate,
+        pooling=pooling
     )
 
     # Define loss and optimizer
@@ -60,7 +62,8 @@ def training(dataset_path,
              redirect_output=False,
              rotation_delta=1,
              dropout_rate=0.23747,
-             weight_decay=0.01358):
+             weight_decay=0.01358,
+             pooling="cov"):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -93,7 +96,8 @@ def training(dataset_path,
             variant,
             rotation_delta,
             dropout_rate,
-            weight_decay
+            weight_decay,
+            pooling
         )
 
         # Define callbacks
