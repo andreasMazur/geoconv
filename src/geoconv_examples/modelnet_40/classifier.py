@@ -86,6 +86,7 @@ class ModelNetClf(tf.keras.Model):
 
         # Shift point-cloud centroid into 0
         # signal = self.center(inputs)
+        signal = inputs
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
