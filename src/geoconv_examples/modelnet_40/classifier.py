@@ -71,7 +71,6 @@ class ModelNetClf(tf.keras.Model):
                     initializer=initializer
                 )
             )
-            self.bn_layers.append(tf.keras.layers.BatchNormalization(axis=-1, name="batch_normalization"))
         self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
         self.amp = AngularMaxPooling()
 
