@@ -14,11 +14,8 @@ class ShiftPointCloud(tf.keras.layers.Layer):
 class Covariance(tf.keras.layers.Layer):
     @tf.function(jit_compile=True)
     def call(self, inputs):
-        def compute_cov(x):
-            x = tfp.stats.covariance(x, sample_axis=1)
-            x_shape = tf.shape(x)
-            return tf.reshape(x, [x_shape[0], x_shape[1] * x_shape[2]])
-        return tf.map_fn(compute_cov, inputs)
+        input_shape = tf.shape(inputs)
+        return tf.reshape(tfp.stats.covariance(inputs, sample_axis=1), (input_shape[0], input_shape[-1] ** 2))
 
 
 class ModelNetClf(tf.keras.Model):
@@ -75,7 +72,7 @@ class ModelNetClf(tf.keras.Model):
         ######################
         # CLASSIFICATION PART
         ######################
-        self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
+        self.pool = Covariance()
 
         # Define classification layer
         self.clf = tf.keras.layers.Dense(units=10 if modelnet10 else 40)
@@ -85,15 +82,14 @@ class ModelNetClf(tf.keras.Model):
         bc = self.bc_layer(inputs)
 
         # Shift point-cloud centroid into 0
-        # signal = self.center(inputs)
-        signal = inputs
+        signal = self.center(inputs)
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
             signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
 
-        # Global max-pool
+        # Covariance-pool
         signal = self.pool(signal)
 
         # Return classification logits
