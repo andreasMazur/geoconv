@@ -62,7 +62,7 @@ class ModelNetClf(tf.keras.Model):
         for dim in isc_layer_dims:
             self.isc_layers.append(
                 ResNetBlock(
-                    amt_templates=isc_layer_dims[dim],
+                    amt_templates=dim,
                     template_radius=template_radius,
                     rotation_delta=rotation_delta,
                     conv_type=variant,
