@@ -7,7 +7,7 @@ import tensorflow as tf
 import numpy as np
 
 
-@tf.function
+@tf.function(jit_compile=True)
 def compute_bc(template, projections):
     """Computes barycentric coordinates for a given template in given projections.
 
