@@ -59,7 +59,7 @@ class ModelNetClf(tf.keras.Model):
 
         # Define vertex embedding architecture
         self.isc_layers, self.bn_layers = [], []
-        for dim in isc_layer_dims:
+        for idx, dim in enumerate(isc_layer_dims):
             self.isc_layers.append(
                 ResNetBlock(
                     amt_templates=dim,
@@ -67,7 +67,7 @@ class ModelNetClf(tf.keras.Model):
                     rotation_delta=rotation_delta,
                     conv_type=variant,
                     activation="elu",
-                    input_dim=-1,
+                    input_dim=-1 if idx == 0 else isc_layer_dims[idx - 1],
                     initializer=initializer
                 )
             )
