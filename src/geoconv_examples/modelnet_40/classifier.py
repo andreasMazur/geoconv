@@ -72,7 +72,6 @@ class ModelNetClf(tf.keras.Model):
                 )
             )
         self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
-        self.amp = AngularMaxPooling()
 
         ######################
         # CLASSIFICATION PART
