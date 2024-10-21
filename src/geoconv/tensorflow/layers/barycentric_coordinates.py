@@ -127,7 +127,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
     template_scale: float
         A scaling factor that is multiple onto the neighborhood radius in order to compute the template radius.
     """
-    def __init__(self, n_radial, n_angular, n_neighbors, template_scale=0.75, neighbor_limit=20):
+    def __init__(self, n_radial, n_angular, n_neighbors, template_scale=0.75, neighbor_limit=32):
         super().__init__()
         self.n_neighbors = n_neighbors
         self.neighbor_limit = neighbor_limit
