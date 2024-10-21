@@ -30,8 +30,8 @@ def compute_distance_matrix(vertices):
 def group_neighborhoods(vertices, radius, neighbor_limit=32, distance_matrix=None):
     """Finds and groups vertex-neighborhoods for a given radius.
 
-    Collect neighbors in a given radius. From all vertices select the closest 'n_neighbors' many.
-    If any of the selected exceeds the maximum radius, its coordinates are set to the maximum distance from
+    Collect neighbors in a given radius. From all vertices select the closest 'neighbor_limit' many.
+    If any of the selected exceeds the maximum 'radius', its coordinates are set to the maximum distance from
     the origin (keeping those neighbors allows for batching).
 
     Parameters
