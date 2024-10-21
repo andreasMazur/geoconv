@@ -1,6 +1,5 @@
+from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
-from geoconv.tensorflow.layers.conv_dirac import ConvDirac
-from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
 from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
 
 import tensorflow as tf
@@ -33,7 +32,8 @@ class ModelNetClf(tf.keras.Model):
                  modelnet10=False,
                  variant=None,
                  rotation_delta=1,
-                 dropout_rate=0.3):
+                 dropout_rate=0.3,
+                 initializer="glorot_uniform"):
         super().__init__()
 
         #############
@@ -56,19 +56,19 @@ class ModelNetClf(tf.keras.Model):
         #################
         # Determine which layer type shall be used
         assert variant in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
-        self.layer_type = ConvGeodesic if variant == "geodesic" else ConvDirac
 
         # Define vertex embedding architecture
         self.isc_layers, self.bn_layers = [], []
         for dim in isc_layer_dims:
             self.isc_layers.append(
-                self.layer_type(
-                    amt_templates=dim,
+                ResNetBlock(
+                    amt_templates=isc_layer_dims[dim],
                     template_radius=template_radius,
-                    activation="elu",
-                    name="ISC",
                     rotation_delta=rotation_delta,
-                    initializer="glorot_uniform"
+                    conv_type=variant,
+                    activation="elu",
+                    input_dim=-1,
+                    initializer=initializer
                 )
             )
             self.bn_layers.append(tf.keras.layers.BatchNormalization(axis=-1, name="batch_normalization"))
@@ -94,8 +94,6 @@ class ModelNetClf(tf.keras.Model):
         for idx in range(len(self.isc_layers)):
             signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
-            signal = self.amp(signal)
-            signal = self.bn_layers[idx](signal)
 
         # Global max-pool
         signal = self.pool(signal)
