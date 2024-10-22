@@ -107,7 +107,7 @@ def disambiguate_axes(neighborhood_vertices, eigen_vectors):
 
 
 @tf.function(jit_compile=True)
-def shot_lrf(neighborhoods, radius):
+def shot_lrf(neighborhoods, radii):
     """Computes SHOT local reference frames.
 
     SHOT computation was introduced in:
@@ -119,7 +119,7 @@ def shot_lrf(neighborhoods, radius):
     ----------
     neighborhoods: tf.Tensor
         The vertices of the neighborhoods shifted around the neighborhood origin.
-    radius: float
+    radii: tf.Tensor
         A 1D-tensor containing the radii of each neighborhood. I.e., its first dimension needs to be of the same size
         as the first dimension of the 'neighborhoods'-tensor.
 
@@ -133,13 +133,11 @@ def shot_lrf(neighborhoods, radius):
     ###########################
     # Calculate neighbor weights
     # 'distance_weights': (vertices, n_neighbors)
-    distance_weights = tf.expand_dims(radius, axis=-1) - tf.linalg.norm(neighborhoods, axis=-1)
+    distance_weights = tf.expand_dims(radii, axis=-1) - tf.linalg.norm(neighborhoods, axis=-1)
 
     # Compute weighted covariance matrices
     # 'weighted_cov': (vertices, 3, 3)
-    weighted_cov = tf.reshape(1 / tf.reduce_sum(distance_weights, axis=-1), (-1, 1, 1)) * tf.einsum(
-        "nv,nvi,nvj->nij", distance_weights, neighborhoods, neighborhoods
-    )
+    weighted_cov = tf.einsum("nv,nvi,nvj->nij", distance_weights, neighborhoods, neighborhoods)
 
     ########################
     # 2.) Disambiguate axes
@@ -182,3 +180,22 @@ def logarithmic_map(lrfs, neighborhoods):
 
     # Preserve Euclidean metric between original vertices (geodesic distance approximation)
     return tf.expand_dims(tf.linalg.norm(neighborhoods, axis=-1), axis=-1) * tf.math.l2_normalize(projections, axis=-1)
+
+
+@tf.function(jit_compile=True)
+def knn_shot_lrf(k_neighbors, vertices):
+    # 1.) Compute radius for local parameterization spaces. Keep it equal for all for comparability.
+    # 'distance_matrix': (vertices, vertices),  'radius': ()
+    distance_matrix = compute_distance_matrix(vertices)
+
+    # 2.) Get vertex-neighborhoods
+    # 'neighborhoods': (vertices, n_neighbors, 3)
+    neighborhoods, neighborhood_indices = tf.math.top_k(-distance_matrix, k_neighbors)
+    neighborhoods = tf.gather(vertices, neighborhood_indices, axis=0) - tf.expand_dims(vertices, axis=1)
+
+    # 3.) Get local reference frames
+    # (vertices, 3, 3)
+    radii = tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, k_neighbors], batch_dims=1)
+    lrfs = shot_lrf(neighborhoods, radii)
+
+    return lrfs, neighborhoods, neighborhood_indices

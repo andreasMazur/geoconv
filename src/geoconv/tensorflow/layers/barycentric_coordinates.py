@@ -1,7 +1,5 @@
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
-from geoconv.tensorflow.utils.compute_shot_lrf import (
-    group_neighborhoods, shot_lrf, logarithmic_map, compute_distance_matrix
-)
+from geoconv.tensorflow.utils.compute_shot_lrf import logarithmic_map, compute_distance_matrix, knn_shot_lrf
 
 import tensorflow as tf
 import numpy as np
@@ -123,14 +121,12 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
     n_angular: int
         The amount of angular coordinates of the template for which BC shall be computed.
     """
-    def __init__(self, n_radial, n_angular, neighbors_for_lrf=15, lrf_neighbor_limit=32):
+    def __init__(self, n_radial, n_angular, neighbors_for_lrf=15):
         super().__init__()
         self.n_radial = n_radial
         self.n_angular = n_angular
         self.template = None
-
         self.neighbors_for_lrf = neighbors_for_lrf
-        self.lrf_neighbor_limit = lrf_neighbor_limit
 
     def adapt(self, data=None, n_neighbors=None, template_scale=None, template_radius=None):
         """Sets the template radius to a given or the average neighborhood radius scaled by used defined coefficient.
@@ -211,37 +207,23 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         tf.Tensor:
             A 4D-tensor of shape (vertices, n_radial, n_angular, 3, 2) that describes barycentric coordinates.
         """
-        # 1.) Compute radius for local parameterization spaces. Keep it equal for all for comparability.
-        # 'distance_matrix': (vertices, vertices)
-        # 'radius': ()
-        distance_matrix = compute_distance_matrix(vertices)
-        radius = tf.reduce_mean(
-            tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, self.neighbors_for_lrf], batch_dims=1)
-        )
-
-        # 2.) Get vertex-neighborhoods
-        # 'neighborhoods': (vertices, n_neighbors, 3)
-        neighborhoods, neighborhoods_indices = group_neighborhoods(
-            vertices, radius, neighbor_limit=self.lrf_neighbor_limit, distance_matrix=distance_matrix
-        )
-
-        # 3.) Get local reference frames
+        # 1.) Get local reference frames
         # 'lrfs': (vertices, 3, 3)
-        lrfs = shot_lrf(neighborhoods, radius)
+        lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(self.neighbors_for_lrf, vertices)
 
-        # 4.) Project neighborhoods into their lrfs using the logarithmic map
+        # 2.) Project neighborhoods into their lrfs using the logarithmic map
         # 'projections': (vertices, n_neighbors, 2)
         projections = logarithmic_map(lrfs, neighborhoods)
 
-        # 5.) Compute barycentric coordinates
+        # 3.) Compute barycentric coordinates
         # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
         # 'closest_proj': (vertices, n_radial, n_angular, 3)
         interpolation_weights, closest_proj = compute_bc(self.template, projections)
 
-        # 6.) Get projection indices (convert neighborhood indices to shape vertex indices)
+        # 4.) Get projection indices (convert neighborhood indices to shape vertex indices)
         # 'projections_indices': (vertices, n_radial, n_angular, 3)
         projections_indices = tf.cast(tf.gather(neighborhoods_indices, closest_proj, batch_dims=1), tf.float32)
 
-        # 7.) Return barycentric coordinates tensor
+        # 5.) Return barycentric coordinates tensor
         # (vertices, n_radial, n_angular, 3, 2)
         return tf.stack([projections_indices, interpolation_weights], axis=-1)
