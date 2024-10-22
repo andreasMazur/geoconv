@@ -1,4 +1,5 @@
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
+from geoconv.tensorflow.layers.averaged_normals import AveragedNormals
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 
 import tensorflow as tf
@@ -44,6 +45,7 @@ class ModelNetClf(tf.keras.Model):
 
         # For centering point clouds
         self.center = ShiftPointCloud()
+        self.normals = AveragedNormals()
 
         #################
         # EMBEDDING PART
@@ -80,11 +82,14 @@ class ModelNetClf(tf.keras.Model):
         self.clf = tf.keras.layers.Dense(units=10 if modelnet10 else 40)
 
     def call(self, inputs, **kwargs):
-        # Compute barycentric coordinates from 3D coordinates
-        bc = self.bc_layer(inputs)
-
         # Shift point-cloud centroid into 0
         signal = self.center(inputs)
+
+        # Compute barycentric coordinates from 3D coordinates
+        bc = self.bc_layer(signal)
+
+        # Compute normals
+        signal = self.normals(signal)
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
