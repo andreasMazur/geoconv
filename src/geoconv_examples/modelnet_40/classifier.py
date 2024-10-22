@@ -67,7 +67,6 @@ class ModelNetClf(tf.keras.Model):
                     initializer=initializer
                 )
             )
-        self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
 
         ######################
         # CLASSIFICATION PART
@@ -79,25 +78,27 @@ class ModelNetClf(tf.keras.Model):
             self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
 
         # Define classification layer
+        self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
         self.clf = tf.keras.layers.Dense(units=10 if modelnet10 else 40)
 
     def call(self, inputs, **kwargs):
         # Shift point-cloud centroid into 0
-        signal = self.center(inputs)
+        coordinates = self.center(inputs)
 
         # Compute barycentric coordinates from 3D coordinates
-        bc = self.bc_layer(signal)
+        bc = self.bc_layer(coordinates)
 
         # Compute normals
-        signal = self.normals(signal)
+        signal = self.normals(coordinates)
+        signal = tf.concat([coordinates, signal], axis=-1)
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
-            signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
 
         # Covariance-pool
         signal = self.pool(signal)
 
         # Return classification logits
+        signal = self.dropout(signal)
         return self.clf(signal)
