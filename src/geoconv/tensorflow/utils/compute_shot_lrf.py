@@ -128,9 +128,7 @@ def shot_lrf(neighborhoods, radii):
     tf.Tensor:
         Local reference frames for all given neighborhoods.
     """
-    ###########################
     # 1.) Compute Eigenvectors
-    ###########################
     # Calculate neighbor weights
     # 'distance_weights': (vertices, n_neighbors)
     distance_weights = tf.expand_dims(radii, axis=-1) - tf.linalg.norm(neighborhoods, axis=-1)
@@ -139,9 +137,7 @@ def shot_lrf(neighborhoods, radii):
     # 'weighted_cov': (vertices, 3, 3)
     weighted_cov = tf.einsum("nv,nvi,nvj->nij", distance_weights, neighborhoods, neighborhoods)
 
-    ########################
     # 2.) Disambiguate axes
-    ########################
     # First eigen vector corresponds to smallest eigen value (i.e. plane normal)
     _, eigen_vectors = tf.linalg.eigh(weighted_cov)
     x_axes = disambiguate_axes(neighborhoods, eigen_vectors[:, 2, :])
