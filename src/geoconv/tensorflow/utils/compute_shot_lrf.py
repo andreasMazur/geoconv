@@ -185,6 +185,7 @@ def knn_shot_lrf(k_neighbors, vertices):
     # 1.) Compute radius for local parameterization spaces. Keep it equal for all for comparability.
     # 'distance_matrix': (vertices, vertices),  'radius': ()
     distance_matrix = compute_distance_matrix(vertices)
+    radii = tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, k_neighbors], batch_dims=1)
 
     # 2.) Get vertex-neighborhoods
     # 'neighborhoods': (vertices, n_neighbors, 3)
@@ -193,7 +194,6 @@ def knn_shot_lrf(k_neighbors, vertices):
 
     # 3.) Get local reference frames
     # (vertices, 3, 3)
-    radii = tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, k_neighbors], batch_dims=1)
     lrfs = shot_lrf(neighborhoods, radii)
 
     return lrfs, neighborhoods, neighborhood_indices
