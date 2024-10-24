@@ -140,11 +140,13 @@ def shot_lrf(neighborhoods, radii):
     # 2.) Disambiguate axes
     # First eigen vector corresponds to smallest eigen value (i.e. plane normal)
     _, eigen_vectors = tf.linalg.eigh(weighted_cov)
-    x_axes = disambiguate_axes(neighborhoods, eigen_vectors[:, 2, :])
-    z_axes = disambiguate_axes(neighborhoods, eigen_vectors[:, 0, :])
+
+    # Columns contain eigenvectors
+    x_axes = disambiguate_axes(neighborhoods, eigen_vectors[:, :, 2])
+    z_axes = disambiguate_axes(neighborhoods, eigen_vectors[:, :, 0])
     y_axes = tf.linalg.cross(z_axes, x_axes)
 
-    return tf.stack([z_axes, y_axes, x_axes], axis=1)
+    return tf.stack([z_axes, y_axes, x_axes], axis=-1)
 
 
 @tf.function(jit_compile=True)
