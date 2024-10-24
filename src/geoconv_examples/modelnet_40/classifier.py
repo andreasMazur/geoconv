@@ -31,7 +31,8 @@ class ModelNetClf(tf.keras.Model):
                  rotation_delta=1,
                  dropout_rate=0.3,
                  initializer="glorot_uniform",
-                 pooling="cov"):
+                 pooling="cov",
+                 return_vertex_embeddings=False):
         super().__init__()
 
         #############
@@ -81,6 +82,8 @@ class ModelNetClf(tf.keras.Model):
         self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
         self.clf = tf.keras.layers.Dense(units=10 if modelnet10 else 40)
 
+        self.return_vertex_embeddings = return_vertex_embeddings
+
     def call(self, inputs, **kwargs):
         # Shift point-cloud centroid into 0
         coordinates = self.center(inputs)
@@ -95,6 +98,9 @@ class ModelNetClf(tf.keras.Model):
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
             signal = self.isc_layers[idx]([signal, bc])
+
+        if self.return_vertex_embeddings:
+            return signal
 
         # Covariance-pool
         signal = self.pool(signal)
