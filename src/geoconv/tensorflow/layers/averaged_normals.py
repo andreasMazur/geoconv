@@ -3,7 +3,7 @@ from geoconv.tensorflow.utils.compute_shot_lrf import knn_shot_lrf
 import tensorflow as tf
 
 
-class AveragedNormals(tf.keras.layers.Layer):
+class PointCloudNormals(tf.keras.layers.Layer):
     def __init__(self, neighbors_for_lrf=32):
         super().__init__()
         self.neighbors_for_lrf = neighbors_for_lrf

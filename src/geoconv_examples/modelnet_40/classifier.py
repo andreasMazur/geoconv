@@ -1,5 +1,5 @@
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
-from geoconv.tensorflow.layers.averaged_normals import AveragedNormals
+from geoconv.tensorflow.layers.averaged_normals import PointCloudNormals
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 
 import tensorflow as tf
@@ -45,7 +45,7 @@ class ModelNetClf(tf.keras.Model):
 
         # For centering point clouds
         self.center = ShiftPointCloud()
-        self.normals = AveragedNormals()
+        self.normals = PointCloudNormals()
 
         #################
         # EMBEDDING PART
