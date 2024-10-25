@@ -122,7 +122,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
     n_angular: int
         The amount of angular coordinates of the template for which BC shall be computed.
     """
-    def __init__(self, n_radial, n_angular, neighbors_for_lrf=15):
+    def __init__(self, n_radial, n_angular, neighbors_for_lrf=16):
         super().__init__()
         self.n_radial = n_radial
         self.n_angular = n_angular
