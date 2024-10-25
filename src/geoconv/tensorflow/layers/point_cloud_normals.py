@@ -4,7 +4,7 @@ import tensorflow as tf
 
 
 class PointCloudNormals(tf.keras.layers.Layer):
-    def __init__(self, neighbors_for_lrf=32):
+    def __init__(self, neighbors_for_lrf=256):
         super().__init__()
         self.neighbors_for_lrf = neighbors_for_lrf
 
