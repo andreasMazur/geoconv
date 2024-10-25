@@ -3,6 +3,7 @@ from geoconv.tensorflow.utils.compute_shot_lrf import logarithmic_map, compute_d
 
 import tensorflow as tf
 import numpy as np
+import sys
 
 
 @tf.function(jit_compile=True)
@@ -148,7 +149,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             The final template radius.
         """
         assert data is not None or template_radius is not None, "Must provide either 'data' or 'template_radius'."
-        if None not in [data, n_neighbors, template_scale]:
+        if None in [data, n_neighbors, template_scale]:
             assert data is not None, "If 'template_radius' is not given, you must provide 'data'."
             assert n_neighbors is not None, "If 'template_radius' is not given, you must provide 'n_neighbors'."
             assert template_scale is not None, "If 'template_radius' is not given, you must provide 'template_scale'."
@@ -157,6 +158,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         if template_radius is None:
             avg_radius, vertices_count = 0, 0
             for idx, (vertices, _) in enumerate(data):
+                sys.stdout.write(f"\rCurrently at point-cloud {idx}.")
                 distance_matrix = compute_distance_matrix(tf.cast(vertices[0], tf.float32))
                 radii = tf.gather(
                     distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, n_neighbors], batch_dims=1
