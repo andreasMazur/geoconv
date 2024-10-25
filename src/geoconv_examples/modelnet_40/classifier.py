@@ -21,11 +21,11 @@ class Covariance(tf.keras.layers.Layer):
 
 class ModelNetClf(tf.keras.Model):
     def __init__(self,
-                 neighbors_for_lrf,
                  n_radial,
                  n_angular,
                  template_radius,
                  isc_layer_dims,
+                 neighbors_for_lrf=256,
                  modelnet10=False,
                  variant=None,
                  rotation_delta=1,
@@ -40,13 +40,13 @@ class ModelNetClf(tf.keras.Model):
         #############
         # Init barycentric coordinates layer
         self.bc_layer = BarycentricCoordinates(
-            n_radial=n_radial, n_angular=n_angular, neighbors_for_lrf=256
+            n_radial=n_radial, n_angular=n_angular, neighbors_for_lrf=neighbors_for_lrf
         )
         self.bc_layer.adapt(template_radius=template_radius)
 
         # For centering point clouds
         self.center = ShiftPointCloud()
-        self.normals = PointCloudNormals(neighbors_for_lrf=256)
+        self.normals = PointCloudNormals(neighbors_for_lrf=neighbors_for_lrf)
 
         #################
         # EMBEDDING PART
