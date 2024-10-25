@@ -148,8 +148,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         float:
             The final template radius.
         """
-        assert data is not None or template_radius is not None, "Must provide either 'data' or 'template_radius'."
-        if None in [data, n_neighbors, template_scale]:
+        if template_radius is None:
             assert data is not None, "If 'template_radius' is not given, you must provide 'data'."
             assert n_neighbors is not None, "If 'template_radius' is not given, you must provide 'n_neighbors'."
             assert template_scale is not None, "If 'template_radius' is not given, you must provide 'template_scale'."
