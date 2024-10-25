@@ -50,7 +50,7 @@ def model_configuration(neighbors_for_lrf,
 def training(dataset_path,
              logging_dir,
              template_configurations=None,
-             n_neighbors=10,
+             neighbors_for_lrf=256,
              isc_layer_dims=None,
              learning_rate=0.0025153,
              template_radius=None,
@@ -86,7 +86,7 @@ def training(dataset_path,
     for (n_radial, n_angular, template_scale) in template_configurations:
         # Get classification model
         imcnn = model_configuration(
-            n_neighbors,
+            neighbors_for_lrf,
             n_radial,
             n_angular,
             template_radius * template_scale,
