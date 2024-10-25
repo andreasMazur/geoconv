@@ -15,4 +15,4 @@ class PointCloudNormals(tf.keras.layers.Layer):
     @tf.function(jit_compile=True)
     def call_helper(self, vertices):
         lrfs, _, neighborhoods_indices = knn_shot_lrf(self.neighbors_for_lrf, vertices)
-        return lrfs[:, :, 0]
+        return tf.reshape(lrfs, (tf.shape(lrfs)[0], 9))  # lrfs[:, :, 0]
