@@ -1,5 +1,5 @@
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
-from geoconv.tensorflow.layers.averaged_normals import PointCloudNormals
+from geoconv.tensorflow.layers.point_cloud_normals import PointCloudNormals
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 
 import tensorflow as tf
