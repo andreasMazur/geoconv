@@ -25,7 +25,7 @@ class ModelNetClf(tf.keras.Model):
                  n_angular,
                  template_radius,
                  isc_layer_dims,
-                 neighbors_for_lrf=256,
+                 neighbors_for_lrf=16,
                  modelnet10=False,
                  variant=None,
                  rotation_delta=1,
