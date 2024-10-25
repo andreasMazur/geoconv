@@ -40,7 +40,7 @@ class ModelNetClf(tf.keras.Model):
         #############
         # Init barycentric coordinates layer
         self.bc_layer = BarycentricCoordinates(
-            n_radial=n_radial, n_angular=n_angular, neighbors_for_lrf=neighbors_for_lrf
+            n_radial=n_radial, n_angular=n_angular, neighbors_for_lrf=256
         )
         self.bc_layer.adapt(template_radius=template_radius)
 
