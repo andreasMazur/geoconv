@@ -108,6 +108,7 @@ class ModelNetClf(tf.keras.Model):
 
         # Compute normals
         signal = self.normals(coordinates)
+        signal = tf.concat([coordinates, signal], axis=-1)
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
