@@ -198,12 +198,10 @@ def zip_file_generator(zipfile_path,
 def preprocessed_shape_generator(zipfile_path,
                                  filter_list,
                                  sorting_key=None,
+                                 generator_info="",
                                  shuffle_seed=None,
-                                 split=None,
-                                 batch=None,
-                                 filter_gpc_systems=True,
-                                 zero_pad=None,
-                                 gen_info_file=""):
+                                 batch_size=None,
+                                 directive=None):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
     This function sorts alphanumerically after the shape-directory name.
@@ -220,30 +218,25 @@ def preprocessed_shape_generator(zipfile_path,
         name.
     shuffle_seed: int
         Whether to randomly shuffle the data with the given seed. If no seed is given, no shuffling will be performed.
-    split: list
-        List of integers which are yielded from the list of all shapes.
-    batch: int
+    batch_size: int
         Adds zero interpolation coefficients to arrays such that every array in the current batch has the same
          dimensionality. This allows for batching multiple shapes.
-    filter_gpc_systems: bool
-        Whether to exclude gpc-systems from contained zip-files. Reduces time-consumption.
-    zero_pad: int
-        A fixed number to which the shapes are padded to.
-    gen_info_file: str
+    generator_info: str
         A file where the generator can store data that was computed during generator preparation. If file already
         exists, the generator will load the information stored there instead of conducting the preparation process
         again.
+    directive: function
+        A function that receives the file-dictionary, does something with it, and returns a modified file-dictionary.
 
     Returns
     -------
     list:
         The loaded files and their corresponding filenames.
     """
-    # Load the zip-file
-    print(f"\nLoading shape data from zip-file.. ({zipfile_path})")
+    # Load raw zip
     zip_file = np.load(zipfile_path)
 
-    # Get shape directories
+    # Load shapes (shapes have to be in a folder with a 'preprocess_properties.json'-file)
     preprocessed_shapes = ["/".join(fn.split("/")[:-1]) for fn in zip_file.files if "preprocess_properties.json" in fn]
 
     # Sort shape directories
@@ -252,91 +245,51 @@ def preprocessed_shape_generator(zipfile_path,
             return file_name.split("/")[-1]
     preprocessed_shapes.sort(key=sorting_key)
 
-    # Filter for given split (list of indices)
-    if split is not None:
-        preprocessed_shapes = np.array(preprocessed_shapes)
-        preprocessed_shapes = preprocessed_shapes[split]
-
-    if filter_gpc_systems:
-        # Read *.zip-file content without GPC-system directories
-        zip_file_content = [x for x in zip_file.files if "gpc_systems" not in x]
+    # Remember zip-file content
+    if os.path.exists(generator_info):
+        # Check whether generator info is available
+        with open(generator_info, "r") as gen_info_fd:
+            sfp_dict = json.load(gen_info_fd)
+        shape_file_paths = [psf for psf in sfp_dict.values()]
     else:
-        # Read entire *.zip-file content
-        zip_file_content = zip_file.files
+        def check_path(path):
+            for f in filter_list:
+                if re.search(f, path) is not None:
+                    return True
+            return False
 
-    if os.path.exists(gen_info_file):
-        # Load preparation results
-        print(f"Reloading generator information from: {gen_info_file}")
-        with open(gen_info_file, "r") as gen_info_fd:
-            psf_dict = json.load(gen_info_fd)
-        per_shape_files = [psf for psf in psf_dict.values()]
-    else:
-        per_shape_files = []
-        for preprocessed_shape_dir in tqdm(preprocessed_shapes, postfix="Preparing generator.."):
-            # Iterate over shape's data and collect with filters
-            preprocessed_shape_dir = [x for x in zip_file_content if preprocessed_shape_dir in x]
-
-            # Seek for file-names that contain a given filter string as a sub-string
-            shape_files = []
-            for filter_str in filter_list:
-                for file_name in preprocessed_shape_dir:
-                    # Check whether regular expression can be found. If so, put file into shape files list.
-                    if re.search(filter_str, file_name) is not None:
-                        shape_files.append(file_name)
-
-            # Add shape files to list of all shape files
-            if len(shape_files) > 0:
-                per_shape_files.append(shape_files)
-            else:
-                continue
+        # Iterate over shape's data and collect with filters
+        shape_file_paths = []
+        for shape_dir_content in tqdm(preprocessed_shapes, postfix="Preparing generator.."):
+            shape_file_paths.append([x for x in zip_file.files if shape_dir_content in x and check_path(x)])
+        shape_file_paths = list(filter(lambda x: x != [], shape_file_paths))
 
         # Shuffle shapes
         if shuffle_seed is not None:
             random.seed(shuffle_seed)
-            random.shuffle(per_shape_files)
+            random.shuffle(shape_file_paths)
+
+        # Apply user-defined directive on file-dictionary
+        sfp_dict = {}
+        for sfp in shape_file_paths:
+            sfp_dict["/".join(sfp[0].split("/")[:-1])] = sfp
+        if directive is not None:
+            sfp_dict = directive(sfp_dict)
+            shape_file_paths = [psf for psf in sfp_dict.values()]
 
         # Store generator's preparation results
-        if len(gen_info_file) > 0:
-            psf_dict = {}
-            for psf in per_shape_files:
-                psf_dict["/".join(psf[0].split("/")[:-1])] = psf
-            with open(gen_info_file, "w") as gen_info_fd:
-                json.dump(psf_dict, gen_info_fd, indent=4)
+        if len(generator_info) > 0:
+            with open(generator_info, "w") as gen_info_fd:
+                json.dump(sfp_dict, gen_info_fd, indent=4)
 
     # Batching
-    if batch is not None:
-        n_batches = math.ceil(len(per_shape_files) / batch)
-        per_shape_files = [per_shape_files[i * batch:(i * batch) + batch] for i in range(n_batches)]
+    if batch_size is not None:
+        n_batches = math.ceil(len(shape_file_paths) / batch_size)
+        shape_file_paths = [shape_file_paths[i * batch_size:(i * batch_size) + batch_size] for i in range(n_batches)]
 
-    # Yield prepared data
-    for batched_shape_files in per_shape_files:
-        if batch is not None:
-            # Prepare current batch by zero-padding seen arrays to similar size.
-            # Thereby, amount of zero-padding depends on largest array seen within the batch
-            content_list = [[zip_file[file] for file in shape_files] for shape_files in batched_shape_files]
-            if zero_pad is None:
-                most_vertices = np.max([
-                    arr.shape[0] for arr in [content for shape_content in content_list for content in shape_content]
-                    if isinstance(arr, np.ndarray)
-                ])
-            else:
-                most_vertices = zero_pad
-
-            # Yield content from current batch
-            for shape_content, shape_paths in zip(content_list, batched_shape_files):
-                # Check content on whether it has to be zero padded (assumes first dimension represent vertices)
-                yield_list = []
-                for content, content_path in zip(shape_content, shape_paths):
-                    if isinstance(content, np.ndarray):
-                        while content.shape[0] < most_vertices:
-                            content = np.concatenate(
-                                [content, np.zeros_like(content)[:most_vertices - content.shape[0]]]
-                            )
-                    yield_list.append((content, content_path))
-
-                yield yield_list
-        else:
-            yield [(zip_file[shape_file], shape_file) for shape_file in batched_shape_files]
+    # Return batch of files and their corresponding file names
+    for batch in shape_file_paths:
+        yield [(zip_file[shape_file], shape_file) for directory in batch for shape_file in directory]
 
 
 def preprocessed_properties_generator(zipfile_path, return_filename=False, sorting_key=None):
@@ -457,11 +410,8 @@ def inspect_gpc_systems(zipfile_path, shuffle=True, show_all_gpc_systems=False):
     psg = preprocessed_shape_generator(
         zipfile_path=zipfile_path,
         filter_list=["stl", "gpc_systems/.+"],
-        sorting_key=None,
         shuffle_seed=42 if shuffle else None,
-        split=None,
-        batch=False,
-        filter_gpc_systems=False
+        batch_size=False
     )
     for content_list in psg:
         # Load GPC-systems and properties from bytes
