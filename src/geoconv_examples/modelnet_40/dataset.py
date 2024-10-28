@@ -116,7 +116,7 @@ def modelnet_generator(dataset_path,
             positive_class = np.array(MODELNET10_CLASSES[triplet[1][1].split("/")[1]]).reshape(1)
         else:
             positive_class = np.array(MODELNET_CLASSES[triplet[1][1].split("/")[1]]).reshape(1)
-        yield anchor, positive, negative, positive_class
+        yield tf.stack([anchor, positive, negative], axis=-2), positive_class
 
 
 def load_preprocessed_modelnet(dataset_path,
@@ -128,9 +128,7 @@ def load_preprocessed_modelnet(dataset_path,
         modelnet_generator,
         args=(dataset_path, set_type, modelnet10, gen_info_file),
         output_signature=(
-            tf.TensorSpec(shape=(None, 3), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, 3), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, 3), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, 3, 3), dtype=tf.float32),
             tf.TensorSpec(shape=(None,), dtype=tf.float32)
         )
     ).batch(batch_size).prefetch(tf.data.AUTOTUNE)

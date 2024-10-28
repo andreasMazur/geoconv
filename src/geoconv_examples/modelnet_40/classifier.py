@@ -123,7 +123,8 @@ class ModelNetClf(tf.keras.Model):
         return self.clf(clf_signal), signal
 
     def train_step(self, data):
-        anchor, positive, negative, labels = data
+        point_clouds, labels = data
+        anchor, positive, negative = point_clouds[:, :, 0, :], point_clouds[:, :, 1, :], point_clouds[:, :, 2, :]
 
         with tf.GradientTape() as tape:
             # Get probability distributions:
@@ -140,11 +141,11 @@ class ModelNetClf(tf.keras.Model):
                 self.mse(embedding_a, embedding_p) - self.mse(embedding_a, embedding_n) + self.alpha, tf.constant(0.)
             )
 
-            loss = scc_loss + triplet_loss
+            total_loss = scc_loss + triplet_loss
 
         # Compute gradients
         trainable_vars = self.trainable_variables
-        gradients = tape.gradient(loss, trainable_vars)
+        gradients = tape.gradient(total_loss, trainable_vars)
 
         # Update weights
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
@@ -152,17 +153,21 @@ class ModelNetClf(tf.keras.Model):
         # Compute metrics
         self.triplet_loss_tracker.update_state(triplet_loss)
         self.scc_loss_tracker.update_state(scc_loss)
+        self.total_loss.update_state(total_loss)
+
         logits_p = tf.nn.softmax(logits_p, axis=-1)
         self.acc_metric.update_state(labels, tf.expand_dims(tf.math.argmax(logits_p, axis=-1), axis=-1))
 
         return {
             "triplet_loss": self.triplet_loss_tracker.result(),
             "scc_loss": self.scc_loss_tracker.result(),
+            "loss": self.total_loss.result(),
             "accuracy": self.acc_metric.result()
         }
 
     def test_step(self, data):
-        anchor, positive, negative, labels = data
+        point_clouds, labels = data
+        anchor, positive, negative = point_clouds[:, :, 0, :], point_clouds[:, :, 1, :], point_clouds[:, :, 2, :]
 
         _, embedding_a = self(anchor, training=False)
         logits_p, embedding_p = self(positive, training=False)
