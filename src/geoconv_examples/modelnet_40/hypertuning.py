@@ -20,11 +20,8 @@ def hyper_tuning(dataset_path,
     n_radial, n_angular, template_radius = template_configuration
 
     def build_hypermodel(hp):
-        # Get input
-        signal_input = tf.keras.layers.Input(shape=(2000, 3), name="3D coordinates")
-
         # Configure classifier
-        clf = ModelNetClf(
+        imcnn = ModelNetClf(
             neighbors_for_lrf=neighbors_for_lrf,
             n_radial=n_radial,
             n_angular=n_angular,
@@ -37,11 +34,6 @@ def hyper_tuning(dataset_path,
             alpha=hp.Float("triplet_alpha", min_value=0.01, max_value=2.0)
         )
 
-        # Get signal embedding
-        signal_output = clf(signal_input)
-
-        # Compile model
-        imcnn = tf.keras.Model(inputs=signal_input, outputs=signal_output)
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         opt = tf.keras.optimizers.AdamW(
             learning_rate=hp.Float("learning_rate", min_value=0.00001, max_value=0.01),
