@@ -32,7 +32,7 @@ class ModelNetClf(tf.keras.Model):
                  dropout_rate=0.3,
                  initializer="glorot_uniform",
                  pooling="cov",
-                 return_vertex_embeddings=False):
+                 alpha=0.1):
         super().__init__()
 
         #############
@@ -80,9 +80,24 @@ class ModelNetClf(tf.keras.Model):
 
         # Define classification layer
         self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
-        self.clf = tf.keras.layers.Dense(units=10 if modelnet10 else 40)
+        self.clf = tf.keras.models.Sequential([
+            tf.keras.layers.Dense(32, activation="elu"),
+            tf.keras.layers.Dense(16, activation="elu"),
+            tf.keras.layers.Dense(units=10 if modelnet10 else 40),
+        ])
 
-        self.return_vertex_embeddings = return_vertex_embeddings
+        # Losses
+        self.mse = tf.keras.losses.MeanSquaredError()
+        self.scc = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        self.alpha = alpha
+
+        # Loss tracker
+        self.triplet_loss_tracker = tf.keras.metrics.Mean(name="triplet_loss")
+        self.scc_loss_tracker = tf.keras.metrics.Mean(name="scc_loss")
+        self.total_loss = tf.keras.metrics.Mean(name="total_loss")
+
+        # Accuracy
+        self.acc_metric = tf.keras.metrics.Accuracy(name="accuracy")
 
     def call(self, inputs, **kwargs):
         # Shift point-cloud centroid into 0
@@ -98,12 +113,81 @@ class ModelNetClf(tf.keras.Model):
         for idx in range(len(self.isc_layers)):
             signal = self.isc_layers[idx]([signal, bc])
 
-        if self.return_vertex_embeddings:
-            return signal
-
-        # Covariance-pool
+        # Get normalized point-cloud embeddings
         signal = self.pool(signal)
+        signal = signal / tf.linalg.norm(signal, axis=-1, keepdims=True)
 
-        # Return classification logits
-        signal = self.dropout(signal)
-        return self.clf(signal)
+        # Return classification during inference and additionally the embedding during training
+        clf_signal = self.dropout(signal)
+        return self.clf(clf_signal), signal
+
+    def train_step(self, data):
+        anchor, positive, negative, labels = data
+
+        with tf.GradientTape() as tape:
+            # Get probability distributions:
+            # embedding_a, embedding_p, embedding_n: (batch, vertices, feature_dim)
+            _, embedding_a = self(anchor, training=True)
+            logits_p, embedding_p = self(positive, training=True)
+            _, embedding_n = self(negative, training=True)
+
+            # Compute classification loss
+            scc_loss = self.scc(labels, logits_p)
+
+            # Compute triplet loss
+            triplet_loss = tf.math.maximum(
+                self.mse(embedding_a, embedding_p) - self.mse(embedding_a, embedding_n) + self.alpha, tf.constant(0.)
+            )
+
+            loss = scc_loss + triplet_loss
+
+        # Compute gradients
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+
+        # Update weights
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+
+        # Compute metrics
+        self.triplet_loss_tracker.update_state(triplet_loss)
+        self.scc_loss_tracker.update_state(scc_loss)
+        logits_p = tf.nn.softmax(logits_p, axis=-1)
+        self.acc_metric.update_state(labels, tf.expand_dims(tf.math.argmax(logits_p, axis=-1), axis=-1))
+
+        return {
+            "triplet_loss": self.triplet_loss_tracker.result(),
+            "scc_loss": self.scc_loss_tracker.result(),
+            "accuracy": self.acc_metric.result()
+        }
+
+    def test_step(self, data):
+        anchor, positive, negative, labels = data
+
+        _, embedding_a = self(anchor, training=False)
+        logits_p, embedding_p = self(positive, training=False)
+        _, embedding_n = self(negative, training=False)
+
+        # Compute classification loss
+        scc_loss = self.scc(labels, logits_p)
+
+        # Compute triplet loss
+        triplet_loss = tf.math.maximum(
+            self.mse(embedding_a, embedding_p) - self.mse(embedding_a, embedding_n) + self.alpha, tf.constant(0.)
+        )
+
+        total_loss = scc_loss + triplet_loss
+
+        # Compute metrics
+        self.triplet_loss_tracker.update_state(triplet_loss)
+        self.scc_loss_tracker.update_state(scc_loss)
+        self.total_loss.update_state(total_loss)
+
+        logits_p = tf.nn.softmax(logits_p, axis=-1)
+        self.acc_metric.update_state(labels, tf.expand_dims(tf.math.argmax(logits_p, axis=-1), axis=-1))
+
+        return {
+            "triplet_loss": self.triplet_loss_tracker.result(),
+            "scc_loss": self.scc_loss_tracker.result(),
+            "loss": self.total_loss.result(),
+            "accuracy": self.acc_metric.result()
+        }

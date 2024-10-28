@@ -33,14 +33,13 @@ def model_configuration(neighbors_for_lrf,
     )
 
     # Define loss and optimizer
-    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     opt = tf.keras.optimizers.AdamW(
         learning_rate=learning_rate,
         weight_decay=weight_decay
     )
 
     # Compile the model
-    imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
+    imcnn.compile(optimizer=opt, run_eagerly=True)
     imcnn(tf.random.uniform(shape=[1, 2000, 3]))
     imcnn.summary()
 
