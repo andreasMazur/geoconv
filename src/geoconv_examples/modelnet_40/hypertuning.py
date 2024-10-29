@@ -13,7 +13,8 @@ def hyper_tuning(dataset_path,
                  modelnet10=True,
                  gen_info_file=None,
                  batch_size=1,
-                 rotation_delta=1):
+                 rotation_delta=1,
+                 pooling="cov"):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -31,7 +32,8 @@ def hyper_tuning(dataset_path,
             variant="dirac",
             rotation_delta=rotation_delta,
             dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.5),
-            alpha=hp.Float("triplet_alpha", min_value=0.01, max_value=2.0)
+            alpha=hp.Float("triplet_alpha", min_value=0.01, max_value=2.0),
+            pooling=pooling
         )
 
         opt = tf.keras.optimizers.AdamW(
