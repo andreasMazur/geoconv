@@ -186,9 +186,13 @@ class ModelNetClf(tf.keras.Model):
         scc_loss = self.scc(labels, logits_p)
 
         # Compute triplet loss
-        triplet_loss = tf.math.maximum(
-            self.mse(embedding_a, embedding_p) - self.mse(embedding_a, embedding_n) + self.alpha, tf.constant(0.)
-        )
+        anchor_pos_d = embedding_a - embedding_p
+        anchor_pos_d = tf.einsum("bf,bf->b", anchor_pos_d, anchor_pos_d)
+        anchor_neg_d = embedding_a - embedding_n
+        anchor_neg_d = tf.einsum("bf,bf->b", anchor_neg_d, anchor_neg_d)
+
+        # Don't mask for semi-hard triplets during testing
+        triplet_loss = tf.math.maximum(tf.reduce_sum(anchor_pos_d - anchor_neg_d + self.alpha), tf.constant(0.))
 
         total_loss = scc_loss + triplet_loss
 
