@@ -61,6 +61,8 @@ MODELNET10_CLASSES = {
     "toilet": 9
 }
 
+DEBUG_DATASET_SIZE = 100
+
 
 def triplet_directive(shape_dict):
     classes = list(set([f[0].split("/")[1] for f in list(shape_dict.values())]))
@@ -87,7 +89,8 @@ def triplet_directive(shape_dict):
 def modelnet_generator(dataset_path,
                        set_type,
                        modelnet10=False,
-                       gen_info_file=""):
+                       gen_info_file="",
+                       debug_data=False):
     if isinstance(set_type, bytes):
         set_type = set_type.decode("utf-8")
 
@@ -110,7 +113,9 @@ def modelnet_generator(dataset_path,
         directive=triplet_directive
     )
 
-    for triplet in psg:
+    for idx, triplet in enumerate(psg):
+        if idx == DEBUG_DATASET_SIZE and debug_data:
+            break
         anchor, positive, negative = triplet[0][0], triplet[1][0], triplet[2][0]
         if modelnet10:
             positive_class = np.array(MODELNET10_CLASSES[triplet[1][1].split("/")[1]]).reshape(1)
@@ -123,10 +128,11 @@ def load_preprocessed_modelnet(dataset_path,
                                set_type,
                                batch_size=4,
                                modelnet10=False,
-                               gen_info_file=""):
+                               gen_info_file="",
+                               debug_data=False):
     return tf.data.Dataset.from_generator(
         modelnet_generator,
-        args=(dataset_path, set_type, modelnet10, gen_info_file),
+        args=(dataset_path, set_type, modelnet10, gen_info_file, debug_data),
         output_signature=(
             tf.TensorSpec(shape=(None, 3, 3), dtype=tf.float32),
             tf.TensorSpec(shape=(None,), dtype=tf.float32)

@@ -66,7 +66,8 @@ def training(dataset_path,
              weight_decay=0.01358,
              pooling="cov",
              triplet_alpha=1.0,
-             epochs=200):
+             epochs=200,
+             debug=False):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -124,14 +125,16 @@ def training(dataset_path,
             set_type="train",
             modelnet10=modelnet10,
             gen_info_file=f"{logging_dir}/{gen_info_file}",
-            batch_size=batch_size
+            batch_size=batch_size,
+            debug_data=debug
         )
         test_data = load_preprocessed_modelnet(
             dataset_path,
             set_type="test",
             modelnet10=modelnet10,
             gen_info_file=f"{logging_dir}/test_{gen_info_file}",
-            batch_size=batch_size
+            batch_size=batch_size,
+            debug_data=debug
         )
         save = tf.keras.callbacks.ModelCheckpoint(
             filepath=f"{logging_dir}/saved_imcnn_{exp_number}",
