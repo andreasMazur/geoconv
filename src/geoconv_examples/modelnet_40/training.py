@@ -65,7 +65,8 @@ def training(dataset_path,
              dropout_rate=0.23747,
              weight_decay=0.01358,
              pooling="cov",
-             triplet_alpha=1.0):
+             triplet_alpha=1.0,
+             epochs=200):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -140,4 +141,4 @@ def training(dataset_path,
         )
 
         # Train model
-        imcnn.fit(x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=200)
+        imcnn.fit(x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=epochs)
