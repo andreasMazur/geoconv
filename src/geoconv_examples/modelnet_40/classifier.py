@@ -6,14 +6,12 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 
-class ResetMetricsAndLosses(tf.keras.callbacks.Callback):
+class ResetMetrics(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None, **kwargs):
         self.model.triplet_loss_tracker.reset_state()
         self.model.scc_loss_tracker.reset_state()
         self.model.total_loss.reset_state()
         self.model.acc_metric.reset_state()
-        for _, metric in self.model.gradient_metrics.items():
-            metric.reset_state()
 
 
 class ShiftPointCloud(tf.keras.layers.Layer):

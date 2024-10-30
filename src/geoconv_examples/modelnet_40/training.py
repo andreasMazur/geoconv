@@ -1,4 +1,4 @@
-from geoconv_examples.modelnet_40.classifier import ModelNetClf, ResetMetricsAndLosses
+from geoconv_examples.modelnet_40.classifier import ModelNetClf, ResetMetrics
 from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 
 import os
@@ -118,7 +118,7 @@ def training(dataset_path,
             update_freq="epoch",
             profile_batch=(1, 200)
         )
-        reset_cb = ResetMetricsAndLosses()
+        reset_cb = ResetMetrics()
 
         # Load data
         train_data = load_preprocessed_modelnet(
