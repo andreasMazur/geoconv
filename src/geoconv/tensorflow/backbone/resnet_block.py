@@ -23,7 +23,7 @@ class ResNetBlock(tf.keras.Model):
         self.conv1 = self.layer_type(
             amt_templates=amt_templates,
             template_radius=template_radius,
-            activation=activation,
+            activation="linear",
             name="ResNetBlock_1",
             rotation_delta=rotation_delta,
             initializer=initializer
@@ -64,6 +64,7 @@ class ResNetBlock(tf.keras.Model):
         signal = self.conv1([input_signal, bc])
         signal = self.amp(signal)
         signal = self.bn1(signal)
+        signal = self.output_activation(signal)
 
         signal = self.conv2([signal, bc])
         signal = self.amp(signal)
