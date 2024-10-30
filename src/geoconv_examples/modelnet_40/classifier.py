@@ -6,6 +6,16 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 
+class ResetMetricsAndLosses(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None, **kwargs):
+        self.model.triplet_loss_tracker.reset_state()
+        self.model.scc_loss_tracker.reset_state()
+        self.model.total_loss.reset_state()
+        self.model.acc_metric.reset_state()
+        for _, metric in self.model.gradient_metrics.items():
+            metric.reset_state()
+
+
 class ShiftPointCloud(tf.keras.layers.Layer):
     @tf.function(jit_compile=True)
     def call(self, inputs):
@@ -32,7 +42,8 @@ class ModelNetClf(tf.keras.Model):
                  dropout_rate=0.3,
                  initializer="glorot_uniform",
                  pooling="cov",
-                 triplet_alpha=1.0):
+                 triplet_alpha=1.0,
+                 noise_stddev=1e-3):
         super().__init__()
 
         #############
@@ -63,7 +74,7 @@ class ModelNetClf(tf.keras.Model):
                     template_radius=template_radius,
                     rotation_delta=rotation_delta,
                     conv_type=variant,
-                    activation="elu",
+                    activation="relu",
                     input_dim=-1 if idx == 0 else isc_layer_dims[idx - 1],
                     initializer=initializer
                 )
@@ -99,7 +110,13 @@ class ModelNetClf(tf.keras.Model):
         # Accuracy
         self.acc_metric = tf.keras.metrics.Accuracy(name="accuracy")
 
-    def call(self, inputs, **kwargs):
+        # Gradient statistics
+        self.gradient_metrics = {}
+        self.gradient_statistics = {}
+
+        self.noise = tf.keras.layers.GaussianNoise(stddev=noise_stddev)
+
+    def call(self, inputs, training=False, **kwargs):
         # Shift point-cloud centroid into 0
         coordinates = self.center(inputs)
 
@@ -109,6 +126,7 @@ class ModelNetClf(tf.keras.Model):
         # Compute normals
         signal = self.normals(coordinates)
         signal = tf.concat([coordinates, signal], axis=-1)
+        signal = self.noise(signal, training=training)
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
@@ -156,8 +174,26 @@ class ModelNetClf(tf.keras.Model):
         trainable_vars = self.trainable_variables
         gradients = tape.gradient(total_loss, trainable_vars)
 
+        # Clip gradients
+        gradients = [tf.clip_by_norm(g, 0.2, axes=[-1]) for g in gradients]
+
         # Update weights
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+
+        # Capture gradient statistics
+        gradients = zip(
+            [t.handle._name for t in trainable_vars], [tf.reduce_mean(tf.linalg.norm(g, axis=-1)) for g in gradients]
+        )
+        gradients = {k: float(v.numpy()) for k, v in gradients}
+        for name, gradient_norm in gradients.items():
+            if name in self.gradient_metrics.keys():
+                self.gradient_metrics[name].update_state(gradient_norm)
+                self.gradient_statistics[name] = float(self.gradient_metrics[name].result().numpy())
+            else:
+                # Init
+                self.gradient_metrics[name] = tf.keras.metrics.Mean(name=f"{name}_mean")
+                self.gradient_metrics[name].update_state(gradient_norm)
+                self.gradient_statistics[name] = float(self.gradient_metrics[name].result().numpy())
 
         # Compute metrics
         self.triplet_loss_tracker.update_state(triplet_loss)
