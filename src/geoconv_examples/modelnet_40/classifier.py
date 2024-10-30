@@ -32,7 +32,7 @@ class ModelNetClf(tf.keras.Model):
                  dropout_rate=0.3,
                  initializer="glorot_uniform",
                  pooling="cov",
-                 alpha=1.0):
+                 triplet_alpha=1.0):
         super().__init__()
 
         #############
@@ -89,7 +89,7 @@ class ModelNetClf(tf.keras.Model):
         # Losses
         self.mse = tf.keras.losses.MeanSquaredError()
         self.scc = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        self.alpha = alpha
+        self.alpha = triplet_alpha
 
         # Loss tracker
         self.triplet_loss_tracker = tf.keras.metrics.Mean(name="triplet_loss")

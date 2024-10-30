@@ -32,7 +32,7 @@ def hyper_tuning(dataset_path,
             variant="dirac",
             rotation_delta=rotation_delta,
             dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.5),
-            alpha=hp.Float("triplet_alpha", min_value=0.01, max_value=2.0),
+            triplet_alpha=hp.Float("triplet_alpha", min_value=0.01, max_value=2.0),
             pooling=pooling
         )
 
