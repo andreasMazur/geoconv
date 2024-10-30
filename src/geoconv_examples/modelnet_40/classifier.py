@@ -110,10 +110,7 @@ class ModelNetClf(tf.keras.Model):
         # Accuracy
         self.acc_metric = tf.keras.metrics.Accuracy(name="accuracy")
 
-        # Gradient statistics
-        self.gradient_metrics = {}
-        self.gradient_statistics = {}
-
+        # Add noise during training
         self.noise = tf.keras.layers.GaussianNoise(stddev=noise_stddev)
 
     def call(self, inputs, training=False, **kwargs):
@@ -179,21 +176,6 @@ class ModelNetClf(tf.keras.Model):
 
         # Update weights
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
-
-        # Capture gradient statistics
-        gradients = zip(
-            [t.handle._name for t in trainable_vars], [tf.reduce_mean(tf.linalg.norm(g, axis=-1)) for g in gradients]
-        )
-        gradients = {k: float(v.numpy()) for k, v in gradients}
-        for name, gradient_norm in gradients.items():
-            if name in self.gradient_metrics.keys():
-                self.gradient_metrics[name].update_state(gradient_norm)
-                self.gradient_statistics[name] = float(self.gradient_metrics[name].result().numpy())
-            else:
-                # Init
-                self.gradient_metrics[name] = tf.keras.metrics.Mean(name=f"{name}_mean")
-                self.gradient_metrics[name].update_state(gradient_norm)
-                self.gradient_statistics[name] = float(self.gradient_metrics[name].result().numpy())
 
         # Compute metrics
         self.triplet_loss_tracker.update_state(triplet_loss)
