@@ -12,7 +12,7 @@ def hyper_tuning(dataset_path,
                  neighbors_for_lrf,
                  modelnet10=True,
                  gen_info_file=None,
-                 batch_size=1,
+                 batch_size=5,
                  rotation_delta=1,
                  pooling="cov"):
     # Create logging dir
@@ -27,13 +27,14 @@ def hyper_tuning(dataset_path,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            isc_layer_dims=[100 for _ in range(4)],
+            isc_layer_dims=[200, 50, 50, 100],
             modelnet10=modelnet10,
             variant="dirac",
             rotation_delta=rotation_delta,
             dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.5),
             triplet_alpha=hp.Float("triplet_alpha", min_value=0.01, max_value=2.0),
-            pooling=pooling
+            pooling=pooling,
+            noise_stddev=hp.Float("noise_stddev", min_value=1e-6, max_value=1e-3)
         )
 
         opt = tf.keras.optimizers.AdamW(
