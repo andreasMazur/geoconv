@@ -1,4 +1,4 @@
-from geoconv_examples.modelnet_40.classifier import ModelNetClf, StoreGradients, ResetMetricsAndLosses
+from geoconv_examples.modelnet_40.classifier import ModelNetClf, ResetMetricsAndLosses
 from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 
 import os
