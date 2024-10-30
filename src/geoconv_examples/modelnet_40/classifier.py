@@ -6,14 +6,6 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 
-class ResetMetrics(tf.keras.callbacks.Callback):
-    def on_epoch_end(self, epoch, logs=None, **kwargs):
-        self.model.triplet_loss_tracker.reset_state()
-        self.model.scc_loss_tracker.reset_state()
-        self.model.total_loss.reset_state()
-        self.model.acc_metric.reset_state()
-
-
 class ShiftPointCloud(tf.keras.layers.Layer):
     @tf.function(jit_compile=True)
     def call(self, inputs):
@@ -226,3 +218,12 @@ class ModelNetClf(tf.keras.Model):
             "loss": self.total_loss.result(),
             "accuracy": self.acc_metric.result()
         }
+
+    @property
+    def metrics(self):
+        return [
+            self.triplet_loss_tracker,
+            self.scc_loss_tracker,
+            self.total_loss,
+            self.acc_metric
+        ]

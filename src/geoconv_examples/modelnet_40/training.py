@@ -1,4 +1,4 @@
-from geoconv_examples.modelnet_40.classifier import ModelNetClf, ResetMetrics
+from geoconv_examples.modelnet_40.classifier import ModelNetClf
 from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 
 import os
@@ -118,7 +118,6 @@ def training(dataset_path,
             update_freq="epoch",
             profile_batch=(1, 200)
         )
-        reset_cb = ResetMetrics()
 
         # Load data
         train_data = load_preprocessed_modelnet(
@@ -145,4 +144,4 @@ def training(dataset_path,
         )
 
         # Train model
-        imcnn.fit(x=train_data, callbacks=[stop, tb, csv, save, reset_cb], validation_data=test_data, epochs=epochs)
+        imcnn.fit(x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=epochs)
