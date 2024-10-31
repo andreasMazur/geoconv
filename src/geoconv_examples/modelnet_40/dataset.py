@@ -36,7 +36,7 @@ MODELNET_CLASSES = {
     "radio": 27,
     "range_hood": 28,
     "sink": 29,
-    "sofa": 39,
+    "sofa": 30,
     "stairs": 31,
     "stool": 32,
     "table": 33,
