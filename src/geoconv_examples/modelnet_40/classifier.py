@@ -1,6 +1,7 @@
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.point_cloud_normals import PointCloudNormals
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
+from geoconv_examples.modelnet_40.dataset import CLASS_WEIGHTS, CLASS_WEIGHTS_MN10
 
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -81,21 +82,21 @@ class ModelNetClf(tf.keras.Model):
 
         # Define classification layer
         self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
+        self.output_dim = 10 if modelnet10 else 40
         self.clf = tf.keras.models.Sequential([
             tf.keras.layers.Dense(32, activation="elu"),
             tf.keras.layers.Dense(16, activation="elu"),
-            tf.keras.layers.Dense(units=10 if modelnet10 else 40),
+            tf.keras.layers.Dense(units=self.output_dim),
         ])
 
-        # Losses
-        self.mse = tf.keras.losses.MeanSquaredError()
-        self.scc = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        # Alpha value for triplet loss
         self.alpha = triplet_alpha
 
         # Loss tracker
         self.triplet_loss_tracker = tf.keras.metrics.Mean(name="triplet_loss")
         self.scc_loss_tracker = tf.keras.metrics.Mean(name="scc_loss")
         self.total_loss = tf.keras.metrics.Mean(name="total_loss")
+        self.class_weights = CLASS_WEIGHTS_MN10 if modelnet10 else CLASS_WEIGHTS
 
         # Accuracy
         self.acc_metric = tf.keras.metrics.Accuracy(name="accuracy")
@@ -139,7 +140,12 @@ class ModelNetClf(tf.keras.Model):
             _, embedding_n = self(negative, training=True)
 
             # Compute classification loss
-            scc_loss = self.scc(labels, logits_p)
+            labels = tf.squeeze(tf.cast(labels, tf.int32))
+            class_weights = tf.gather(self.class_weights, labels)
+            one_hot_labels = tf.expand_dims(class_weights, axis=-1) * tf.one_hot(labels, self.output_dim)
+            scc_loss = tf.reduce_mean(
+                tf.keras.losses.categorical_crossentropy(one_hot_labels, logits_p, from_logits=True)
+            )
 
             # Compute triplet loss
             anchor_pos_d = embedding_a - embedding_p
@@ -162,7 +168,7 @@ class ModelNetClf(tf.keras.Model):
         gradients = tape.gradient(total_loss, trainable_vars)
 
         # Clip gradients
-        gradients = [tf.clip_by_norm(g, 0.2, axes=[-1]) for g in gradients]
+        # gradients = [tf.clip_by_norm(g, 0.2, axes=[-1]) for g in gradients]
 
         # Update weights
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
@@ -191,7 +197,12 @@ class ModelNetClf(tf.keras.Model):
         _, embedding_n = self(negative, training=False)
 
         # Compute classification loss
-        scc_loss = self.scc(labels, logits_p)
+        labels = tf.squeeze(tf.cast(labels, tf.int32))
+        class_weights = tf.gather(self.class_weights, labels)
+        one_hot_labels = tf.expand_dims(class_weights, axis=-1) * tf.one_hot(labels, self.output_dim)
+        scc_loss = tf.reduce_mean(
+            tf.keras.losses.categorical_crossentropy(one_hot_labels, logits_p, from_logits=True)
+        )
 
         # Compute triplet loss
         anchor_pos_d = embedding_a - embedding_p
