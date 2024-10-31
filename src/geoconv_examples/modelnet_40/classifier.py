@@ -92,6 +92,9 @@ class ModelNetClf(tf.keras.Model):
         # Alpha value for triplet loss
         self.alpha = triplet_alpha
 
+        # Init Categorical cross-entropy loss
+        self.scc = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+
         # Loss tracker
         self.triplet_loss_tracker = tf.keras.metrics.Mean(name="triplet_loss")
         self.scc_loss_tracker = tf.keras.metrics.Mean(name="scc_loss")
@@ -140,12 +143,7 @@ class ModelNetClf(tf.keras.Model):
             _, embedding_n = self(negative, training=True)
 
             # Compute classification loss
-            labels = tf.squeeze(tf.cast(labels, tf.int32))
-            class_weights = tf.gather(self.class_weights, labels)
-            one_hot_labels = tf.expand_dims(class_weights, axis=-1) * tf.one_hot(labels, self.output_dim)
-            scc_loss = tf.reduce_mean(
-                tf.keras.losses.categorical_crossentropy(one_hot_labels, logits_p, from_logits=True)
-            )
+            scc_loss = self.scc(labels, logits_p)
 
             # Compute triplet loss
             anchor_pos_d = embedding_a - embedding_p
@@ -197,12 +195,7 @@ class ModelNetClf(tf.keras.Model):
         _, embedding_n = self(negative, training=False)
 
         # Compute classification loss
-        labels = tf.squeeze(tf.cast(labels, tf.int32))
-        class_weights = tf.gather(self.class_weights, labels)
-        one_hot_labels = tf.expand_dims(class_weights, axis=-1) * tf.one_hot(labels, self.output_dim)
-        scc_loss = tf.reduce_mean(
-            tf.keras.losses.categorical_crossentropy(one_hot_labels, logits_p, from_logits=True)
-        )
+        scc_loss = self.scc(labels, logits_p)
 
         # Compute triplet loss
         anchor_pos_d = embedding_a - embedding_p
