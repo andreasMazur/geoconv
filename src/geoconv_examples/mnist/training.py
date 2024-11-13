@@ -17,7 +17,7 @@ class MNISTClassifier(keras.Model):
         super().__init__()
 
         if isc_layer_dims is None:
-            isc_layer_dims = [128]
+            isc_layer_dims = [128, 128]
 
         if variant is None or variant == "dirac":
             self.layer_type = ConvDirac
@@ -55,7 +55,7 @@ def training(bc_path, logging_dir, k=5, template_configurations=None, variant=No
 
     # Setup default layer parameterization if not given
     if isc_layer_dims is None:
-        isc_layer_dims = [128]
+        isc_layer_dims = [128, 128]
 
     # Prepare k-fold cross-validation
     splits = tfds.even_splits("all", n=k)
