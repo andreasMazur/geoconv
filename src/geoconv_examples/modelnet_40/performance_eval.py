@@ -33,7 +33,7 @@ def check_performance(model_path, model_config, data_path, logging_dir, modelnet
         The path to the directory where the log-files and results shall be stored.
     modelnet10: bool
         Whether to test on ModelNet10
-    gen_info_file: str
+    gen_info_file: str | None
         The path to where the generator-information file shall be stored.
     """
     # Create logging dir
