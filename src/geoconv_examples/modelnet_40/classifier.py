@@ -1,7 +1,6 @@
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.point_cloud_normals import PointCloudNormals
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
-from geoconv_examples.modelnet_40.dataset import CLASS_WEIGHTS, CLASS_WEIGHTS_MN10
 
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -99,7 +98,6 @@ class ModelNetClf(tf.keras.Model):
         self.triplet_loss_tracker = tf.keras.metrics.Mean(name="triplet_loss")
         self.scc_loss_tracker = tf.keras.metrics.Mean(name="scc_loss")
         self.total_loss = tf.keras.metrics.Mean(name="total_loss")
-        self.class_weights = CLASS_WEIGHTS_MN10 if modelnet10 else CLASS_WEIGHTS
 
         # Accuracy
         self.acc_metric = tf.keras.metrics.Accuracy(name="accuracy")
