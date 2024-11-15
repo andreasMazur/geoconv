@@ -5,7 +5,6 @@ from geoconv.utils.prepare_logs import process_logs
 from geoconv_examples.mnist.dataset import load_preprocessed_mnist
 from geoconv.tensorflow.layers.conv_dirac import ConvDirac
 from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
-from geoconv_examples.modelnet_40.classifier import Covariance
 
 import keras
 import tensorflow as tf
@@ -38,8 +37,8 @@ class MNISTClassifier(keras.Model):
             ) for n in isc_layer_dims
         ]
         self.amp = AngularMaxPooling()
-        self.pool = Covariance()
-        self.output_layer = keras.layers.Dense(10)
+        self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
+        self.output_layer = keras.layers.Dense(10, activation="linear")
 
     def call(self, inputs, **kwargs):
         signal, bc = inputs
@@ -113,7 +112,7 @@ def training(bc_path, logging_dir, k=5, template_configurations=None, variant=No
             )
 
             # Train model
-            imcnn.fit(x=train_data, callbacks=[tb, csv, save], validation_data=val_data, epochs=5)
+            imcnn.fit(x=train_data, callbacks=[tb, csv, save], validation_data=val_data, epochs=10)
 
         # Process logs
         process_logs(
