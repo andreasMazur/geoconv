@@ -197,10 +197,10 @@ def zip_file_generator(zipfile_path,
 
 def preprocessed_shape_generator(zipfile_path,
                                  filter_list,
+                                 batch_size,
                                  sorting_key=None,
                                  generator_info="",
                                  shuffle_seed=None,
-                                 batch_size=None,
                                  directive=None):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
@@ -219,8 +219,7 @@ def preprocessed_shape_generator(zipfile_path,
     shuffle_seed: int
         Whether to randomly shuffle the data with the given seed. If no seed is given, no shuffling will be performed.
     batch_size: int
-        Adds zero interpolation coefficients to arrays such that every array in the current batch has the same
-         dimensionality. This allows for batching multiple shapes.
+        How many shapes to return per iteration.
     generator_info: str
         A file where the generator can store data that was computed during generator preparation. If file already
         exists, the generator will load the information stored there instead of conducting the preparation process
@@ -283,9 +282,8 @@ def preprocessed_shape_generator(zipfile_path,
                 json.dump(sfp_dict, gen_info_fd, indent=4)
 
     # Batching
-    if batch_size is not None:
-        n_batches = math.ceil(len(shape_file_paths) / batch_size)
-        shape_file_paths = [shape_file_paths[i * batch_size:(i * batch_size) + batch_size] for i in range(n_batches)]
+    n_batches = math.ceil(len(shape_file_paths) / batch_size)
+    shape_file_paths = [shape_file_paths[i * batch_size:(i * batch_size) + batch_size] for i in range(n_batches)]
 
     # Return batch of files and their corresponding file names
     for batch in shape_file_paths:
@@ -339,6 +337,7 @@ def barycentric_coordinates_generator(zipfile_path,
                                       n_radial,
                                       n_angular,
                                       template_radius,
+                                      batch_size,
                                       return_filename=False):
     """Loads barycentric coordinates from a preprocessed dataset
 
@@ -352,6 +351,8 @@ def barycentric_coordinates_generator(zipfile_path,
         Amount of angular coordinates contained in the barycentric coordinates that shall be loaded.
     template_radius: float
         The template radius considered during barycentric coordinates computation.
+    batch_size: int
+        The batch size.
     return_filename: bool
         Whether to return the filename of the shape within the zip-file.
 
@@ -360,7 +361,9 @@ def barycentric_coordinates_generator(zipfile_path,
     np.ndarray:
         Barycentric coordinates.
     """
-    psg = preprocessed_shape_generator(zipfile_path, filter_list=[f"BC_{n_radial}_{n_angular}_{template_radius}"])
+    psg = preprocessed_shape_generator(
+        zipfile_path, batch_size=batch_size, filter_list=[f"BC_{n_radial}_{n_angular}_{template_radius}"]
+    )
     for filtered_files in psg:
         if return_filename:
             yield filtered_files[0][0], filtered_files[0][1]

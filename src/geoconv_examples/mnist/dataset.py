@@ -4,12 +4,12 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 
-def load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_type, batch_size=8):
+def load_preprocessed_mnist(dataset_path, n_radial, n_angular, template_radius, set_type, batch_size=8):
     """Adds barycentric coordinates to the MNIST dataset and reshapes images to vectors.
 
     Parameters
     ----------
-    bc_path: str
+    dataset_path: str
         The path to the preprocessed dataset.
     n_radial: int
         The amount of radial coordinates used during BC-computation.
@@ -18,14 +18,16 @@ def load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_t
     template_radius: float
         The considered template radius during BC-computation.
     set_type: tensorflow_datasets.SplitArg
-        The set type according to the common split-nomenclature in tensorflow-datasets.
+        The set type. Either 'train' or 'test'.
+    batch_size: int
+        The batch-size.
 
     Returns
     -------
     tensorflow.data.Dataset:
         A dataset containing MNIST-images and labels together with barycentric coordinates to train an IMCNN.
     """
-    # Load splitted MNIST
+    # Load split MNIST
     splitted_datasets = tfds.load("mnist", split=set_type, shuffle_files=True, as_supervised=True)
     if isinstance(splitted_datasets, list):
         dataset = splitted_datasets[0]
@@ -36,7 +38,7 @@ def load_preprocessed_mnist(bc_path, n_radial, n_angular, template_radius, set_t
 
     # Load barycentric coordinates
     barycentric_coordinates = barycentric_coordinates_generator(
-        bc_path, n_radial, n_angular, template_radius, return_filename=False
+        dataset_path, n_radial, n_angular, template_radius, batch_size=1, return_filename=False
     )
 
     for bc in barycentric_coordinates:

@@ -5,6 +5,7 @@ from geoconv.utils.prepare_logs import process_logs
 from geoconv_examples.mnist.dataset import load_preprocessed_mnist
 from geoconv.tensorflow.layers.conv_dirac import ConvDirac
 from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
+from geoconv_examples.modelnet_40.classifier import Covariance
 
 import keras
 import tensorflow as tf
@@ -17,7 +18,7 @@ class MNISTClassifier(keras.Model):
         super().__init__()
 
         if isc_layer_dims is None:
-            isc_layer_dims = [128, 128]
+            isc_layer_dims = [128]
 
         if variant is None or variant == "dirac":
             self.layer_type = ConvDirac
@@ -37,7 +38,7 @@ class MNISTClassifier(keras.Model):
             ) for n in isc_layer_dims
         ]
         self.amp = AngularMaxPooling()
-        self.flatten = tf.keras.layers.Flatten()
+        self.pool = Covariance()
         self.output_layer = keras.layers.Dense(10)
 
     def call(self, inputs, **kwargs):
@@ -45,7 +46,7 @@ class MNISTClassifier(keras.Model):
         for layer in self.convs:
             signal = layer([signal, bc])
             signal = self.amp(signal)
-        signal = self.flatten(signal)
+        signal = self.pool(signal)
         return self.output_layer(signal)
 
 
@@ -55,7 +56,7 @@ def training(bc_path, logging_dir, k=5, template_configurations=None, variant=No
 
     # Setup default layer parameterization if not given
     if isc_layer_dims is None:
-        isc_layer_dims = [128, 128]
+        isc_layer_dims = [128]
 
     # Prepare k-fold cross-validation
     splits = tfds.even_splits("all", n=k)
