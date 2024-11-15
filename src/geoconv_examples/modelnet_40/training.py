@@ -18,7 +18,8 @@ def model_configuration(neighbors_for_lrf,
                         dropout_rate,
                         weight_decay,
                         pooling,
-                        triplet_alpha):
+                        triplet_alpha,
+                        noise_stddev):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
@@ -31,7 +32,8 @@ def model_configuration(neighbors_for_lrf,
         rotation_delta=rotation_delta,
         dropout_rate=dropout_rate,
         pooling=pooling,
-        triplet_alpha=triplet_alpha
+        triplet_alpha=triplet_alpha,
+        noise_stddev=noise_stddev
     )
 
     # Define loss and optimizer
@@ -67,7 +69,8 @@ def training(dataset_path,
              pooling="cov",
              triplet_alpha=1.0,
              epochs=200,
-             debug=False):
+             debug=False,
+             noise_stddev=0.0004):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -102,7 +105,8 @@ def training(dataset_path,
             dropout_rate,
             weight_decay,
             pooling,
-            triplet_alpha
+            triplet_alpha,
+            noise_stddev
         )
 
         # Define callbacks
