@@ -18,7 +18,7 @@ def load_preprocessed_mnist(dataset_path, n_radial, n_angular, template_radius, 
     template_radius: float
         The considered template radius during BC-computation.
     set_type: tensorflow_datasets.SplitArg
-        The set type. Either 'train' or 'test'.
+        The set type. Either 'all', 'train' or 'test'. Alternatively, a list of 'tfds.typing.SplitArg'.
     batch_size: int
         The batch-size.
 
