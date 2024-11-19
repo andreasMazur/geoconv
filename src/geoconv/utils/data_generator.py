@@ -205,6 +205,8 @@ def preprocessed_shape_generator(zipfile_path,
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
     This function sorts alphanumerically after the shape-directory name.
+    It is mandatory that the folder that contain shape-files contain a 'preprocess_properties.json'-file.
+    Directories that do not contain it, will be discarded.
 
     Parameters
     ----------
@@ -225,7 +227,8 @@ def preprocessed_shape_generator(zipfile_path,
         exists, the generator will load the information stored there instead of conducting the preparation process
         again.
     directive: function
-        A function that receives the file-dictionary, does something with it, and returns a modified file-dictionary.
+        A function that receives a file-dictionary, does something with it, and returns a modified file-dictionary.
+        The file-dictionary contains all files that were allowed by the user-provided filters.
 
     Returns
     -------
