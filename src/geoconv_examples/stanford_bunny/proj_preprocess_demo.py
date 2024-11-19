@@ -137,6 +137,7 @@ def preprocess_demo(path_to_stanford_bunny, n_radial=5, n_angular=6, n_neighbors
     # Step 2: Retrieve local neighborhood radii (one per neighborhood)
     # shape: (vertices,)
     radii = distance_matrix[np.arange(distance_matrix.shape[0]), np.argsort(distance_matrix, axis=-1)[:, n_neighbors]]
+    radii = np.mean(radii)
 
     # Step 3: Determine vertex-neighborhoods
     # 'neighborhoods': (vertices, n_neighbors, 3)
