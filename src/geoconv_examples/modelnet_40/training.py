@@ -37,7 +37,7 @@ def model_configuration(neighbors_for_lrf,
     # Define loss and optimizer
     loss = tf.keras.losses.CategoricalFocalCrossentropy(
         alpha=list(MN10_CLASS_WEIGHTS.values()) if modelnet10 else list(MN_CLASS_WEIGHTS.values()),
-        gamma=2.0,
+        gamma=1.,
         from_logits=True,
         label_smoothing=0.0,
         axis=-1,
