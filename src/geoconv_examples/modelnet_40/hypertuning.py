@@ -1,5 +1,5 @@
 from geoconv_examples.modelnet_40.classifier import ModelNetClf
-from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
+from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet, MN10_CLASS_WEIGHTS, MN_CLASS_WEIGHTS
 
 import tensorflow as tf
 import keras_tuner as kt
@@ -36,6 +36,14 @@ def hyper_tuning(dataset_path,
             noise_stddev=hp.Float("noise_stddev", min_value=0.0002, max_value=0.0007)
         )
 
+        loss = tf.keras.losses.CategoricalFocalCrossentropy(
+            alpha=list(MN10_CLASS_WEIGHTS.values()) if modelnet10 else list(MN_CLASS_WEIGHTS.values()),
+            gamma=2.0,
+            from_logits=True,
+            label_smoothing=0.0,
+            axis=-1,
+            reduction="sum_over_batch_size"
+        )
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=hp.Float("learning_rate", min_value=0.001, max_value=0.004),
@@ -45,7 +53,7 @@ def hyper_tuning(dataset_path,
             ),
             weight_decay=hp.Float("weight_decay", min_value=0.00065, max_value=0.00225)
         )
-        imcnn.compile(optimizer=opt, run_eagerly=True)
+        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
 
         return imcnn
 
