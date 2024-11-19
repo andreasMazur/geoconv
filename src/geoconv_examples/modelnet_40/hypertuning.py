@@ -12,7 +12,7 @@ def hyper_tuning(dataset_path,
                  neighbors_for_lrf,
                  modelnet10=True,
                  gen_info_file=None,
-                 batch_size=5,
+                 batch_size=4,
                  rotation_delta=1,
                  pooling="cov"):
     # Create logging dir
@@ -27,32 +27,28 @@ def hyper_tuning(dataset_path,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            isc_layer_dims=[128, 64, 32, 32],
+            isc_layer_dims=[128, 128, 64, 32],
             modelnet10=modelnet10,
             variant="dirac",
             rotation_delta=rotation_delta,
-            dropout_rate=hp.Float("dropout_rate", min_value=0.2, max_value=0.4),
-            triplet_alpha=hp.Float("triplet_alpha", min_value=0.0075, max_value=0.0125),
+            dropout_rate=hp.Float("dropout_rate", min_value=0.1, max_value=0.5),
             pooling=pooling,
-            noise_stddev=hp.Float("noise_stddev", min_value=0.0003, max_value=0.0006)
+            noise_stddev=hp.Float("noise_stddev", min_value=0.0002, max_value=0.0007)
         )
 
         opt = tf.keras.optimizers.AdamW(
-            learning_rate=hp.Float("learning_rate", min_value=0.002, max_value=0.003),
-            weight_decay=hp.Float("weight_decay", min_value=0.00075, max_value=0.00125)
+            learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
+                initial_learning_rate=hp.Float("learning_rate", min_value=0.001, max_value=0.004),
+                decay_steps=2461,
+                decay_rate=hp.Float("lr_exp_decay", min_value=0.5, max_value=0.999),
+                staircase=True
+            ),
+            weight_decay=hp.Float("weight_decay", min_value=0.00065, max_value=0.00225)
         )
         imcnn.compile(optimizer=opt, run_eagerly=True)
 
         return imcnn
 
-    # tuner = kt.Hyperband(
-    #     hypermodel=build_hypermodel,
-    #     objective="val_accuracy",
-    #     max_epochs=200,
-    #     factor=3,
-    #     directory=logging_dir,
-    #     project_name="modelnet_40_hyper_tuning"
-    # )
     tuner = kt.BayesianOptimization(
         hypermodel=build_hypermodel,
         objective="val_accuracy",
