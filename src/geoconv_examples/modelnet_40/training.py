@@ -1,5 +1,5 @@
 from geoconv_examples.modelnet_40.classifier import ModelNetClf
-from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
+from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet, MN10_CLASS_WEIGHTS, MN_CLASS_WEIGHTS
 
 import os
 import sys
@@ -18,7 +18,6 @@ def model_configuration(neighbors_for_lrf,
                         dropout_rate,
                         weight_decay,
                         pooling,
-                        triplet_alpha,
                         noise_stddev):
     # Define model
     imcnn = ModelNetClf(
@@ -32,18 +31,22 @@ def model_configuration(neighbors_for_lrf,
         rotation_delta=rotation_delta,
         dropout_rate=dropout_rate,
         pooling=pooling,
-        triplet_alpha=triplet_alpha,
         noise_stddev=noise_stddev
     )
 
     # Define loss and optimizer
-    opt = tf.keras.optimizers.AdamW(
-        learning_rate=learning_rate,
-        weight_decay=weight_decay
+    loss = tf.keras.losses.CategoricalFocalCrossentropy(
+        alpha=list(MN10_CLASS_WEIGHTS.values()) if modelnet10 else list(MN_CLASS_WEIGHTS.values()),
+        gamma=2.0,
+        from_logits=True,
+        label_smoothing=0.0,
+        axis=-1,
+        reduction="sum_over_batch_size"
     )
+    opt = tf.keras.optimizers.AdamW(learning_rate=learning_rate, weight_decay=weight_decay)
 
     # Compile the model
-    imcnn.compile(optimizer=opt, run_eagerly=True)
+    imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
     imcnn(tf.random.uniform(shape=[1, 2000, 3]))
     imcnn.summary()
 
@@ -67,7 +70,6 @@ def training(dataset_path,
              dropout_rate=0.23747,
              weight_decay=0.01358,
              pooling="cov",
-             triplet_alpha=1.0,
              epochs=200,
              debug=False,
              noise_stddev=0.0004):
@@ -105,7 +107,6 @@ def training(dataset_path,
             dropout_rate,
             weight_decay,
             pooling,
-            triplet_alpha,
             noise_stddev
         )
 

@@ -47,6 +47,48 @@ MODELNET_CLASSES = {
     "wardrobe": 38,
     "xbox": 39
 }
+MN_CLASS_WEIGHTS = {
+    "airplane": 0.39309105431309904,
+    "bathtub": 2.3214622641509433,
+    "bed": 0.4778155339805825,
+    "bench": 1.4223988439306359,
+    "bookshelf": 0.43020104895104894,
+    "bottle": 0.7345522388059702,
+    "bowl": 3.844921875,
+    "car": 1.2491116751269036,
+    "chair": 0.2767997750281215,
+    "cone": 1.4735029940119762,
+    "cup": 3.114873417721519,
+    "curtain": 1.7831521739130434,
+    "desk": 1.230375,
+    "door": 2.2575688073394495,
+    "dresser": 1.230375,
+    "flower_pot": 1.6515100671140939,
+    "glass_box": 1.4390350877192983,
+    "guitar": 1.5875806451612904,
+    "keyboard": 1.6970689655172413,
+    "lamp": 1.9844758064516128,
+    "laptop": 1.6515100671140939,
+    "mantel": 0.8664612676056338,
+    "monitor": 0.5291935483870968,
+    "night_stand": 1.230375,
+    "person": 2.7963068181818183,
+    "piano": 1.0652597402597404,
+    "plant": 1.0253125,
+    "radio": 2.3661057692307694,
+    "range_hood": 2.139782608695652,
+    "sink": 1.9224609375,
+    "sofa": 0.361875,
+    "stairs": 1.9844758064516128,
+    "stool": 2.734166666666667,
+    "table": 0.6277423469387755,
+    "tent": 1.5096625766871166,
+    "toilet": 0.7153343023255814,
+    "tv_stand": 0.9216292134831461,
+    "vase": 0.5180526315789473,
+    "wardrobe": 2.828448275862069,
+    "xbox": 2.3890776699029126
+}
 
 MODELNET10_CLASSES = {
     "bathtub": 0,
@@ -60,37 +102,34 @@ MODELNET10_CLASSES = {
     "table": 8,
     "toilet": 9
 }
+MN10_CLASS_WEIGHTS = {
+    "bathtub": 3.7650943396226415,
+    "bed": 0.7749514563106796,
+    "chair": 0.44893138357705287,
+    "desk": 1.9955,
+    "dresser": 1.9955,
+    "monitor": 0.8582795698924731,
+    "night_stand": 1.9955,
+    "sofa": 0.5869117647058824,
+    "table": 1.0181122448979592,
+    "toilet": 1.1601744186046512
+}
 
 DEBUG_DATASET_SIZE = 100
 
 
-def triplet_directive(shape_dict):
-    classes = list(set([f[0].split("/")[1] for f in list(shape_dict.values())]))
-    class_elements = [[f for f in list(shape_dict.values()) if c in f[0]] for c in classes]
-
-    shape_dict_values = list(shape_dict.values())
-    random.shuffle(shape_dict_values)
-
-    new_shape_dict = {}
-    for file in shape_dict_values:
-        file_class = classes.index(file[0].split("/")[1])
-        anchor = random.choice(class_elements[file_class])
-
-        random_other_cls = random.choice([cls for cls in range(len(classes)) if cls != file_class])
-        negative = random.choice(class_elements[random_other_cls])
-
-        new_shape_dict[f"{'/'.join(file[0].split('/')[:-1])}_anchor"] = anchor
-        new_shape_dict[f"{'/'.join(file[0].split('/')[:-1])}_positive"] = file
-        new_shape_dict[f"{'/'.join(file[0].split('/')[:-1])}_negative"] = negative
-
-    return new_shape_dict
+def shuffle_directive(shape_dict):
+    shape_dict_keys = list(shape_dict.keys())
+    random.shuffle(shape_dict_keys)
+    return {key: shape_dict[key] for key in shape_dict_keys}
 
 
 def modelnet_generator(dataset_path,
                        set_type,
                        modelnet10=False,
                        gen_info_file="",
-                       debug_data=False):
+                       debug_data=False,
+                       in_one_hot=True):
     if isinstance(set_type, bytes):
         set_type = set_type.decode("utf-8")
 
@@ -108,20 +147,31 @@ def modelnet_generator(dataset_path,
     psg = preprocessed_shape_generator(
         zipfile_path=dataset_path,
         filter_list=filter_list,
-        batch_size=3,
+        batch_size=1,
         generator_info=gen_info_file,
-        directive=triplet_directive
+        directive=shuffle_directive
     )
 
-    for idx, triplet in enumerate(psg):
+    for idx, shape in enumerate(psg):
+        point_cloud, file_path = shape[0]
+
+        # Check whether this dataset is intended for debugging
         if idx == DEBUG_DATASET_SIZE and debug_data:
             break
-        anchor, positive, negative = triplet[0][0], triplet[1][0], triplet[2][0]
+
+        # Check whether to use ModelNet10 labels
         if modelnet10:
-            positive_class = np.array(MODELNET10_CLASSES[triplet[1][1].split("/")[1]]).reshape(1)
+            n_classes = 10
+            label = np.array(MODELNET10_CLASSES[file_path.split("/")[1]]).reshape(1)
         else:
-            positive_class = np.array(MODELNET_CLASSES[triplet[1][1].split("/")[1]]).reshape(1)
-        yield tf.stack([anchor, positive, negative], axis=-2), positive_class
+            n_classes = 40
+            label = np.array(MODELNET_CLASSES[file_path.split("/")[1]]).reshape(1)
+
+        # Check whether labels are supposed to be one-hot encoded
+        if in_one_hot:
+            label = np.eye(n_classes)[label[0]]
+
+        yield point_cloud, label
 
 
 def load_preprocessed_modelnet(dataset_path,
@@ -129,12 +179,22 @@ def load_preprocessed_modelnet(dataset_path,
                                batch_size=4,
                                modelnet10=False,
                                gen_info_file="",
-                               debug_data=False):
-    return tf.data.Dataset.from_generator(
-        modelnet_generator,
-        args=(dataset_path, set_type, modelnet10, gen_info_file, debug_data),
-        output_signature=(
-            tf.TensorSpec(shape=(None, 3, 3), dtype=tf.float32),
+                               debug_data=False,
+                               in_one_hot=True):
+    n_classes = 10 if modelnet10 else 40
+    if in_one_hot:
+        output_signature = (
+            tf.TensorSpec(shape=(None, 3), dtype=tf.float32),
             tf.TensorSpec(shape=(None,), dtype=tf.float32)
         )
+    else:
+        output_signature = (
+            tf.TensorSpec(shape=(None, 3), dtype=tf.float32),
+            tf.TensorSpec(shape=(n_classes,), dtype=tf.float32)
+        )
+
+    return tf.data.Dataset.from_generator(
+        modelnet_generator,
+        args=(dataset_path, set_type, modelnet10, gen_info_file, debug_data, in_one_hot),
+        output_signature=output_signature
     ).batch(batch_size).prefetch(tf.data.AUTOTUNE)
