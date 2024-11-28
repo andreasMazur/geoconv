@@ -14,7 +14,7 @@ def hyper_tuning(dataset_path,
                  gen_info_file=None,
                  batch_size=4,
                  rotation_delta=1,
-                 pooling="cov"):
+                 pooling="max"):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -27,7 +27,7 @@ def hyper_tuning(dataset_path,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            isc_layer_dims=[128, 64, 64],
+            isc_layer_dims=[64] + [32 for _ in range(16)],
             modelnet10=modelnet10,
             variant="dirac",
             rotation_delta=rotation_delta,
@@ -39,7 +39,7 @@ def hyper_tuning(dataset_path,
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=hp.Float("learning_rate", min_value=0.001, max_value=0.004),
+                initial_learning_rate=hp.Float("learning_rate", min_value=0.001, max_value=0.01),
                 decay_steps=12305,
                 decay_rate=hp.Float("lr_exp_decay", min_value=0.1, max_value=0.999),
                 staircase=True
