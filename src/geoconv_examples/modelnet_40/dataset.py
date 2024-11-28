@@ -185,12 +185,12 @@ def load_preprocessed_modelnet(dataset_path,
     if in_one_hot:
         output_signature = (
             tf.TensorSpec(shape=(None, 3), dtype=tf.float32),
-            tf.TensorSpec(shape=(None,), dtype=tf.float32)
+            tf.TensorSpec(shape=(n_classes,), dtype=tf.float32)
         )
     else:
         output_signature = (
             tf.TensorSpec(shape=(None, 3), dtype=tf.float32),
-            tf.TensorSpec(shape=(n_classes,), dtype=tf.float32)
+            tf.TensorSpec(shape=(1,), dtype=tf.float32)
         )
 
     return tf.data.Dataset.from_generator(
