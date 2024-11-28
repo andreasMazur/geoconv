@@ -214,11 +214,11 @@ def preprocessed_shape_generator(zipfile_path,
         The path to the preprocessed dataset.
     filter_list: list
         A list of substrings to filter for in each shape-directory.
-    sorting_key: callable
+    sorting_key: callable | None
         A function that takes a single file-path as an argument and returns its part after which it should be sorted.
         If 'None' is given, then sorting is performed with respect to the directory name of a shape, i.e., the shapes
         name.
-    shuffle_seed: int
+    shuffle_seed: int | None
         Whether to randomly shuffle the data with the given seed. If no seed is given, no shuffling will be performed.
     batch_size: int
         How many shapes to return per iteration.
@@ -226,7 +226,7 @@ def preprocessed_shape_generator(zipfile_path,
         A file where the generator can store data that was computed during generator preparation. If file already
         exists, the generator will load the information stored there instead of conducting the preparation process
         again.
-    directive: function
+    directive: function | None
         A function that receives a file-dictionary, does something with it, and returns a modified file-dictionary.
         The file-dictionary contains all files that were allowed by the user-provided filters.
 
