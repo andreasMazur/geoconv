@@ -129,7 +129,7 @@ def modelnet_generator(dataset_path,
                        modelnet10=False,
                        gen_info_file="",
                        debug_data=False,
-                       in_one_hot=True):
+                       in_one_hot=False):
     if isinstance(set_type, bytes):
         set_type = set_type.decode("utf-8")
 
@@ -180,7 +180,7 @@ def load_preprocessed_modelnet(dataset_path,
                                modelnet10=False,
                                gen_info_file="",
                                debug_data=False,
-                               in_one_hot=True):
+                               in_one_hot=False):
     n_classes = 10 if modelnet10 else 40
     if in_one_hot:
         output_signature = (
