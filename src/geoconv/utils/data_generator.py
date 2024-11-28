@@ -266,11 +266,6 @@ def preprocessed_shape_generator(zipfile_path,
             shape_file_paths.append([x for x in zip_file.files if shape_dir_content in x and check_path(x)])
         shape_file_paths = list(filter(lambda x: x != [], shape_file_paths))
 
-        # Shuffle shapes
-        if shuffle_seed is not None:
-            random.seed(shuffle_seed)
-            random.shuffle(shape_file_paths)
-
         # Apply user-defined directive on file-dictionary
         sfp_dict = {}
         for sfp in shape_file_paths:
@@ -278,6 +273,11 @@ def preprocessed_shape_generator(zipfile_path,
         if directive is not None:
             sfp_dict = directive(sfp_dict)
             shape_file_paths = [psf for psf in sfp_dict.values()]
+
+        # Shuffle shapes
+        if shuffle_seed is not None:
+            random.seed(shuffle_seed)
+            random.shuffle(shape_file_paths)
 
         # Store generator's preparation results
         if len(generator_info) > 0:
