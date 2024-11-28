@@ -100,7 +100,7 @@ class ModelNetClf(tf.keras.Model):
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
-            signal = self.isc_layers[idx]([signal, bc])
+            signal = self.isc_layers[idx]([signal, bc], training=training)
 
         # Get normalized point-cloud embeddings
         signal = self.pool(signal)
