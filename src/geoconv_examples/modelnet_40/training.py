@@ -35,12 +35,7 @@ def model_configuration(neighbors_for_lrf,
     )
 
     # Define loss and optimizer
-    loss = tf.keras.losses.SparseCategoricalCrossentropy(
-        from_logits=True,
-        label_smoothing=0.0,
-        axis=-1,
-        reduction="sum_over_batch_size"
-    )
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
     opt = tf.keras.optimizers.AdamW(
         learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=learning_rate,
