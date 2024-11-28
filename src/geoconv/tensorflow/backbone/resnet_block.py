@@ -57,22 +57,31 @@ class ResNetBlock(tf.keras.Model):
             self.bn_rescale = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
         self.output_activation = tf.keras.activations.get(activation)
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs, training=False, **kwargs):
         input_signal, bc = inputs
 
         # F(x)
-        signal = self.conv1([input_signal, bc])
+        if training:
+            signal = self.conv1([input_signal, bc])
+        else:
+            signal = self.conv1([input_signal, bc], orientations=tf.range(tf.shape(bc)[3]))
         signal = self.amp(signal)
         signal = self.bn1(signal)
         signal = self.output_activation(signal)
 
-        signal = self.conv2([signal, bc])
+        if training:
+            signal = self.conv2([signal, bc])
+        else:
+            signal = self.conv2([signal, bc], orientations=tf.range(tf.shape(bc)[3]))
         signal = self.amp(signal)
         signal = self.bn2(signal)
 
         if self.rescale:
             # W x
-            input_signal = self.conv_rescale([input_signal, bc])
+            if training:
+                input_signal = self.conv1([input_signal, bc])
+            else:
+                input_signal = self.conv1([input_signal, bc], orientations=tf.range(tf.shape(bc)[3]))
             input_signal = self.amp(input_signal)
             input_signal = self.bn_rescale(input_signal)
 
