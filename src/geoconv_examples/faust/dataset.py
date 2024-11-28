@@ -13,15 +13,19 @@ def faust_generator(dataset_path,
                     only_signal=False,
                     seed=42,
                     gen_info_file=""):
-    split_indices = list(range(80)) if is_train else list(range(80, 100))
+    def get_split(sfp_dict):
+        split_indices = list(range(80)) if is_train else list(range(80, 100))
+        keys = [k for k in sfp_dict.keys() if int(k[-3:]) in split_indices]
+        return {k: sfp_dict[k] for k in keys}
 
-    # Load barycentric coordinates
     psg = preprocessed_shape_generator(
-        dataset_path,
+        zipfile_path=dataset_path,
         filter_list=["SIGNAL", f"BC_{n_radial}_{n_angular}_{template_radius}"],
+        batch_size=1,
+        sorting_key=None,
+        generator_info=gen_info_file,
         shuffle_seed=int(seed),
-        split=split_indices,
-        gen_info_file=gen_info_file
+        directive=get_split,
     )
 
     # Set seed for permutations
