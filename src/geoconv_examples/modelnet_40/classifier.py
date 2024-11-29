@@ -97,10 +97,8 @@ class ModelNetClf(tf.keras.Model):
         # Compute barycentric coordinates from 3D coordinates
         bc = self.bc_layer(coordinates)
 
-        # Compute normals
-        signal = self.normals(coordinates)
-        signal = tf.concat([coordinates, signal], axis=-1)
-        signal = self.noise(signal, training=training)
+        # Add noise
+        signal = self.noise(coordinates, training=training)
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):
