@@ -46,7 +46,6 @@ class ModelNetClf(tf.keras.Model):
 
         # For centering point clouds
         self.center = ShiftPointCloud()
-        self.normals = PointCloudNormals(neighbors_for_lrf=neighbors_for_lrf)
 
         #################
         # EMBEDDING PART
