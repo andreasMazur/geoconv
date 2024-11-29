@@ -79,9 +79,11 @@ class ModelNetClf(tf.keras.Model):
             self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
 
         # Define classification layer
-        self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
         self.output_dim = 10 if modelnet10 else 40
-        self.clf = tf.keras.layers.Dense(units=self.output_dim)
+        self.clf = tf.keras.models.Sequential([
+            tf.keras.layers.Dense(units=1000, activation="relu"),
+            tf.keras.layers.Dense(units=self.output_dim),
+        ])
 
         # Add noise during training
         self.noise = tf.keras.layers.GaussianNoise(stddev=noise_stddev)
@@ -106,5 +108,4 @@ class ModelNetClf(tf.keras.Model):
         signal = self.pool(signal)
         signal = signal / tf.linalg.norm(signal, axis=-1, keepdims=True)
 
-        signal = self.dropout(signal)
         return self.clf(signal)
