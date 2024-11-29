@@ -84,7 +84,7 @@ class ModelNetClf(tf.keras.Model):
         self.output_dim = 10 if modelnet10 else 40
         self.clf = tf.keras.models.Sequential([
             tf.keras.layers.Dense(units=1000, activation="relu"),
-            tf.keras.layers.Dense(units=self.output_dim),
+            tf.keras.layers.Dense(units=self.output_dim, activation="linear"),
         ])
 
         # Add noise during training
@@ -108,6 +108,5 @@ class ModelNetClf(tf.keras.Model):
 
         # Get normalized point-cloud embeddings
         signal = self.pool(signal)
-        signal = signal / tf.linalg.norm(signal, axis=-1, keepdims=True)
 
         return self.clf(signal)
