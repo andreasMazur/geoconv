@@ -27,24 +27,24 @@ def hyper_tuning(dataset_path,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            isc_layer_dims=[32] + [16 for _ in range(16)],
+            isc_layer_dims=[16 for _ in range(4)] + [32 for _ in range(2)],
             modelnet10=modelnet10,
             variant="dirac",
             rotation_delta=rotation_delta,
-            dropout_rate=hp.Float("dropout_rate", min_value=0.1, max_value=0.5),
-            pooling=pooling,
-            noise_stddev=hp.Float("noise_stddev", min_value=0.00001, max_value=0.0007)
+            dropout_rate=0.,
+            pooling=hp.Choice("pooling", values=["avg", "cov", "max"]),
+            noise_stddev=hp.Float("noise_stddev", min_value=0.00001, max_value=0.001)
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=hp.Float("learning_rate", min_value=0.001, max_value=0.01),
-                decay_steps=12305,
-                decay_rate=hp.Float("lr_exp_decay", min_value=0.1, max_value=0.999),
-                staircase=True
+                initial_learning_rate=hp.Float("learning_rate", min_value=0.0001, max_value=0.1),
+                decay_steps=hp.Int("decay_steps", min_value=1, max_value=12305),
+                decay_rate=hp.Float("lr_exp_decay", min_value=0.1, max_value=0.99999),
+                staircase=hp.Boolean("staircase", default_value=True)
             ),
-            weight_decay=hp.Float("weight_decay", min_value=0.00065, max_value=0.0225)
+            weight_decay=hp.Float("weight_decay", min_value=0.0001, max_value=0.99999)
         )
         imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
 
@@ -53,8 +53,8 @@ def hyper_tuning(dataset_path,
     tuner = kt.BayesianOptimization(
         hypermodel=build_hypermodel,
         objective="val_accuracy",
-        max_trials=1000,
-        num_initial_points=15,
+        max_trials=10_000,
+        num_initial_points=30,
         directory=logging_dir,
         project_name="modelnet_40_hyper_tuning",
         tune_new_entries=True,
@@ -78,8 +78,8 @@ def hyper_tuning(dataset_path,
     )
 
     # Start hyperparameter tuning
-    stop = tf.keras.callbacks.EarlyStopping(monitor="val_accuracy", patience=5, min_delta=0.01)
-    tuner.search(x=train_data, validation_data=test_data, epochs=8, callbacks=[stop])
+    stop = tf.keras.callbacks.EarlyStopping(monitor="val_accuracy", patience=6, min_delta=0.01)
+    tuner.search(x=train_data, validation_data=test_data, epochs=12, callbacks=[stop])
 
     # Print best hyperparameters
     best_hp = tuner.get_best_hyperparameters()[0]
