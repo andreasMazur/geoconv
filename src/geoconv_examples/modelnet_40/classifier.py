@@ -75,6 +75,8 @@ class ModelNetClf(tf.keras.Model):
         assert pooling in ["cov", "max"], "Please set your pooling to either 'cov' or 'max'."
         if pooling == "cov":
             self.pool = Covariance()
+        elif pooling == "avg":
+            self.pool = tf.keras.layers.GlobalAvgPool1D(data_format="channels_last")
         else:
             self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
 
