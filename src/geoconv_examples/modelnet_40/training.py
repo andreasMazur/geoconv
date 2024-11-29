@@ -48,7 +48,7 @@ def model_configuration(neighbors_for_lrf,
 
     # Compile the model
     imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
-    imcnn(tf.random.uniform(shape=[1, 2000, 3]))
+    imcnn(tf.random.uniform(shape=[1, 2000, 3]), training=False)
     imcnn.summary()
 
     return imcnn
