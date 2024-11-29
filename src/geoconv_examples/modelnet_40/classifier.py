@@ -72,7 +72,7 @@ class ModelNetClf(tf.keras.Model):
         ######################
         # CLASSIFICATION PART
         ######################
-        assert pooling in ["cov", "max"], "Please set your pooling to either 'cov' or 'max'."
+        assert pooling in ["cov", "max", "avg"], "Please set your pooling to either 'cov', 'max' or 'avg'."
         if pooling == "cov":
             self.pool = Covariance()
         elif pooling == "avg":
