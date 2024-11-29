@@ -42,7 +42,7 @@ def hyper_tuning(dataset_path,
                 initial_learning_rate=hp.Float("learning_rate", min_value=0.0001, max_value=0.1),
                 decay_steps=hp.Int("decay_steps", min_value=1, max_value=12305),
                 decay_rate=hp.Float("lr_exp_decay", min_value=0.1, max_value=0.99999),
-                staircase=hp.Boolean("staircase", default_value=True)
+                staircase=hp.Boolean("staircase")
             ),
             weight_decay=hp.Float("weight_decay", min_value=0.0001, max_value=0.99999)
         )
