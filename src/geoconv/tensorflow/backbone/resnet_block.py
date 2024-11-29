@@ -29,6 +29,7 @@ class ResNetBlock(tf.keras.Model):
             initializer=initializer
         )
         self.bn1 = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
+        self.amp1 = AngularMaxPooling()
 
         # block 2
         self.conv2 = self.layer_type(
@@ -40,9 +41,11 @@ class ResNetBlock(tf.keras.Model):
             initializer=initializer
         )
         self.bn2 = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
+        self.amp2 = AngularMaxPooling()
 
-        self.amp = AngularMaxPooling()
         self.add = tf.keras.layers.Add()
+
+        self.rotation_delta = rotation_delta
 
         self.rescale = input_dim != amt_templates
         if self.rescale:
@@ -55,34 +58,32 @@ class ResNetBlock(tf.keras.Model):
                 initializer=initializer
             )
             self.bn_rescale = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
+            self.amp_rescale = AngularMaxPooling()
         self.output_activation = tf.keras.activations.get(activation)
 
+    @tf.function
     def call(self, inputs, training=False, **kwargs):
         input_signal, bc = inputs
 
-        # F(x)
-        if training:
-            signal = self.conv1([input_signal, bc])
+        if tf.constant(training):
+            orientations = tf.range(start=0, limit=tf.shape(bc)[3], delta=self.rotation_delta)
         else:
-            signal = self.conv1([input_signal, bc], orientations=tf.range(tf.shape(bc)[3]))
-        signal = self.amp(signal)
+            orientations = tf.range(tf.shape(bc)[3])
+
+        # F(x)
+        signal = self.conv1([input_signal, bc], orientations)
+        signal = self.amp1(signal)
         signal = self.bn1(signal)
         signal = self.output_activation(signal)
 
-        if training:
-            signal = self.conv2([signal, bc])
-        else:
-            signal = self.conv2([signal, bc], orientations=tf.range(tf.shape(bc)[3]))
-        signal = self.amp(signal)
+        signal = self.conv2([signal, bc], orientations)
+        signal = self.amp2(signal)
         signal = self.bn2(signal)
 
         if self.rescale:
             # W x
-            if training:
-                input_signal = self.conv1([input_signal, bc])
-            else:
-                input_signal = self.conv1([input_signal, bc], orientations=tf.range(tf.shape(bc)[3]))
-            input_signal = self.amp(input_signal)
+            input_signal = self.conv_rescale([input_signal, bc], orientations)
+            input_signal = self.amp_rescale(input_signal)
             input_signal = self.bn_rescale(input_signal)
 
         # F(x) + W x
