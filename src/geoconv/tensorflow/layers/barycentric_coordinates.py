@@ -79,7 +79,7 @@ def compute_bc(template, projections):
     # 'interpolation_weights': (vertices, radial, angular, n_neighbors - 1, n_neighbors - 1, 3)
     interpolation_weights = tf.stack([point_0_weight, point_2_weight, point_1_weight], axis=-1)
 
-    # Set negative and zero interpolation values to infinity
+    # Set negative-, zero- and NAN-interpolation values to infinity
     to_filter = tf.where(tf.logical_or(interpolation_weights <= 0., tf.math.is_nan(interpolation_weights)))
     interpolation_weights = tf.tensor_scatter_nd_update(
         interpolation_weights, to_filter, tf.cast(tf.fill((tf.shape(to_filter)[0],), np.inf), tf.float64)
