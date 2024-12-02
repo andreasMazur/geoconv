@@ -241,7 +241,8 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         # 3.) Compute barycentric coordinates
         # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
         # 'closest_proj': (vertices, n_radial, n_angular, 3)
-        interpolation_weights, closest_proj = tf.cast(compute_bc(self.template, projections), tf.float32)
+        interpolation_weights, closest_proj = compute_bc(self.template, projections)
+        interpolation_weights = tf.cast(interpolation_weights, tf.float32)
 
         # 4.) Get projection indices (convert neighborhood indices to shape vertex indices)
         # 'projections_indices': (vertices, n_radial, n_angular, 3)
