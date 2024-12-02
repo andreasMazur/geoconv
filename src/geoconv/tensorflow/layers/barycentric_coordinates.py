@@ -66,32 +66,18 @@ def compute_bc(template, projections):
     dot12 = tf.einsum("vrani,vrai->vran", v1, tf.squeeze(v2))
 
     denominator = tf.einsum("vran,vram->vranm", dot00, dot11) - dot01 * dot01
-
-    # Avoid dividing by zero
-    zero_indices = tf.where(denominator == 0.)
-    denominator = tf.tensor_scatter_nd_update(
-        denominator, zero_indices, tf.cast(tf.fill((tf.shape(zero_indices)[0],), 1e-10), tf.float64)
-    )
+    denominator = 1 / denominator  # 'Inf'-values propagate through multiplication and are filtered later
 
     point_2_weight = tf.einsum("vram,vran->vranm", dot11, dot02) - tf.einsum("vranm,vram->vranm", dot01, dot12)
-    point_2_weight = point_2_weight / denominator
+    point_2_weight = point_2_weight * denominator
 
     point_1_weight = tf.einsum("vran,vram->vranm", dot00, dot12) - tf.einsum("vranm,vran->vranm", dot01, dot02)
-    point_1_weight = point_1_weight / denominator
+    point_1_weight = point_1_weight * denominator
 
     point_0_weight = 1 - point_2_weight - point_1_weight
 
     # 'interpolation_weights': (vertices, radial, angular, n_neighbors - 1, n_neighbors - 1, 3)
     interpolation_weights = tf.stack([point_0_weight, point_2_weight, point_1_weight], axis=-1)
-
-    # Filter 'interpolation_weights' where denominator has been zero
-    num_zero_indices = tf.shape(zero_indices)[0]
-    repeated_indices = tf.expand_dims(tf.repeat([0, 1, 2], repeats=num_zero_indices), axis=-1)
-    zero_indices_tiled = tf.tile(zero_indices, [3, 1])
-    zero_indices = tf.concat([zero_indices_tiled, tf.cast(repeated_indices, tf.int64)], axis=-1)
-    interpolation_weights = tf.tensor_scatter_nd_update(
-        interpolation_weights, zero_indices, tf.cast(tf.fill((tf.shape(zero_indices)[0],), np.inf), tf.float64)
-    )
 
     # Set negative and zero interpolation values to infinity
     to_filter = tf.where(interpolation_weights <= 0.)
@@ -115,7 +101,7 @@ def compute_bc(template, projections):
     # Gather corresponding BC using the found tuples
     interpolation_weights = tf.gather_nd(interpolation_weights, interpolation_w_indices, batch_dims=3)
 
-    # Replace infinity interpolation coefficients with zeros to cancel any contribution of this template vertex
+    # Replace infinity interpolation coefficients with zeros to prevent any contribution of this template vertex
     to_filter = tf.where(interpolation_weights == np.inf)[:, :3]
     interpolation_weights = tf.tensor_scatter_nd_update(
         interpolation_weights,
