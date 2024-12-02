@@ -66,7 +66,7 @@ def compute_bc(template, projections):
     dot12 = tf.einsum("vrani,vrai->vran", v1, tf.squeeze(v2))
 
     denominator = tf.einsum("vran,vram->vranm", dot00, dot11) - dot01 * dot01
-    denominator = 1 / denominator  # 'Inf'-values propagate through multiplication and are filtered later
+    denominator = 1 / denominator  # NAN-values are filtered later. Keep this to make shapes fit for EINSUM.
 
     point_2_weight = tf.einsum("vram,vran->vranm", dot11, dot02) - tf.einsum("vranm,vram->vranm", dot01, dot12)
     point_2_weight = point_2_weight * denominator
@@ -80,7 +80,7 @@ def compute_bc(template, projections):
     interpolation_weights = tf.stack([point_0_weight, point_2_weight, point_1_weight], axis=-1)
 
     # Set negative and zero interpolation values to infinity
-    to_filter = tf.where(interpolation_weights <= 0.)
+    to_filter = tf.where(tf.logical_or(interpolation_weights <= 0., tf.math.is_nan(interpolation_weights)))
     interpolation_weights = tf.tensor_scatter_nd_update(
         interpolation_weights, to_filter, tf.cast(tf.fill((tf.shape(to_filter)[0],), np.inf), tf.float64)
     )
