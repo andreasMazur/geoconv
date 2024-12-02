@@ -29,54 +29,6 @@ def compute_distance_matrix(vertices):
 
 
 @tf.function(jit_compile=True)
-def group_neighborhoods(vertices, radius, neighbor_limit=32, distance_matrix=None):
-    """Finds and groups vertex-neighborhoods for a given radius.
-
-    Collect neighbors in a given radius. From all vertices select the closest 'neighbor_limit' many.
-    If any of the selected exceeds the maximum 'radius', its coordinates are set to the maximum distance from
-    the origin (keeping those neighbors allows for batching).
-
-    Parameters
-    ----------
-    vertices: tf.Tensor
-        All vertices of a mesh.
-    radius: float
-        A 1D-tensor containing the radii of each neighborhood. I.e., its first dimension needs to be of the same size
-        as the first dimension of the 'vertices'-tensor.
-    neighbor_limit: int
-        The maximum amount of neighbors per neighborhood.
-    distance_matrix: tf.Tensor
-        The Euclidean distance matrix for the given vertices.
-
-    Returns
-    -------
-    tf.Tensor, tf.Tensor:
-        A tuple containing two tensors. The first tensor describes vertex coordinates in each neighborhood. The second
-        described the vertex indices in each neighborhood.
-    """
-    # 1.) For each vertex determine local sets of neighbors
-    if distance_matrix is None:
-        distance_matrix = compute_distance_matrix(vertices)
-
-    # 2.) Get neighborhood vertex indices
-    # 'neighborhoods_indices': (vertices, neighbor_limit)
-    neighbor_distances, neighborhoods_indices = tf.math.top_k(-distance_matrix, neighbor_limit)
-    neighbor_distances = -neighbor_distances
-
-    # 3.) Shift corresponding vertex-coordinates s.t. neighborhood-origin lies in [0, 0, 0].
-    # 'vertex_neighborhoods': (vertices, neighbor_limit, 3)
-    vertex_neighborhoods = tf.gather(vertices, neighborhoods_indices, axis=0) - tf.expand_dims(vertices, axis=1)
-
-    # 4.) To allow batching: In step (2) we potentially select vertices that are further out than 'radius'.
-    #     We set those to the edge of the neighborhood s.t. their weights for LRF computation will be zero.
-    set_zero_at = tf.where(neighbor_distances > tf.reshape(radius, (-1, 1)))
-    updates = tf.tile(tf.reshape(tf.sqrt((radius ** 2) / 3), (1, 1)), multiples=[tf.shape(set_zero_at)[0], 3])
-    vertex_neighborhoods = tf.tensor_scatter_nd_update(vertex_neighborhoods, set_zero_at, updates)
-
-    return vertex_neighborhoods, neighborhoods_indices
-
-
-@tf.function(jit_compile=True)
 def disambiguate_axes(neighborhood_vertices, eigen_vectors):
     """Disambiguate axes returned by local Eigenvalue analysis.
 
