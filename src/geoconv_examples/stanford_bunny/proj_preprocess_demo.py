@@ -1,8 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
 from geoconv.tensorflow.layers.barycentric_coordinates import compute_bc
-from geoconv.tensorflow.utils.compute_shot_lrf import (
-    compute_distance_matrix, group_neighborhoods, shot_lrf, logarithmic_map
-)
+from geoconv.tensorflow.utils.compute_shot_lrf import compute_distance_matrix, logarithmic_map, knn_shot_lrf
 from geoconv.utils.visualization import visualize_lrf
 from geoconv_examples.stanford_bunny.preprocess_demo import load_bunny
 
@@ -29,17 +27,9 @@ def visualize_interpolations(interpolation_weights, projections_indices, project
     """
     plt.rcParams['text.usetex'] = True
 
-    interpolated_template_vertices = []
-    for radial_c in range(interpolation_weights.shape[0]):
-        for angular_c in range(interpolation_weights.shape[1]):
-            interpolated_template_vertex = []
-            for idx in range(3):
-                closest_neighbor = projections[projections_indices[radial_c, angular_c, idx]]
-                interpolation_coefficient = interpolation_weights[radial_c, angular_c, idx]
-                interpolated_template_vertex.append(interpolation_coefficient * closest_neighbor)
-            interpolated_template_vertex = sum(interpolated_template_vertex)
-            interpolated_template_vertices.append(interpolated_template_vertex)
-    interpolated_template_vertices = np.array(interpolated_template_vertices).reshape(template.shape)
+    interpolated_template_vertices = (
+            projections[projections_indices] * interpolation_weights.reshape(5, 6, 3, 1)
+    ).sum(axis=-2)
 
     visualize_projected_neighborhood(projections, show=False, color="blue", alpha=1.)
     visualize_projected_neighborhood(template.reshape(-1, 2), show=False, color="red", alpha=.5)
@@ -101,7 +91,58 @@ def visualize_distance_matrix(distance_matrix):
     plt.show()
 
 
-def preprocess_demo(path_to_stanford_bunny, n_radial=5, n_angular=6, n_neighbors=10):
+def plot_normals(vertices, lrfs, n_neighbors, take_every_nth=5, axis_limit=0.1, plot=True):
+    """Visualize the normals of given LRFs
+
+    Parameters
+    ----------
+    vertices: np.ndarray
+        The vertices that of the point cloud for which the LRFs have been computed.
+    lrfs: np.ndarray
+        The local reference frames from which to take the normals.
+    n_neighbors: int
+        The amount of neighbors that have been used to estimate the normals.
+    take_every_nth: int
+        An integer value that is used to sample a subset from the set of all vertices. Only these will be visualized.
+    axis_limit: float
+        The axis-limits.
+    plot: bool
+        Whether to plot immediately.
+    """
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+
+    # Center vertices
+    vertices = vertices - vertices.mean(axis=-2)
+
+    # Sample from vertices
+    vertices = vertices[::take_every_nth]
+    lrfs = lrfs[::take_every_nth]
+
+    # Origins of normal-vectors
+    x, y, z = vertices[:, 0], vertices[:, 1], vertices[:, 2]
+
+    # Directions of normal-vectors
+    z_axes = lrfs[:, :, 0]
+    u, v, w = z_axes[:, 0], z_axes[:, 1], z_axes[:, 2]
+
+    # Plot the vectors at each point in the point cloud
+    ax.scatter(x, y, z, color="r")
+    ax.quiver(x, y, z, u, v, w, length=0.01, color="b", alpha=0.33, linewidth=2.5)
+
+    # Set axis limits
+    ax.set_xlim([-axis_limit, axis_limit])
+    ax.set_ylim([-axis_limit, axis_limit])
+    ax.set_zlim([-axis_limit, axis_limit])
+
+    plt.title(f"Normals calculated using {n_neighbors} neighbors.")
+
+    # Show the plot
+    if plot:
+        plt.show()
+
+
+def preprocess_demo(path_to_stanford_bunny, n_neighbors, template_radius=None, n_radial=5, n_angular=6):
     """Demonstrates and visualizes what the Barycentric-Coordinates layer is doing at the hand of the stanford bunny.
 
     Download the Stanford bunny from here:
@@ -114,12 +155,14 @@ def preprocess_demo(path_to_stanford_bunny, n_radial=5, n_angular=6, n_neighbors
     ----------
     path_to_stanford_bunny: str
         The path to the 'bun_zipper.ply'-file containing the stanford bunny.
+    n_neighbors: int
+        The amount of vertices to use during tangent plane estimation
+    template_radius: float | None
+        The radius of the template to train.
     n_radial: int
         The amount of radial coordinates for the template in your geodesic convolution.
     n_angular: int
         The amount of angular coordinates for the template in your geodesic convolution.
-    n_neighbors: int
-        The target amount of vertex-neighbors to have in each neighborhood.
     """
     mpl.use("Qt5Agg")
 
@@ -134,22 +177,19 @@ def preprocess_demo(path_to_stanford_bunny, n_radial=5, n_angular=6, n_neighbors
     # Visualize distance matrix
     visualize_distance_matrix(distance_matrix)
 
-    # Step 2: Retrieve local neighborhood radii (one per neighborhood)
-    # shape: (vertices,)
-    radii = distance_matrix[np.arange(distance_matrix.shape[0]), np.argsort(distance_matrix, axis=-1)[:, n_neighbors]]
-    radii = np.mean(radii)
-
-    # Step 3: Determine vertex-neighborhoods
-    # 'neighborhoods': (vertices, n_neighbors, 3)
-    neighborhoods, neighborhoods_indices = group_neighborhoods(bunny_vertices, radii, n_neighbors, distance_matrix)
+    # Compute local reference frames (LRFs)
+    for n in [5, 15, 25, 35, 45]:
+        # Visualize lrf normals (z-axes)
+        lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(n, bunny_vertices)
+        lrfs = lrfs.numpy()
+        plot_normals(bunny_vertices, lrfs, n, plot=False)
+    plt.show()
+    lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(n_neighbors, bunny_vertices)
+    lrfs = lrfs.numpy()
 
     # Visualize three neighborhoods
     for n in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
         visualize_neighborhood(bunny_vertices, neighborhoods_indices[n])
-
-    # Step 4: Compute local reference frames
-    # 'lrfs': (vertices, 3, 3)
-    lrfs = shot_lrf(neighborhoods, radii)
 
     # Visualize three LRFs
     for lrf_idx in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
@@ -165,8 +205,14 @@ def preprocess_demo(path_to_stanford_bunny, n_radial=5, n_angular=6, n_neighbors
         visualize_projected_neighborhood(projections[n])
 
     # Step 6: Configure a template
+    if template_radius is None:
+        # If no template radius is given, select the average Euclidean distance to the n-th neighbor
+        template_radius = distance_matrix[
+            np.arange(distance_matrix.shape[0]), np.argsort(distance_matrix, axis=-1)[:, n_neighbors]
+        ]
+        template_radius = np.mean(template_radius)
     # 'template': (n_radial, n_angular, 2)
-    template = create_template_matrix(n_radial=n_radial, n_angular=n_angular, radius=radii.mean(), in_cart=True)
+    template = create_template_matrix(n_radial=n_radial, n_angular=n_angular, radius=template_radius, in_cart=True)
 
     # Step 7: Compute interpolation coefficients for the template vertices within the projections
     # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
