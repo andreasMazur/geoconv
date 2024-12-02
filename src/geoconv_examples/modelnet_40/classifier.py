@@ -81,10 +81,7 @@ class ModelNetClf(tf.keras.Model):
 
         # Define classification layer
         self.output_dim = 10 if modelnet10 else 40
-        self.clf = tf.keras.models.Sequential([
-            tf.keras.layers.Dense(units=1000, activation="relu"),
-            tf.keras.layers.Dense(units=self.output_dim, activation="linear"),
-        ])
+        self.clf = tf.keras.layers.Dense(units=self.output_dim, activation="linear")
 
         # Add noise during training
         self.noise = tf.keras.layers.GaussianNoise(stddev=noise_stddev)
