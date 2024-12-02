@@ -26,23 +26,34 @@ def compute_bc(template, projections):
         another 4D-tensor of shape (vertices, n_radial, n_angular, 3) that contains the vertex indices of the closest
         projected vertices to the template vertices in each neighborhood.
     """
+    template = tf.cast(template, tf.float64)
+    projections = tf.cast(projections, tf.float64)
+
+    ###########################################
     # 1) Compute distance to template vertices
+    ###########################################
     projections = tf.expand_dims(tf.expand_dims(projections, axis=1), axis=1)
 
     # 'closest_idx_hierarchy': (vertices, n_radial, n_angular, n_neighbors, 2)
     closest_idx_hierarchy = tf.expand_dims(template, axis=2) - projections
 
+    ##################################################################################################
     # 2) Retrieve neighborhood indices of two closest projections (NOT equal to shape vertex indices)
+    ##################################################################################################
     # 'closest_idx_hierarchy': (vertices, n_radial, n_angular, n_neighbors)
     closest_idx_hierarchy = tf.argsort(tf.linalg.norm(closest_idx_hierarchy, axis=-1), axis=-1)
 
+    #################################################
     # 3) Determine 'closest' and 'other' projections
+    #################################################
     # 'closet_proj': (vertices, n_radial, n_angular, 1, 2)
     closet_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, 0], batch_dims=1)[:, :, :, None, :]
     # 'other_proj':  (vertices, n_radial, n_angular, n_neighbors - 1, 2)
     other_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, 1:], batch_dims=1)
 
+    #####################################
     # 4) Compute barycentric coordinates
+    #####################################
     v0 = other_proj - closet_proj
     v1 = other_proj - closet_proj
     v2 = tf.expand_dims(template, axis=-2) - closet_proj
@@ -58,7 +69,9 @@ def compute_bc(template, projections):
 
     # Avoid dividing by zero
     zero_indices = tf.where(denominator == 0.)
-    denominator = tf.tensor_scatter_nd_update(denominator, zero_indices, tf.fill((tf.shape(zero_indices)[0],), 1e-10))
+    denominator = tf.tensor_scatter_nd_update(
+        denominator, zero_indices, tf.cast(tf.fill((tf.shape(zero_indices)[0],), 1e-10), tf.float64)
+    )
 
     point_2_weight = tf.einsum("vram,vran->vranm", dot11, dot02) - tf.einsum("vranm,vram->vranm", dot01, dot12)
     point_2_weight = point_2_weight / denominator
@@ -71,10 +84,19 @@ def compute_bc(template, projections):
     # 'interpolation_weights': (vertices, radial, angular, n_neighbors - 1, n_neighbors - 1, 3)
     interpolation_weights = tf.stack([point_0_weight, point_2_weight, point_1_weight], axis=-1)
 
+    # Filter 'interpolation_weights' where denominator has been zero
+    num_zero_indices = tf.shape(zero_indices)[0]
+    repeated_indices = tf.expand_dims(tf.repeat([0, 1, 2], repeats=num_zero_indices), axis=-1)
+    zero_indices_tiled = tf.tile(zero_indices, [3, 1])
+    zero_indices = tf.concat([zero_indices_tiled, tf.cast(repeated_indices, tf.int64)], axis=-1)
+    interpolation_weights = tf.tensor_scatter_nd_update(
+        interpolation_weights, zero_indices, tf.cast(tf.fill((tf.shape(zero_indices)[0],), np.inf), tf.float64)
+    )
+
     # Set negative and zero interpolation values to infinity
     to_filter = tf.where(interpolation_weights <= 0.)
     interpolation_weights = tf.tensor_scatter_nd_update(
-        interpolation_weights, to_filter, tf.fill((tf.shape(to_filter)[0],), np.inf)
+        interpolation_weights, to_filter, tf.cast(tf.fill((tf.shape(to_filter)[0],), np.inf), tf.float64)
     )
 
     # Encourage using BC with smallest inf-norm
@@ -98,7 +120,7 @@ def compute_bc(template, projections):
     interpolation_weights = tf.tensor_scatter_nd_update(
         interpolation_weights,
         to_filter,
-        tf.tile([[0., 0., 0.]], multiples=[tf.shape(to_filter)[0], 1])
+        tf.cast(tf.tile([[0., 0., 0.]], multiples=[tf.shape(to_filter)[0], 1]), tf.float64)
     )
 
     # Convert BC-indices
