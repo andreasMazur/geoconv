@@ -15,7 +15,6 @@ def model_configuration(neighbors_for_lrf,
                         learning_rate,
                         variant,
                         rotation_delta,
-                        dropout_rate,
                         weight_decay,
                         pooling,
                         noise_stddev):
@@ -29,7 +28,6 @@ def model_configuration(neighbors_for_lrf,
         modelnet10=modelnet10,
         variant=variant,
         rotation_delta=rotation_delta,
-        dropout_rate=dropout_rate,
         pooling=pooling,
         noise_stddev=noise_stddev
     )

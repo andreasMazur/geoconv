@@ -14,7 +14,13 @@ def hyper_tuning(dataset_path,
                  gen_info_file=None,
                  batch_size=4,
                  rotation_delta=1,
-                 pooling="max"):
+                 variant="dirac",
+                 staircase=False,
+                 pooling="avg",
+                 isc_layer_dims=None):
+    if isc_layer_dims is None:
+        isc_layer_dims = [4, 8, 8, 16]
+
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -27,12 +33,11 @@ def hyper_tuning(dataset_path,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            isc_layer_dims=[8 for _ in range(4)] + [16 for _ in range(2)],
+            isc_layer_dims=isc_layer_dims,
             modelnet10=modelnet10,
-            variant="dirac",
+            variant=variant,
             rotation_delta=rotation_delta,
-            dropout_rate=0.,
-            pooling=hp.Choice("pooling", values=["avg", "cov", "max"]),
+            pooling=pooling,
             noise_stddev=hp.Float("noise_stddev", min_value=0.00001, max_value=0.001)
         )
 
@@ -40,9 +45,9 @@ def hyper_tuning(dataset_path,
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=hp.Float("learning_rate", min_value=0.0001, max_value=0.1),
-                decay_steps=hp.Int("decay_steps", min_value=1, max_value=12305),
-                decay_rate=hp.Float("lr_exp_decay", min_value=0.1, max_value=0.99999),
-                staircase=hp.Boolean("staircase")
+                decay_steps=hp.Int("decay_steps", min_value=1, max_value=24610),
+                decay_rate=hp.Float("lr_exp_decay", min_value=0.00001, max_value=0.99999),
+                staircase=staircase
             ),
             weight_decay=hp.Float("weight_decay", min_value=0.0001, max_value=0.99999)
         )

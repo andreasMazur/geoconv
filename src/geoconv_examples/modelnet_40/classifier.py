@@ -29,7 +29,6 @@ class ModelNetClf(tf.keras.Model):
                  modelnet10=False,
                  variant=None,
                  rotation_delta=1,
-                 dropout_rate=0.3,
                  initializer="glorot_uniform",
                  pooling="cov",
                  noise_stddev=1e-3):
