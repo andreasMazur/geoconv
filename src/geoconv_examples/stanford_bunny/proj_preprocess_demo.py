@@ -112,9 +112,6 @@ def plot_normals(vertices, lrfs, n_neighbors, take_every_nth=5, axis_limit=0.1, 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
 
-    # Center vertices
-    vertices = vertices - vertices.mean(axis=-2)
-
     # Sample from vertices
     vertices = vertices[::take_every_nth]
     lrfs = lrfs[::take_every_nth]
@@ -129,6 +126,10 @@ def plot_normals(vertices, lrfs, n_neighbors, take_every_nth=5, axis_limit=0.1, 
     # Plot the vectors at each point in the point cloud
     ax.scatter(x, y, z, color="r")
     ax.quiver(x, y, z, u, v, w, length=0.01, color="b", alpha=0.33, linewidth=2.5)
+
+    # Plot centroid
+    centroid = vertices.mean(axis=-2)
+    ax.scatter(centroid[0], centroid[1], centroid[2], color="g")
 
     # Set axis limits
     ax.set_xlim([-axis_limit, axis_limit])
@@ -194,6 +195,7 @@ def preprocess_demo(path_to_stanford_bunny,
     # Load the stanford bunny in '.ply'-format as a trimesh-object.
     bunny = load_bunny(path_to_stanford_bunny)
     bunny_vertices = np.array(bunny.vertices).astype(np.float32)
+    bunny_vertices = bunny_vertices - bunny_vertices.mean(axis=-2)
 
     # Step 1: Calculate the distance matrix
     # shape: (vertices, vertices)
