@@ -101,7 +101,7 @@ def shot_lrf(neighborhoods, radii):
     return tf.stack([z_axes, y_axes, x_axes], axis=-1)
 
 
-@tf.function(jit_compile=True)
+# @tf.function(jit_compile=True)
 def logarithmic_map(lrfs, neighborhoods):
     """Computes projections of neighborhoods into their local reference frames.
 
@@ -146,7 +146,13 @@ def knn_shot_lrf(k_neighbors, vertices):
     neighborhoods = tf.gather(vertices, neighborhood_indices, axis=0) - tf.expand_dims(vertices, axis=1)
 
     # 3.) Get local reference frames
-    # (vertices, 3, 3)
+    # 'lrfs': (vertices, 3, 3)
     lrfs = shot_lrf(neighborhoods, radii)
+
+    # 4.) Make normal vectors point away from centroid
+    signs = -tf.cast(tf.einsum("vi,vi->v", lrfs[:, :, 0], tf.reduce_mean(vertices, axis=0) - vertices) >= 0, tf.int32)
+    signs = signs + tf.cast(signs == 0, tf.int32)
+    normals = tf.expand_dims(tf.cast(signs, tf.float32), axis=-1) * lrfs[:, :, 0]
+    lrfs = tf.stack([normals, lrfs[:, :, 1], lrfs[:, :, 2]], axis=-1)
 
     return lrfs, neighborhoods, neighborhood_indices
