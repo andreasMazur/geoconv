@@ -103,7 +103,6 @@ def training(dataset_path,
             learning_rate,
             variant,
             rotation_delta,
-            dropout_rate,
             weight_decay,
             pooling,
             noise_stddev
