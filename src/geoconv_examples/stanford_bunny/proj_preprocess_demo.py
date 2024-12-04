@@ -142,7 +142,18 @@ def plot_normals(vertices, lrfs, n_neighbors, take_every_nth=5, axis_limit=0.1, 
         plt.show()
 
 
-def preprocess_demo(path_to_stanford_bunny, n_neighbors, template_radius=None, n_radial=5, n_angular=6):
+def preprocess_demo(path_to_stanford_bunny,
+                    n_neighbors,
+                    template_radius=None,
+                    n_radial=5,
+                    n_angular=6,
+                    visualize_dist_matrix=True,
+                    visualize_lrf_normals=True,
+                    visualize_neighborhoods=True,
+                    visualize_lrfs=True,
+                    visualize_projections=True,
+                    visualize_bc_histogram=True,
+                    visualize_bc_interpolations=True):
     """Demonstrates and visualizes what the Barycentric-Coordinates layer is doing at the hand of the stanford bunny.
 
     Download the Stanford bunny from here:
@@ -163,6 +174,20 @@ def preprocess_demo(path_to_stanford_bunny, n_neighbors, template_radius=None, n
         The amount of radial coordinates for the template in your geodesic convolution.
     n_angular: int
         The amount of angular coordinates for the template in your geodesic convolution.
+    visualize_dist_matrix: bool
+        Whether to visualize the distance matrix.
+    visualize_lrf_normals: bool
+        Whether to visualize the normal vectors given by local reference frames (LRFs).
+    visualize_neighborhoods: bool
+        Whether to visualize local neighborhoods on the 3D point-cloud.
+    visualize_lrfs: bool
+        Whether to visualize entire local reference frames (LRFs).
+    visualize_projections: bool
+        Whether to visualize neighborhoods that are projected on tangent planes given by local reference frames (LRFs).
+    visualize_bc_histogram: bool
+        Whether to visualize a histogram that shows the distribution of the computed barycentric coordinates (BC).
+    visualize_bc_interpolations: bool
+        Whether to visualize interpolated template vertices.
     """
     mpl.use("Qt5Agg")
 
@@ -175,34 +200,41 @@ def preprocess_demo(path_to_stanford_bunny, n_neighbors, template_radius=None, n
     distance_matrix = compute_distance_matrix(bunny_vertices).numpy()
 
     # Visualize distance matrix
-    visualize_distance_matrix(distance_matrix)
+    if visualize_dist_matrix:
+        visualize_distance_matrix(distance_matrix)
 
     # Compute local reference frames (LRFs)
-    for n in [5, 15, 25, 35, 45]:
-        # Visualize lrf normals (z-axes)
-        lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(n, bunny_vertices)
-        lrfs = lrfs.numpy()
-        plot_normals(bunny_vertices, lrfs, n, plot=False)
-    plt.show()
+    if visualize_lrf_normals:
+        for n in [5, 15, 25, 35, 45]:
+            # Visualize lrf normals (z-axes)
+            lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(n, bunny_vertices)
+            lrfs = lrfs.numpy()
+            plot_normals(bunny_vertices, lrfs, n, plot=False)
+        plt.show()
     lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(n_neighbors, bunny_vertices)
     lrfs = lrfs.numpy()
 
     # Visualize three neighborhoods
-    for n in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
-        visualize_neighborhood(bunny_vertices, neighborhoods_indices[n])
+    if visualize_neighborhoods:
+        for n in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
+            visualize_neighborhood(bunny_vertices, neighborhoods_indices[n])
 
     # Visualize three LRFs
-    for lrf_idx in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
-        visualize_lrf(origin=bunny_vertices[lrf_idx], local_reference_frame=lrfs[lrf_idx], shape=bunny, scale_lrf=0.05)
+    if visualize_lrfs:
+        for lrf_idx in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
+            visualize_lrf(
+                origin=bunny_vertices[lrf_idx], local_reference_frame=lrfs[lrf_idx], shape=bunny, scale_lrf=0.05
+            )
 
     # Step 5: Project neighborhoods into the plane spanned by the lrfs using the logarithmic map
     # 'projections': (vertices, n_neighbors, 2)
     projections = logarithmic_map(lrfs, neighborhoods)
 
     # Visualize three projected neighborhoods
-    for n in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
-        visualize_neighborhood(bunny_vertices, neighborhoods_indices[n])
-        visualize_projected_neighborhood(projections[n])
+    if visualize_projections:
+        for n in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
+            visualize_neighborhood(bunny_vertices, neighborhoods_indices[n])
+            visualize_projected_neighborhood(projections[n])
 
     # Step 6: Configure a template
     if template_radius is None:
@@ -221,15 +253,17 @@ def preprocess_demo(path_to_stanford_bunny, n_neighbors, template_radius=None, n
     interpolation_weights, closest_proj = compute_bc(template.astype(np.float32), projections)
 
     # Plot histogram of interpolation weights
-    counts, bins = np.histogram(interpolation_weights.numpy().flatten(), bins=100)
-    plt.hist(bins[:-1], bins, weights=counts, rwidth=0.5)
-    plt.title("Histogram of barycentric coordinates")
-    plt.xlabel("barycentric coordinates")
-    plt.ylabel("Count")
-    plt.show()
+    if visualize_bc_histogram:
+        counts, bins = np.histogram(interpolation_weights.numpy().flatten(), bins=100)
+        plt.hist(bins[:-1], bins, weights=counts, rwidth=0.5)
+        plt.title("Histogram of barycentric coordinates")
+        plt.xlabel("barycentric coordinates")
+        plt.ylabel("Count")
+        plt.show()
 
     # Visualize three interpolated template vertices in their projected neighborhoods
-    for n in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
-        visualize_interpolations(
-            interpolation_weights[n].numpy(), closest_proj[n].numpy(), projections[n].numpy(), template
-        )
+    if visualize_bc_interpolations:
+        for n in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
+            visualize_interpolations(
+                interpolation_weights[n].numpy(), closest_proj[n].numpy(), projections[n].numpy(), template
+            )
