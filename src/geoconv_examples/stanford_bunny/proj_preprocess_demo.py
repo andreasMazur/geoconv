@@ -225,7 +225,10 @@ def preprocess_demo(path_to_stanford_bunny,
     if visualize_lrfs:
         for lrf_idx in np.random.randint(low=0, high=bunny_vertices.shape[0], size=(3,)):
             visualize_lrf(
-                origin=bunny_vertices[lrf_idx], local_reference_frame=lrfs[lrf_idx], shape=bunny, scale_lrf=0.05
+                origin=bunny_vertices[lrf_idx],
+                local_reference_frame=lrfs[lrf_idx],
+                vertices=bunny_vertices,
+                scale_lrf=0.05
             )
 
     # Step 5: Project neighborhoods into the plane spanned by the lrfs using the logarithmic map

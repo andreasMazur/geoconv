@@ -222,7 +222,7 @@ def draw_gpc_triangles(gpc_system,
     return gpc_system
 
 
-def visualize_lrf(origin, local_reference_frame, shape, scale_lrf=0.05):
+def visualize_lrf(origin, local_reference_frame, vertices, scale_lrf=0.05):
     """Visualizes local reference frames.
 
     Parameters
@@ -231,14 +231,14 @@ def visualize_lrf(origin, local_reference_frame, shape, scale_lrf=0.05):
         The origin of the local reference frame in form of a 1D-array (vertex).
     local_reference_frame: np.ndarray
         A 2D-array that contains three vectors describing the local reference frame.
-    shape: trimesh.Trimesh
+    vertices: np.ndarray
         The shape on top of which the local reference frame has been computed.
     scale_lrf: float
         A scaling factor for the local reference frame vectors.
     """
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(shape.vertices[:, 0], shape.vertices[:, 1],  shape.vertices[:, 2])
+    ax.scatter(vertices[:, 0], vertices[:, 1], vertices[:, 2])
     for vec in local_reference_frame:
         ax.quiver(*origin, *(scale_lrf * vec), color="r")
     plt.show()
