@@ -15,8 +15,8 @@ class ShiftPointCloud(tf.keras.layers.Layer):
 class Covariance(tf.keras.layers.Layer):
     @tf.function(jit_compile=True)
     def call(self, inputs):
-        input_shape = tf.shape(inputs)
-        return tf.reshape(tfp.stats.covariance(inputs, sample_axis=1), (input_shape[0], input_shape[-1] ** 2))
+        lower_tri = tf.linalg.LinearOperatorLowerTriangular(tfp.stats.covariance(inputs, sample_axis=1)).to_dense()
+        return tf.gather_nd(lower_tri, tf.where(lower_tri != 0.))
 
 
 class ModelNetClf(tf.keras.Model):
