@@ -39,7 +39,7 @@ def model_configuration(neighbors_for_lrf,
             initial_learning_rate=learning_rate,
             decay_steps=4874,
             decay_rate=0.5355550988899908,
-            staircase=True
+            staircase=False
         ),
         weight_decay=weight_decay
     )
