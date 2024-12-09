@@ -46,7 +46,7 @@ class ModelNetClf(tf.keras.Model):
         self.bc_layer.adapt(template_radius=template_radius)
 
         # For centering point clouds
-        self.normals = PointCloudNormals()
+        self.normals = PointCloudNormals(neighbors_for_lrf=16)
 
         #################
         # EMBEDDING PART
