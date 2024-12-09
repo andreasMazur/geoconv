@@ -46,7 +46,7 @@ class ModelNetClf(tf.keras.Model):
         self.bc_layer.adapt(template_radius=template_radius)
 
         # For centering point clouds
-        self.center = ShiftPointCloud()
+        self.normals = PointCloudNormals()
 
         #################
         # EMBEDDING PART
@@ -89,13 +89,16 @@ class ModelNetClf(tf.keras.Model):
 
     def call(self, inputs, training=False, **kwargs):
         # Shift point-cloud centroid into 0
-        coordinates = self.center(inputs)
+        # coordinates = self.center(inputs)
 
         # Compute barycentric coordinates from 3D coordinates
-        bc = self.bc_layer(coordinates)
+        bc = self.bc_layer(inputs)
+
+        # Compute covariance of normals
+        signal = self.normals(inputs)
 
         # Add noise
-        signal = self.noise(coordinates, training=training)
+        signal = self.noise(signal, training=training)
 
         # Compute vertex embeddings
         for idx in range(len(self.isc_layers)):

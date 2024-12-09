@@ -10,7 +10,6 @@ class PointCloudNormals(tf.keras.layers.Layer):
 
     @tf.function(jit_compile=True)
     def call(self, vertices):
-        self.call_helper(vertices[0])
         return tf.map_fn(self.call_helper, vertices)
 
     @tf.function(jit_compile=True)
@@ -19,5 +18,8 @@ class PointCloudNormals(tf.keras.layers.Layer):
         normals = lrfs[:, :, 0]
         normals = tf.gather(normals, neighborhoods_indices)
         covs = tf.einsum("nvi,nvj->nij", normals, normals)
-        covs = tf.reshape(covs, (tf.shape(covs)[0], 9))
+
+        lower_tri_mask = tf.linalg.band_part(tf.ones(shape=(3, 3)), 0, -1)
+        covs = tf.map_fn(lambda c: tf.boolean_mask(c, lower_tri_mask), covs)
+
         return covs / tf.linalg.norm(covs, axis=-1, keepdims=True)
