@@ -37,8 +37,8 @@ def model_configuration(neighbors_for_lrf,
     opt = tf.keras.optimizers.AdamW(
         learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=learning_rate,
-            decay_steps=7383,
-            decay_rate=0.8,
+            decay_steps=4874,
+            decay_rate=0.5355550988899908,
             staircase=True
         ),
         weight_decay=weight_decay
