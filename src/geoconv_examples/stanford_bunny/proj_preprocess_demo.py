@@ -91,7 +91,7 @@ def visualize_distance_matrix(distance_matrix):
     plt.show()
 
 
-def plot_normals(vertices, lrfs, n_neighbors, take_every_nth=5, axis_limit=0.1, plot=True):
+def plot_normals(vertices, lrfs, n_neighbors, take_every_nth=5, axis_limit=0.1, plot=True, length=0.01):
     """Visualize the normals of given LRFs
 
     Parameters
@@ -108,6 +108,8 @@ def plot_normals(vertices, lrfs, n_neighbors, take_every_nth=5, axis_limit=0.1, 
         The axis-limits.
     plot: bool
         Whether to plot immediately.
+    length: float
+        Length of the normal vectors.
     """
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
@@ -125,7 +127,7 @@ def plot_normals(vertices, lrfs, n_neighbors, take_every_nth=5, axis_limit=0.1, 
 
     # Plot the vectors at each point in the point cloud
     ax.scatter(x, y, z, color="r")
-    ax.quiver(x, y, z, u, v, w, length=0.01, color="b", alpha=0.33, linewidth=2.5)
+    ax.quiver(x, y, z, u, v, w, length=length, color="b", alpha=0.33, linewidth=2.5)
 
     # Plot centroid
     centroid = vertices.mean(axis=-2)
