@@ -7,7 +7,8 @@ import tensorflow as tf
 class Bottleneck(tf.keras.layers.Layer):
     def __init__(self,
                  amount_vertices,
-                 init_conv_dim,
+                 intermediate_dims,
+                 pre_bottleneck_dim,
                  n_radial,
                  n_angular,
                  neighbors_for_lrf,
@@ -30,8 +31,10 @@ class Bottleneck(tf.keras.layers.Layer):
         self.noise = tf.keras.layers.GaussianNoise(stddev=noise_stddev)
 
         # Remember parameters for 'init_conv'
-        self.init_conv = None
-        self.init_conv_dim = init_conv_dim
+        self.intermediate_convs = []
+        self.intermediate_dims = intermediate_dims
+        self.pre_bottleneck_conv = None
+        self.pre_bottleneck_dim = pre_bottleneck_dim
         self.template_radius = template_radius
         self.rotation_delta = rotation_delta
         self.variant = variant
@@ -44,20 +47,35 @@ class Bottleneck(tf.keras.layers.Layer):
             rotation_delta=self.rotation_delta,
             conv_type=self.variant,
             activation="relu",
-            input_dim=self.init_conv_dim,
+            input_dim=self.pre_bottleneck_dim,
             initializer=self.initializer
         )
 
     def build(self, input_shape):
         _, signal_shape = input_shape
 
-        self.init_conv = ResNetBlock(
-            amt_templates=self.init_conv_dim,
+        # Build intermediate convolution layers
+        for idx, dim in enumerate(self.intermediate_dims):
+            self.intermediate_convs.append(
+                ResNetBlock(
+                    amt_templates=self.intermediate_dims[idx],
+                    template_radius=self.template_radius,
+                    rotation_delta=self.rotation_delta,
+                    conv_type=self.variant,
+                    activation="relu",
+                    input_dim=signal_shape[-1] if idx == 0 else self.intermediate_dims[idx - 1],
+                    initializer=self.initializer
+                )
+            )
+
+        # Build pre-bottleneck layer
+        self.pre_bottleneck_conv = ResNetBlock(
+            amt_templates=self.pre_bottleneck_dim,
             template_radius=self.template_radius,
             rotation_delta=self.rotation_delta,
             conv_type=self.variant,
             activation="relu",
-            input_dim=signal_shape[-1],
+            input_dim=signal_shape[-1] if len(self.intermediate_dims) == 0 else self.intermediate_dims[-1],
             initializer=self.initializer
         )
 
@@ -70,8 +88,12 @@ class Bottleneck(tf.keras.layers.Layer):
         # Add noise
         signal = self.noise(signal, training=training)
 
+        # Propagate through intermediate layers
+        for idx in tf.range(len(self.intermediate_dims)):
+            signal = self.intermediate_convs[idx]([signal, bc])
+
         # Initial convolution
-        return_signal = self.init_conv([signal, bc], training=training)
+        return_signal = self.pre_bottleneck_conv([signal, bc], training=training)
 
         # Down-projection
         signal = self.down_projection([return_signal, bc])

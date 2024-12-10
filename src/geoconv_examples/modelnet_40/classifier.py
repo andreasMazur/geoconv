@@ -34,11 +34,12 @@ class ModelNetClf(tf.keras.Model):
 
         # Define embedding architecture
         self.isc_layers = []
-        for (dim, vertices) in isc_layer_conf:
+        for (dims, vertices) in isc_layer_conf:
             self.isc_layers.append(
                 Bottleneck(
                     amount_vertices=vertices,
-                    init_conv_dim=dim,
+                    intermediate_dims=dims[:-1],
+                    pre_bottleneck_dim=dims[-1],
                     n_radial=n_radial,
                     n_angular=n_angular,
                     neighbors_for_lrf=neighbors_for_lrf,
