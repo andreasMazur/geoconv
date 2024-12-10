@@ -61,7 +61,7 @@ class Bottleneck(tf.keras.layers.Layer):
             initializer=self.initializer
         )
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def call(self, inputs, training=False, **kwargs):
         coordinates, signal = inputs
 
