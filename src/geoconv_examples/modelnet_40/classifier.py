@@ -33,9 +33,9 @@ class ModelNetClf(tf.keras.Model):
         assert variant in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
 
         # Define embedding architecture
-        self.layers = []
+        self.isc_layers = []
         for (dim, vertices) in isc_layer_conf:
-            self.layers.append(
+            self.isc_layers.append(
                 Bottleneck(
                     amount_vertices=vertices,
                     init_conv_dim=dim,
@@ -71,8 +71,8 @@ class ModelNetClf(tf.keras.Model):
         signal = self.normals(coordinates)
 
         # Compute vertex embeddings
-        for idx in tf.range(len(self.layers)):
-            coordinates, signal = self.layers[idx]([coordinates, signal])
+        for idx in tf.range(len(self.isc_layers)):
+            coordinates, signal = self.isc_layers[idx]([coordinates, signal])
 
         # Pool local surface descriptors into global point-cloud descriptor
         signal = self.pool(signal)
