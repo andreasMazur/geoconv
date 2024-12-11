@@ -81,7 +81,7 @@ class ModelNetClf(tf.keras.Model):
         bc = self.bc_layer(coordinates)
 
         # Compute vertex embeddings
-        for idx in tf.range(len(self.isc_layers)):
+        for idx, _ in enumerate(self.isc_layers):
             signal = self.isc_layers[idx]([signal, bc])
 
         # Pool local surface descriptors into global point-cloud descriptor

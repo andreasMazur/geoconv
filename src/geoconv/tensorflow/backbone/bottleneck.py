@@ -68,7 +68,7 @@ class Bottleneck(tf.keras.layers.Layer):
         signal, bc = inputs
 
         # Propagate through intermediate layers
-        for idx in tf.range(len(self.intermediate_dims)):
+        for idx, _ in enumerate(self.intermediate_dims):
             signal = self.intermediate_convs[idx]([signal, bc])
 
         # Initial convolution
