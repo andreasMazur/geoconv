@@ -1,5 +1,6 @@
 from geoconv.tensorflow.backbone.bottleneck import Bottleneck
 from geoconv.tensorflow.backbone.covariance import Covariance
+from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 from geoconv.tensorflow.layers.point_cloud_normals import PointCloudNormals
 
 import tensorflow as tf
@@ -26,6 +27,15 @@ class ModelNetClf(tf.keras.Model):
         # For centering point clouds
         self.normals = PointCloudNormals(neighbors_for_lrf=16)
 
+        # Init barycentric coordinates layer
+        self.bc_layer = BarycentricCoordinates(
+            n_radial=n_radial, n_angular=n_angular, neighbors_for_lrf=neighbors_for_lrf
+        )
+        self.bc_layer.adapt(template_radius=template_radius)
+
+        # Add noise during training
+        self.noise = tf.keras.layers.GaussianNoise(stddev=noise_stddev)
+
         #################
         # EMBEDDING PART
         #################
@@ -34,17 +44,12 @@ class ModelNetClf(tf.keras.Model):
 
         # Define embedding architecture
         self.isc_layers = []
-        for (dims, vertices) in isc_layer_conf:
+        for dims in isc_layer_conf:
             self.isc_layers.append(
                 Bottleneck(
-                    amount_vertices=vertices,
                     intermediate_dims=dims[:-1],
                     pre_bottleneck_dim=dims[-1],
-                    n_radial=n_radial,
-                    n_angular=n_angular,
-                    neighbors_for_lrf=neighbors_for_lrf,
                     template_radius=template_radius,
-                    noise_stddev=noise_stddev,
                     rotation_delta=rotation_delta,
                     variant=variant,
                     initializer=initializer
@@ -70,10 +75,14 @@ class ModelNetClf(tf.keras.Model):
         # Compute covariance of normals
         coordinates = inputs
         signal = self.normals(coordinates)
+        signal = self.noise(signal, training=training)
+
+        # Compute barycentric coordinates from 3D coordinates
+        bc = self.bc_layer(coordinates)
 
         # Compute vertex embeddings
         for idx in tf.range(len(self.isc_layers)):
-            coordinates, signal = self.isc_layers[idx]([coordinates, signal])
+            signal = self.isc_layers[idx]([signal, bc])
 
         # Pool local surface descriptors into global point-cloud descriptor
         signal = self.pool(signal)
