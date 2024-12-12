@@ -44,14 +44,14 @@ def hyper_tuning(dataset_path,
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=hp.Float("learning_rate", min_value=0.0001, max_value=0.1),
+                initial_learning_rate=hp.Float("learning_rate", min_value=0.0001, max_value=0.05),
                 decay_steps=hp.Int("decay_steps", min_value=1, max_value=24610),
-                decay_rate=hp.Float("lr_exp_decay", min_value=0.00001, max_value=0.99999),
+                decay_rate=hp.Float("lr_exp_decay", min_value=0.00001, max_value=0.5),
                 staircase=staircase
             ),
-            weight_decay=hp.Float("weight_decay", min_value=0.0001, max_value=0.99999)
+            weight_decay=hp.Float("weight_decay", min_value=0.0001, max_value=0.01)
         )
-        reg_coefficient = hp.Float("attention_reg", min_value=0.0001, max_value=0.1)
+        reg_coefficient = hp.Float("attention_reg", min_value=0.0001, max_value=0.05)
 
         def regularization_loss(y_true, y_pred):
             return reg_coefficient * y_pred
