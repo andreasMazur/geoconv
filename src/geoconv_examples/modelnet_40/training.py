@@ -17,7 +17,8 @@ def model_configuration(neighbors_for_lrf,
                         rotation_delta,
                         weight_decay,
                         pooling,
-                        noise_stddev):
+                        noise_stddev,
+                        reg_coefficient):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
@@ -45,7 +46,12 @@ def model_configuration(neighbors_for_lrf,
     )
 
     # Compile the model
-    imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
+    imcnn.compile(
+        optimizer=opt,
+        loss=[loss, lambda _, sum_over_signal_weights: reg_coefficient * sum_over_signal_weights],
+        metrics={"output_1": "accuracy"},
+        run_eagerly=True
+    )
     imcnn(tf.random.uniform(shape=[1, 2000, 3]), training=False)
     imcnn.summary()
 
@@ -70,7 +76,8 @@ def training(dataset_path,
              pooling="cov",
              epochs=200,
              debug=False,
-             noise_stddev=0.0004):
+             noise_stddev=0.0004,
+             reg_coefficient=0.001):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -104,7 +111,8 @@ def training(dataset_path,
             rotation_delta=rotation_delta,
             weight_decay=weight_decay,
             pooling=pooling,
-            noise_stddev=noise_stddev
+            noise_stddev=noise_stddev,
+            reg_coefficient=reg_coefficient
         )
 
         # Define callbacks

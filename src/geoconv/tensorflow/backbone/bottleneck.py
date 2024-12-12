@@ -78,4 +78,4 @@ class Bottleneck(tf.keras.layers.Layer):
         signal_weighting = tf.keras.activations.sigmoid(self.down_projection([return_signal, bc]))
         return_signal = signal_weighting * return_signal
 
-        return return_signal
+        return return_signal, signal_weighting

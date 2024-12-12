@@ -19,7 +19,7 @@ def hyper_tuning(dataset_path,
                  pooling="avg",
                  isc_layer_conf=None):
     if isc_layer_conf is None:
-        isc_layer_conf = [4, 8, 8, 16]
+        isc_layer_conf = [[4], [8], [8], [16]]
 
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
@@ -51,8 +51,14 @@ def hyper_tuning(dataset_path,
             ),
             weight_decay=hp.Float("weight_decay", min_value=0.0001, max_value=0.99999)
         )
-        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"], run_eagerly=True)
+        reg_coefficient = hp.Float("attention_reg", min_value=0.0001, max_value=0.1)
 
+        def regularization_loss(y_true, y_pred):
+            return reg_coefficient * y_pred
+
+        imcnn.compile(
+            optimizer=opt, loss=[loss, regularization_loss], metrics={"output_1": "accuracy"}, run_eagerly=True
+        )
         return imcnn
 
     tuner = kt.BayesianOptimization(

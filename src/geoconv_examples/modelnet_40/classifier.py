@@ -81,11 +81,13 @@ class ModelNetClf(tf.keras.Model):
         bc = self.bc_layer(coordinates)
 
         # Compute vertex embeddings
+        signal_weight_sum = 0.
         for idx, _ in enumerate(self.isc_layers):
-            signal = self.isc_layers[idx]([signal, bc])
+            signal, signal_weights = self.isc_layers[idx]([signal, bc])
+            signal_weight_sum = signal_weight_sum + tf.reduce_sum(signal_weights)
 
         # Pool local surface descriptors into global point-cloud descriptor
         signal = self.pool(signal)
 
         # Return classification of point-cloud descriptor
-        return self.clf(signal)
+        return self.clf(signal), signal_weight_sum
