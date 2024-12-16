@@ -62,9 +62,9 @@ def hyper_tuning(dataset_path,
 
     tuner = kt.BayesianOptimization(
         hypermodel=build_hypermodel,
-        objective="val_output_1_accuracy",
+        objective=kt.Objective(name="val_output_1_accuracy", direction="max"),
         max_trials=10_000,
-        num_initial_points=15,
+        num_initial_points=10,
         directory=logging_dir,
         project_name="modelnet_40_hyper_tuning",
         tune_new_entries=True,
