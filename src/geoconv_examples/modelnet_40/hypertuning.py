@@ -16,10 +16,8 @@ def hyper_tuning(dataset_path,
                  rotation_delta=1,
                  variant="dirac",
                  pooling="avg",
-                 isc_layer_conf=None):
-    if isc_layer_conf is None:
-        isc_layer_conf = [[4], [8], [8], [16]]
-
+                 isc_layer_conf=None,
+                 bottleneck_dims=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -33,6 +31,7 @@ def hyper_tuning(dataset_path,
             n_angular=n_angular,
             template_radius=template_radius,
             isc_layer_conf=isc_layer_conf,
+            bottleneck_dims=bottleneck_dims,
             modelnet10=modelnet10,
             variant=variant,
             rotation_delta=rotation_delta,
