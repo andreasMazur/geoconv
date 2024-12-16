@@ -18,7 +18,9 @@ def model_configuration(neighbors_for_lrf,
                         weight_decay,
                         pooling,
                         noise_stddev,
-                        reg_coefficient):
+                        reg_coefficient,
+                        decay_steps,
+                        lr_decay_rate):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
@@ -38,8 +40,8 @@ def model_configuration(neighbors_for_lrf,
     opt = tf.keras.optimizers.AdamW(
         learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=learning_rate,
-            decay_steps=4874,
-            decay_rate=0.5355550988899908,
+            decay_steps=decay_steps,
+            decay_rate=lr_decay_rate,
             staircase=False
         ),
         weight_decay=weight_decay
@@ -77,7 +79,9 @@ def training(dataset_path,
              epochs=200,
              debug=False,
              noise_stddev=0.0004,
-             reg_coefficient=0.001):
+             reg_coefficient=0.001,
+             decay_steps=4874,
+             lr_decay_rate=0.5355550988899908):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -112,7 +116,9 @@ def training(dataset_path,
             weight_decay=weight_decay,
             pooling=pooling,
             noise_stddev=noise_stddev,
-            reg_coefficient=reg_coefficient
+            reg_coefficient=reg_coefficient,
+            decay_steps=decay_steps,
+            lr_decay_rate=lr_decay_rate
         )
 
         # Define callbacks
