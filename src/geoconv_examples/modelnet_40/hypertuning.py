@@ -15,7 +15,6 @@ def hyper_tuning(dataset_path,
                  batch_size=4,
                  rotation_delta=1,
                  variant="dirac",
-                 staircase=False,
                  pooling="avg",
                  isc_layer_conf=None):
     if isc_layer_conf is None:
@@ -38,20 +37,20 @@ def hyper_tuning(dataset_path,
             variant=variant,
             rotation_delta=rotation_delta,
             pooling=pooling,
-            noise_stddev=hp.Float("noise_stddev", min_value=0.00001, max_value=0.001)
+            noise_stddev=hp.Float("noise_stddev", min_value=0., max_value=0.00035)
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=hp.Float("learning_rate", min_value=0.0001, max_value=0.05),
-                decay_steps=hp.Int("decay_steps", min_value=1, max_value=24610),
-                decay_rate=hp.Float("lr_exp_decay", min_value=0.00001, max_value=0.5),
-                staircase=staircase
+                initial_learning_rate=hp.Float("learning_rate", min_value=0.0150, max_value=0.0225),
+                decay_steps=hp.Int("decay_steps", min_value=2500, max_value=5000),
+                decay_rate=hp.Float("lr_exp_decay", min_value=0.15, max_value=0.4),
+                staircase=False
             ),
-            weight_decay=hp.Float("weight_decay", min_value=0.0001, max_value=0.01)
+            weight_decay=hp.Float("weight_decay", min_value=0.001, max_value=0.01)
         )
-        reg_coefficient = hp.Float("attention_reg", min_value=0.0001, max_value=0.05)
+        reg_coefficient = hp.Float("attention_reg", min_value=0.000001, max_value=0.0001)
 
         def regularization_loss(y_true, y_pred):
             return reg_coefficient * y_pred
