@@ -1,4 +1,7 @@
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
+from geoconv.tensorflow.layers.conv_dirac import ConvDirac
+from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
+from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
 
 import tensorflow as tf
 
@@ -11,7 +14,9 @@ class Bottleneck(tf.keras.layers.Layer):
                  rotation_delta,
                  variant,
                  initializer,
-                 activation="relu"):
+                 activation="relu",
+                 template_regularizer=None,
+                 bias_regularizer=None):
         super().__init__()
 
         # Remember parameters for 'init_conv'
@@ -26,15 +31,10 @@ class Bottleneck(tf.keras.layers.Layer):
         self.activation = activation
 
         # Define down-projection layer
-        self.down_projection = ResNetBlock(
-            amt_templates=1,
-            template_radius=self.template_radius,
-            rotation_delta=self.rotation_delta,
-            conv_type=self.variant,
-            activation="linear",
-            input_dim=self.pre_bottleneck_dim,
-            initializer=self.initializer
-        )
+        assert variant in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
+        self.layer_type = ConvGeodesic if variant == "geodesic" else ConvDirac
+
+        self.down_projection = tf.keras.layers.Dense(units=1, activation="sigmoid")
 
     def build(self, input_shape):
         signal_shape, _ = input_shape
@@ -75,7 +75,8 @@ class Bottleneck(tf.keras.layers.Layer):
         return_signal = self.pre_bottleneck_conv([signal, bc], training=training)
 
         # Down-projection
-        signal_weighting = tf.keras.activations.sigmoid(self.down_projection([return_signal, bc]))
+        signal_weighting = self.down_projection(return_signal)
+
         return_signal = signal_weighting * return_signal
 
         return return_signal, signal_weighting
