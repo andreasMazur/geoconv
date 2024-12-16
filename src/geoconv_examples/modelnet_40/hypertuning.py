@@ -50,7 +50,7 @@ def hyper_tuning(dataset_path,
             ),
             weight_decay=hp.Float("weight_decay", min_value=0.001, max_value=0.01)
         )
-        reg_coefficient = hp.Float("attention_reg", min_value=0.000001, max_value=0.0001)
+        reg_coefficient = hp.Float("attention_reg", min_value=0.000001, max_value=0.001)
 
         def regularization_loss(y_true, y_pred):
             return reg_coefficient * y_pred

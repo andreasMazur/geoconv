@@ -1,5 +1,6 @@
 from geoconv.tensorflow.backbone.bottleneck import Bottleneck
 from geoconv.tensorflow.backbone.covariance import Covariance
+from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 from geoconv.tensorflow.layers.point_cloud_normals import PointCloudNormals
 
@@ -12,6 +13,7 @@ class ModelNetClf(tf.keras.Model):
                  n_angular,
                  template_radius,
                  isc_layer_conf,
+                 bottleneck_dims,
                  neighbors_for_lrf=16,
                  modelnet10=False,
                  variant=None,
@@ -42,16 +44,28 @@ class ModelNetClf(tf.keras.Model):
         # Determine which layer type shall be used
         assert variant in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
 
+        # Define selection architecture
+        if len(bottleneck_dims) > 0:
+            self.selection_layer = Bottleneck(
+                intermediate_dims=bottleneck_dims[:-1],
+                pre_bottleneck_dim=bottleneck_dims[-1],
+                template_radius=template_radius,
+                rotation_delta=rotation_delta,
+                variant=variant,
+                initializer=initializer
+            )
+
         # Define embedding architecture
         self.isc_layers = []
-        for dims in isc_layer_conf:
+        for idx, _ in enumerate(isc_layer_conf):
             self.isc_layers.append(
-                Bottleneck(
-                    intermediate_dims=dims[:-1],
-                    pre_bottleneck_dim=dims[-1],
+                ResNetBlock(
+                    amt_templates=isc_layer_conf[idx],
                     template_radius=template_radius,
                     rotation_delta=rotation_delta,
-                    variant=variant,
+                    conv_type=variant,
+                    activation="relu",
+                    input_dim=-1 if idx == 0 else isc_layer_conf[idx - 1],
                     initializer=initializer
                 )
             )
@@ -80,14 +94,15 @@ class ModelNetClf(tf.keras.Model):
         # Compute barycentric coordinates from 3D coordinates
         bc = self.bc_layer(coordinates)
 
+        # Select vertices
+        signal, signal_weights = self.selection_layer([signal, bc])
+
         # Compute vertex embeddings
-        signal_weight_sum = 0.
         for idx, _ in enumerate(self.isc_layers):
-            signal, signal_weights = self.isc_layers[idx]([signal, bc])
-            signal_weight_sum = signal_weight_sum + tf.reduce_sum(signal_weights)
+            signal = self.isc_layers[idx]([signal, bc])
 
         # Pool local surface descriptors into global point-cloud descriptor
         signal = self.pool(signal)
 
         # Return classification of point-cloud descriptor
-        return self.clf(signal), signal_weight_sum
+        return self.clf(signal), tf.reduce_sum(signal_weights, axis=-2)
