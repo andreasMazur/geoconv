@@ -14,9 +14,7 @@ class Bottleneck(tf.keras.layers.Layer):
                  rotation_delta,
                  variant,
                  initializer,
-                 activation="relu",
-                 template_regularizer=None,
-                 bias_regularizer=None):
+                 activation="relu"):
         super().__init__()
 
         # Remember parameters for 'init_conv'
