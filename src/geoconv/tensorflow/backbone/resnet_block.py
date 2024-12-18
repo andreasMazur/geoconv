@@ -71,24 +71,24 @@ class ResNetBlock(tf.keras.Model):
     def call(self, inputs, training=False, **kwargs):
         input_signal, bc = inputs
 
-        if tf.constant(training):
-            orientations = tf.range(start=0, limit=tf.shape(bc)[3], delta=self.rotation_delta)
-        else:
-            orientations = tf.range(tf.shape(bc)[3])
+        # if tf.constant(training):
+        # orientations = tf.range(start=0, limit=tf.shape(bc)[3], delta=self.rotation_delta)
+        # else:
+        #     orientations = tf.range(tf.shape(bc)[3])
 
         # F(x)
-        signal = self.conv1([input_signal, bc], orientations)
+        signal = self.conv1([input_signal, bc])  # , orientations
         signal = self.amp1(signal)
         signal = self.bn1(signal)
         signal = self.output_activation(signal)
 
-        signal = self.conv2([signal, bc], orientations)
+        signal = self.conv2([signal, bc])  # , orientations
         signal = self.amp2(signal)
         signal = self.bn2(signal)
 
         if self.rescale:
             # W x
-            input_signal = self.conv_rescale([input_signal, bc], orientations)
+            input_signal = self.conv_rescale([input_signal, bc])  # , orientations
             input_signal = self.amp_rescale(input_signal)
             input_signal = self.bn_rescale(input_signal)
 
