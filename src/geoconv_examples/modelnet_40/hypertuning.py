@@ -35,7 +35,7 @@ def hyper_tuning(dataset_path,
             rotation_delta=rotation_delta,
             pooling=pooling,
             noise_stddev=hp.Float("noise_stddev", min_value=0., max_value=0.00015),
-            l1_reg_strength=hp.Float("L1_reg_coefficient", min_value=0., max_value=1.)
+            l1_reg_strength=hp.Float("L1_reg_coefficient", min_value=0., max_value=0.5)
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
