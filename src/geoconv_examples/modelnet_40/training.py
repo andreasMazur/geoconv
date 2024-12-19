@@ -11,7 +11,6 @@ def model_configuration(neighbors_for_lrf,
                         n_angular,
                         template_radius,
                         isc_layer_conf,
-                        bottleneck_dims,
                         modelnet10,
                         learning_rate,
                         variant,
@@ -19,9 +18,9 @@ def model_configuration(neighbors_for_lrf,
                         weight_decay,
                         pooling,
                         noise_stddev,
-                        reg_coefficient,
                         decay_steps,
-                        lr_decay_rate):
+                        lr_decay_rate,
+                        l1_reg_strength):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
@@ -29,12 +28,12 @@ def model_configuration(neighbors_for_lrf,
         n_angular=n_angular,
         template_radius=template_radius,
         isc_layer_conf=isc_layer_conf,
-        bottleneck_dims=bottleneck_dims,
         modelnet10=modelnet10,
         variant=variant,
         rotation_delta=rotation_delta,
         pooling=pooling,
-        noise_stddev=noise_stddev
+        noise_stddev=noise_stddev,
+        l1_reg_strength=l1_reg_strength
     )
 
     # Define loss and optimizer
@@ -50,12 +49,7 @@ def model_configuration(neighbors_for_lrf,
     )
 
     # Compile the model
-    imcnn.compile(
-        optimizer=opt,
-        loss=[loss, lambda _, sum_over_signal_weights: reg_coefficient * sum_over_signal_weights],
-        metrics={"output_1": "accuracy"},
-        run_eagerly=True
-    )
+    imcnn.compile(optimizer=opt, loss=loss, metrics="accuracy", run_eagerly=True)
     imcnn(tf.random.uniform(shape=[1, 2000, 3]), training=False)
     imcnn.summary()
 
@@ -67,7 +61,6 @@ def training(dataset_path,
              template_configurations=None,
              neighbors_for_lrf=16,
              isc_layer_conf=None,
-             bottleneck_dims=None,
              learning_rate=0.0025153,
              template_radius=None,
              modelnet10=False,
@@ -82,9 +75,9 @@ def training(dataset_path,
              epochs=200,
              debug=False,
              noise_stddev=0.0004,
-             reg_coefficient=0.001,
              decay_steps=4874,
-             lr_decay_rate=0.5355550988899908):
+             lr_decay_rate=0.5355550988899908,
+             l1_reg_strength=0.):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -112,7 +105,6 @@ def training(dataset_path,
             n_angular=n_angular,
             template_radius=template_radius * template_scale,
             isc_layer_conf=isc_layer_conf,
-            bottleneck_dims=bottleneck_dims,
             modelnet10=modelnet10,
             learning_rate=learning_rate,
             variant=variant,
@@ -120,9 +112,9 @@ def training(dataset_path,
             weight_decay=weight_decay,
             pooling=pooling,
             noise_stddev=noise_stddev,
-            reg_coefficient=reg_coefficient,
             decay_steps=decay_steps,
-            lr_decay_rate=lr_decay_rate
+            lr_decay_rate=lr_decay_rate,
+            l1_reg_strength=l1_reg_strength
         )
 
         # Define callbacks
