@@ -61,7 +61,9 @@ class ResNetBlock(tf.keras.Model):
                 activation="linear",
                 name="ResNetBlock_rescale",
                 rotation_delta=rotation_delta,
-                initializer=initializer
+                initializer=initializer,
+                template_regularizer=template_regularizer,
+                bias_regularizer=bias_regularizer
             )
             self.bn_rescale = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
             self.amp_rescale = AngularMaxPooling()
