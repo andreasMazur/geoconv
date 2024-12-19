@@ -16,8 +16,7 @@ def hyper_tuning(dataset_path,
                  rotation_delta=1,
                  variant="dirac",
                  pooling="avg",
-                 isc_layer_conf=None,
-                 bottleneck_dims=None):
+                 isc_layer_conf=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -31,12 +30,12 @@ def hyper_tuning(dataset_path,
             n_angular=n_angular,
             template_radius=template_radius,
             isc_layer_conf=isc_layer_conf,
-            bottleneck_dims=bottleneck_dims,
             modelnet10=modelnet10,
             variant=variant,
             rotation_delta=rotation_delta,
             pooling=pooling,
-            noise_stddev=hp.Float("noise_stddev", min_value=0., max_value=0.00015)
+            noise_stddev=hp.Float("noise_stddev", min_value=0., max_value=0.00015),
+            l1_reg_strength=hp.Float("L1_reg_coefficient", min_value=0., max_value=1.)
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
@@ -49,19 +48,14 @@ def hyper_tuning(dataset_path,
             ),
             weight_decay=hp.Float("weight_decay", min_value=0.001, max_value=0.01)
         )
-        reg_coefficient = hp.Float("attention_reg", min_value=0., max_value=0.0002)
 
-        def regularization_loss(y_true, y_pred):
-            return reg_coefficient * y_pred
+        imcnn.compile(optimizer=opt, loss=loss, metrics="accuracy", run_eagerly=True)
 
-        imcnn.compile(
-            optimizer=opt, loss=[loss, regularization_loss], metrics={"output_1": "accuracy"}, run_eagerly=True
-        )
         return imcnn
 
     tuner = kt.BayesianOptimization(
         hypermodel=build_hypermodel,
-        objective=kt.Objective(name="val_output_1_accuracy", direction="max"),
+        objective=kt.Objective(name="val_accuracy", direction="max"),
         max_trials=10_000,
         num_initial_points=10,
         directory=logging_dir,
