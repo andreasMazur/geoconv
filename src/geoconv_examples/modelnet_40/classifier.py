@@ -1,4 +1,3 @@
-from geoconv.tensorflow.backbone.bottleneck import Bottleneck
 from geoconv.tensorflow.backbone.covariance import Covariance
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
@@ -13,14 +12,14 @@ class ModelNetClf(tf.keras.Model):
                  n_angular,
                  template_radius,
                  isc_layer_conf,
-                 bottleneck_dims,
                  neighbors_for_lrf=16,
                  modelnet10=False,
                  variant=None,
                  rotation_delta=1,
                  initializer="glorot_uniform",
                  pooling="cov",
-                 noise_stddev=1e-3):
+                 noise_stddev=1e-3,
+                 l1_reg_strength=0.):
         super().__init__()
 
         #############
@@ -44,17 +43,6 @@ class ModelNetClf(tf.keras.Model):
         # Determine which layer type shall be used
         assert variant in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
 
-        # Define selection architecture
-        if len(bottleneck_dims) > 0:
-            self.selection_layer = Bottleneck(
-                intermediate_dims=bottleneck_dims[:-1],
-                pre_bottleneck_dim=bottleneck_dims[-1],
-                template_radius=template_radius,
-                rotation_delta=rotation_delta,
-                variant=variant,
-                initializer=initializer
-            )
-
         # Define embedding architecture
         self.isc_layers = []
         for idx, _ in enumerate(isc_layer_conf):
@@ -66,7 +54,9 @@ class ModelNetClf(tf.keras.Model):
                     conv_type=variant,
                     activation="relu",
                     input_dim=-1 if idx == 0 else isc_layer_conf[idx - 1],
-                    initializer=initializer
+                    initializer=initializer,
+                    template_regularizer=tf.keras.regularizers.L1(l1=l1_reg_strength),
+                    bias_regularizer=tf.keras.regularizers.L1(l1=l1_reg_strength)
                 )
             )
 
@@ -94,9 +84,6 @@ class ModelNetClf(tf.keras.Model):
         # Compute barycentric coordinates from 3D coordinates
         bc = self.bc_layer(coordinates)
 
-        # Select vertices
-        signal, signal_weights = self.selection_layer([signal, bc])
-
         # Compute vertex embeddings
         for idx, _ in enumerate(self.isc_layers):
             signal = self.isc_layers[idx]([signal, bc])
@@ -105,4 +92,4 @@ class ModelNetClf(tf.keras.Model):
         signal = self.pool(signal)
 
         # Return classification of point-cloud descriptor
-        return self.clf(signal), tf.reduce_sum(signal_weights, axis=-2)
+        return self.clf(signal)
