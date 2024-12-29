@@ -133,7 +133,7 @@ def logarithmic_map(lrfs, neighborhoods):
 
 
 @tf.function(jit_compile=True)
-def knn_shot_lrf(k_neighbors, vertices):
+def knn_shot_lrf(k_neighbors, vertices, repetitions=4):
     # 1.) Compute radius for local parameterization spaces. Keep it equal for all for comparability.
     # 'distance_matrix': (vertices, vertices)
     # 'radii': (vertices,)
@@ -149,10 +149,24 @@ def knn_shot_lrf(k_neighbors, vertices):
     # 'lrfs': (vertices, 3, 3)
     lrfs = shot_lrf(neighborhoods, radii)
 
-    # 4.) Make normal vectors point away from centroid
+    # 4.) Make normal vectors point away from centroid (outwards from shape)
     signs = -tf.cast(tf.einsum("vi,vi->v", lrfs[:, :, 0], tf.reduce_mean(vertices, axis=0) - vertices) >= 0, tf.int32)
     signs = signs + tf.cast(signs == 0, tf.int32)
     normals = tf.expand_dims(tf.cast(signs, tf.float32), axis=-1) * lrfs[:, :, 0]
     lrfs = tf.stack([normals, lrfs[:, :, 1], lrfs[:, :, 2]], axis=-1)
+
+    # 5.) Make normal vectors in neighborhoods point the same direction
+    # (non-convex shapes -> "outwards" might differ locally)
+    for rep in range(repetitions):
+        normals = tf.gather(lrfs[:, :, 0], neighborhood_indices[:, 1:])
+        signs = -tf.cast(
+            tf.reduce_sum(
+                tf.cast(tf.einsum("vi,vni->vn", lrfs[:, :, 0], normals) >= 0, tf.int32), axis=-1
+            ) <= tf.math.floordiv(k_neighbors, 2),
+            tf.int32
+        )
+        signs = signs + tf.cast(signs == 0, tf.int32)
+        normals = tf.expand_dims(tf.cast(signs, tf.float32), axis=-1) * lrfs[:, :, 0]
+        lrfs = tf.stack([normals, lrfs[:, :, 1], lrfs[:, :, 2]], axis=-1)
 
     return lrfs, neighborhoods, neighborhood_indices
