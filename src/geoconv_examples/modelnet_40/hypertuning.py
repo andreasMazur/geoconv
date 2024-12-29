@@ -35,13 +35,13 @@ def hyper_tuning(dataset_path,
             rotation_delta=rotation_delta,
             pooling=pooling,
             noise_stddev=0.,
-            l1_reg_strength=hp.Float("L1_reg_coefficient", min_value=0., max_value=0.5)
+            l1_reg_strength=hp.Float("L1_reg_coefficient", min_value=0., max_value=0.05)
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
         opt = tf.keras.optimizers.AdamW(
-            learning_rate=hp.Float("learning_rate", min_value=0.0001, max_value=0.3),
-            weight_decay=hp.Float("weight_decay", min_value=0., max_value=0.5)
+            learning_rate=hp.Float("learning_rate", min_value=1e-06, max_value=0.025),
+            weight_decay=hp.Float("L2_reg_coefficient", min_value=0., max_value=0.15)
         )
 
         imcnn.compile(optimizer=opt, loss=loss, metrics="accuracy", run_eagerly=True)
@@ -76,7 +76,7 @@ def hyper_tuning(dataset_path,
     )
 
     # Start hyperparameter tuning
-    stop = tf.keras.callbacks.EarlyStopping(monitor="val_accuracy", patience=2, min_delta=0.01)
+    stop = tf.keras.callbacks.EarlyStopping(monitor="val_accuracy", patience=3, min_delta=0.01)
     tuner.search(x=train_data, validation_data=test_data, epochs=12, callbacks=[stop])
 
     # Print best hyperparameters
