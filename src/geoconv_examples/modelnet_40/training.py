@@ -16,10 +16,7 @@ def model_configuration(neighbors_for_lrf,
                         variant,
                         rotation_delta,
                         weight_decay,
-                        pooling,
-                        decay_steps,
-                        lr_decay_rate,
-                        l1_reg_strength):
+                        pooling):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
@@ -30,21 +27,12 @@ def model_configuration(neighbors_for_lrf,
         modelnet10=modelnet10,
         variant=variant,
         rotation_delta=rotation_delta,
-        pooling=pooling,
-        l1_reg_strength=l1_reg_strength
+        pooling=pooling
     )
 
     # Define loss and optimizer
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
-    opt = tf.keras.optimizers.AdamW(
-        learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=learning_rate,
-            decay_steps=decay_steps,
-            decay_rate=lr_decay_rate,
-            staircase=False
-        ),
-        weight_decay=weight_decay
-    )
+    opt = tf.keras.optimizers.AdamW(learning_rate=learning_rate, weight_decay=weight_decay)
 
     # Compile the model
     imcnn.compile(optimizer=opt, loss=loss, metrics="accuracy", run_eagerly=True)
@@ -71,10 +59,7 @@ def training(dataset_path,
              weight_decay=0.01358,
              pooling="cov",
              epochs=200,
-             debug=False,
-             decay_steps=4874,
-             lr_decay_rate=0.5355550988899908,
-             l1_reg_strength=0.):
+             debug=False):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -107,10 +92,7 @@ def training(dataset_path,
             variant=variant,
             rotation_delta=rotation_delta,
             weight_decay=weight_decay,
-            pooling=pooling,
-            decay_steps=decay_steps,
-            lr_decay_rate=lr_decay_rate,
-            l1_reg_strength=l1_reg_strength
+            pooling=pooling
         )
 
         # Define callbacks

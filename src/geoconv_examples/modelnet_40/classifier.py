@@ -18,7 +18,6 @@ class ModelNetClf(tf.keras.Model):
                  rotation_delta=1,
                  initializer="glorot_uniform",
                  pooling="cov",
-                 l1_reg_strength=0.,
                  azimuth_bins=8,
                  elevation_bins=2,
                  radial_bins=2,
@@ -52,34 +51,17 @@ class ModelNetClf(tf.keras.Model):
         # Define embedding architecture
         self.isc_layers = []
         for idx, _ in enumerate(isc_layer_conf):
-            if idx < len(isc_layer_conf) - 1:
-                self.isc_layers.append(
-                    ResNetBlock(
-                        amt_templates=isc_layer_conf[idx],
-                        template_radius=template_radius,
-                        rotation_delta=rotation_delta,
-                        conv_type=variant,
-                        activation="relu",
-                        input_dim=-1 if idx == 0 else isc_layer_conf[idx - 1],
-                        initializer=initializer,
-                        template_regularizer=None,
-                        bias_regularizer=None
-                    )
+            self.isc_layers.append(
+                ResNetBlock(
+                    amt_templates=isc_layer_conf[idx],
+                    template_radius=template_radius,
+                    rotation_delta=rotation_delta,
+                    conv_type=variant,
+                    activation="relu",
+                    input_dim=-1 if idx == 0 else isc_layer_conf[idx - 1],
+                    initializer=initializer
                 )
-            else:
-                self.isc_layers.append(
-                    ResNetBlock(
-                        amt_templates=isc_layer_conf[idx],
-                        template_radius=template_radius,
-                        rotation_delta=rotation_delta,
-                        conv_type=variant,
-                        activation="relu",
-                        input_dim=-1 if idx == 0 else isc_layer_conf[idx - 1],
-                        initializer=initializer,
-                        template_regularizer=tf.keras.regularizers.L1(l1=l1_reg_strength),
-                        bias_regularizer=tf.keras.regularizers.L1(l1=l1_reg_strength)
-                    )
-                )
+            )
 
         ######################
         # CLASSIFICATION PART
