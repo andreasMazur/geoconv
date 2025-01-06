@@ -17,7 +17,6 @@ def model_configuration(neighbors_for_lrf,
                         rotation_delta,
                         weight_decay,
                         pooling,
-                        noise_stddev,
                         decay_steps,
                         lr_decay_rate,
                         l1_reg_strength):
@@ -32,7 +31,6 @@ def model_configuration(neighbors_for_lrf,
         variant=variant,
         rotation_delta=rotation_delta,
         pooling=pooling,
-        noise_stddev=noise_stddev,
         l1_reg_strength=l1_reg_strength
     )
 
@@ -74,7 +72,6 @@ def training(dataset_path,
              pooling="cov",
              epochs=200,
              debug=False,
-             noise_stddev=0.0004,
              decay_steps=4874,
              lr_decay_rate=0.5355550988899908,
              l1_reg_strength=0.):
@@ -111,7 +108,6 @@ def training(dataset_path,
             rotation_delta=rotation_delta,
             weight_decay=weight_decay,
             pooling=pooling,
-            noise_stddev=noise_stddev,
             decay_steps=decay_steps,
             lr_decay_rate=lr_decay_rate,
             l1_reg_strength=l1_reg_strength

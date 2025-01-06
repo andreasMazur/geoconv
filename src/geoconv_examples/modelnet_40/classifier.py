@@ -1,7 +1,7 @@
 from geoconv.tensorflow.backbone.covariance import Covariance
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
-from geoconv.tensorflow.layers.point_cloud_normals import PointCloudNormals
+from geoconv.tensorflow.layers.shot_descriptor import PointCloudShotDescriptor
 
 import tensorflow as tf
 
@@ -18,7 +18,6 @@ class ModelNetClf(tf.keras.Model):
                  rotation_delta=1,
                  initializer="glorot_uniform",
                  pooling="cov",
-                 noise_stddev=1e-3,
                  l1_reg_strength=0.):
         super().__init__()
 
@@ -26,16 +25,13 @@ class ModelNetClf(tf.keras.Model):
         # INPUT PART
         #############
         # For centering point clouds
-        self.normals = PointCloudNormals(neighbors_for_lrf=16)
+        self.normals = PointCloudShotDescriptor(neighbors_for_lrf=16)
 
         # Init barycentric coordinates layer
         self.bc_layer = BarycentricCoordinates(
             n_radial=n_radial, n_angular=n_angular, neighbors_for_lrf=neighbors_for_lrf
         )
         self.bc_layer.adapt(template_radius=template_radius)
-
-        # Add noise during training
-        self.noise = tf.keras.layers.GaussianNoise(stddev=noise_stddev)
 
         #################
         # EMBEDDING PART
@@ -94,7 +90,6 @@ class ModelNetClf(tf.keras.Model):
         # Compute covariance of normals
         coordinates = inputs
         signal = self.normals(coordinates)
-        signal = self.noise(signal, training=training)
 
         # Compute barycentric coordinates from 3D coordinates
         bc = self.bc_layer(coordinates)
