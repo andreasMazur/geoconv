@@ -29,7 +29,7 @@ class ModelNetClf(tf.keras.Model):
         # INPUT PART
         #############
         # For centering point clouds
-        self.normals = PointCloudShotDescriptor(
+        self.shot_descriptor = PointCloudShotDescriptor(
             neighbors_for_lrf=neighbors_for_lrf,
             azimuth_bins=azimuth_bins,
             elevation_bins=elevation_bins,
@@ -97,9 +97,9 @@ class ModelNetClf(tf.keras.Model):
         self.clf = tf.keras.layers.Dense(units=self.output_dim, activation="linear")
 
     def call(self, inputs, training=False, **kwargs):
-        # Compute covariance of normals
+        # Compute SHOT-descriptor as initial local vertex features
         coordinates = inputs
-        signal = self.normals(coordinates)
+        signal = self.shot_descriptor(coordinates)
 
         # Compute barycentric coordinates from 3D coordinates
         bc = self.bc_layer(coordinates)
