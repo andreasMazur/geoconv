@@ -225,6 +225,4 @@ def shot_descr(neighborhoods,
     histogram = tf.reshape(histogram, (neighborhood_shape[0], -1))
 
     # Normalize descriptor to have length 1
-    histogram = histogram * (1 / tf.expand_dims(tf.linalg.norm(histogram, axis=-1), axis=-1))
-
-    return histogram
+    return histogram / tf.linalg.norm(histogram, axis=-1, keepdims=True)
