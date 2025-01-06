@@ -18,14 +18,24 @@ class ModelNetClf(tf.keras.Model):
                  rotation_delta=1,
                  initializer="glorot_uniform",
                  pooling="cov",
-                 l1_reg_strength=0.):
+                 l1_reg_strength=0.,
+                 azimuth_bins=8,
+                 elevation_bins=2,
+                 radial_bins=2,
+                 histogram_bins=11):
         super().__init__()
 
         #############
         # INPUT PART
         #############
         # For centering point clouds
-        self.normals = PointCloudShotDescriptor(neighbors_for_lrf=16)
+        self.normals = PointCloudShotDescriptor(
+            neighbors_for_lrf=neighbors_for_lrf,
+            azimuth_bins=azimuth_bins,
+            elevation_bins=elevation_bins,
+            radial_bins=radial_bins,
+            histogram_bins=histogram_bins
+        )
 
         # Init barycentric coordinates layer
         self.bc_layer = BarycentricCoordinates(
