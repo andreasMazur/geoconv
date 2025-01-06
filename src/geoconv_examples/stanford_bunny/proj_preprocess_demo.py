@@ -1,5 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
 from geoconv.tensorflow.layers.barycentric_coordinates import compute_bc
+from geoconv.tensorflow.utils.compute_shot_decr import shot_descr
 from geoconv.tensorflow.utils.compute_shot_lrf import compute_distance_matrix, logarithmic_map, knn_shot_lrf
 from geoconv.utils.visualization import visualize_lrf
 from geoconv_examples.stanford_bunny.preprocess_demo import load_bunny
@@ -152,6 +153,7 @@ def preprocess_demo(path_to_stanford_bunny,
                     n_angular=6,
                     visualize_dist_matrix=True,
                     visualize_lrf_normals=True,
+                    visualize_shot_descr=True,
                     visualize_neighborhoods=True,
                     visualize_lrfs=True,
                     visualize_projections=True,
@@ -181,6 +183,8 @@ def preprocess_demo(path_to_stanford_bunny,
         Whether to visualize the distance matrix.
     visualize_lrf_normals: bool
         Whether to visualize the normal vectors given by local reference frames (LRFs).
+    visualize_shot_descr: bool
+        Whether to visualize SHOT-descriptors.
     visualize_neighborhoods: bool
         Whether to visualize local neighborhoods on the 3D point-cloud.
     visualize_lrfs: bool
@@ -217,6 +221,18 @@ def preprocess_demo(path_to_stanford_bunny,
         plt.show()
     lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(n_neighbors, bunny_vertices)
     lrfs = lrfs.numpy()
+
+    # Compute SHOT descriptor
+    shot_descriptor = shot_descr(
+        neighborhoods=neighborhoods,
+        normals=lrfs[:, :, 0],
+        neighborhood_indices=neighborhoods_indices,
+        radius=np.max(neighborhoods)
+    )
+
+    if visualize_shot_descr:
+        plt.imshow(shot_descriptor[::5])
+        plt.show()
 
     # Visualize three neighborhoods
     if visualize_neighborhoods:
