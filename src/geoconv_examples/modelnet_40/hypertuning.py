@@ -16,7 +16,12 @@ def hyper_tuning(dataset_path,
                  rotation_delta=1,
                  variant="dirac",
                  pooling="avg",
-                 isc_layer_conf=None):
+                 isc_layer_conf=None,
+                 azimuth_bins=8,
+                 elevation_bins=2,
+                 radial_bins=2,
+                 histogram_bins=11,
+                 sphere_radius=0.):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -33,7 +38,12 @@ def hyper_tuning(dataset_path,
             modelnet10=modelnet10,
             variant=variant,
             rotation_delta=rotation_delta,
-            pooling=pooling
+            pooling=pooling,
+            azimuth_bins=azimuth_bins,
+            elevation_bins=elevation_bins,
+            radial_bins=radial_bins,
+            histogram_bins=histogram_bins,
+            sphere_radius=sphere_radius
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")

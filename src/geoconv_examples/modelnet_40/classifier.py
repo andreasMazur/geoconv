@@ -21,7 +21,8 @@ class ModelNetClf(tf.keras.Model):
                  azimuth_bins=8,
                  elevation_bins=2,
                  radial_bins=2,
-                 histogram_bins=11):
+                 histogram_bins=11,
+                 sphere_radius=0.):
         super().__init__()
 
         #############
@@ -33,7 +34,8 @@ class ModelNetClf(tf.keras.Model):
             azimuth_bins=azimuth_bins,
             elevation_bins=elevation_bins,
             radial_bins=radial_bins,
-            histogram_bins=histogram_bins
+            histogram_bins=histogram_bins,
+            sphere_radius=sphere_radius,
         )
 
         # Init barycentric coordinates layer
