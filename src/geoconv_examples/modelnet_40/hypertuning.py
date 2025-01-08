@@ -50,8 +50,8 @@ def hyper_tuning(dataset_path,
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=0.0030670247193529277,
-                decay_steps=hp.Int("lr_decay_steps", min_value=5_000, max_value=15_000),
-                decay_rate=hp.Float("lr_decay_rate", min_value=0., max_value=1.0),
+                decay_steps=hp.Int("lr_decay_steps", min_value=2_500, max_value=8_000),
+                decay_rate=hp.Float("lr_decay_rate", min_value=0.3, max_value=1.0),
                 staircase=False
             ),
             weight_decay=0.019081993138727875
