@@ -43,7 +43,7 @@ class PointCloudShotDescriptor(tf.keras.layers.Layer):
                 neighborhoods=neighborhoods,
                 normals=lrfs[:, :, 0],
                 neighborhood_indices=neighborhoods_indices,
-                radius=tf.reduce_max(neighborhoods),
+                radius=tf.reduce_max(tf.linalg.norm(neighborhoods, axis=-1)),
                 azimuth_bins=self.azimuth_bins,
                 elevation_bins=self.elevation_bins,
                 radial_bins=self.radial_bins,

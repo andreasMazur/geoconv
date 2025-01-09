@@ -227,7 +227,7 @@ def preprocess_demo(path_to_stanford_bunny,
         neighborhoods=neighborhoods,
         normals=lrfs[:, :, 0],
         neighborhood_indices=neighborhoods_indices,
-        radius=np.max(neighborhoods)
+        radius=np.max(np.linalg.norm(neighborhoods, axis=-1))
     )
 
     if visualize_shot_descr:
