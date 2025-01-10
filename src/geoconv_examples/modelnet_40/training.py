@@ -21,7 +21,8 @@ def model_configuration(neighbors_for_lrf,
                         elevation_bins,
                         radial_bins,
                         histogram_bins,
-                        sphere_radius):
+                        sphere_radius,
+                        noise_stddev):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
@@ -37,7 +38,8 @@ def model_configuration(neighbors_for_lrf,
         elevation_bins=elevation_bins,
         radial_bins=radial_bins,
         histogram_bins=histogram_bins,
-        sphere_radius=sphere_radius
+        sphere_radius=sphere_radius,
+        noise_stddev=noise_stddev
     )
 
     # Define loss and optimizer
@@ -74,7 +76,8 @@ def training(dataset_path,
              elevation_bins=2,
              radial_bins=2,
              histogram_bins=11,
-             sphere_radius=0.):
+             sphere_radius=0.,
+             noise_stddev=0.):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -112,7 +115,8 @@ def training(dataset_path,
             elevation_bins=elevation_bins,
             radial_bins=radial_bins,
             histogram_bins=histogram_bins,
-            sphere_radius=sphere_radius
+            sphere_radius=sphere_radius,
+            noise_stddev=noise_stddev
         )
 
         # Define callbacks

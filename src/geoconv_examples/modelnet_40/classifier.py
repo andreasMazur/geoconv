@@ -5,6 +5,8 @@ from geoconv.tensorflow.layers.shot_descriptor import PointCloudShotDescriptor
 
 import tensorflow as tf
 
+from geoconv.tensorflow.layers.spatial_dropout import SpatialDropout
+
 
 class ModelNetClf(tf.keras.Model):
     def __init__(self,
@@ -22,7 +24,9 @@ class ModelNetClf(tf.keras.Model):
                  elevation_bins=2,
                  radial_bins=2,
                  histogram_bins=11,
-                 sphere_radius=0.):
+                 sphere_radius=0.,
+                 noise_stddev=0.,
+                 dropout_rate=0.):
         super().__init__()
 
         #############
@@ -43,6 +47,12 @@ class ModelNetClf(tf.keras.Model):
             n_radial=n_radial, n_angular=n_angular, neighbors_for_lrf=neighbors_for_lrf
         )
         self.bc_layer.adapt(template_radius=template_radius)
+
+        # Add noise during training
+        self.noise = tf.keras.layers.GaussianNoise(stddev=noise_stddev)
+
+        # Spatial dropout of entire feature maps
+        self.dropout = SpatialDropout(rate=dropout_rate)
 
         #################
         # EMBEDDING PART
@@ -84,12 +94,14 @@ class ModelNetClf(tf.keras.Model):
         # Compute SHOT-descriptor as initial local vertex features
         coordinates = inputs
         signal = self.shot_descriptor(coordinates)
+        signal = self.noise(signal, training=training)
 
         # Compute barycentric coordinates from 3D coordinates
         bc = self.bc_layer(coordinates)
 
         # Compute vertex embeddings
         for idx, _ in enumerate(self.isc_layers):
+            signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
 
         # Pool local surface descriptors into global point-cloud descriptor

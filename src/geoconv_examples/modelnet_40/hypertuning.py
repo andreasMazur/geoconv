@@ -43,15 +43,16 @@ def hyper_tuning(dataset_path,
             elevation_bins=elevation_bins,
             radial_bins=radial_bins,
             histogram_bins=histogram_bins,
-            sphere_radius=sphere_radius
+            sphere_radius=sphere_radius,
+            noise_stddev=hp.Float("noise_stddev", min_value=0.0, max_value=0.1)
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
         opt = tf.keras.optimizers.AdamW(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=0.0030670247193529277,
-                decay_steps=hp.Int("lr_decay_steps", min_value=100, max_value=2_500),
-                decay_rate=hp.Float("lr_decay_rate", min_value=0.7, max_value=1.0),
+                decay_steps=1809,
+                decay_rate=0.8003162152855945,
                 staircase=False
             ),
             weight_decay=0.019081993138727875
