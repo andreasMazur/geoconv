@@ -44,7 +44,8 @@ def hyper_tuning(dataset_path,
             radial_bins=radial_bins,
             histogram_bins=histogram_bins,
             sphere_radius=sphere_radius,
-            noise_stddev=hp.Float("noise_stddev", min_value=0.0, max_value=0.1)
+            # noise_stddev=hp.Float("noise_stddev", min_value=0.0, max_value=0.1)
+            dropout_rate=hp.Float("dropout_rate", min_value=0.0, max_value=1.0)
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
