@@ -10,41 +10,38 @@ def model_configuration(neighbors_for_lrf,
                         n_radial,
                         n_angular,
                         template_radius,
-                        isc_layer_conf,
                         modelnet10,
-                        learning_rate,
                         variant,
-                        rotation_delta,
-                        weight_decay,
-                        pooling,
-                        azimuth_bins,
-                        elevation_bins,
-                        radial_bins,
-                        histogram_bins,
-                        sphere_radius,
-                        noise_stddev):
+                        rotation_delta):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
         n_radial=n_radial,
         n_angular=n_angular,
         template_radius=template_radius,
-        isc_layer_conf=isc_layer_conf,
+        isc_layer_conf=[128, 128, 128, 64],
         modelnet10=modelnet10,
         variant=variant,
         rotation_delta=rotation_delta,
-        pooling=pooling,
-        azimuth_bins=azimuth_bins,
-        elevation_bins=elevation_bins,
-        radial_bins=radial_bins,
-        histogram_bins=histogram_bins,
-        sphere_radius=sphere_radius,
-        noise_stddev=noise_stddev
+        pooling="avg",
+        azimuth_bins=8,
+        elevation_bins=6,
+        radial_bins=2,
+        histogram_bins=6,
+        sphere_radius=0.
     )
 
     # Define loss and optimizer
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
-    opt = tf.keras.optimizers.AdamW(learning_rate=learning_rate, weight_decay=weight_decay)
+    opt = tf.keras.optimizers.AdamW(
+        learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=0.0030670247193529277,
+            decay_steps=1809,
+            decay_rate=0.8003162152855945,
+            staircase=False
+        ),
+        weight_decay=0.019081993138727875
+    )
 
     # Compile the model
     imcnn.compile(optimizer=opt, loss=loss, metrics="accuracy", run_eagerly=True)
@@ -58,8 +55,6 @@ def training(dataset_path,
              logging_dir,
              template_configurations=None,
              neighbors_for_lrf=16,
-             isc_layer_conf=None,
-             learning_rate=0.0025153,
              template_radius=None,
              modelnet10=False,
              gen_info_file=None,
@@ -68,16 +63,8 @@ def training(dataset_path,
              set_mem_growth=False,
              redirect_output=False,
              rotation_delta=1,
-             weight_decay=0.01358,
-             pooling="cov",
              epochs=200,
-             debug=False,
-             azimuth_bins=8,
-             elevation_bins=2,
-             radial_bins=2,
-             histogram_bins=11,
-             sphere_radius=0.,
-             noise_stddev=0.):
+             debug=False):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -104,19 +91,9 @@ def training(dataset_path,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius * template_scale,
-            isc_layer_conf=isc_layer_conf,
             modelnet10=modelnet10,
-            learning_rate=learning_rate,
             variant=variant,
-            rotation_delta=rotation_delta,
-            weight_decay=weight_decay,
-            pooling=pooling,
-            azimuth_bins=azimuth_bins,
-            elevation_bins=elevation_bins,
-            radial_bins=radial_bins,
-            histogram_bins=histogram_bins,
-            sphere_radius=sphere_radius,
-            noise_stddev=noise_stddev
+            rotation_delta=rotation_delta
         )
 
         # Define callbacks
