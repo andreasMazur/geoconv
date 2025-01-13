@@ -6,7 +6,87 @@ import numpy as np
 import sys
 
 
-@tf.function(jit_compile=True)
+@tf.function
+def check_delaunay_condition(closet_proj, other_proj, interpolation_w_indices):
+    # 'to_filter': (x, 5), whereby 'x' depends on how many 'inf'-values exist in 'interpolation_w_indices' and
+    #                      5 comes from the length of: (n, n_radial, n_angular, n_neighbors - 1, n_neighbors - 1)
+    #                      which is the shape of index vectors for 'interpolation_w_indices'
+    to_filter = tf.where(interpolation_w_indices != np.inf)
+
+    # Get triangles which include the template vertex
+    # 'snd_idx'/'thr_idx': (x, 4), describing snd & third neighbor indices
+    snd_idx = to_filter[:, :4]
+    thr_idx = tf.concat([to_filter[:, :3], to_filter[:, 4:]], axis=-1)
+
+    # 'snd_proj'/'thr_proj': (x, 2), describing 2D coordinates of projected neighbors
+    snd_proj = tf.gather_nd(other_proj, snd_idx)
+    thr_proj = tf.gather_nd(other_proj, thr_idx)
+
+    # 'triangles': (x, 3, 2)
+    triangles = tf.stack([tf.gather_nd(closet_proj[:, :, :, 0, :], to_filter[:, :3]), snd_proj, thr_proj], axis=1)
+
+    # Compute mask to filter out elements of triangle from neighborhood.
+    # The elements in the neighborhoods will be checked on whether they lie within the circumcircle of the triangle.
+    # If any element in neighborhoods lies within circumcircle, discard the neighborhood. See determinant check below.
+    # 'neighborhoods'/'trues': (x, n_neighbors - 1, 2)
+    neighborhoods = tf.gather_nd(other_proj, to_filter[:, :3])
+    trues = tf.ones_like(neighborhoods, dtype=tf.bool)
+
+    # 'falses': (x, 2)
+    falses = tf.zeros(shape=(tf.shape(snd_idx)[0], 2), dtype=tf.bool)
+
+    # 'mask': (x, n_neighbors - 1, 2)
+    mask = tf.logical_and(
+        tf.tensor_scatter_nd_update(
+            trues, tf.stack([tf.range(tf.shape(neighborhoods)[0], dtype=tf.int64), snd_idx[:, -1]], axis=-1), falses
+        ),
+        tf.tensor_scatter_nd_update(
+            trues, tf.stack([tf.range(tf.shape(neighborhoods)[0], dtype=tf.int64), thr_idx[:, -1]], axis=-1), falses
+        )
+    )
+
+    # 'neighborhoods': (x, n_neighbors - 1 - 2, 2)
+    n_shape = tf.shape(neighborhoods)
+    neighborhoods = tf.reshape(
+        tf.boolean_mask(neighborhoods, tf.logical_and(mask[:, :, 0], mask[:, :, 1])),
+        (n_shape[0], n_shape[1] - 2, n_shape[2])
+    )
+
+    # Determinant check to see whether neighboring vertices are within the circumcircle of a triangle
+    # i)  Repeat triangle for each element in the neighborhood
+    # ii) Perform determinant check for all neighbors and triangles
+    # 'column_<NUMBER>': (x, n_neighbors - 1 - 2, 4)
+    column_1 = tf.concat(
+        [tf.tile(triangles[:, None, :, 0], (1, tf.shape(neighborhoods)[1], 1)), neighborhoods[:, :, :1]], axis=-1
+    )
+    column_2 = tf.concat(
+        [tf.tile(triangles[:, None, :, 1], (1, tf.shape(neighborhoods)[1], 1)), neighborhoods[:, :, 1:]], axis=-1
+    )
+    column_3 = tf.math.square(column_1) + tf.math.square(column_2)
+    column_4 = tf.ones_like(column_3)
+
+    # Check determinant for each neighborhood
+    # 'matrix = tf.stack([column_1, column_2, column_3, column_4], axis=-1)':
+    #       (x, n_neighbors - 1 - 2, 4, 4)
+    #
+    # 'tf.linalg.det(matrix)': (x, n_neighbors - 1 - 2)
+
+    # Remove any triangle which produces a circumcircle that includes other projections other than its own
+    # 'condition': (x,)
+    condition = tf.reduce_prod(
+        tf.cast(tf.linalg.det(tf.stack([column_1, column_2, column_3, column_4], axis=-1)) <= 0, tf.int32), axis=-1
+    )
+
+    # 'to_filter' points to possible pairs that could construct a triangle
+    condition = to_filter[tf.cast(condition, tf.bool)]
+
+    # Overwrite all except
+    return tf.tensor_scatter_nd_update(
+        tf.ones_like(interpolation_w_indices) * np.inf, condition, tf.gather_nd(interpolation_w_indices, condition)
+    )
+
+
+@tf.function  # (jit_compile=True)
 def compute_bc(template, projections):
     """Computes barycentric coordinates for a given template in given projections.
 
@@ -37,9 +117,9 @@ def compute_bc(template, projections):
     # 'closest_idx_hierarchy': (vertices, n_radial, n_angular, n_neighbors, 2)
     closest_idx_hierarchy = tf.expand_dims(template, axis=2) - projections
 
-    ##################################################################################################
-    # 2) Retrieve neighborhood indices of two closest projections (NOT equal to shape vertex indices)
-    ##################################################################################################
+    ##############################################################################################
+    # 2) Retrieve neighborhood indices of closest projections (NOT equal to shape vertex indices)
+    ##############################################################################################
     # 'closest_idx_hierarchy': (vertices, n_radial, n_angular, n_neighbors)
     closest_idx_hierarchy = tf.argsort(tf.linalg.norm(closest_idx_hierarchy, axis=-1), axis=-1)
 
@@ -66,6 +146,9 @@ def compute_bc(template, projections):
     dot12 = tf.einsum("vrani,vrai->vran", v1, tf.squeeze(v2))
 
     denominator = tf.einsum("vran,vram->vranm", dot00, dot11) - dot01 * dot01
+    # Set diagonal elements to be filtered out
+    denominator = tf.linalg.set_diag(tf.cast(denominator, tf.float32), tf.zeros(tf.shape(denominator)[:4]))
+    denominator = tf.cast(denominator, tf.float64)
     denominator = 1 / denominator  # NAN-values are filtered later. Keep this to make shapes fit for EINSUM.
 
     point_2_weight = tf.einsum("vram,vran->vranm", dot11, dot02) - tf.einsum("vranm,vram->vranm", dot01, dot12)
@@ -87,6 +170,9 @@ def compute_bc(template, projections):
 
     # Encourage using BC with smallest inf-norm
     interpolation_w_indices = tf.linalg.norm(tf.math.square(interpolation_weights), axis=-1, ord=np.inf)
+
+    # Check Delaunay condition
+    interpolation_w_indices = check_delaunay_condition(closet_proj, other_proj, interpolation_w_indices)
 
     # From all possible interpolation weights, select BC with smallest sup-norm
     s = tf.shape(interpolation_w_indices)
@@ -185,7 +271,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         # Return used template radius
         return template_radius
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def call(self, vertices):
         """Computes barycentric coordinates for multiple shapes.
 
@@ -202,7 +288,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         """
         return tf.map_fn(self.call_helper, vertices)
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def call_helper(self, vertices):
         """Computes barycentric coordinates for a single shape.
 
