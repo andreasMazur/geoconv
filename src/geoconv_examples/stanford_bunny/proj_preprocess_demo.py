@@ -29,7 +29,7 @@ def visualize_interpolations(interpolation_weights, projections_indices, project
     plt.rcParams['text.usetex'] = True
 
     interpolated_template_vertices = (
-            projections[projections_indices] * interpolation_weights.reshape(5, 6, 3, 1)
+            projections[projections_indices] * np.expand_dims(interpolation_weights, axis=-1)
     ).sum(axis=-2)
 
     visualize_projected_neighborhood(projections, show=False, color="blue", alpha=1.)
