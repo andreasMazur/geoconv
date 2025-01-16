@@ -158,7 +158,6 @@ def compute_bc(template, projections):
     to_filter = tf.where(
         tf.logical_or(tf.math.is_nan(interpolation_weights), tf.math.is_inf(interpolation_weights))
     )[:, :3]
-
     zeros = tf.cast(tf.tile([[0., 0., 0.]], multiples=[tf.shape(to_filter)[0], 1]), tf.float64)
     interpolation_weights = tf.tensor_scatter_nd_update(interpolation_weights, to_filter, zeros)
     interpolation_indices = tf.tensor_scatter_nd_update(interpolation_indices, to_filter, tf.cast(zeros, tf.int32))
