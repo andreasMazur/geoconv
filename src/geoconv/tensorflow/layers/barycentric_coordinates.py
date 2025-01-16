@@ -203,7 +203,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
                 sys.stdout.write(f"\rCurrently at point-cloud {idx}.")
                 # 1.) Get local reference frames
                 # 'lrfs': (vertices, 3, 3)
-                lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(self.neighbors_for_lrf, vertices[0])
+                lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(n_neighbors, vertices[0])
 
                 # 2.) Project neighborhoods into their lrfs using the logarithmic map
                 # 'projections': (vertices, n_neighbors, 2)
