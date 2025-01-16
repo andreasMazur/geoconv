@@ -1,5 +1,5 @@
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
-from geoconv.tensorflow.utils.compute_shot_lrf import logarithmic_map, compute_distance_matrix, knn_shot_lrf
+from geoconv.tensorflow.utils.compute_shot_lrf import logarithmic_map, knn_shot_lrf
 
 import tensorflow as tf
 import numpy as np
@@ -89,16 +89,6 @@ def compute_interpolation_weights(template, projections):
     )
     # 'total_distance': (n_vertices, n_radial, n_angular, n_neighbors - 1, n_neighbors - 1)
     total_distance = tf.reduce_sum(paired_distances, axis=-1) + closest_distances[..., None]
-
-    # 'variance': (n_vertices, n_radial, n_angular, n_neighbors - 1, n_neighbors - 1)
-    variance = tf.math.reduce_variance(
-        tf.concat(
-            [
-                paired_distances,
-                tf.tile(closest_distances[..., None, None, None, 0], (1, 1, 1, p_shape[-2] - 1, p_shape[-2] - 1, 1))
-            ], axis=-1
-        ), axis=-1
-    )
 
     # Set distance of pairs to infinity, if the bc of the triangle-vertex-pairs indicate non-fitting triangle
     to_filter = tf.where(tf.logical_or(tf.logical_or(bc < 0., bc > 1.), tf.math.is_nan(bc)))
