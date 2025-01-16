@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 
 @tf.function(jit_compile=True)
@@ -125,14 +126,21 @@ def logarithmic_map(lrfs, neighborhoods):
     scaled_normals = neighborhoods @ tf.expand_dims(normals, axis=-1) * tf.expand_dims(normals, axis=1)
     projections = neighborhoods - scaled_normals
 
+    # Compute scaling coefficients
+    inner_product = tf.einsum("vni,vni->vn", projections, neighborhoods)
+
+    # Use 'adjacent + opposite' as upper estimate to geodesic distance
+    adj, hy = tf.linalg.norm(projections, axis=-1), tf.linalg.norm(neighborhoods, axis=-1)
+    zero_indices = tf.where(adj == 0.)
+    adj = tf.tensor_scatter_nd_update(adj, zero_indices, tf.ones((tf.shape(zero_indices)[0],)))
+    hy = tf.tensor_scatter_nd_update(hy, zero_indices, tf.ones((tf.shape(zero_indices)[0],)))
+    scale = adj + tf.math.cos(tf.math.acos(tf.clip_by_value(inner_product / (adj * hy), 0., 1.)) - (np.pi / 2)) * hy
+
     # Basis change of neighborhoods into lrf coordinates
     projections = tf.einsum("vij,vnj->vni", tf.linalg.inv(tf.transpose(lrfs, perm=[0, 2, 1])), projections)[:, :, 1:]
 
     # Rescale projections to their original Euclidean distances
-    denominator = tf.linalg.norm(projections, axis=-1)
-    zero_indices = tf.where(denominator == 0.)
-    denominator = tf.tensor_scatter_nd_update(denominator, zero_indices, tf.ones((tf.shape(zero_indices)[0],)))
-    projections = projections / denominator[..., None] * (tf.linalg.norm(neighborhoods, axis=-1)[..., None])
+    projections = projections / adj[..., None] * scale[..., None]
 
     return projections
 
