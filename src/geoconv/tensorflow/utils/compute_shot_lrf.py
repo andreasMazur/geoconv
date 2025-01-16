@@ -101,7 +101,7 @@ def shot_lrf(neighborhoods, radii):
     return tf.stack([z_axes, y_axes, x_axes], axis=-1)
 
 
-# @tf.function(jit_compile=True)
+@tf.function(jit_compile=True)
 def logarithmic_map(lrfs, neighborhoods):
     """Computes projections of neighborhoods into their local reference frames.
 
@@ -128,8 +128,13 @@ def logarithmic_map(lrfs, neighborhoods):
     # Basis change of neighborhoods into lrf coordinates
     projections = tf.einsum("vij,vnj->vni", tf.linalg.inv(tf.transpose(lrfs, perm=[0, 2, 1])), projections)[:, :, 1:]
 
-    # Preserve Euclidean metric between original vertices (geodesic distance approximation)
-    return tf.expand_dims(tf.linalg.norm(neighborhoods, axis=-1), axis=-1) * tf.math.l2_normalize(projections, axis=-1)
+    # Rescale projections to their original Euclidean distances
+    denominator = tf.linalg.norm(projections, axis=-1)
+    zero_indices = tf.where(denominator == 0.)
+    denominator = tf.tensor_scatter_nd_update(denominator, zero_indices, tf.ones((tf.shape(zero_indices)[0],)))
+    projections = projections / denominator[..., None] * (tf.linalg.norm(neighborhoods, axis=-1)[..., None])
+
+    return projections
 
 
 @tf.function(jit_compile=True)
