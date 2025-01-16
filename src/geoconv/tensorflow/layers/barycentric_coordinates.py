@@ -156,10 +156,7 @@ def compute_bc(template, projections):
 
     # Replace 'nan'-interpolation coefficients with zeros to prevent any contribution of this template vertex
     to_filter = tf.where(
-        tf.logical_or(
-            tf.math.is_nan(interpolation_weights),
-            tf.math.is_inf(interpolation_weights)
-        )
+        tf.logical_or(tf.math.is_nan(interpolation_weights), tf.math.is_inf(interpolation_weights))
     )[:, :3]
 
     zeros = tf.cast(tf.tile([[0., 0., 0.]], multiples=[tf.shape(to_filter)[0], 1]), tf.float64)
