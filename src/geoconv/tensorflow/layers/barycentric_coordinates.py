@@ -161,11 +161,10 @@ def compute_bc(template, projections):
             tf.math.is_inf(interpolation_weights)
         )
     )[:, :3]
-    interpolation_weights = tf.tensor_scatter_nd_update(
-        interpolation_weights,
-        to_filter,
-        tf.cast(tf.tile([[0., 0., 0.]], multiples=[tf.shape(to_filter)[0], 1]), tf.float64)
-    )
+
+    zeros = tf.cast(tf.tile([[0., 0., 0.]], multiples=[tf.shape(to_filter)[0], 1]), tf.float64)
+    interpolation_weights = tf.tensor_scatter_nd_update(interpolation_weights, to_filter, zeros)
+    interpolation_indices = tf.tensor_scatter_nd_update(interpolation_indices, to_filter, tf.cast(zeros, tf.int32))
 
     return interpolation_weights, interpolation_indices
 
@@ -260,6 +259,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             A 5D-tensor of shape (batch_shapes, vertices, n_radial, n_angular, 3, 2) that describes barycentric
             coordinates.
         """
+        self.call_helper(vertices[0])
         return tf.map_fn(self.call_helper, vertices)
 
     @tf.function(jit_compile=True)
