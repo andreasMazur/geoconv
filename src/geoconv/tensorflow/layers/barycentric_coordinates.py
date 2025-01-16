@@ -101,7 +101,7 @@ def compute_interpolation_weights(template, projections):
     )
 
     # Set distance of pairs to infinity, if the bc of the triangle-vertex-pairs indicate non-fitting triangle
-    to_filter = tf.where(tf.logical_or(tf.logical_or(bc <= 0., bc >= 1.), tf.math.is_nan(bc)))
+    to_filter = tf.where(tf.logical_or(tf.logical_or(bc < 0., bc > 1.), tf.math.is_nan(bc)))
     total_distance = total_distance / tf.reduce_max(total_distance)
     total_distance = tf.tensor_scatter_nd_update(
         total_distance, to_filter[:, :5], tf.cast(tf.fill((tf.shape(to_filter)[0],), np.inf), tf.float64)
@@ -110,11 +110,10 @@ def compute_interpolation_weights(template, projections):
     # Compute indices of the pair that is closest to the template vertex
     # 'total_distance'/'variance': (n_vertices * n_radial * n_angular, (n_neighbors - 1) ** 2)
     total_distance = tf.reshape(total_distance, (-1, (p_shape[-2] - 1) * (p_shape[-2] - 1)))
-    variance = tf.reshape(variance, (-1, (p_shape[-2] - 1) * (p_shape[-2] - 1))) / tf.reduce_max(variance)
 
     # 'indices' are indices w.r.t. projection neighborhood without closest neighbor to template vertex
     # 'indices': (n_vertices * n_radial * n_angular, 2)
-    indices = unravel_square_matrix_index(tf.argmin(total_distance + variance, axis=-1), p_shape[-2] - 1)
+    indices = unravel_square_matrix_index(tf.argmin(total_distance, axis=-1), p_shape[-2] - 1)
 
     # 'indices': (n_vertices, n_radial, n_angular, 2)
     indices = tf.reshape(indices, (p_shape[0], p_shape[1], p_shape[2], 2))
@@ -217,11 +216,21 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             avg_radius, vertices_count = 0, 0
             for idx, (vertices, _) in enumerate(data):
                 sys.stdout.write(f"\rCurrently at point-cloud {idx}.")
-                distance_matrix = compute_distance_matrix(tf.cast(vertices[0], tf.float32))
-                radii = tf.gather(
-                    distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, n_neighbors], batch_dims=1
-                )
+                # 1.) Get local reference frames
+                # 'lrfs': (vertices, 3, 3)
+                lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(self.neighbors_for_lrf, vertices[0])
+
+                # 2.) Project neighborhoods into their lrfs using the logarithmic map
+                # 'projections': (vertices, n_neighbors, 2)
+                projections = logarithmic_map(lrfs, neighborhoods)
+
+                # 3.) Use length of farthest projection as radius
+                radii = tf.reduce_max(tf.linalg.norm(projections, axis=-1), axis=-1)
+
+                # 4.) Add all radii
                 avg_radius = avg_radius + tf.reduce_sum(radii)
+
+                # 5.) Remember amount of collected radii for averaging
                 vertices_count = vertices_count + tf.cast(tf.shape(radii)[0], tf.float32)
             avg_radius = avg_radius / vertices_count
             template_radius = avg_radius * template_scale
