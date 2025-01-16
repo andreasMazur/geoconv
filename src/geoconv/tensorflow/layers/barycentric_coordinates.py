@@ -7,53 +7,14 @@ import sys
 
 
 @tf.function(jit_compile=True)
-def compute_bc(template, projections):
-    """Computes barycentric coordinates for a given template in given projections.
+def unravel_square_matrix_index(batched_idx_matrices, dim):
+    row_indices = tf.floor(batched_idx_matrices / tf.cast(dim, tf.int64))
+    col_indices = tf.cast(batched_idx_matrices, tf.float64) - row_indices * tf.cast(dim, tf.float64)
+    return tf.stack([tf.cast(row_indices, tf.int64), tf.cast(col_indices, tf.int64)], axis=-1)
 
-    Parameters
-    ----------
-    template: tf.Tensor
-        A 3D-tensor of shape (n_radial, n_angular, 2) that contains 2D cartesian coordinates for template vertices.
-    projections: tf.Tensor
-        A 3D-tensor of shape (vertices, n_neighbors, 2) that contains all projected neighborhoods in 2D cartesian
-        coordinates. I.e., 'projections[i, j]' contains 2D coordinates of vertex 'j' in neighborhood 'i'.
 
-    Returns
-    -------
-    (tf.Tensor, tf.Tensor):
-        A 4D-tensor of shape (vertices, n_radial, n_angular, 3) that contains barycentric coordinates, i.e.,
-        interpolation coefficients, for all template vertices within each projected neighborhood. Additionally,
-        another 4D-tensor of shape (vertices, n_radial, n_angular, 3) that contains the vertex indices of the closest
-        projected vertices to the template vertices in each neighborhood.
-    """
-    template = tf.cast(template, tf.float64)
-    projections = tf.cast(projections, tf.float64)
-
-    ###########################################
-    # 1) Compute distance to template vertices
-    ###########################################
-    projections = tf.expand_dims(tf.expand_dims(projections, axis=1), axis=1)
-
-    # 'closest_idx_hierarchy': (vertices, n_radial, n_angular, n_neighbors, 2)
-    closest_idx_hierarchy = tf.expand_dims(template, axis=2) - projections
-
-    ##############################################################################################
-    # 2) Retrieve neighborhood indices of closest projections (NOT equal to shape vertex indices)
-    ##############################################################################################
-    # 'closest_idx_hierarchy': (vertices, n_radial, n_angular, n_neighbors)
-    closest_idx_hierarchy = tf.argsort(tf.linalg.norm(closest_idx_hierarchy, axis=-1), axis=-1)
-
-    #################################################
-    # 3) Determine 'closest' and 'other' projections
-    #################################################
-    # 'closet_proj': (vertices, n_radial, n_angular, 1, 2)
-    closet_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, 0], batch_dims=1)[:, :, :, None, :]
-    # 'other_proj':  (vertices, n_radial, n_angular, n_neighbors - 1, 2)
-    other_proj = tf.gather(tf.squeeze(projections), closest_idx_hierarchy[:, :, :, 1:], batch_dims=1)
-
-    #####################################
-    # 4) Compute barycentric coordinates
-    #####################################
+@tf.function(jit_compile=True)
+def pairwise_bc(closet_proj, other_proj, template):
     v0_v1 = other_proj - closet_proj
     v2 = tf.expand_dims(template, axis=-2) - closet_proj
 
@@ -79,48 +40,135 @@ def compute_bc(template, projections):
 
     point_0_weight = 1 - point_2_weight - point_1_weight
 
-    # 'interpolation_weights': (vertices, radial, angular, n_neighbors - 1, n_neighbors - 1, 3)
-    interpolation_weights = tf.stack([point_0_weight, point_2_weight, point_1_weight], axis=-1)
+    # (vertices, radial, angular, n_neighbors - 1, n_neighbors - 1, 3)
+    return tf.stack([point_0_weight, point_2_weight, point_1_weight], axis=-1)
 
-    # Set negative-, zero- and NAN-interpolation values to infinity
-    to_filter = tf.where(tf.logical_or(interpolation_weights <= 0., tf.math.is_nan(interpolation_weights)))
-    interpolation_weights = tf.tensor_scatter_nd_update(
-        interpolation_weights, to_filter, tf.cast(tf.fill((tf.shape(to_filter)[0],), np.inf), tf.float64)
+
+@tf.function(jit_compile=True)
+def compute_interpolation_weights(template, projections):
+    # 0.) Compute distance to projections - 'distances': (n_vertices, n_radial, n_angular, n_neighbors)
+    distances = template[None, :, :, None, :] - projections[:, None, None, :, :]
+    distances = tf.linalg.norm(distances, axis=-1)
+    closest_idx_hierarchy = tf.argsort(distances, axis=-1)
+
+    # 1.) Remove the closest projection from other projections
+    # 'p_closest_idx': (n_vertices, n_radial, n_angular)
+    p_closest_idx = closest_idx_hierarchy[:, :, :, 0]
+    # 'p_other_indices': (n_vertices, n_radial, n_angular, n_neighbors - 1)
+    p_other_indices = closest_idx_hierarchy[:, :, :, 1:]
+
+    # 'p_closest': (n_vertices, n_radial, n_angular, 2)
+    p_closest = tf.gather(projections, p_closest_idx, batch_dims=1)
+
+    # Repeat projections for each template vertex - 'projections': (n_vertices, n_radial, n_angular, n_neighbors, 2)
+    template_shape = tf.shape(template)
+    projections = tf.tile(projections[:, None, None, :, :], (1, template_shape[0], template_shape[1], 1, 1))
+    p_shape = tf.shape(projections)
+
+    # 'other_projections':  (n_vertices, n_radial, n_angular, n_neighbors - 1, 2)
+    other_projections = tf.gather(projections, p_other_indices, batch_dims=3)
+
+    # 2.) Find all triangles with 'v_closest' that include 'template_vertex'
+    # Compute barycentric coordinates - 'bc': (n_vertices, n_radial, n_angular, n_neighbors - 1, n_neighbors - 1, 3)
+    bc = pairwise_bc(p_closest[:, :, :, None, :], other_projections, template)
+
+    # Compute total template-to-triangle-vertex-distance
+    # 'closest_distances': (n_vertices, n_radial, n_angular, 1)
+    # 'other_distances': (n_vertices, n_radial, n_angular, n_neighbors - 1)
+    closest_distances = tf.reduce_min(distances, axis=-1)[..., None]
+    other_distances = tf.gather(distances, p_other_indices, batch_dims=3)
+
+    # Compute total distance and variance among distances from the two remaining triangle vertices to the template
+    # vertex, assuming closest projection is part of triangle
+    # 'paired_distances': (n_vertices, n_radial, n_angular, n_neighbors - 1, n_neighbors - 1, 2)
+    paired_distances = tf.stack(
+        [
+            tf.tile(other_distances[..., None], (1, 1, 1, 1, p_shape[-2] - 1)),
+            tf.tile(other_distances[..., None, :], (1, 1, 1, p_shape[-2] - 1, 1))
+        ], axis=-1
+    )
+    # 'total_distance': (n_vertices, n_radial, n_angular, n_neighbors - 1, n_neighbors - 1)
+    total_distance = tf.reduce_sum(paired_distances, axis=-1) + closest_distances[..., None]
+
+    # 'variance': (n_vertices, n_radial, n_angular, n_neighbors - 1, n_neighbors - 1)
+    variance = tf.math.reduce_variance(
+        tf.concat(
+            [
+                paired_distances,
+                tf.tile(closest_distances[..., None, None, None, 0], (1, 1, 1, p_shape[-2] - 1, p_shape[-2] - 1, 1))
+            ], axis=-1
+        ), axis=-1
     )
 
-    # Encourage using BC with smallest inf-norm
-    interpolation_w_indices = tf.linalg.norm(tf.math.square(interpolation_weights), axis=-1, ord=np.inf)
+    # Set distance of pairs to infinity, if the bc of the triangle-vertex-pairs indicate non-fitting triangle
+    to_filter = tf.where(tf.logical_or(tf.logical_or(bc <= 0., bc >= 1.), tf.math.is_nan(bc)))
+    total_distance = total_distance / tf.reduce_max(total_distance)
+    total_distance = tf.tensor_scatter_nd_update(
+        total_distance, to_filter[:, :5], tf.cast(tf.fill((tf.shape(to_filter)[0],), np.inf), tf.float64)
+    )
 
-    # From all possible interpolation weights, select BC with smallest sup-norm
-    s = tf.shape(interpolation_w_indices)
-    interpolation_w_indices = tf.reshape(interpolation_w_indices, (s[0], s[1], s[2], s[3] * s[4]))
-    interpolation_w_indices = tf.argmin(interpolation_w_indices, axis=-1)
+    # Compute indices of the pair that is closest to the template vertex
+    # 'total_distance'/'variance': (n_vertices * n_radial * n_angular, (n_neighbors - 1) ** 2)
+    total_distance = tf.reshape(total_distance, (-1, (p_shape[-2] - 1) * (p_shape[-2] - 1)))
+    variance = tf.reshape(variance, (-1, (p_shape[-2] - 1) * (p_shape[-2] - 1))) / tf.reduce_max(variance)
 
-    # Recompute integer into (row, column)-tuple, so we can select from 'interpolation_weights'
-    row_indices = tf.floor(interpolation_w_indices / tf.cast(s[3], tf.int64))
-    col_indices = tf.cast(interpolation_w_indices, tf.float64) - row_indices * tf.cast(s[3], tf.float64)
-    interpolation_w_indices = tf.stack([tf.cast(row_indices, tf.int64), tf.cast(col_indices, tf.int64)], axis=-1)
+    # 'indices' are indices w.r.t. projection neighborhood without closest neighbor to template vertex
+    # 'indices': (n_vertices * n_radial * n_angular, 2)
+    indices = unravel_square_matrix_index(tf.argmin(total_distance + variance, axis=-1), p_shape[-2] - 1)
 
-    # Gather corresponding BC using the found tuples
-    interpolation_weights = tf.gather_nd(interpolation_weights, interpolation_w_indices, batch_dims=3)
+    # 'indices': (n_vertices, n_radial, n_angular, 2)
+    indices = tf.reshape(indices, (p_shape[0], p_shape[1], p_shape[2], 2))
 
-    # Replace infinity interpolation coefficients with zeros to prevent any contribution of this template vertex
-    to_filter = tf.where(interpolation_weights == np.inf)[:, :3]
+    # triangles = tf.concat([p_closest[..., None], tf.gather(projections, indices, batch_dims=3)], axis=-1)
+    # 'bc': (n_vertices, n_radial, n_angular, 3)
+    bc = tf.gather_nd(bc, indices, batch_dims=3)
+
+    # Get triangle indices of two remaining vertices (w.r.t. neighborhood indices - NOT global shape-vertex indices)
+    # (n_vertices, n_radial, n_angular, 2)
+    p_other_indices = tf.gather(p_other_indices, indices, batch_dims=3)
+
+    # Return bc and the corresponding indices
+    return bc, tf.concat([p_closest_idx[..., None], p_other_indices], axis=-1)
+
+
+@tf.function(jit_compile=True)
+def compute_bc(template, projections):
+    """Computes barycentric coordinates for a given template in given projections.
+
+    Parameters
+    ----------
+    template: tf.Tensor
+        A 3D-tensor of shape (n_radial, n_angular, 2) that contains 2D cartesian coordinates for template vertices.
+    projections: tf.Tensor
+        A 3D-tensor of shape (vertices, n_neighbors, 2) that contains all projected neighborhoods in 2D cartesian
+        coordinates. I.e., 'projections[i, j]' contains 2D coordinates of vertex 'j' in neighborhood 'i'.
+
+    Returns
+    -------
+    (tf.Tensor, tf.Tensor):
+        A 4D-tensor of shape (vertices, n_radial, n_angular, 3) that contains barycentric coordinates, i.e.,
+        interpolation coefficients, for all template vertices within each projected neighborhood. Additionally,
+        another 4D-tensor of shape (vertices, n_radial, n_angular, 3) that contains the vertex indices of the closest
+        projected vertices to the template vertices in each neighborhood.
+    """
+    template = tf.cast(template, tf.float64)
+    projections = tf.cast(projections, tf.float64)
+    interpolation_weights, interpolation_indices = compute_interpolation_weights(template, projections)
+
+    # Replace 'nan'-interpolation coefficients with zeros to prevent any contribution of this template vertex
+    to_filter = tf.where(
+        tf.logical_or(
+            tf.math.is_nan(interpolation_weights),
+            tf.math.is_inf(interpolation_weights)
+        )
+    )[:, :3]
     interpolation_weights = tf.tensor_scatter_nd_update(
         interpolation_weights,
         to_filter,
         tf.cast(tf.tile([[0., 0., 0.]], multiples=[tf.shape(to_filter)[0], 1]), tf.float64)
     )
 
-    # Convert BC-indices
-    interpolation_w_indices = tf.gather(closest_idx_hierarchy[:, :, :, 1:], interpolation_w_indices, batch_dims=3)
-
-    # Group all associated BC-indices
-    interpolation_w_indices = tf.concat(
-        [tf.cast(closest_idx_hierarchy[:, :, :, 0, None], tf.int32), interpolation_w_indices], axis=-1
-    )
-
-    return interpolation_weights, interpolation_w_indices
+    return interpolation_weights, interpolation_indices
 
 
 class BarycentricCoordinates(tf.keras.layers.Layer):
