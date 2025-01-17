@@ -7,117 +7,127 @@ import sys
 
 
 @tf.function(jit_compile=True)
-def unravel_square_matrix_index(batched_idx_matrices, dim):
-    row_indices = tf.floor(batched_idx_matrices / tf.cast(dim, tf.int64))
-    col_indices = tf.cast(batched_idx_matrices, tf.float64) - row_indices * tf.cast(dim, tf.float64)
-    return tf.stack([tf.cast(row_indices, tf.int64), tf.cast(col_indices, tf.int64)], axis=-1)
+def compute_det(batched_matrices):
+    a = batched_matrices[..., 0, 0]
+    b = batched_matrices[..., 0, 1]
+    c = batched_matrices[..., 0, 2]
+    d = batched_matrices[..., 1, 0]
+    e = batched_matrices[..., 1, 1]
+    f = batched_matrices[..., 1, 2]
+    g = batched_matrices[..., 2, 0]
+    h = batched_matrices[..., 2, 1]
+    i = batched_matrices[..., 2, 2]
+
+    return a * e * i + b * f * g + c * d * h - c * e * g - b * d * i - a * f * h
 
 
 @tf.function(jit_compile=True)
-def pairwise_bc(closet_proj, other_proj, template):
-    v0_v1 = other_proj - closet_proj
-    v2 = tf.expand_dims(template, axis=-2) - closet_proj
+def delaunay_condition_check(triangles, projections):
+    # 'column_1_2': (n_vertices, n_neighbors, `n_neighbors over 3`, 3, 2)
+    # 'column_1_2[..., 0]' -> x-coordinate difference to triangle vertices from selected neighbor
+    # 'column_1_2[..., 1]' -> y-coordinate difference to triangle vertices from selected neighbor
+    column_1_2 = triangles[:, None, ...] - projections[..., None, None, :]
 
-    dot00 = tf.einsum("vrani,vrani->vran", v0_v1, v0_v1)
-    # dot01[..., n, m] = dot product of neighbor n with neighbor m
-    dot01 = tf.einsum("vrani,vrami->vranm", v0_v1, v0_v1)
-    dot02 = tf.einsum("vrani,vrai->vran", v0_v1, tf.squeeze(v2))
+    # 'delaunay_check_matrix': (n_vertices, n_neighbors, `n_neighbors over 3`)
+    # True if projection 'i' outside of circumcircle of triangle 'j' in neighborhood 'k'
+    delaunay_check_matrix = tf.cast(
+        compute_det(
+            tf.stack(
+                [
+                    column_1_2[..., 0],
+                    column_1_2[..., 1],
+                    tf.math.square(column_1_2[..., 0]) + tf.math.square(column_1_2[..., 1])
+                ], axis=-1  # last dim stacks columns of matrices
+            )
+        ) > 0., tf.int32
+    )
 
-    dot11 = tf.einsum("vrani,vrani->vran", v0_v1, v0_v1)
-    dot12 = tf.einsum("vrani,vrai->vran", v0_v1, tf.squeeze(v2))
+    # 'delaunay_check_matrix': (n_vertices, `n_neighbors over 3`)
+    # Every triangle should have 3 vertices that fall into their circumcircle (their own vertices)
+    # Use '<=' to account for numerical inaccuracies
+    delaunay_check_matrix = tf.reduce_sum(delaunay_check_matrix, axis=1) <= 3
 
-    denominator = tf.einsum("vran,vram->vranm", dot00, dot11) - dot01 * dot01
-    # Set diagonal elements to be filtered out
-    denominator = tf.linalg.set_diag(tf.cast(denominator, tf.float32), tf.zeros(tf.shape(denominator)[:4]))
-    denominator = tf.cast(denominator, tf.float64)
-    denominator = 1 / denominator  # NAN-values are filtered later. Keep this to make shapes fit for EINSUM.
+    return delaunay_check_matrix
 
-    point_2_weight = tf.einsum("vram,vran->vranm", dot11, dot02) - tf.einsum("vranm,vram->vranm", dot01, dot12)
-    point_2_weight = point_2_weight * denominator
 
-    point_1_weight = tf.einsum("vran,vram->vranm", dot00, dot12) - tf.einsum("vranm,vran->vranm", dot01, dot02)
-    point_1_weight = point_1_weight * denominator
+@tf.function(jit_compile=True)
+def create_all_triangles(projections):
+    p_shape = tf.shape(projections)
 
+    # Create all possible (i, j, k) index triplets
+    I, J, K = tf.meshgrid(tf.range(p_shape[-2]), tf.range(p_shape[-2]), tf.range(p_shape[-2]), indexing="ij")
+
+    # Filter out invalid combinations (where i < j < k)
+    triangle_indices = tf.where(tf.logical_and((I < J), (J < K)))
+
+    # 'index_tensor': (n_vertices, `n_neighbors over 3`, 3, 2)
+    triangles = tf.gather(projections, tf.tile(triangle_indices[None, ...], (p_shape[0], 1, 1)), batch_dims=1)
+
+    return triangles, triangle_indices
+
+
+@tf.function(jit_compile=True)
+def compute_interpolation_coefficients(triangles, template):
+    v0 = triangles[..., 2, :] - triangles[..., 0, :]
+    v1 = triangles[..., 1, :] - triangles[..., 0, :]
+    v2 = template[None, ..., None, :] - triangles[:, None, None, :, 0, :]
+
+    dot00 = tf.einsum("ijk,ijk->ij", v0, v0)[:, None, None, :]
+    dot01 = tf.einsum("ijk,ijk->ij", v0, v1)[:, None, None, :]
+    dot02 = tf.einsum("ijk,irajk->iraj", v0, v2)
+    dot11 = tf.einsum("ijk,ijk->ij", v1, v1)[:, None, None, :]
+    dot12 = tf.einsum("ijk,irajk->iraj", v1, v2)
+
+    denominator = 1 / (dot00 * dot11 - dot01 * dot01)
+    point_2_weight = (dot11 * dot02 - dot01 * dot12) * denominator
+    point_1_weight = (dot00 * dot12 - dot01 * dot02) * denominator
     point_0_weight = 1 - point_2_weight - point_1_weight
 
-    # (vertices, radial, angular, n_neighbors - 1, n_neighbors - 1, 3)
-    return tf.stack([point_0_weight, point_2_weight, point_1_weight], axis=-1)
+    return tf.stack([point_0_weight, point_1_weight, point_2_weight], axis=-1)
 
 
 @tf.function(jit_compile=True)
 def compute_interpolation_weights(template, projections):
-    # 0.) Compute distance to projections - 'distances': (n_vertices, n_radial, n_angular, n_neighbors)
-    distances = template[None, :, :, None, :] - projections[:, None, None, :, :]
-    distances = tf.linalg.norm(distances, axis=-1)
-    closest_idx_hierarchy = tf.argsort(distances, axis=-1)
+    # 'triangles': (n_vertices, `n_neighbors over 3`, 3, 2)
+    # 'triangle_indices': (`n_neighbors over 3`, 3)
+    triangles, triangle_indices = create_all_triangles(projections)
 
-    # 1.) Remove the closest projection from other projections
-    # 'p_closest_idx': (n_vertices, n_radial, n_angular)
-    p_closest_idx = closest_idx_hierarchy[:, :, :, 0]
-    # 'p_other_indices': (n_vertices, n_radial, n_angular, n_neighbors - 1)
-    p_other_indices = closest_idx_hierarchy[:, :, :, 1:]
+    # 'delaunay_condition[x, y] = True' if 'triangles[x, y]' meets Delaunay condition
+    # 'delaunay_condition': (n_vertices, `n_neighbors over 3`)
+    delaunay_condition = delaunay_condition_check(triangles, projections)
 
-    # 'p_closest': (n_vertices, n_radial, n_angular, 2)
-    p_closest = tf.gather(projections, p_closest_idx, batch_dims=1)
+    # 'barycentric_coordinates': (n_vertices, n_radial, n_angular, `n_neighbors over 3`, 3)
+    barycentric_coordinates = compute_interpolation_coefficients(triangles, template)
 
-    # Repeat projections for each template vertex - 'projections': (n_vertices, n_radial, n_angular, n_neighbors, 2)
-    template_shape = tf.shape(template)
-    projections = tf.tile(projections[:, None, None, :, :], (1, template_shape[0], template_shape[1], 1, 1))
-    p_shape = tf.shape(projections)
-
-    # 'other_projections':  (n_vertices, n_radial, n_angular, n_neighbors - 1, 2)
-    other_projections = tf.gather(projections, p_other_indices, batch_dims=3)
-
-    # 2.) Find all triangles with 'v_closest' that include 'template_vertex'
-    # Compute barycentric coordinates - 'bc': (n_vertices, n_radial, n_angular, n_neighbors - 1, n_neighbors - 1, 3)
-    bc = pairwise_bc(p_closest[:, :, :, None, :], other_projections, template)
-
-    # Compute total template-to-triangle-vertex-distance
-    # 'closest_distances': (n_vertices, n_radial, n_angular, 1)
-    # 'other_distances': (n_vertices, n_radial, n_angular, n_neighbors - 1)
-    closest_distances = tf.reduce_min(distances, axis=-1)[..., None]
-    other_distances = tf.gather(distances, p_other_indices, batch_dims=3)
-
-    # Compute total distance and variance among distances from the two remaining triangle vertices to the template
-    # vertex, assuming closest projection is part of triangle
-    # 'paired_distances': (n_vertices, n_radial, n_angular, n_neighbors - 1, n_neighbors - 1, 2)
-    paired_distances = tf.stack(
-        [
-            tf.tile(other_distances[..., None], (1, 1, 1, 1, p_shape[-2] - 1)),
-            tf.tile(other_distances[..., None, :], (1, 1, 1, p_shape[-2] - 1, 1))
-        ], axis=-1
+    # 'mask': (n_vertices, n_radial, n_angular, `n_neighbors over 3`)
+    bc_condition = tf.math.reduce_any(
+        tf.logical_or(barycentric_coordinates > 1., barycentric_coordinates < 0.), axis=-1
     )
-    # 'total_distance': (n_vertices, n_radial, n_angular, n_neighbors - 1, n_neighbors - 1)
-    total_distance = tf.reduce_sum(paired_distances, axis=-1) + closest_distances[..., None]
+    mask = tf.logical_or(tf.logical_not(delaunay_condition[:, None, None, :]), bc_condition)
 
-    # Set distance of pairs to infinity, if the bc of the triangle-vertex-pairs indicate non-fitting triangle
-    to_filter = tf.where(tf.logical_or(tf.logical_or(bc < 0., bc > 1.), tf.math.is_nan(bc)))
-    total_distance = total_distance / tf.reduce_max(total_distance)
-    total_distance = tf.tensor_scatter_nd_update(
-        total_distance, to_filter[:, :5], tf.cast(tf.fill((tf.shape(to_filter)[0],), np.inf), tf.float64)
+    # 'tri_distances': (n_vertices, n_radial, n_angular, `n_neighbors over 3`)
+    tri_distances = tf.reduce_sum(
+        tf.linalg.norm(triangles[:, None, None, ...] - template[None, :, :, None, None, :], axis=-1), axis=-1
     )
 
-    # Compute indices of the pair that is closest to the template vertex
-    # 'total_distance'/'variance': (n_vertices * n_radial * n_angular, (n_neighbors - 1) ** 2)
-    total_distance = tf.reshape(total_distance, (-1, (p_shape[-2] - 1) * (p_shape[-2] - 1)))
+    # Set triangle distances to infinity where conditions aren't met
+    mask_indices = tf.where(mask)
+    tri_distances = tf.tensor_scatter_nd_update(
+        tri_distances, mask_indices, tf.cast(tf.fill((tf.shape(mask_indices)[0],), np.inf), tf.float64)
+    )
+    closest_triangles = tf.argmin(tri_distances, axis=-1)
 
-    # 'indices' are indices w.r.t. projection neighborhood without closest neighbor to template vertex
-    # 'indices': (n_vertices * n_radial * n_angular, 2)
-    indices = unravel_square_matrix_index(tf.argmin(total_distance, axis=-1), p_shape[-2] - 1)
+    # Select bc of closest possible triangle
+    selected_bc = tf.gather(barycentric_coordinates, closest_triangles, batch_dims=3)
+    selected_indices = tf.cast(tf.gather(triangle_indices, closest_triangles), tf.int32)
 
-    # 'indices': (n_vertices, n_radial, n_angular, 2)
-    indices = tf.reshape(indices, (p_shape[0], p_shape[1], p_shape[2], 2))
+    # Might happen that no triangles fit for a template vertex. Set those interpolation coefficients to zero.
+    correction_mask = tf.where(tf.reduce_all(mask, axis=-1))
+    zeros = tf.cast(tf.zeros((tf.shape(correction_mask)[0], 3)), tf.float64)
+    selected_bc = tf.tensor_scatter_nd_update(selected_bc, correction_mask, zeros)
+    selected_indices = tf.tensor_scatter_nd_update(selected_indices, correction_mask, tf.cast(zeros, tf.int32))
 
-    # triangles = tf.concat([p_closest[..., None], tf.gather(projections, indices, batch_dims=3)], axis=-1)
-    # 'bc': (n_vertices, n_radial, n_angular, 3)
-    bc = tf.gather_nd(bc, indices, batch_dims=3)
-
-    # Get triangle indices of two remaining vertices (w.r.t. neighborhood indices - NOT global shape-vertex indices)
-    # (n_vertices, n_radial, n_angular, 2)
-    p_other_indices = tf.gather(p_other_indices, indices, batch_dims=3)
-
-    # Return bc and the corresponding indices
-    return bc, tf.concat([p_closest_idx[..., None], p_other_indices], axis=-1)
+    return selected_bc, selected_indices
 
 
 @tf.function(jit_compile=True)
@@ -245,7 +255,6 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             A 5D-tensor of shape (batch_shapes, vertices, n_radial, n_angular, 3, 2) that describes barycentric
             coordinates.
         """
-        self.call_helper(vertices[0])
         return tf.map_fn(self.call_helper, vertices)
 
     @tf.function(jit_compile=True)
