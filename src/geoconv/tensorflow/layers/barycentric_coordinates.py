@@ -5,8 +5,6 @@ import tensorflow as tf
 import numpy as np
 import sys
 
-from test_scripts.triangle_estimation.visualize import visualize_triangle_point
-
 
 @tf.function(jit_compile=True)
 def compute_det(batched_matrices):
