@@ -5,6 +5,8 @@ import tensorflow as tf
 import numpy as np
 import sys
 
+from test_scripts.triangle_estimation.visualize import visualize_triangle_point
+
 
 @tf.function(jit_compile=True)
 def compute_det(batched_matrices):
@@ -22,7 +24,19 @@ def compute_det(batched_matrices):
 
 
 @tf.function(jit_compile=True)
+def sort_triangles_ccw(triangles):
+    centroid = tf.reduce_mean(triangles, axis=1, keepdims=True)
+    angles = tf.atan2(triangles[..., 1] - centroid[..., 1], triangles[..., 0] - centroid[..., 0])
+    sorted_indices = tf.argsort(angles, axis=1)
+    return tf.gather(triangles, sorted_indices, batch_dims=1)
+
+
+@tf.function(jit_compile=True)
 def delaunay_condition_check(triangles, projections):
+    # Delaunay condition-check requires counter-clock-wise (ccw) sorted triangles
+    triangles = tf.reshape(sort_triangles_ccw(tf.reshape(triangles, (-1, 3, 2))), tf.shape(triangles))
+
+    # triangles must be rotated counterclockwise
     # 'column_1_2': (n_vertices, n_neighbors, `n_neighbors over 3`, 3, 2)
     # 'column_1_2[..., 0]' -> x-coordinate difference to triangle vertices from selected neighbor
     # 'column_1_2[..., 1]' -> y-coordinate difference to triangle vertices from selected neighbor
@@ -43,9 +57,7 @@ def delaunay_condition_check(triangles, projections):
     )
 
     # 'delaunay_check_matrix': (n_vertices, `n_neighbors over 3`)
-    # Every triangle should have 3 vertices that fall into their circumcircle (their own vertices)
-    # Use '<=' to account for numerical inaccuracies
-    delaunay_check_matrix = tf.reduce_sum(delaunay_check_matrix, axis=1) <= 3
+    delaunay_check_matrix = tf.reduce_sum(delaunay_check_matrix, axis=1) > 0
 
     return delaunay_check_matrix
 
@@ -103,7 +115,7 @@ def compute_interpolation_weights(template, projections):
     bc_condition = tf.math.reduce_any(
         tf.logical_or(barycentric_coordinates > 1., barycentric_coordinates < 0.), axis=-1
     )
-    mask = tf.logical_or(tf.logical_not(delaunay_condition[:, None, None, :]), bc_condition)
+    mask = tf.logical_or(delaunay_condition[:, None, None, :], bc_condition)
 
     # 'tri_distances': (n_vertices, n_radial, n_angular, `n_neighbors over 3`)
     tri_distances = tf.reduce_sum(
