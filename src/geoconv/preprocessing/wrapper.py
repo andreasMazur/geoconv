@@ -24,12 +24,6 @@ def sample_surface(shape, count, output_dir):
     output_dir: str
         The directory where the sample and shape shall be stored.
     """
-    # Determine length of largest axis (= scale)
-    scale = 1 / shape.vertices.max(axis=0).max()
-
-    # Scale the largest axis to one (and other dimensions by same factor / uniform scaling)
-    shape.vertices = shape.vertices * scale
-
     # Sample point cloud
     vertices = trimesh.sample.sample_surface(shape, count=count)[0]
 
