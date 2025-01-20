@@ -1,11 +1,11 @@
 from geoconv.tensorflow.backbone.covariance import Covariance
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
+from geoconv.tensorflow.layers.normalize_point_cloud import NormalizePointCloud
 from geoconv.tensorflow.layers.shot_descriptor import PointCloudShotDescriptor
+from geoconv.tensorflow.layers.spatial_dropout import SpatialDropout
 
 import tensorflow as tf
-
-from geoconv.tensorflow.layers.spatial_dropout import SpatialDropout
 
 
 class ModelNetClf(tf.keras.Model):
@@ -33,6 +33,9 @@ class ModelNetClf(tf.keras.Model):
         # INPUT PART
         #############
         # For centering point clouds
+        self.normalize_point_cloud = NormalizePointCloud()
+
+        # For initial vertex signals
         self.shot_descriptor = PointCloudShotDescriptor(
             neighbors_for_lrf=neighbors_for_lrf,
             azimuth_bins=azimuth_bins,
@@ -91,8 +94,11 @@ class ModelNetClf(tf.keras.Model):
         self.clf = tf.keras.layers.Dense(units=self.output_dim, activation="linear")
 
     def call(self, inputs, training=False, **kwargs):
-        # Compute SHOT-descriptor as initial local vertex features
+        # Normalize point-cloud
         coordinates = inputs
+        coordinates = self.normalize_point_cloud(coordinates)
+
+        # Compute SHOT-descriptor as initial local vertex features
         signal = self.shot_descriptor(coordinates)
         signal = self.noise(signal, training=training)
 
