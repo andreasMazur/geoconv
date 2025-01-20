@@ -56,7 +56,7 @@ def hyper_tuning(dataset_path,
                 staircase=False
             ),
             weight_decay=0.019081993138727875,
-            beta_1=hp.Float("dropout_rate", min_value=0.8, max_value=1.0),
+            beta_1=hp.Float("beta_1", min_value=0.8, max_value=1.0),
             beta_2=0.999
         )
 
