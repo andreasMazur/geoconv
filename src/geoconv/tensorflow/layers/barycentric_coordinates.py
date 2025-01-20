@@ -1,4 +1,5 @@
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
+from geoconv.tensorflow.layers.normalize_point_cloud import NormalizePointCloud
 from geoconv.tensorflow.utils.compute_shot_lrf import logarithmic_map, knn_shot_lrf
 
 import tensorflow as tf
@@ -192,7 +193,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         self.template = None
         self.neighbors_for_lrf = neighbors_for_lrf
 
-    def adapt(self, data=None, n_neighbors=None, template_scale=None, template_radius=None):
+    def adapt(self, data=None, n_neighbors=None, template_scale=None, template_radius=None, with_normalization=True):
         """Sets the template radius to a given or the average neighborhood radius scaled by used defined coefficient.
 
         Parameters
@@ -205,6 +206,8 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             The scaling factor to multiply on the template.
         template_radius: float
             The template radius to use to initialize the template.
+        with_normalization: bool
+            Whether to normalize the point-cloud before projection.
 
         Returns
         -------
@@ -218,9 +221,14 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
 
         # If no template radius is given, compute the template radius
         if template_radius is None:
+            normalization_layer = NormalizePointCloud()
             avg_radius, vertices_count = 0, 0
             for idx, (vertices, _) in enumerate(data):
                 sys.stdout.write(f"\rCurrently at point-cloud {idx}.")
+                # 0.) Point-cloud normalization
+                if with_normalization:
+                    vertices = normalization_layer(vertices)
+
                 # 1.) Get local reference frames
                 # 'lrfs': (vertices, 3, 3)
                 lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(n_neighbors, vertices[0])
