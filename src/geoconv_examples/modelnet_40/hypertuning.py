@@ -44,7 +44,7 @@ def hyper_tuning(dataset_path,
             radial_bins=radial_bins,
             histogram_bins=histogram_bins,
             sphere_radius=sphere_radius,
-            dropout_rate=hp.Float("dropout_rate", min_value=0.0, max_value=0.3)
+            dropout_rate=0.
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
@@ -55,7 +55,9 @@ def hyper_tuning(dataset_path,
                 decay_rate=0.8003162152855945,
                 staircase=False
             ),
-            weight_decay=0.019081993138727875
+            weight_decay=0.019081993138727875,
+            beta_1=hp.Float("dropout_rate", min_value=1.0, max_value=0.8),
+            beta_2=0.999
         )
 
         imcnn.compile(optimizer=opt, loss=loss, metrics="accuracy", run_eagerly=True)
