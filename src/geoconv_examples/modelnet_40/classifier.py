@@ -2,6 +2,7 @@ from geoconv.tensorflow.backbone.covariance import Covariance
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 from geoconv.tensorflow.layers.normalize_point_cloud import NormalizePointCloud
+from geoconv.tensorflow.layers.set_function import SetFunction
 from geoconv.tensorflow.layers.shot_descriptor import PointCloudShotDescriptor
 from geoconv.tensorflow.layers.spatial_dropout import SpatialDropout
 
@@ -19,7 +20,6 @@ class ModelNetClf(tf.keras.Model):
                  variant=None,
                  rotation_delta=1,
                  initializer="glorot_uniform",
-                 pooling="cov",
                  azimuth_bins=8,
                  elevation_bins=2,
                  radial_bins=2,
@@ -81,17 +81,9 @@ class ModelNetClf(tf.keras.Model):
         ######################
         # CLASSIFICATION PART
         ######################
-        assert pooling in ["cov", "max", "avg"], "Please set your pooling to either 'cov', 'max' or 'avg'."
-        if pooling == "cov":
-            self.pool = Covariance()
-        elif pooling == "avg":
-            self.pool = tf.keras.layers.GlobalAvgPool1D(data_format="channels_last")
-        else:
-            self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
-
         # Define classification layer
         self.output_dim = 10 if modelnet10 else 40
-        self.clf = tf.keras.layers.Dense(units=self.output_dim, activation="linear")
+        self.clf = SetFunction(phi_units=256, rho_units=self.output_dim)
 
     def call(self, inputs, training=False, **kwargs):
         # Normalize point-cloud
@@ -109,9 +101,6 @@ class ModelNetClf(tf.keras.Model):
         for idx, _ in enumerate(self.isc_layers):
             signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
-
-        # Pool local surface descriptors into global point-cloud descriptor
-        signal = self.pool(signal)
 
         # Return classification of point-cloud descriptor
         return self.clf(signal)
