@@ -102,7 +102,7 @@ def shot_lrf(neighborhoods, radii):
     return tf.stack([z_axes, y_axes, x_axes], axis=-1)
 
 
-@tf.function(jit_compile=True)
+# @tf.function(jit_compile=True)
 def logarithmic_map(lrfs, neighborhoods):
     """Computes projections of neighborhoods into their local reference frames.
 
@@ -126,23 +126,17 @@ def logarithmic_map(lrfs, neighborhoods):
     scaled_normals = neighborhoods @ tf.expand_dims(normals, axis=-1) * tf.expand_dims(normals, axis=1)
     projections = neighborhoods - scaled_normals
 
-    # Compute scaling coefficients
-    inner_product = tf.einsum("vni,vni->vn", projections, neighborhoods)
+    # Basis change of neighborhoods into lrf coordinates
+    projections = tf.einsum("vij,vnj->vni", tf.linalg.inv(tf.transpose(lrfs, perm=[0, 2, 1])), projections)[:, :, 1:]
 
-    # Use 'hypotenuse + adjacent + opposite' as upper estimate to geodesic distance
+    # Use 'projection / adjacent * hypotenuse' as estimate to geodesic distance
     adj, hy = tf.linalg.norm(projections, axis=-1), tf.linalg.norm(neighborhoods, axis=-1)
     zero_indices = tf.where(adj == 0.)
     adj = tf.tensor_scatter_nd_update(adj, zero_indices, tf.ones((tf.shape(zero_indices)[0],)))
     hy = tf.tensor_scatter_nd_update(hy, zero_indices, tf.ones((tf.shape(zero_indices)[0],)))
-    scale = hy + adj + tf.math.cos(
-        tf.math.acos(tf.clip_by_value(inner_product / (adj * hy), 0., 1.)) - (np.pi / 2)
-    ) * hy
-
-    # Basis change of neighborhoods into lrf coordinates
-    projections = tf.einsum("vij,vnj->vni", tf.linalg.inv(tf.transpose(lrfs, perm=[0, 2, 1])), projections)[:, :, 1:]
 
     # Rescale projections to their original Euclidean distances
-    projections = projections / adj[..., None] * scale[..., None]
+    projections = projections / adj[..., None] * hy[..., None]
 
     return projections
 
