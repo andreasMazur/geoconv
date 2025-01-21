@@ -23,10 +23,29 @@ def compute_det(batched_matrices):
 
 
 @tf.function(jit_compile=True)
+def sort_angles(angles):
+    # Create indices
+    indices = tf.broadcast_to(tf.range(3)[None, :], tf.shape(angles))
+
+    # Initially compare x1 and x2
+    first_comparison = angles[:, 0] > angles[:, 1]
+    smaller = tf.where(tf.logical_not(first_comparison), indices[:, 0], indices[:, 1])
+    larger = tf.where(first_comparison, indices[:, 0], indices[:, 1])
+
+    # Find the largest by comparing 'larger' against x3
+    largest = tf.where(tf.gather(angles, larger, batch_dims=1) > angles[:, 2], larger, indices[:, 2])
+
+    # Find the smallest by comparing 'smaller' against x3
+    smaller = tf.where(tf.gather(angles, smaller, batch_dims=1) < angles[:, 2], smaller, indices[:, 2])
+
+    return tf.stack([smaller, 3 - (smaller + largest), largest], axis=-1)
+
+
+@tf.function(jit_compile=True)
 def sort_triangles_ccw(triangles):
     centroid = tf.reduce_mean(triangles, axis=1, keepdims=True)
     angles = tf.atan2(triangles[..., 1] - centroid[..., 1], triangles[..., 0] - centroid[..., 0])
-    sorted_indices = tf.argsort(angles, axis=1)
+    sorted_indices = sort_angles(angles)
     return tf.gather(triangles, sorted_indices, batch_dims=1)
 
 
