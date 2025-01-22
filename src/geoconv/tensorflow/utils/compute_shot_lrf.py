@@ -1,5 +1,4 @@
 import tensorflow as tf
-import numpy as np
 
 
 @tf.function(jit_compile=True)
@@ -102,7 +101,7 @@ def shot_lrf(neighborhoods, radii):
     return tf.stack([z_axes, y_axes, x_axes], axis=-1)
 
 
-# @tf.function(jit_compile=True)
+@tf.function(jit_compile=True)
 def logarithmic_map(lrfs, neighborhoods):
     """Computes projections of neighborhoods into their local reference frames.
 
