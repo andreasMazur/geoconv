@@ -13,7 +13,8 @@ def model_configuration(neighbors_for_lrf,
                         template_radius,
                         modelnet10,
                         variant,
-                        rotation_delta):
+                        rotation_delta,
+                        exp_lambda):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
@@ -29,7 +30,8 @@ def model_configuration(neighbors_for_lrf,
         elevation_bins=6,
         radial_bins=2,
         histogram_bins=6,
-        sphere_radius=0.
+        sphere_radius=0.,
+        exp_lambda=exp_lambda
     )
 
     # Define loss and optimizer
@@ -66,7 +68,8 @@ def training(dataset_path,
              redirect_output=False,
              rotation_delta=1,
              epochs=200,
-             debug=False):
+             debug=False,
+             exp_lambda=2.0):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -96,7 +99,8 @@ def training(dataset_path,
             template_radius=template_radius * template_scale,
             modelnet10=modelnet10,
             variant=variant,
-            rotation_delta=rotation_delta
+            rotation_delta=rotation_delta,
+            exp_lambda=exp_lambda
         )
 
         # Define callbacks

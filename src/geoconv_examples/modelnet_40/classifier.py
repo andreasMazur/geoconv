@@ -28,7 +28,8 @@ class ModelNetClf(tf.keras.Model):
                  histogram_bins=11,
                  sphere_radius=0.,
                  noise_stddev=0.,
-                 dropout_rate=0.):
+                 dropout_rate=0.,
+                 exp_lambda=2.0):
         super().__init__()
 
         #############
@@ -54,7 +55,7 @@ class ModelNetClf(tf.keras.Model):
             neighbors_for_lrf=neighbors_for_lrf,
             projection_neighbors=projection_neighbors
         )
-        self.bc_layer.adapt(template_radius=template_radius, exp_lambda=2.0)
+        self.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda)
 
         # Add noise during training
         self.noise = tf.keras.layers.GaussianNoise(stddev=noise_stddev)
