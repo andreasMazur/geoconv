@@ -7,6 +7,7 @@ import tensorflow as tf
 
 
 def model_configuration(neighbors_for_lrf,
+                        projection_neighbors,
                         n_radial,
                         n_angular,
                         template_radius,
@@ -16,6 +17,7 @@ def model_configuration(neighbors_for_lrf,
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
+        projection_neighbors=projection_neighbors,
         n_radial=n_radial,
         n_angular=n_angular,
         template_radius=template_radius,
@@ -54,6 +56,7 @@ def training(dataset_path,
              logging_dir,
              template_configurations=None,
              neighbors_for_lrf=16,
+             projection_neighbors=10,
              template_radius=None,
              modelnet10=False,
              gen_info_file=None,
@@ -87,6 +90,7 @@ def training(dataset_path,
         # Get classification model
         imcnn = model_configuration(
             neighbors_for_lrf=neighbors_for_lrf,
+            projection_neighbors=projection_neighbors,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius * template_scale,
