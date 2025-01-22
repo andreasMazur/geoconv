@@ -2,7 +2,6 @@ from geoconv.tensorflow.backbone.covariance import Covariance
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 from geoconv.tensorflow.layers.normalize_point_cloud import NormalizePointCloud
-from geoconv.tensorflow.layers.set_function import SetFunction
 from geoconv.tensorflow.layers.shot_descriptor import PointCloudShotDescriptor
 from geoconv.tensorflow.layers.spatial_dropout import SpatialDropout
 
@@ -57,9 +56,6 @@ class ModelNetClf(tf.keras.Model):
         )
         self.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda)
 
-        # Add noise during training
-        self.noise = tf.keras.layers.GaussianNoise(stddev=noise_stddev)
-
         # Spatial dropout of entire feature maps
         self.dropout = SpatialDropout(rate=dropout_rate)
 
@@ -99,14 +95,13 @@ class ModelNetClf(tf.keras.Model):
         self.output_dim = 10 if modelnet10 else 40
         self.clf = tf.keras.layers.Dense(units=self.output_dim, activation="linear")
 
-    def call(self, inputs, training=False, **kwargs):
+    def call(self, inputs, **kwargs):
         # Normalize point-cloud
         coordinates = inputs
         coordinates = self.normalize_point_cloud(coordinates)
 
         # Compute SHOT-descriptor as initial local vertex features
         signal = self.shot_descriptor(coordinates)
-        signal = self.noise(signal, training=training)
 
         # Compute barycentric coordinates from 3D coordinates
         bc = self.bc_layer(coordinates)
