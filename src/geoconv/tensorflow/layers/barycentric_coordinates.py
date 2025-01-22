@@ -122,6 +122,7 @@ def compute_interpolation_weights(template, projections):
     # 'triangle_indices': (`n_neighbors over 3`, 3)
     triangles, triangle_indices = create_all_triangles(projections)
 
+    # Use Delaunay condition to remove triangle-pairs are used that could not co-exist
     # 'delaunay_condition[x, y] = True' if 'triangles[x, y]' meets Delaunay condition
     # 'delaunay_condition': (n_vertices, `n_neighbors over 3`)
     delaunay_condition = delaunay_condition_check(triangles, projections)
