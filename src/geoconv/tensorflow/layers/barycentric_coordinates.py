@@ -205,29 +205,36 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         The amount of radial coordinates of the template for which BC shall be computed.
     n_angular: int
         The amount of angular coordinates of the template for which BC shall be computed.
+    neighbors_for_lrf: int
+        The amount of neighbors that are used to compute the normal vectors of the local reference frames.
+    projection_neighbors: int
+        The amount of neighbors that shall be projected. Has to be smaller or equal than 'neighbors_for_lrf'.
+        These are also used to determine the template radius.
     """
-    def __init__(self, n_radial, n_angular, neighbors_for_lrf=16):
+    def __init__(self, n_radial, n_angular, projection_neighbors=8, neighbors_for_lrf=16):
         super().__init__()
         self.n_radial = n_radial
         self.n_angular = n_angular
         self.template = None
+        self.projection_neighbors = projection_neighbors
         self.neighbors_for_lrf = neighbors_for_lrf
 
-    def adapt(self, data=None, n_neighbors=None, template_scale=None, template_radius=None, with_normalization=True):
+    def adapt(self, data=None, template_scale=None, template_radius=None, with_normalization=True, exp_lambda=1.0):
         """Sets the template radius to a given or the average neighborhood radius scaled by used defined coefficient.
 
         Parameters
         ----------
         data: tf.Dataset
             The training data which is used to compute the template radius.
-        n_neighbors: int
-            The amount of closest neighbors to consider to compute the template radius.
         template_scale: float
             The scaling factor to multiply on the template.
         template_radius: float
             The template radius to use to initialize the template.
         with_normalization: bool
             Whether to normalize the point-cloud before projection.
+        exp_lambda: float
+            Whether to sample more points closer to the origin than farther out. This lambda determines the strength
+            of how non-uniform to sample.
 
         Returns
         -------
@@ -236,7 +243,6 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         """
         if template_radius is None:
             assert data is not None, "If 'template_radius' is not given, you must provide 'data'."
-            assert n_neighbors is not None, "If 'template_radius' is not given, you must provide 'n_neighbors'."
             assert template_scale is not None, "If 'template_radius' is not given, you must provide 'template_scale'."
 
         # If no template radius is given, compute the template radius
@@ -244,26 +250,23 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             normalization_layer = NormalizePointCloud()
             avg_radius, vertices_count = 0, 0
             for idx, (vertices, _) in enumerate(data):
+                assert tf.shape(vertices)[0] == 1, "Use a batch-size of one for BC-layer adaptation."
+
                 sys.stdout.write(f"\rCurrently at point-cloud {idx}.")
                 # 0.) Point-cloud normalization
                 if with_normalization:
                     vertices = normalization_layer(vertices)
 
-                # 1.) Get local reference frames
-                # 'lrfs': (vertices, 3, 3)
-                lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(n_neighbors, vertices[0])
+                # 1.) Compute projections
+                projections, _ = self.project(vertices[0])
 
-                # 2.) Project neighborhoods into their lrfs using the logarithmic map
-                # 'projections': (vertices, n_neighbors, 2)
-                projections = logarithmic_map(lrfs, neighborhoods)
-
-                # 3.) Use length of farthest projection as radius
+                # 2.) Use length of farthest projection as radius
                 radii = tf.reduce_max(tf.linalg.norm(projections, axis=-1), axis=-1)
 
-                # 4.) Add all radii
+                # 3.) Add all radii
                 avg_radius = avg_radius + tf.reduce_sum(radii)
 
-                # 5.) Remember amount of collected radii for averaging
+                # 4.) Remember amount of collected radii for averaging
                 vertices_count = vertices_count + tf.cast(tf.shape(radii)[0], tf.float32)
             avg_radius = avg_radius / vertices_count
             template_radius = avg_radius * template_scale
@@ -271,7 +274,11 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         # Initialize template
         self.template = tf.constant(
             create_template_matrix(
-                n_radial=self.n_radial, n_angular=self.n_angular, radius=template_radius, in_cart=True
+                n_radial=self.n_radial,
+                n_angular=self.n_angular,
+                radius=template_radius,
+                in_cart=True,
+                exp_lambda=exp_lambda
             ), dtype=tf.float32
         )
 
@@ -309,24 +316,33 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         tf.Tensor:
             A 4D-tensor of shape (vertices, n_radial, n_angular, 3, 2) that describes barycentric coordinates.
         """
-        # 1.) Get local reference frames
-        # 'lrfs': (vertices, 3, 3)
-        lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(self.neighbors_for_lrf, vertices)
+        # 1.) Compute projection neighborhoods
+        # 'projections': (vertices, self.projection_neighbors, 2)
+        # 'neighborhoods_indices': (vertices, self.projection_neighbors)
+        projections, neighborhoods_indices = self.project(vertices)
 
-        # 2.) Project neighborhoods into their lrfs using the logarithmic map
-        # 'projections': (vertices, n_neighbors, 2)
-        projections = logarithmic_map(lrfs, neighborhoods)
-
-        # 3.) Compute barycentric coordinates
+        # 2.) Compute barycentric coordinates
         # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
         # 'closest_proj': (vertices, n_radial, n_angular, 3)
         interpolation_weights, closest_proj = compute_bc(self.template, projections)
         interpolation_weights = tf.cast(interpolation_weights, tf.float32)
 
-        # 4.) Get projection indices (convert neighborhood indices to shape vertex indices)
+        # 3.) Get projection indices (convert neighborhood indices to shape vertex indices)
         # 'projections_indices': (vertices, n_radial, n_angular, 3)
         projections_indices = tf.cast(tf.gather(neighborhoods_indices, closest_proj, batch_dims=1), tf.float32)
 
-        # 5.) Return barycentric coordinates tensor
+        # 4.) Return barycentric coordinates tensor
         # (vertices, n_radial, n_angular, 3, 2)
         return tf.stack([projections_indices, interpolation_weights], axis=-1)
+
+    @tf.function(jit_compile=True)
+    def project(self, vertices):
+        # Get local reference frames
+        # 'lrfs': (vertices, 3, 3)
+        lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(self.neighbors_for_lrf, vertices)
+
+        # Project neighborhoods into their lrfs using the logarithmic map
+        # 'projections': (vertices, n_neighbors, 2)
+        projections = logarithmic_map(lrfs, neighborhoods)
+
+        return projections[:, :self.projection_neighbors, :], neighborhoods_indices[:, :self.projection_neighbors]
