@@ -88,7 +88,7 @@ def polar_to_cart(angles, scales=1.):
     return np.stack([scales * np.cos(angles), scales * np.sin(angles)], axis=-1)
 
 
-def create_template_matrix(n_radial, n_angular, radius, in_cart=False, exp_lambda=1.0):
+def create_template_matrix(n_radial, n_angular, radius, in_cart=False, exp_lambda=1.0, shift_angular=True):
     """Creates a template matrix with radius `radius` and `n_radial` radial- and `n_angular` angular coordinates.
 
     Parameters
@@ -104,6 +104,8 @@ def create_template_matrix(n_radial, n_angular, radius, in_cart=False, exp_lambd
     exp_lambda: float
         Whether to sample more points closer to the origin than farther out. This lambda determines the strength
         of how non-uniform to sample.
+    shift_angular: bool
+        Whether to add half of angular step to every second row of template vertices.
 
     Returns
     -------
@@ -115,7 +117,8 @@ def create_template_matrix(n_radial, n_angular, radius, in_cart=False, exp_lambd
     for j in range(1, n_radial + 1):
         radial_coordinate = ((j / n_radial) ** exp_lambda) * radius
         for k in range(1, n_angular + 1):
-            angular_coordinate = (2 * k * np.pi) / n_angular
+            angular_coordinate = (2 * k * np.pi + int(shift_angular) * np.mod(j, 2) * np.pi) / n_angular
+
             coordinates[j - 1, k - 1, 0] = radial_coordinate
             coordinates[j - 1, k - 1, 1] = angular_coordinate
 
