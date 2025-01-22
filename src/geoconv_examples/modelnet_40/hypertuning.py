@@ -22,7 +22,8 @@ def hyper_tuning(dataset_path,
                  radial_bins=2,
                  histogram_bins=11,
                  sphere_radius=0.,
-                 exp_lambda=2.0):
+                 exp_lambda=2.0,
+                 shift_angular=True):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -46,7 +47,8 @@ def hyper_tuning(dataset_path,
             histogram_bins=histogram_bins,
             sphere_radius=sphere_radius,
             dropout_rate=0.,
-            exp_lambda=exp_lambda
+            exp_lambda=exp_lambda,
+            shift_angular=shift_angular
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")

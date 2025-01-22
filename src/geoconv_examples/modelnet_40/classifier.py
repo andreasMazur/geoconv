@@ -26,9 +26,9 @@ class ModelNetClf(tf.keras.Model):
                  radial_bins=2,
                  histogram_bins=11,
                  sphere_radius=0.,
-                 noise_stddev=0.,
                  dropout_rate=0.,
-                 exp_lambda=2.0):
+                 exp_lambda=2.0,
+                 shift_angular=True):
         super().__init__()
 
         #############
@@ -54,7 +54,7 @@ class ModelNetClf(tf.keras.Model):
             neighbors_for_lrf=neighbors_for_lrf,
             projection_neighbors=projection_neighbors
         )
-        self.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda)
+        self.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda, shift_angular=shift_angular)
 
         # Spatial dropout of entire feature maps
         self.dropout = SpatialDropout(rate=dropout_rate)

@@ -219,7 +219,13 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         self.projection_neighbors = projection_neighbors
         self.neighbors_for_lrf = neighbors_for_lrf
 
-    def adapt(self, data=None, template_scale=None, template_radius=None, with_normalization=True, exp_lambda=1.0):
+    def adapt(self,
+              data=None,
+              template_scale=None,
+              template_radius=None,
+              with_normalization=True,
+              exp_lambda=1.0,
+              shift_angular=True):
         """Sets the template radius to a given or the average neighborhood radius scaled by used defined coefficient.
 
         Parameters
@@ -235,6 +241,8 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         exp_lambda: float
             Whether to sample more points closer to the origin than farther out. This lambda determines the strength
             of how non-uniform to sample.
+        shift_angular: bool
+            Whether to add half of angular step to every second row of template vertices.
 
         Returns
         -------
@@ -278,7 +286,8 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
                 n_angular=self.n_angular,
                 radius=template_radius,
                 in_cart=True,
-                exp_lambda=exp_lambda
+                exp_lambda=exp_lambda,
+                shift_angular=shift_angular
             ), dtype=tf.float32
         )
 
