@@ -115,5 +115,8 @@ class ModelNetClf(tf.keras.Model):
             signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
 
+        # Pool local surface descriptors into global point-cloud descriptor
+        signal = self.pool(signal)
+
         # Return classification of point-cloud descriptor
         return self.clf(signal)
