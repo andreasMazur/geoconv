@@ -15,7 +15,8 @@ class ModelNetClf(tf.keras.Model):
                  n_angular,
                  template_radius,
                  isc_layer_conf,
-                 neighbors_for_lrf=16,
+                 neighbors_for_lrf=32,
+                 projection_neighbors=10,
                  modelnet10=False,
                  variant=None,
                  rotation_delta=1,
@@ -47,9 +48,12 @@ class ModelNetClf(tf.keras.Model):
 
         # Init barycentric coordinates layer
         self.bc_layer = BarycentricCoordinates(
-            n_radial=n_radial, n_angular=n_angular, neighbors_for_lrf=neighbors_for_lrf
+            n_radial=n_radial,
+            n_angular=n_angular,
+            neighbors_for_lrf=neighbors_for_lrf,
+            projection_neighbors=projection_neighbors
         )
-        self.bc_layer.adapt(template_radius=template_radius)
+        self.bc_layer.adapt(template_radius=template_radius, exp_lambda=2.0)
 
         # Add noise during training
         self.noise = tf.keras.layers.GaussianNoise(stddev=noise_stddev)
