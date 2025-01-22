@@ -21,6 +21,7 @@ class ModelNetClf(tf.keras.Model):
                  variant=None,
                  rotation_delta=1,
                  initializer="glorot_uniform",
+                 pooling="avg",
                  azimuth_bins=8,
                  elevation_bins=2,
                  radial_bins=2,
@@ -85,9 +86,17 @@ class ModelNetClf(tf.keras.Model):
         ######################
         # CLASSIFICATION PART
         ######################
+        assert pooling in ["cov", "max", "avg"], "Please set your pooling to either 'cov', 'max' or 'avg'."
+        if pooling == "cov":
+            self.pool = Covariance()
+        elif pooling == "avg":
+            self.pool = tf.keras.layers.GlobalAvgPool1D(data_format="channels_last")
+        else:
+            self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
+
         # Define classification layer
         self.output_dim = 10 if modelnet10 else 40
-        self.clf = SetFunction(phi_units=256, rho_units=self.output_dim)
+        self.clf = tf.keras.layers.Dense(units=self.output_dim, activation="linear")
 
     def call(self, inputs, training=False, **kwargs):
         # Normalize point-cloud
