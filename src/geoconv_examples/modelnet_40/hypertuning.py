@@ -33,7 +33,7 @@ def hyper_tuning(dataset_path,
         # Configure classifier
         imcnn = ModelNetClf(
             neighbors_for_lrf=neighbors_for_lrf,
-            projection_neighbors=projection_neighbors,
+            projection_neighbors=hp.Float("projection_neighbors", min_value=8, max_value=16),
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
