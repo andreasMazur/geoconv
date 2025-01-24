@@ -5,6 +5,7 @@ from geoconv.tensorflow.utils.compute_shot_lrf import logarithmic_map, knn_shot_
 import tensorflow as tf
 import numpy as np
 import sys
+import warnings
 
 
 @tf.function(jit_compile=True)
@@ -218,6 +219,13 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         self.template = None
         self.projection_neighbors = projection_neighbors
         self.neighbors_for_lrf = neighbors_for_lrf
+
+        if projection_neighbors > neighbors_for_lrf:
+            warnings.warn(
+                f"### You wanted to use {projection_neighbors} projections but created LRFs with only "
+                f"{neighbors_for_lrf} vertices. Therefore this BC-layer will only use {neighbors_for_lrf} "
+                f"projections. ###"
+            )
 
     def adapt(self,
               data=None,
