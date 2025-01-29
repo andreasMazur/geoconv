@@ -102,7 +102,6 @@ class ModelNetClf(tf.keras.Model):
 
         # Compute SHOT-descriptor as initial local vertex features
         signal = self.shot_descriptor(coordinates)
-        signal = tf.concat([coordinates, signal], axis=-1)
 
         # Compute barycentric coordinates from 3D coordinates
         bc = self.bc_layer(coordinates)
