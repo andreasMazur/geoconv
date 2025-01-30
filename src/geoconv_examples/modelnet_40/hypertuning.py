@@ -37,9 +37,7 @@ def hyper_tuning(dataset_path,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            isc_layer_conf=[
-                hp.Int("ISC1_units", min_value=1, max_value=128), hp.Int("ISC2_units", min_value=1, max_value=128)
-            ],
+            isc_layer_conf=[hp.Int("ISC1_units", min_value=1, max_value=128)] + isc_layer_conf + [hp.Int("ISC2_units", min_value=1, max_value=128)],
             modelnet10=modelnet10,
             variant=variant,
             rotation_delta=rotation_delta,
