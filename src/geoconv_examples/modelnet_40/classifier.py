@@ -8,6 +8,28 @@ from geoconv.tensorflow.layers.spatial_dropout import SpatialDropout
 import tensorflow as tf
 
 
+class WarmupAndExpDecay(tf.keras.optimizers.schedules.LearningRateSchedule):
+    def __init__(self, initial_learning_rate, decay_rate, decay_steps, warmup_steps):
+        self.initial_learning_rate = initial_learning_rate
+        self.decay_rate = decay_rate
+        self.warmup_steps = warmup_steps
+        self.decay_steps = decay_steps
+
+    def __call__(self, step):
+        if step >= self.warmup_steps:
+            return self.initial_learning_rate * self.decay_rate ** ((step - self.warmup_steps) / self.decay_steps)
+        else:
+            return step / self.warmup_steps * self.initial_learning_rate
+
+    def get_config(self):
+        return {
+            "initial_learning_rate": self.initial_learning_rate,
+            "decay_rate": self.decay_rate,
+            "decay_steps": self.decay_steps,
+            "warmup_steps": self.warmup_steps
+        }
+
+
 class ModelNetClf(tf.keras.Model):
     def __init__(self,
                  n_radial,
