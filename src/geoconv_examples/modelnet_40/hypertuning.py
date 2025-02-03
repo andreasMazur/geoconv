@@ -37,7 +37,7 @@ def hyper_tuning(dataset_path,
             n_radial=n_radial,
             n_angular=n_angular,
             template_radius=template_radius,
-            isc_layer_conf=[hp.Int("ISC1_units", min_value=1, max_value=128)] + isc_layer_conf + [hp.Int("ISC2_units", min_value=1, max_value=128)],
+            isc_layer_conf=isc_layer_conf,
             modelnet10=modelnet10,
             variant=variant,
             rotation_delta=rotation_delta,
@@ -46,7 +46,7 @@ def hyper_tuning(dataset_path,
             radial_bins=radial_bins,
             histogram_bins=histogram_bins,
             sphere_radius=sphere_radius,
-            dropout_rate=0.,  # hp.Float("dropout_rate", min_value=0.0, max_value=0.2),
+            dropout_rate=0.,
             exp_lambda=exp_lambda,
             shift_angular=shift_angular
         )
@@ -54,14 +54,12 @@ def hyper_tuning(dataset_path,
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
         opt = tf.keras.optimizers.AdamW(
             learning_rate=WarmupAndExpDecay(
-                initial_learning_rate=hp.Float(
-                    "init_learning_rate", min_value=0.0, max_value=0.0012159541035380926 * 1.5
-                ),
+                initial_learning_rate=0.0007673139778927575,
                 decay_steps=2461,  # One epoch
-                decay_rate=hp.Float("decay_rate", min_value=0.65, max_value=0.9),
+                decay_rate=0.7080237438158256,
                 warmup_steps=2461  # One epoch
             ),
-            weight_decay=0.019081993138727875,
+            weight_decay=hp.Float("dropout_rate", min_value=0.0, max_value=0.2),
             beta_1=0.9,
             beta_2=0.999
         )
