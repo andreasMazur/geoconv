@@ -15,7 +15,8 @@ def model_configuration(neighbors_for_lrf,
                         variant,
                         rotation_delta,
                         exp_lambda,
-                        shift_angular):
+                        shift_angular,
+                        isc_layer_conf):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
@@ -23,7 +24,7 @@ def model_configuration(neighbors_for_lrf,
         n_radial=n_radial,
         n_angular=n_angular,
         template_radius=template_radius,
-        isc_layer_conf=[128, 128, 128, 64],
+        isc_layer_conf=isc_layer_conf,
         modelnet10=modelnet10,
         variant=variant,
         rotation_delta=rotation_delta,
@@ -72,7 +73,11 @@ def training(dataset_path,
              epochs=200,
              debug=False,
              exp_lambda=2.0,
-             shift_angular=True):
+             shift_angular=True,
+             isc_layer_conf=None):
+    if isc_layer_conf is None:
+        isc_layer_conf = [128, 128, 128, 64]
+
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -104,7 +109,8 @@ def training(dataset_path,
             variant=variant,
             rotation_delta=rotation_delta,
             exp_lambda=exp_lambda,
-            shift_angular=shift_angular
+            shift_angular=shift_angular,
+            isc_layer_conf=isc_layer_conf
         )
 
         # Define callbacks
