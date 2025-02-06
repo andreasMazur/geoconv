@@ -84,19 +84,26 @@ def shot_descr(neighborhoods,
     v_azimuth = tf.math.atan2(neighborhoods[:, :, 1], neighborhoods[:, :, 0]) + np.pi
 
     # Bin spherical coordinates of vertices into spherical grid
+    # 'x_histogram': (n_vertices, n_neighbors)
     radial_histogram = tf.histogram_fixed_width_bins(v_radial, [0., radius], nbins=radial_bins)
     elevation_histogram = tf.histogram_fixed_width_bins(v_elevation, [0., np.pi], nbins=elevation_bins)
     azimuth_histogram = tf.histogram_fixed_width_bins(v_azimuth, [0., 2 * np.pi], nbins=azimuth_bins)
-    binned_vertices = tf.stack([azimuth_histogram, elevation_histogram, radial_histogram], axis=-1)
+    # 'sphere_bins': (n_vertices, n_neighbors, 3)
+    sphere_bins = tf.stack([azimuth_histogram, elevation_histogram, radial_histogram], axis=-1)
 
     # Compute inner product of vertex-normals from vertices in same bins with z-axis of lrf
+    # 'neighborhood_normals': (n_vertices, n_neighbors, 3)
     neighborhood_normals = tf.gather(normals, neighborhood_indices)
+    # 'cosines': (n_vertices, n_neighbors)
     cosines = tf.einsum("vi,vni->vn", normals, neighborhood_normals)
+    # 'cosine_bins': (n_vertices, n_neighbors)
     cosine_bins = tf.histogram_fixed_width_bins(cosines, [-1., 1.], nbins=histogram_bins)
 
-    # cosine_bins: '(vertex, neighbor, vertex-index and sphere-bin-index (3D) and histogram-index)'
+    # cosine_bins: '(vertex, neighbor, sphere-bin-index AND histogram-index => 3 + 1 = 4)'
     neighborhood_shape = tf.shape(neighborhood_indices)
-    cosine_bins = tf.concat([binned_vertices, tf.expand_dims(cosine_bins, axis=-1)], axis=-1)
+    cosine_bins = tf.concat([sphere_bins, tf.expand_dims(cosine_bins, axis=-1)], axis=-1)
+
+    # cosine_bins: '(vertex, neighbor, vertex-index AND sphere-bin-index AND histogram-index => 1 + 4 = 5)'
     cosine_bins = tf.concat(
         [
             tf.tile(
