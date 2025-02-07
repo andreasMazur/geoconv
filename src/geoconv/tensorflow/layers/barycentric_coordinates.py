@@ -131,11 +131,11 @@ def compute_interpolation_weights(template, projections):
     # 'barycentric_coordinates': (n_vertices, n_radial, n_angular, `n_neighbors over 3`, 3)
     barycentric_coordinates = compute_interpolation_coefficients(triangles, template)
 
-    # 'mask': (n_vertices, n_radial, n_angular, `n_neighbors over 3`)
+    # 'negative_mask': (n_vertices, n_radial, n_angular, `n_neighbors over 3`)
     bc_condition = tf.math.reduce_any(
         tf.logical_or(barycentric_coordinates > 1., barycentric_coordinates < 0.), axis=-1
     )
-    mask = tf.logical_or(delaunay_condition[:, None, None, :], bc_condition)
+    negative_mask = tf.logical_or(delaunay_condition[:, None, None, :], bc_condition)
 
     # 'tri_distances': (n_vertices, n_radial, n_angular, `n_neighbors over 3`)
     tri_distances = tf.reduce_sum(
@@ -143,7 +143,7 @@ def compute_interpolation_weights(template, projections):
     )
 
     # Set triangle distances to infinity where conditions aren't met
-    mask_indices = tf.where(mask)
+    mask_indices = tf.where(negative_mask)
     tri_distances = tf.tensor_scatter_nd_update(
         tri_distances, mask_indices, tf.cast(tf.fill((tf.shape(mask_indices)[0],), np.inf), tf.float64)
     )
@@ -154,7 +154,7 @@ def compute_interpolation_weights(template, projections):
     selected_indices = tf.cast(tf.gather(triangle_indices, closest_triangles), tf.int32)
 
     # Might happen that no triangles fit for a template vertex. Set those interpolation coefficients to zero.
-    correction_mask = tf.where(tf.reduce_all(mask, axis=-1))
+    correction_mask = tf.where(tf.reduce_all(negative_mask, axis=-1))
     zeros = tf.cast(tf.zeros((tf.shape(correction_mask)[0], 3)), tf.float64)
     selected_bc = tf.tensor_scatter_nd_update(selected_bc, correction_mask, zeros)
     selected_indices = tf.tensor_scatter_nd_update(selected_indices, correction_mask, tf.cast(zeros, tf.int32))
