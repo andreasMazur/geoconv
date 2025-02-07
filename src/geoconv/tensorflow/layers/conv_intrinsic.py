@@ -3,17 +3,14 @@ from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
 from abc import ABC, abstractmethod
 
 import tensorflow as tf
-import keras
 
 
-class ConvIntrinsic(ABC, keras.layers.Layer):
-    """A metaclass for intrinsic surface convolutions on Riemannian manifolds.
+class ConvIntrinsic(ABC, tf.keras.layers.Layer):
+    """A metaclass for intrinsic surface convolutions.
 
     Attributes
     ----------
-    given_name: str
-        The layer name.
-    activation_fn: str
+    activation: str
         The activation function to use.
     rotation_delta: int
         The distance between two rotations. If `n` angular coordinates are given in the data, then the default behavior
@@ -25,12 +22,6 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         The amount of templates to apply during one convolution.
     template_radius: float
         The maximal geodesic extension of the template.
-    template_regularizer: str or callable
-        A regularizer for the template.
-    bias_regularizer: str or callable
-        A regularizer for the bias.
-    initializer: str or callable
-        An initializer for the template and bias.
     include_prior: bool
         Whether to weight the interpolations according to a pre-defined kernel.
     """
@@ -41,27 +32,18 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
                  include_prior=True,
                  activation="relu",
                  rotation_delta=1,
-                 name=None,
-                 template_regularizer=None,
-                 bias_regularizer=None,
-                 initializer="glorot_uniform"):
-        if name:
-            super().__init__(name=name)
-        else:
-            super().__init__()
+                 *args,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
 
-        self.given_name = name
-        self.activation_fn = activation
-        self.rotation_delta = rotation_delta
         self.amt_templates = amt_templates
         self.template_radius = template_radius
-        self.template_regularizer = template_regularizer
-        self.bias_regularizer = bias_regularizer
-        self.initializer = initializer
         self.include_prior = include_prior
+        self.activation = activation
+        self.rotation_delta = rotation_delta
 
         # Attributes that depend on the data and are set automatically in build
-        self._activation = keras.layers.Activation(self.activation_fn)
+        self._activation = tf.keras.layers.Activation(self.activation)
         self._bias = None
         self._all_rotations = None
         self._template_size = None  # (#radial, #angular)
@@ -70,6 +52,7 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
         self._template_self_weights = None
         self._kernel = None
         self._feature_dim = None
+        self._input_shape = None
 
     def get_config(self):
         config = super(ConvIntrinsic, self).get_config()
@@ -78,66 +61,90 @@ class ConvIntrinsic(ABC, keras.layers.Layer):
                 "amt_templates": self.amt_templates,
                 "template_radius": self.template_radius,
                 "include_prior": self.include_prior,
-                "activation": self.activation_fn,
+                "activation": self.activation,
                 "rotation_delta": self.rotation_delta,
-                "name": self.given_name,
-                "template_regularizer": self.template_regularizer,
-                "bias_regularizer": self.bias_regularizer,
-                "initializer": self.initializer
+                "input_shape": self.input_shape
             }
         )
         return config
+
+    @classmethod
+    def from_config(cls, config):
+        """Re-instantiates the layer from the config dictionary.
+
+        Parameters
+        ----------
+        config: dict
+            The configuration dictionary.
+
+        Returns
+        -------
+        ConvIntrinsic:
+            The layer.
+        """
+        model = cls(**config)
+        signal_shape, barycentric_shape = config["input_shape"]
+        model.input_shape_dependent_configuration(signal_shape, barycentric_shape)
+        model._configure_kernel()
+        return model
+
+    def input_shape_dependent_configuration(self, signal_shape, barycentric_shape):
+        """Configures layer-attributes that depend on the input shapes.
+
+        Parameters
+        ----------
+        signal_shape: tf.TensorShape
+            The shape of the signal.
+        barycentric_shape: tf.TensorShape
+            The shape of the barycentric coordinates.
+        """
+        self._template_size = (barycentric_shape[-4], barycentric_shape[-3])
+        self._template_vertices = tf.constant(
+            create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius)
+        )
+        self._all_rotations = self._template_size[1]
+        self._feature_dim = signal_shape[-1]
 
     def build(self, input_shape):
         """Builds the layer by setting template and bias attributes
 
         Parameters
         ----------
-        input_shape: (tensorflow.TensorShape, tensorflow.TensorShape)
+        input_shape: (tf.TensorShape, tf.TensorShape)
             The shape of the signal and the shape of the barycentric coordinates.
         """
-        signal_shape, barycentric_shape = input_shape
-
-        # Configure template
-        self._template_size = (barycentric_shape[-4], barycentric_shape[-3])
-        self._all_rotations = self._template_size[1]
-        self._template_vertices = tf.constant(
-            create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius)
-        )
-        self._feature_dim = signal_shape[-1]
+        # Remember input-shape
+        self._input_shape = input_shape
+        signal_shape, barycentric_shape = self._input_shape
+        self.input_shape_dependent_configuration(signal_shape, barycentric_shape)
 
         # Configure trainable weights
         self._template_neighbor_weights = self.add_weight(
             name="neighbor_weights",
             shape=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[-1]),
-            initializer=self.initializer,
-            trainable=True,
-            regularizer=self.template_regularizer
+            trainable=True
         )
         self._template_self_weights = self.add_weight(
             name="center_weights",
             shape=(self.amt_templates, 1, signal_shape[-1]),
-            initializer=self.initializer,
-            trainable=True,
-            regularizer=self.template_regularizer
+            trainable=True
         )
         self._bias = self.add_weight(
-            name="conv_intrinsic_bias",
+            name="bias",
             shape=(self.amt_templates,),
-            initializer=self.initializer,
-            trainable=True,
-            regularizer=self.bias_regularizer
+            trainable=True
         )
 
         # Configure kernel
         self._configure_kernel()
 
     @tf.function
-    def call(self, inputs, orientations=None):
+    def call(self, inputs, orientations=None, **kwargs):
         """Computes intrinsic surface convolution on all vertices of a given mesh.
 
         Parameters
         ----------
+        **kwargs
         inputs: (tensorflow.Tensor, tensorflow.Tensor)
             The first tensor represents the signal defined on the manifold. It has size
             (batch_shapes, n_vertices, feature_dim). The second tensor represents the barycentric coordinates. It has
