@@ -55,6 +55,13 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         self._input_shape = None
 
     def get_config(self):
+        """Get the configuration dictionary.
+
+        Returns
+        -------
+        dict:
+            The configuration dictionary.
+        """
         config = super(ConvIntrinsic, self).get_config()
         config.update(
             {
