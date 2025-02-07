@@ -90,27 +90,8 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
             The layer.
         """
         model = cls(**config)
-        signal_shape, barycentric_shape = config["input_shape"]
-        model.input_shape_dependent_configuration(signal_shape, barycentric_shape)
-        model._configure_kernel()
+        model.build(config["input_shape"])
         return model
-
-    def input_shape_dependent_configuration(self, signal_shape, barycentric_shape):
-        """Configures layer-attributes that depend on the input shapes.
-
-        Parameters
-        ----------
-        signal_shape: tf.TensorShape
-            The shape of the signal.
-        barycentric_shape: tf.TensorShape
-            The shape of the barycentric coordinates.
-        """
-        self._template_size = (barycentric_shape[-4], barycentric_shape[-3])
-        self._template_vertices = tf.constant(
-            create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius)
-        )
-        self._all_rotations = self._template_size[1]
-        self._feature_dim = signal_shape[-1]
 
     def build(self, input_shape):
         """Builds the layer by setting template and bias attributes
@@ -123,7 +104,14 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         # Remember input-shape
         self._input_shape = input_shape
         signal_shape, barycentric_shape = self._input_shape
-        self.input_shape_dependent_configuration(signal_shape, barycentric_shape)
+
+        # Configure layer-attributes that depend on the input shapes
+        self._template_size = (barycentric_shape[-4], barycentric_shape[-3])
+        self._template_vertices = tf.constant(
+            create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius)
+        )
+        self._all_rotations = self._template_size[1]
+        self._feature_dim = signal_shape[-1]
 
         # Configure trainable weights
         self._template_neighbor_weights = self.add_weight(
