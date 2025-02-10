@@ -2,7 +2,7 @@ from geoconv.tensorflow.backbone.covariance import Covariance
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 from geoconv.tensorflow.layers.normalize_point_cloud import NormalizePointCloud
-from geoconv.tensorflow.layers.pooling.gravity_max_pooling import GravityPooling
+from geoconv.tensorflow.layers.pooling.gravity_pooling import GravityPooling
 from geoconv.tensorflow.layers.shot_descriptor import PointCloudShotDescriptor
 from geoconv.tensorflow.layers.spatial_dropout import SpatialDropout
 
