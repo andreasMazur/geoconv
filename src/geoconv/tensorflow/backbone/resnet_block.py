@@ -12,8 +12,7 @@ class ResNetBlock(tf.keras.Model):
                  rotation_delta,
                  conv_type="dirac",
                  activation="relu",
-                 input_dim=-1,
-                 initializer="glorot_uniform"):
+                 input_dim=-1):
         super(ResNetBlock, self).__init__()
 
         assert conv_type in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
@@ -25,8 +24,7 @@ class ResNetBlock(tf.keras.Model):
             template_radius=template_radius,
             activation="linear",
             name="ResNetBlock_1",
-            rotation_delta=rotation_delta,
-            initializer=initializer
+            rotation_delta=rotation_delta
         )
         self.bn1 = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
         self.amp1 = AngularMaxPooling()
@@ -37,8 +35,7 @@ class ResNetBlock(tf.keras.Model):
             template_radius=template_radius,
             activation="linear",
             name="ResNetBlock_2",
-            rotation_delta=rotation_delta,
-            initializer=initializer
+            rotation_delta=rotation_delta
         )
         self.bn2 = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
         self.amp2 = AngularMaxPooling()
@@ -54,8 +51,7 @@ class ResNetBlock(tf.keras.Model):
                 template_radius=template_radius,
                 activation="linear",
                 name="ResNetBlock_rescale",
-                rotation_delta=rotation_delta,
-                initializer=initializer
+                rotation_delta=rotation_delta
             )
             self.bn_rescale = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
             self.amp_rescale = AngularMaxPooling()
