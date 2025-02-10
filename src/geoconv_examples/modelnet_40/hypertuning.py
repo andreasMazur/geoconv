@@ -50,7 +50,7 @@ def hyper_tuning(dataset_path,
             exp_lambda=exp_lambda,
             shift_angular=shift_angular,
             time=hp.Float("time", min_value=1e-6, max_value=5.),
-            iterations=hp.Float("iterations", min_value=1, max_value=10)
+            iterations=hp.Int("iterations", min_value=1, max_value=10)
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
