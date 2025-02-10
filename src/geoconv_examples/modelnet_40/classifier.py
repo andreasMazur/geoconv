@@ -42,7 +42,6 @@ class ModelNetClf(tf.keras.Model):
                  modelnet10=False,
                  variant=None,
                  rotation_delta=1,
-                 initializer="glorot_uniform",
                  pooling="avg",
                  azimuth_bins=8,
                  elevation_bins=2,
@@ -51,7 +50,9 @@ class ModelNetClf(tf.keras.Model):
                  sphere_radius=0.,
                  dropout_rate=0.,
                  exp_lambda=2.0,
-                 shift_angular=True):
+                 shift_angular=True,
+                 time=1.,
+                 iterations=3):
         super().__init__()
 
         #############
@@ -84,6 +85,8 @@ class ModelNetClf(tf.keras.Model):
 
         # Pooling
         self.pooling = GravityPooling(delta=1.)
+        self.time = time
+        self.iterations = iterations
 
         #################
         # EMBEDDING PART
@@ -136,7 +139,7 @@ class ModelNetClf(tf.keras.Model):
             signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
 
-            coordinates = self.pooling([coordinates, 1., 3])
+            coordinates = self.pooling([coordinates, self.time, self.iterations])
 
         # Pool local surface descriptors into global point-cloud descriptor
         signal = self.pool(signal)
