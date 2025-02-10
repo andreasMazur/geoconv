@@ -8,13 +8,11 @@ def gravity(coordinates, t=1., delta=1.):
     # Compute direction and distance to centroid
     directions = centroid - coordinates
     distances = tf.linalg.norm(directions, axis=-1)
-    directions = directions / tf.linalg.norm(directions, axis=-1)[:, None]
+    directions = directions / distances[:, None]
 
     # Zero gravity for points on delta-sphere
-    m = tf.reduce_prod(tf.reduce_max(coordinates, axis=0) - tf.reduce_min(coordinates, axis=0)) ** (1 / 3)
-    distances = (tf.math.square((distances - delta) * t)) / (2 * m)
+    new_coordinates = coordinates + (tf.math.square(t) * (distances - delta) / 2)[:, None] * directions
 
-    new_coordinates = coordinates + distances[:, None] * directions
     return new_coordinates
 
 
