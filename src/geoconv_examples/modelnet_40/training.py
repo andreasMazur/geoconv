@@ -16,7 +16,9 @@ def model_configuration(neighbors_for_lrf,
                         rotation_delta,
                         exp_lambda,
                         shift_angular,
-                        isc_layer_conf):
+                        isc_layer_conf,
+                        time,
+                        iterations):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
@@ -34,7 +36,9 @@ def model_configuration(neighbors_for_lrf,
         histogram_bins=6,
         sphere_radius=0.,
         exp_lambda=exp_lambda,
-        shift_angular=shift_angular
+        shift_angular=shift_angular,
+        time=time,
+        iterations=iterations
     )
 
     # Define loss and optimizer
@@ -74,7 +78,9 @@ def training(dataset_path,
              debug=False,
              exp_lambda=2.0,
              shift_angular=True,
-             isc_layer_conf=None):
+             isc_layer_conf=None,
+             time=1.,
+             iterations=3):
     if isc_layer_conf is None:
         isc_layer_conf = [128, 128, 128, 64]
 
@@ -110,7 +116,9 @@ def training(dataset_path,
             rotation_delta=rotation_delta,
             exp_lambda=exp_lambda,
             shift_angular=shift_angular,
-            isc_layer_conf=isc_layer_conf
+            isc_layer_conf=isc_layer_conf,
+            time=time,
+            iterations=iterations
         )
 
         # Define callbacks
