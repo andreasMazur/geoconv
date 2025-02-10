@@ -2,6 +2,7 @@ from geoconv.tensorflow.backbone.covariance import Covariance
 from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
 from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
 from geoconv.tensorflow.layers.normalize_point_cloud import NormalizePointCloud
+from geoconv.tensorflow.layers.pooling.gravity_max_pooling import GravityPooling
 from geoconv.tensorflow.layers.shot_descriptor import PointCloudShotDescriptor
 from geoconv.tensorflow.layers.spatial_dropout import SpatialDropout
 
@@ -81,6 +82,9 @@ class ModelNetClf(tf.keras.Model):
         # Spatial dropout of entire feature maps
         self.dropout = SpatialDropout(rate=dropout_rate)
 
+        # Pooling
+        self.pooling = GravityPooling(delta=1.)
+
         #################
         # EMBEDDING PART
         #################
@@ -97,8 +101,7 @@ class ModelNetClf(tf.keras.Model):
                     rotation_delta=rotation_delta,
                     conv_type=variant,
                     activation="relu",
-                    input_dim=-1 if idx == 0 else isc_layer_conf[idx - 1],
-                    initializer=initializer
+                    input_dim=-1 if idx == 0 else isc_layer_conf[idx - 1]
                 )
             )
 
@@ -125,13 +128,15 @@ class ModelNetClf(tf.keras.Model):
         # Compute SHOT-descriptor as initial local vertex features
         signal = self.shot_descriptor(coordinates)
 
-        # Compute barycentric coordinates from 3D coordinates
-        bc = self.bc_layer(coordinates)
-
         # Compute vertex embeddings
         for idx, _ in enumerate(self.isc_layers):
+            # Compute barycentric coordinates from 3D coordinates
+            bc = self.bc_layer(coordinates)
+
             signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
+
+            coordinates = self.pooling([coordinates, 1., 3])
 
         # Pool local surface descriptors into global point-cloud descriptor
         signal = self.pool(signal)
