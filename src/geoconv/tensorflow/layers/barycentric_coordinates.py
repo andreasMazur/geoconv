@@ -114,7 +114,17 @@ def compute_interpolation_coefficients(triangles, template):
     point_1_weight = (dot00 * dot12 - dot01 * dot02) * denominator
     point_0_weight = 1 - point_2_weight - point_1_weight
 
-    return tf.stack([point_0_weight, point_1_weight, point_2_weight], axis=-1)
+    barycentric_coordinates = tf.stack([point_0_weight, point_1_weight, point_2_weight], axis=-1)
+
+    # Set NAN-values to -1. so they get filtered out by BC-condition (np.inf would also work)
+    nan_indices = tf.where(tf.math.is_nan(barycentric_coordinates))
+    barycentric_coordinates = tf.tensor_scatter_nd_update(
+        barycentric_coordinates,
+        nan_indices,
+        tf.cast(tf.fill((tf.shape(nan_indices)[0],), -1.), tf.float64)
+    )
+
+    return barycentric_coordinates
 
 
 @tf.function(jit_compile=True)
