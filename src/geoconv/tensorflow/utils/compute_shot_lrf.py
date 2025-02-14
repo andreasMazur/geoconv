@@ -141,7 +141,7 @@ def logarithmic_map(lrfs, neighborhoods):
 
 
 @tf.function(jit_compile=True)
-def knn_shot_lrf(k_neighbors, vertices, repetitions=4):
+def compute_neighborhood(vertices, k_neighbors):
     # 1.) Compute radius for local parameterization spaces. Keep it equal for all for comparability.
     # 'distance_matrix': (vertices, vertices)
     # 'radii': (vertices,)
@@ -153,28 +153,36 @@ def knn_shot_lrf(k_neighbors, vertices, repetitions=4):
     neighborhoods, neighborhood_indices = tf.math.top_k(-distance_matrix, k_neighbors)
     neighborhoods = tf.gather(vertices, neighborhood_indices, axis=0) - tf.expand_dims(vertices, axis=1)
 
-    # 3.) Get local reference frames
+    return neighborhoods, neighborhood_indices, radii
+
+
+@tf.function(jit_compile=True)
+def knn_shot_lrf(k_neighbors, vertices, repetitions=4):
+    # 1.) Compute
+    neighborhoods, neighborhood_indices, radii = compute_neighborhood(vertices, k_neighbors)
+
+    # 2.) Get local reference frames
     # 'lrfs': (vertices, 3, 3)
     lrfs = shot_lrf(neighborhoods, radii)
 
-    # 4.) Make normal vectors point away from centroid (outwards from shape)
-    signs = -tf.cast(tf.einsum("vi,vi->v", lrfs[:, :, 0], tf.reduce_mean(vertices, axis=0) - vertices) >= 0, tf.int32)
+    # 3.) Make normal vectors point away from centroid (outwards from shape)
+    signs = -tf.cast(tf.einsum("vi,vi->v", lrfs[..., 0], tf.reduce_mean(vertices, axis=0) - vertices) >= 0, tf.int32)
     signs = signs + tf.cast(signs == 0, tf.int32)
-    normals = tf.expand_dims(tf.cast(signs, tf.float32), axis=-1) * lrfs[:, :, 0]
-    lrfs = tf.stack([normals, lrfs[:, :, 1], lrfs[:, :, 2]], axis=-1)
+    normals = tf.expand_dims(tf.cast(signs, tf.float32), axis=-1) * lrfs[..., 0]
+    lrfs = tf.stack([normals, lrfs[..., 1], lrfs[..., 2]], axis=-1)
 
-    # 5.) Make normal vectors in neighborhoods point the same direction
+    # 4.) Make normal vectors in neighborhoods point the same direction
     # (non-convex shapes -> "outwards" might differ locally)
     for rep in range(repetitions):
-        normals = tf.gather(lrfs[:, :, 0], neighborhood_indices[:, 1:])
+        normals = tf.gather(lrfs[..., 0], neighborhood_indices[:, 1:])
         signs = -tf.cast(
             tf.reduce_sum(
-                tf.cast(tf.einsum("vi,vni->vn", lrfs[:, :, 0], normals) >= 0, tf.int32), axis=-1
+                tf.cast(tf.einsum("vi,vni->vn", lrfs[..., 0], normals) >= 0, tf.int32), axis=-1
             ) <= tf.math.floordiv(k_neighbors, 2),
             tf.int32
         )
         signs = signs + tf.cast(signs == 0, tf.int32)
-        normals = tf.expand_dims(tf.cast(signs, tf.float32), axis=-1) * lrfs[:, :, 0]
-        lrfs = tf.stack([normals, lrfs[:, :, 1], lrfs[:, :, 2]], axis=-1)
+        normals = tf.expand_dims(tf.cast(signs, tf.float32), axis=-1) * lrfs[..., 0]
+        lrfs = tf.stack([normals, lrfs[..., 1], lrfs[..., 2]], axis=-1)
 
     return lrfs, neighborhoods, neighborhood_indices
