@@ -17,6 +17,7 @@ def model_configuration(neighbors_for_lrf,
                         exp_lambda,
                         shift_angular,
                         isc_layer_conf,
+                        down_sample_pc,
                         time,
                         iterations):
     # Define model
@@ -27,6 +28,7 @@ def model_configuration(neighbors_for_lrf,
         n_angular=n_angular,
         template_radius=template_radius,
         isc_layer_conf=isc_layer_conf,
+        down_sample_pc=down_sample_pc,
         modelnet10=modelnet10,
         variant=variant,
         rotation_delta=rotation_delta,
@@ -79,10 +81,13 @@ def training(dataset_path,
              exp_lambda=2.0,
              shift_angular=True,
              isc_layer_conf=None,
+             down_sample_pc=None,
              time=1.,
              iterations=3):
     if isc_layer_conf is None:
         isc_layer_conf = [128, 128, 128, 64]
+    if down_sample_pc is None:
+        down_sample_pc = [1024, 1024, 512, 256]
 
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
@@ -117,6 +122,7 @@ def training(dataset_path,
             exp_lambda=exp_lambda,
             shift_angular=shift_angular,
             isc_layer_conf=isc_layer_conf,
+            down_sample_pc=down_sample_pc,
             time=time,
             iterations=iterations
         )
