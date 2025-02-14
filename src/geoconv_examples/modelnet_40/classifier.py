@@ -37,6 +37,7 @@ class ModelNetClf(tf.keras.Model):
                  n_angular,
                  template_radius,
                  isc_layer_conf,
+                 down_sample_pc,
                  neighbors_for_lrf=32,
                  projection_neighbors=10,
                  modelnet10=False,
@@ -95,6 +96,7 @@ class ModelNetClf(tf.keras.Model):
         assert variant in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
 
         # Define embedding architecture
+        self.down_sample_pc = down_sample_pc
         self.isc_layers = []
         for idx, _ in enumerate(isc_layer_conf):
             self.isc_layers.append(
@@ -139,7 +141,9 @@ class ModelNetClf(tf.keras.Model):
             signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
 
-            coordinates = self.pooling([coordinates, self.time, self.iterations])
+            coordinates, signal = self.pooling(
+                [coordinates, signal, self.time, self.iterations, self.down_sample_pc[idx]]
+            )
 
         # Pool local surface descriptors into global point-cloud descriptor
         signal = self.pool(signal)
