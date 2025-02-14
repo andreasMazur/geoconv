@@ -40,26 +40,29 @@ class GravityPooling(tf.keras.layers.Layer):
         ##########
         # Pooling
         ##########
-        neighborhoods, neighborhood_indices, radii = compute_neighborhood(coordinates, self.neighbors_for_density)
-        orig_shape = tf.shape(neighborhoods)
+        if self.n_vertices == tf.shape(coordinates)[1]:
+            return coordinates, signal
+        else:
+            neighborhoods, neighborhood_indices, radii = compute_neighborhood(coordinates, self.neighbors_for_density)
+            orig_shape = tf.shape(neighborhoods)
 
-        # 'distance_matrices': (batch_size * old_n_vertices, self.neighbors_for_density, self.neighbors_for_density)
-        distance_matrices = tf.map_fn(
-            compute_distance_matrix, tf.reshape(neighborhoods, (-1, self.neighbors_for_density, 3))
-        )
-        # 'distance_matrices':  (batch_size, old_n_vertices, self.neighbors_for_density, self.neighbors_for_density)
-        distance_matrices = tf.reshape(
-            distance_matrices,
-            (orig_shape[0], orig_shape[1], self.neighbors_for_density, self.neighbors_for_density)
-        )
-        # 'densities': (batch_size, old_n_vertices)
-        densities = tf.reduce_sum(distance_matrices, axis=[-1, -2])
-        # 'keep': (batch_size, self.n_vertices)
-        keep = tf.argsort(densities, axis=-1)[:, :self.n_vertices]
-        # 'neighborhood_indices': (batch_size, self.n_vertices, self.neighbors_for_density)
-        neighborhood_indices = tf.gather(neighborhood_indices, keep, batch_dims=1)
-        # 'signal': (batch_size, self.n_vertices, feature_dim)
-        signal = tf.reduce_mean(tf.gather(signal, neighborhood_indices, batch_dims=1), axis=-2)
-        # 'coordinates':  (batch_size, self.n_vertices, 3)
-        coordinates = tf.gather(coordinates, keep, batch_dims=1)
-        return coordinates, signal
+            # 'distance_matrices': (batch_size * old_n_vertices, self.neighbors_for_density, self.neighbors_for_density)
+            distance_matrices = tf.map_fn(
+                compute_distance_matrix, tf.reshape(neighborhoods, (-1, self.neighbors_for_density, 3))
+            )
+            # 'distance_matrices':  (batch_size, old_n_vertices, self.neighbors_for_density, self.neighbors_for_density)
+            distance_matrices = tf.reshape(
+                distance_matrices,
+                (orig_shape[0], orig_shape[1], self.neighbors_for_density, self.neighbors_for_density)
+            )
+            # 'densities': (batch_size, old_n_vertices)
+            densities = tf.reduce_sum(distance_matrices, axis=[-1, -2])
+            # 'keep': (batch_size, self.n_vertices)
+            keep = tf.argsort(densities, axis=-1)[:, :self.n_vertices]
+            # 'neighborhood_indices': (batch_size, self.n_vertices, self.neighbors_for_density)
+            neighborhood_indices = tf.gather(neighborhood_indices, keep, batch_dims=1)
+            # 'signal': (batch_size, self.n_vertices, feature_dim)
+            signal = tf.reduce_mean(tf.gather(signal, neighborhood_indices, batch_dims=1), axis=-2)
+            # 'coordinates':  (batch_size, self.n_vertices, 3)
+            coordinates = tf.gather(coordinates, keep, batch_dims=1)
+            return coordinates, signal
