@@ -85,7 +85,6 @@ class ModelNetClf(tf.keras.Model):
         self.dropout = SpatialDropout(rate=dropout_rate)
 
         # Pooling
-        self.pooling = GravityPooling(delta=1.)
         self.time = time
         self.iterations = iterations
 
@@ -96,7 +95,7 @@ class ModelNetClf(tf.keras.Model):
         assert variant in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
 
         # Define embedding architecture
-        self.down_sample_pc = down_sample_pc
+        self.gravity_pooling_layers = []
         self.isc_layers = []
         for idx, _ in enumerate(isc_layer_conf):
             self.isc_layers.append(
@@ -108,6 +107,9 @@ class ModelNetClf(tf.keras.Model):
                     activation="relu",
                     input_dim=-1 if idx == 0 else isc_layer_conf[idx - 1]
                 )
+            )
+            self.gravity_pooling_layers.append(
+                GravityPooling(down_sample_pc[idx], iterations=1, time_span=1.34, delta=1., neighbors_for_density=5)
             )
 
         ######################
@@ -141,9 +143,7 @@ class ModelNetClf(tf.keras.Model):
             signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
 
-            coordinates, signal = self.pooling(
-                [coordinates, signal, self.time, self.iterations, self.down_sample_pc[idx]]
-            )
+            coordinates, signal = self.gravity_pooling_layers([coordinates, signal])
 
         # Pool local surface descriptors into global point-cloud descriptor
         signal = self.pool(signal)

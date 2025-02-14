@@ -20,27 +20,30 @@ def gravity(coordinates, t=1., delta=1.):
 
 
 class GravityPooling(tf.keras.layers.Layer):
-    def __init__(self, delta=1., neighbors_for_density=5, *args, **kwargs):
+    def __init__(self, n_vertices, iterations, time_span, delta=1., neighbors_for_density=5, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.delta = delta
         self.neighbors_for_density = neighbors_for_density
+        self.n_vertices = n_vertices
+        self.iterations = iterations
+        self.time_span = time_span
 
     def call(self, inputs, *args, **kwargs):
-        coordinates, signal, t, iterations, n_vertices = inputs
+        coordinates, signal = inputs
 
         # gravity shift
-        for _ in tf.range(iterations):
-            coordinates = gravity(coordinates, t=t, delta=self.delta)
+        for _ in tf.range(self.iterations):
+            coordinates = gravity(coordinates, t=self.time_span, delta=self.delta)
 
         # pooling
-        if n_vertices == tf.shape(coordinates)[1]:
+        if self.n_vertices == tf.shape(coordinates)[1]:
             return coordinates, signal
         else:
-            result = tf.map_fn(lambda cs: self.pool(cs, n_vertices), tf.concat([coordinates, signal], axis=-1))
+            result = tf.map_fn(self.pool, tf.concat([coordinates, signal], axis=-1))
             return result[..., :3], result[..., 3:]
 
     @tf.function(jit_compile=True)
-    def pool(self, coordinates_and_signal, n_vertices):
+    def pool(self, coordinates_and_signal):
         # 'coordinates': (old_n_vertices, 3)
         coordinates = coordinates_and_signal[:, :3]
         # 'signal': (old_n_vertices, d)
@@ -50,11 +53,11 @@ class GravityPooling(tf.keras.layers.Layer):
         distance_matrices = tf.map_fn(compute_distance_matrix, neighborhoods)
         # 'densities': (old_n_vertices,)
         densities = tf.reduce_sum(distance_matrices, axis=[1, 2])
-        # 'maintain': (n_vertices,)
-        maintain = tf.argsort(densities, axis=-1)[:n_vertices]
-        # 'neighborhood_indices': (n_vertices, self.neighbors_for_density)
+        # 'maintain': (self.n_vertices,)
+        maintain = tf.argsort(densities, axis=-1)[:self.n_vertices]
+        # 'neighborhood_indices': (self.n_vertices, self.neighbors_for_density)
         neighborhood_indices = tf.gather(neighborhood_indices, maintain)
-        # 'signal': (n_vertices, self.neighbors_for_density, d)
+        # 'signal': (self.n_vertices, self.neighbors_for_density, d)
         signal = tf.gather(signal, neighborhood_indices)
-        # (n_vertices, 3 + d)
+        # (self.n_vertices, 3 + d)
         return tf.concat([tf.gather(coordinates, maintain), tf.reduce_mean(signal, axis=1)], axis=-1)
