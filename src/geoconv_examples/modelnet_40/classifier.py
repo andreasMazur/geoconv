@@ -109,7 +109,13 @@ class ModelNetClf(tf.keras.Model):
                 )
             )
             self.gravity_pooling_layers.append(
-                GravityPooling(down_sample_pc[idx], iterations=1, time_span=1.34, delta=1., neighbors_for_density=5)
+                GravityPooling(
+                    down_sample_pc[idx],
+                    iterations=self.iterations,
+                    time_span=self.time,
+                    delta=1.,
+                    neighbors_for_density=5
+                )
             )
 
         ######################
