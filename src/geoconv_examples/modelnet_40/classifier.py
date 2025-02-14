@@ -149,7 +149,7 @@ class ModelNetClf(tf.keras.Model):
             signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
 
-            coordinates, signal = self.gravity_pooling_layers([coordinates, signal])
+            coordinates, signal = self.gravity_pooling_layers[idx]([coordinates, signal])
 
         # Pool local surface descriptors into global point-cloud descriptor
         signal = self.pool(signal)
