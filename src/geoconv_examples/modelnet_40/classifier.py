@@ -44,6 +44,7 @@ class ModelNetClf(tf.keras.Model):
                  variant=None,
                  rotation_delta=1,
                  pooling="avg",
+                 pc_pooling_variant="avg",
                  azimuth_bins=8,
                  elevation_bins=2,
                  radial_bins=2,
@@ -114,7 +115,8 @@ class ModelNetClf(tf.keras.Model):
                     iterations=self.iterations,
                     time_span=self.time,
                     delta=1.,
-                    neighbors_for_density=5
+                    neighbors_for_density=5,
+                    variant=pc_pooling_variant
                 )
             )
 
