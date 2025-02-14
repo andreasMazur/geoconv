@@ -143,15 +143,15 @@ def logarithmic_map(lrfs, neighborhoods):
 @tf.function(jit_compile=True)
 def compute_neighborhood(vertices, k_neighbors):
     # 1.) Compute radius for local parameterization spaces. Keep it equal for all for comparability.
-    # 'distance_matrix': (vertices, vertices)
-    # 'radii': (vertices,)
-    distance_matrix = compute_distance_matrix(vertices)
-    radii = tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[:, k_neighbors], batch_dims=1)
+    # 'distance_matrix': (batch, vertices, vertices)
+    # 'radii': (batch, vertices)
+    distance_matrix = tf.map_fn(compute_distance_matrix, vertices)
+    radii = tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[..., k_neighbors], batch_dims=2)
 
     # 2.) Get vertex-neighborhoods
-    # 'neighborhoods': (vertices, n_neighbors, 3)
+    # 'neighborhoods': (batch, vertices, n_neighbors, 3)
     neighborhoods, neighborhood_indices = tf.math.top_k(-distance_matrix, k_neighbors)
-    neighborhoods = tf.gather(vertices, neighborhood_indices, axis=0) - tf.expand_dims(vertices, axis=1)
+    neighborhoods = tf.gather(vertices, neighborhood_indices, batch_dims=1) - vertices[..., None, :]
 
     return neighborhoods, neighborhood_indices, radii
 
@@ -159,7 +159,8 @@ def compute_neighborhood(vertices, k_neighbors):
 @tf.function(jit_compile=True)
 def knn_shot_lrf(k_neighbors, vertices, repetitions=4):
     # 1.) Compute
-    neighborhoods, neighborhood_indices, radii = compute_neighborhood(vertices, k_neighbors)
+    neighborhoods, neighborhood_indices, radii = compute_neighborhood(vertices[None, ...], k_neighbors)
+    neighborhoods, neighborhood_indices, radii = neighborhoods[0], neighborhood_indices[0], radii[0]
 
     # 2.) Get local reference frames
     # 'lrfs': (vertices, 3, 3)
