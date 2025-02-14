@@ -20,13 +20,24 @@ def gravity(coordinates, t=1., delta=1.):
 
 
 class GravityPooling(tf.keras.layers.Layer):
-    def __init__(self, n_vertices, iterations, time_span, delta=1., neighbors_for_density=5, *args, **kwargs):
+    def __init__(self,
+                 n_vertices,
+                 iterations,
+                 time_span,
+                 delta=1.,
+                 neighbors_for_density=5,
+                 variant="avg",
+                 *args,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         self.delta = delta
         self.neighbors_for_density = neighbors_for_density
         self.n_vertices = n_vertices
         self.iterations = iterations
         self.time_span = time_span
+
+        assert variant in ["avg", "max"], "Please choose either 'avg' or 'max' as pooling strategy."
+        self.variant = variant
 
     def call(self, inputs, *args, **kwargs):
         coordinates, signal = inputs
@@ -50,7 +61,10 @@ class GravityPooling(tf.keras.layers.Layer):
             # 'neighborhood_indices': (batch_size, self.n_vertices, self.neighbors_for_density)
             neighborhood_indices = tf.gather(neighborhood_indices, keep, batch_dims=1)
             # 'signal': (batch_size, self.n_vertices, feature_dim)
-            signal = tf.reduce_mean(tf.gather(signal, neighborhood_indices, batch_dims=1), axis=-2)
+            if self.variant == "avg":
+                signal = tf.reduce_mean(tf.gather(signal, neighborhood_indices, batch_dims=1), axis=-2)
+            else:
+                signal = tf.reduce_max(tf.gather(signal, neighborhood_indices, batch_dims=1), axis=-2)
             # 'coordinates':  (batch_size, self.n_vertices, 3)
             coordinates = tf.gather(coordinates, keep, batch_dims=1)
             return coordinates, signal
