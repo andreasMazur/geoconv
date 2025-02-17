@@ -51,7 +51,13 @@ def hyper_tuning(dataset_path,
             shift_angular=shift_angular
         )
 
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
+        loss = tf.keras.losses.CategoricalFocalCrossentropy(
+            alpha=hp.Float("focal_alpha", min_value=0.0, max_value=1.0),
+            gamma=hp.Float("focal_gamma", min_value=0.0, max_value=5.0),
+            from_logits=True,
+            axis=-1,
+            reduction="sum_over_batch_size"
+        )
         opt = tf.keras.optimizers.AdamW(
             learning_rate=WarmupAndExpDecay(
                 initial_learning_rate=hp.Float("init_lr", min_value=0.0, max_value=0.0010585 * 1.25),

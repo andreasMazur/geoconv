@@ -39,7 +39,13 @@ def model_configuration(neighbors_for_lrf,
     )
 
     # Define loss and optimizer
-    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
+    loss = tf.keras.losses.CategoricalFocalCrossentropy(
+        alpha=0.25,
+        gamma=2.0,
+        from_logits=True,
+        axis=-1,
+        reduction="sum_over_batch_size"
+    )
     opt = tf.keras.optimizers.AdamW(
         learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=0.0015218449319544082,
@@ -135,7 +141,8 @@ def training(dataset_path,
             modelnet10=modelnet10,
             gen_info_file=f"{logging_dir}/{gen_info_file}",
             batch_size=batch_size,
-            debug_data=debug
+            debug_data=debug,
+            in_one_hot=True
         )
         test_data = load_preprocessed_modelnet(
             dataset_path,
@@ -143,7 +150,8 @@ def training(dataset_path,
             modelnet10=modelnet10,
             gen_info_file=f"{logging_dir}/test_{gen_info_file}",
             batch_size=batch_size,
-            debug_data=debug
+            debug_data=debug,
+            in_one_hot=True
         )
         save = tf.keras.callbacks.ModelCheckpoint(
             filepath=f"{logging_dir}/saved_imcnn_{exp_number}",
