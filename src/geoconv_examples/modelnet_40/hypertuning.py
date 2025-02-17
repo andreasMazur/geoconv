@@ -1,5 +1,5 @@
 from geoconv_examples.modelnet_40.classifier import ModelNetClf, WarmupAndExpDecay
-from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
+from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet, MN_CLASS_WEIGHTS
 
 import tensorflow as tf
 import keras_tuner as kt
@@ -52,7 +52,7 @@ def hyper_tuning(dataset_path,
         )
 
         loss = tf.keras.losses.CategoricalFocalCrossentropy(
-            alpha=hp.Float("focal_alpha", min_value=0.0, max_value=1.0),
+            alpha=list(MN_CLASS_WEIGHTS.values()),
             gamma=hp.Float("focal_gamma", min_value=0.0, max_value=5.0),
             from_logits=True,
             axis=-1,

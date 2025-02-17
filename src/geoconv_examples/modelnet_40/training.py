@@ -1,5 +1,5 @@
 from geoconv_examples.modelnet_40.classifier import ModelNetClf
-from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
+from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet, MN_CLASS_WEIGHTS
 
 import os
 import sys
@@ -40,7 +40,7 @@ def model_configuration(neighbors_for_lrf,
 
     # Define loss and optimizer
     loss = tf.keras.losses.CategoricalFocalCrossentropy(
-        alpha=0.25,
+        alpha=list(MN_CLASS_WEIGHTS.values()),
         gamma=2.0,
         from_logits=True,
         axis=-1,
