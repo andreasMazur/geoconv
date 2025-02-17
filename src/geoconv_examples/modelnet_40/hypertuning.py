@@ -91,14 +91,16 @@ def hyper_tuning(dataset_path,
         set_type="train",
         modelnet10=modelnet10,
         gen_info_file=f"{logging_dir}/{gen_info_file}",
-        batch_size=batch_size
+        batch_size=batch_size,
+        in_one_hot=True
     )
     test_data = load_preprocessed_modelnet(
         dataset_path,
         set_type="test",
         modelnet10=modelnet10,
         gen_info_file=f"{logging_dir}/test_{gen_info_file}",
-        batch_size=batch_size
+        batch_size=batch_size,
+        in_one_hot=True
     )
 
     # Start hyperparameter tuning
