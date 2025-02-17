@@ -16,9 +16,7 @@ def hyper_tuning(dataset_path,
                  batch_size=4,
                  rotation_delta=1,
                  variant="dirac",
-                 pc_pooling_variant="avg",
                  isc_layer_conf=None,
-                 down_sample_pc=None,
                  azimuth_bins=8,
                  elevation_bins=2,
                  radial_bins=2,
@@ -40,10 +38,8 @@ def hyper_tuning(dataset_path,
             n_angular=n_angular,
             template_radius=template_radius,
             isc_layer_conf=isc_layer_conf,
-            down_sample_pc=down_sample_pc,
             modelnet10=modelnet10,
             variant=variant,
-            pc_pooling_variant=pc_pooling_variant,
             rotation_delta=rotation_delta,
             azimuth_bins=azimuth_bins,
             elevation_bins=elevation_bins,
@@ -52,9 +48,7 @@ def hyper_tuning(dataset_path,
             sphere_radius=sphere_radius,
             dropout_rate=0.,
             exp_lambda=exp_lambda,
-            shift_angular=shift_angular,
-            time=1.34,
-            iterations=1
+            shift_angular=shift_angular
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
@@ -102,7 +96,7 @@ def hyper_tuning(dataset_path,
     )
 
     # Start hyperparameter tuning
-    stop = tf.keras.callbacks.EarlyStopping(monitor="val_accuracy", patience=3, min_delta=0.01)
+    stop = tf.keras.callbacks.EarlyStopping(monitor="val_accuracy", patience=5, min_delta=0.001)
     tuner.search(x=train_data, validation_data=test_data, epochs=20, callbacks=[stop])
 
     # Print best hyperparameters

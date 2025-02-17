@@ -13,14 +13,10 @@ def model_configuration(neighbors_for_lrf,
                         template_radius,
                         modelnet10,
                         variant,
-                        pc_pooling_variant,
                         rotation_delta,
                         exp_lambda,
                         shift_angular,
-                        isc_layer_conf,
-                        down_sample_pc,
-                        time,
-                        iterations):
+                        isc_layer_conf):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
@@ -29,20 +25,17 @@ def model_configuration(neighbors_for_lrf,
         n_angular=n_angular,
         template_radius=template_radius,
         isc_layer_conf=isc_layer_conf,
-        down_sample_pc=down_sample_pc,
         modelnet10=modelnet10,
         variant=variant,
-        pc_pooling_variant=pc_pooling_variant,
         rotation_delta=rotation_delta,
-        azimuth_bins=8,
-        elevation_bins=6,
+        pooling="cov",
+        azimuth_bins=3,
+        elevation_bins=2,
         radial_bins=2,
         histogram_bins=6,
         sphere_radius=0.,
         exp_lambda=exp_lambda,
-        shift_angular=shift_angular,
-        time=time,
-        iterations=iterations
+        shift_angular=shift_angular
     )
 
     # Define loss and optimizer
@@ -75,7 +68,6 @@ def training(dataset_path,
              gen_info_file=None,
              batch_size=1,
              variant=None,
-             pc_pooling_variant=None,
              set_mem_growth=False,
              redirect_output=False,
              rotation_delta=1,
@@ -83,14 +75,9 @@ def training(dataset_path,
              debug=False,
              exp_lambda=2.0,
              shift_angular=True,
-             isc_layer_conf=None,
-             down_sample_pc=None,
-             time=1.,
-             iterations=3):
+             isc_layer_conf=None):
     if isc_layer_conf is None:
         isc_layer_conf = [128, 128, 128, 64]
-    if down_sample_pc is None:
-        down_sample_pc = [1024, 1024, 512, 256]
 
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
@@ -121,14 +108,10 @@ def training(dataset_path,
             template_radius=template_radius * template_scale,
             modelnet10=modelnet10,
             variant=variant,
-            pc_pooling_variant=pc_pooling_variant,
             rotation_delta=rotation_delta,
             exp_lambda=exp_lambda,
             shift_angular=shift_angular,
-            isc_layer_conf=isc_layer_conf,
-            down_sample_pc=down_sample_pc,
-            time=time,
-            iterations=iterations
+            isc_layer_conf=isc_layer_conf
         )
 
         # Define callbacks

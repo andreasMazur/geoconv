@@ -37,14 +37,12 @@ class ModelNetClf(tf.keras.Model):
                  n_angular,
                  template_radius,
                  isc_layer_conf,
-                 down_sample_pc,
                  neighbors_for_lrf=32,
                  projection_neighbors=10,
                  modelnet10=False,
                  variant=None,
                  rotation_delta=1,
                  pooling="avg",
-                 pc_pooling_variant="avg",
                  azimuth_bins=8,
                  elevation_bins=2,
                  radial_bins=2,
@@ -52,9 +50,7 @@ class ModelNetClf(tf.keras.Model):
                  sphere_radius=0.,
                  dropout_rate=0.,
                  exp_lambda=2.0,
-                 shift_angular=True,
-                 time=1.,
-                 iterations=3):
+                 shift_angular=True):
         super().__init__()
 
         #############
@@ -85,10 +81,6 @@ class ModelNetClf(tf.keras.Model):
         # Spatial dropout of entire feature maps
         self.dropout = SpatialDropout(rate=dropout_rate)
 
-        # Pooling
-        self.time = time
-        self.iterations = iterations
-
         #################
         # EMBEDDING PART
         #################
@@ -107,16 +99,6 @@ class ModelNetClf(tf.keras.Model):
                     conv_type=variant,
                     activation="relu",
                     input_dim=-1 if idx == 0 else isc_layer_conf[idx - 1]
-                )
-            )
-            self.gravity_pooling_layers.append(
-                GravityPooling(
-                    down_sample_pc[idx],
-                    iterations=self.iterations,
-                    time_span=self.time,
-                    delta=1.,
-                    neighbors_for_density=5,
-                    variant=pc_pooling_variant
                 )
             )
 
@@ -140,21 +122,20 @@ class ModelNetClf(tf.keras.Model):
         coordinates = inputs
         coordinates = self.normalize_point_cloud(coordinates)
 
+        # Compute barycentric coordinates from 3D coordinates
+        bc = self.bc_layer(coordinates)
+
         # Compute SHOT-descriptor as initial local vertex features
         signal = self.shot_descriptor(coordinates)
+        static_signal = self.pool(signal)
 
         # Compute vertex embeddings
         for idx, _ in enumerate(self.isc_layers):
-            # Compute barycentric coordinates from 3D coordinates
-            bc = self.bc_layer(coordinates)
-
             signal = self.dropout(signal)
             signal = self.isc_layers[idx]([signal, bc])
 
-            coordinates, signal = self.gravity_pooling_layers[idx]([coordinates, signal])
-
         # Pool local surface descriptors into global point-cloud descriptor
-        signal = self.pool(signal)
+        signal = static_signal + self.pool(signal)
 
         # Return classification of point-cloud descriptor
         return self.clf(signal)
