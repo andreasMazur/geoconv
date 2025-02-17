@@ -52,7 +52,7 @@ def hyper_tuning(dataset_path,
         )
 
         loss = tf.keras.losses.CategoricalFocalCrossentropy(
-            alpha=1.0,  # list(MN_CLASS_WEIGHTS.values()),
+            alpha=list(MN_CLASS_WEIGHTS.values()),
             gamma=hp.Float("focal_gamma", min_value=0.0, max_value=5.0),
             from_logits=True,
             axis=-1,
