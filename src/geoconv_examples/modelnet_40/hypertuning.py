@@ -59,12 +59,13 @@ def hyper_tuning(dataset_path,
             reduction="sum_over_batch_size"
         )
         opt = tf.keras.optimizers.AdamW(
-            learning_rate=WarmupAndExpDecay(
-                initial_learning_rate=hp.Float("init_lr", min_value=0.0, max_value=0.005),
-                decay_steps=2461,  # One epoch
-                decay_rate=hp.Float("decay_rate", min_value=0.0, max_value=1.0),
-                warmup_steps=2461  # One epoch
-            ),
+            learning_rate=hp.Float("learning_rate", min_value=0.0001, max_value=0.1),
+            # learning_rate=WarmupAndExpDecay(
+            #     initial_learning_rate=hp.Float("initial_learning_rate", min_value=0.0, max_value=1.0),
+            #     decay_steps=2461,
+            #     decay_rate=0.65,
+            #     warmup_steps=2461
+            # ),
             weight_decay=hp.Float("weight_decay", min_value=0.0, max_value=1.0),
             beta_1=0.9,
             beta_2=0.999
