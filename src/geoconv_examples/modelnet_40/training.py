@@ -16,7 +16,8 @@ def model_configuration(neighbors_for_lrf,
                         rotation_delta,
                         exp_lambda,
                         shift_angular,
-                        isc_layer_conf):
+                        isc_layer_conf,
+                        pooling):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
@@ -28,7 +29,7 @@ def model_configuration(neighbors_for_lrf,
         modelnet10=modelnet10,
         variant=variant,
         rotation_delta=rotation_delta,
-        pooling="cov",
+        pooling=pooling,
         azimuth_bins=8,
         elevation_bins=6,
         radial_bins=2,
@@ -81,7 +82,8 @@ def training(dataset_path,
              debug=False,
              exp_lambda=2.0,
              shift_angular=True,
-             isc_layer_conf=None):
+             isc_layer_conf=None,
+             pooling="avg"):
     if isc_layer_conf is None:
         isc_layer_conf = [128, 128, 128, 64]
 
@@ -117,7 +119,8 @@ def training(dataset_path,
             rotation_delta=rotation_delta,
             exp_lambda=exp_lambda,
             shift_angular=shift_angular,
-            isc_layer_conf=isc_layer_conf
+            isc_layer_conf=isc_layer_conf,
+            pooling=pooling
         )
 
         # Define callbacks
