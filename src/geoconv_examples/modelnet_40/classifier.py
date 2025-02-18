@@ -44,9 +44,9 @@ class ModelNetClf(tf.keras.Model):
                  rotation_delta=1,
                  pooling="avg",
                  azimuth_bins=8,
-                 elevation_bins=2,
+                 elevation_bins=6,
                  radial_bins=2,
-                 histogram_bins=11,
+                 histogram_bins=6,
                  sphere_radius=0.,
                  dropout_rate=0.,
                  exp_lambda=2.0,
@@ -127,7 +127,6 @@ class ModelNetClf(tf.keras.Model):
 
         # Compute SHOT-descriptor as initial local vertex features
         signal = self.shot_descriptor(coordinates)
-        static_signal = self.pool(signal)
 
         # Compute vertex embeddings
         for idx, _ in enumerate(self.isc_layers):
@@ -135,7 +134,7 @@ class ModelNetClf(tf.keras.Model):
             signal = self.isc_layers[idx]([signal, bc])
 
         # Pool local surface descriptors into global point-cloud descriptor
-        signal = static_signal + self.pool(signal)
+        signal = self.pool(signal)
 
         # Return classification of point-cloud descriptor
         return self.clf(signal)
