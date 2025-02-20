@@ -86,9 +86,9 @@ def zip_file_generator(zipfile_path,
         The path to the zip-file.
     file_type: str
         The file type of the CAD models.
-    manifold_plus_executable: str
+    manifold_plus_executable: str | None
         The path to the manifold+ algorithm.
-    target_amount_faces: int
+    target_amount_faces: int | None
         The target amount of triangles the mesh shall be down-sampled to.
     return_filename: bool
         Whether to return the filename of the shape within the zip-file.
@@ -98,7 +98,7 @@ def zip_file_generator(zipfile_path,
         The amount of seconds to wait before killing the manifold+ subprocess and continue with the next shape.
     mp_depth: int
         Depth for manifold+-algorithm.
-    shape_path_contains: list
+    shape_path_contains: list | None
         A list of strings that is contained in the shape-path within the zip-file. If none of the contained strings are
         within the shape-path, then the shape is skipped.
     epsilon: float
