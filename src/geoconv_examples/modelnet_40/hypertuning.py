@@ -53,21 +53,14 @@ def hyper_tuning(dataset_path,
             shift_angular=shift_angular
         )
 
-        loss = tf.keras.losses.CategoricalFocalCrossentropy(
-            alpha=list(MN_CLASS_WEIGHTS.values()),
-            gamma=hp.Float("focal_gamma", min_value=0.0, max_value=5.0),
-            from_logits=True,
-            axis=-1,
-            reduction="sum_over_batch_size"
-        )
+        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
         opt = tf.keras.optimizers.AdamW(
-            learning_rate=hp.Float("learning_rate", min_value=0.0001, max_value=0.1),
-            # learning_rate=WarmupAndExpDecay(
-            #     initial_learning_rate=hp.Float("initial_learning_rate", min_value=0.0, max_value=1.0),
-            #     decay_steps=2461,
-            #     decay_rate=0.65,
-            #     warmup_steps=2461
-            # ),
+            learning_rate=WarmupAndExpDecay(
+                initial_learning_rate=hp.Float("initial_lr", min_value=0.0, max_value=1.0),
+                decay_steps=2461,
+                decay_rate=hp.Float("lr_decay", min_value=0.9, max_value=1.0),
+                warmup_steps=2461
+            ),
             weight_decay=0.,  # hp.Float("weight_decay", min_value=0.0, max_value=1.0),
             beta_1=0.9,
             beta_2=0.999
@@ -81,7 +74,7 @@ def hyper_tuning(dataset_path,
         hypermodel=build_hypermodel,
         objective=kt.Objective(name="val_loss", direction="min"),
         max_trials=10_000,
-        num_initial_points=6,
+        num_initial_points=12,
         directory=logging_dir,
         project_name="modelnet_40_hyper_tuning",
         tune_new_entries=True,
@@ -94,16 +87,14 @@ def hyper_tuning(dataset_path,
         set_type="train",
         modelnet10=modelnet10,
         gen_info_file=f"{logging_dir}/{gen_info_file}",
-        batch_size=batch_size,
-        in_one_hot=True
+        batch_size=batch_size
     )
     test_data = load_preprocessed_modelnet(
         dataset_path,
         set_type="test",
         modelnet10=modelnet10,
         gen_info_file=f"{logging_dir}/test_{gen_info_file}",
-        batch_size=batch_size,
-        in_one_hot=True
+        batch_size=batch_size
     )
 
     # Start hyperparameter tuning
