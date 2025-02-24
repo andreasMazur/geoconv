@@ -150,7 +150,7 @@ def training(dataset_path,
         )
         save = tf.keras.callbacks.ModelCheckpoint(
             filepath=f"{logging_dir}/saved_imcnn_{exp_number}",
-            monitor="val_loss",
+            monitor="val_accuracy",
             save_best_only=True,
             save_freq="epoch"
         )
