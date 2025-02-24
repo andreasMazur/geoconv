@@ -138,8 +138,7 @@ def training(dataset_path,
             modelnet10=modelnet10,
             gen_info_file=f"{logging_dir}/{gen_info_file}",
             batch_size=batch_size,
-            debug_data=debug,
-            in_one_hot=True
+            debug_data=debug
         )
         test_data = load_preprocessed_modelnet(
             dataset_path,
@@ -147,8 +146,7 @@ def training(dataset_path,
             modelnet10=modelnet10,
             gen_info_file=f"{logging_dir}/test_{gen_info_file}",
             batch_size=batch_size,
-            debug_data=debug,
-            in_one_hot=True
+            debug_data=debug
         )
         save = tf.keras.callbacks.ModelCheckpoint(
             filepath=f"{logging_dir}/saved_imcnn_{exp_number}",
