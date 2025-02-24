@@ -70,7 +70,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
                 "include_prior": self.include_prior,
                 "activation": self.activation,
                 "rotation_delta": self.rotation_delta,
-                "input_shape": self.input_shape
+                "input_shape": self._input_shape
             }
         )
         return config
