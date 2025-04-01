@@ -1,9 +1,8 @@
 from geoconv.pytorch.layers.conv_geodesic import angle_distance
 from geoconv.pytorch.layers.conv_intrinsic import ConvIntrinsic
 
-import numpy as np
-import scipy as sp
-
+import torch
+from torch.nn.functional import softmax
 
 def exp_pdf(mean_rho, mean_theta, rho, theta, exp_lambda):
     """Exponential probability distribution for geodesic polar coordinates
@@ -28,14 +27,14 @@ def exp_pdf(mean_rho, mean_theta, rho, theta, exp_lambda):
     """
 
     # Compute delta theta
-    max_angle = np.maximum(mean_theta, theta)
-    min_angle = np.minimum(mean_theta, theta)
+    max_angle = torch.maximum(mean_theta, theta)
+    min_angle = torch.minimum(mean_theta, theta)
     delta_angle = angle_distance(max_angle, min_angle)
 
     # Compute delta rho
-    delta_rho = np.abs(rho - mean_rho)
+    delta_rho = torch.abs(rho - mean_rho)
 
-    return exp_lambda ** 2 * np.exp(-exp_lambda * (delta_rho + delta_angle))
+    return exp_lambda ** 2 * torch.exp(-exp_lambda * (delta_rho + delta_angle))
 
 
 class ConvExp(ConvIntrinsic):
@@ -46,7 +45,7 @@ class ConvExp(ConvIntrinsic):
 
     def define_kernel_values(self, template_matrix):
         template_matrix[:, :, 0] = template_matrix[:, :, 0] / template_matrix[:, :, 0].max()
-        interpolation_coefficients = np.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1])
+        interpolation_coefficients = torch.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1])
         for mean_rho_idx in range(template_matrix.shape[0]):
             for mean_theta_idx in range(template_matrix.shape[1]):
                 mean_rho, mean_theta = template_matrix[mean_rho_idx, mean_theta_idx]
@@ -56,7 +55,7 @@ class ConvExp(ConvIntrinsic):
                         interpolation_coefficients[mean_rho_idx, mean_theta_idx, rho_idx, theta_idx] = exp_pdf(
                             mean_rho, mean_theta, rho, theta, self.exp_lambda
                         )
-                interpolation_coefficients[mean_rho_idx, mean_theta_idx] = sp.special.softmax(
+                interpolation_coefficients[mean_rho_idx, mean_theta_idx] = softmax(
                     interpolation_coefficients[mean_rho_idx, mean_theta_idx]
                 )
         return interpolation_coefficients

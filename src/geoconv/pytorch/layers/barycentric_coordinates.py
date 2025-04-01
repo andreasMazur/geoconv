@@ -3,7 +3,6 @@ from geoconv.pytorch.layers.normalize_point_cloud import NormalizePointCloud
 from geoconv.pytorch.utils.compute_shot_lrf import logarithmic_map, knn_shot_lrf
 
 import torch
-import numpy as np
 import sys
 
 from typing import Tuple
@@ -296,12 +295,12 @@ class BarycentricCoordinates(torch.jit.ScriptModule):
             in_cart=True,
             exp_lambda=exp_lambda,
             shift_angular=shift_angular
-        ).to(torch.float32)
+        ).to(torch.float32, device=self.device)
 
         # Return used template radius
         return template_radius
 
-    def project(self, vertices):
+    def project(self, vertices: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         # Get local reference frames
         # 'lrfs': (vertices, 3, 3)
         lrfs, neighborhoods, neighborhood_indices = knn_shot_lrf(self.neighbors_for_lrf, vertices)

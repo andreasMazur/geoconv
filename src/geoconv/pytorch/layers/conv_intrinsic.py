@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from torch import nn
 
 import torch
-import numpy as np
 
 
 ACTIVATIONS = {
@@ -95,21 +94,22 @@ class ConvIntrinsic(ABC, nn.Module):
         # Configure template
         self._template_size = (barycentric_shape[2], barycentric_shape[3])
         self._all_rotations = self._template_size[1]
-        self._template_vertices = torch.tensor(
-            create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius)
+        self._template_vertices = torch.from_numpy(
+            create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius),
+            device=self.device
         )
         self._feature_dim = signal_shape[-1]
 
         # Configure trainable weights
         self._template_neighbor_weights = nn.Parameter(
-            torch.zeros(size=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[-1]))
+            torch.zeros(size=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[-1]), device=self.device)
         )
         self._init_fn(self._template_neighbor_weights)
 
-        self._template_self_weights = nn.Parameter(torch.zeros(size=(self.amt_templates, 1, signal_shape[-1])))
+        self._template_self_weights = nn.Parameter(torch.zeros(size=(self.amt_templates, 1, signal_shape[-1]), device=self.device))
         self._init_fn(self._template_self_weights)
 
-        self._bias = nn.Parameter(torch.zeros(size=(1, self.amt_templates)))
+        self._bias = nn.Parameter(torch.zeros(size=(1, self.amt_templates), device=self.device))
         self._init_fn(self._bias)
 
         # Configure kernel
@@ -151,7 +151,7 @@ class ConvIntrinsic(ABC, nn.Module):
         # Determine orientations
         if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
-            orientations = torch.arange(start=0, end=self._all_rotations, step=self.rotation_delta)
+            orientations = torch.arange(start=0, end=self._all_rotations, step=self.rotation_delta, device=self.device)
 
         def fold_neighbor(orientation):
             # Weight              : (templates, radial, angular, input_dim)
@@ -220,10 +220,10 @@ class ConvIntrinsic(ABC, nn.Module):
 
     def _configure_kernel(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
-        self._kernel = torch.tensor(self.define_kernel_values(self._template_vertices.numpy()).astype(np.float32))
+        self._kernel = self.define_kernel_values(self._template_vertices).to(torch.float32)
 
     @abstractmethod
-    def define_kernel_values(self, template_matrix):
+    def define_kernel_values(self, template_matrix: torch.Tensor) -> torch.Tensor:
         """Defines the kernel values for each template vertex.
 
         Parameters

@@ -1,6 +1,6 @@
 from geoconv.pytorch.layers.conv_intrinsic import ConvIntrinsic
 
-import numpy as np
+import torch
 
 
 class ConvDirac(ConvIntrinsic):
@@ -19,7 +19,7 @@ class ConvDirac(ConvIntrinsic):
         interpolation coefficients of the Dirac prior do not need to be used as they do not alter the signal at the
         template vertices.
         """
-        interpolation_coefficients = np.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1])
+        interpolation_coefficients = torch.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1])
         for mean_rho_idx in range(template_matrix.shape[0]):
             for mean_theta_idx in range(template_matrix.shape[1]):
                 interpolation_coefficients[mean_rho_idx, mean_theta_idx, mean_rho_idx, mean_theta_idx] = 1.

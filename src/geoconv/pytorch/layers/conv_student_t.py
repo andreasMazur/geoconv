@@ -1,9 +1,8 @@
 from geoconv.pytorch.layers.conv_geodesic import angle_distance
 from geoconv.pytorch.layers.conv_intrinsic import ConvIntrinsic
 
-import math
-import numpy as np
-import scipy as sp
+import torch
+from torch.nn.functional import softmax
 
 
 def gamma_func(x):
@@ -20,11 +19,11 @@ def gamma_func(x):
         The gamma value for the given degrees of freedom
     """
     assert x >= 1/2, "You need to have at least one degree of freedom."
-    n = math.floor(x)
+    n = torch.floor(x)
     if x - n == 1/2:
-        return (np.math.factorial(2 * n) / (np.math.factorial(n) * 4 ** n)) * np.sqrt(np.pi)
+        return (torch.jit._builtins.math.factorial(2 * n) / (torch.jit._builtins.math.factorial(n) * 4 ** n)) * torch.sqrt(torch.pi)
     else:
-        return np.math.factorial(n)
+        return torch.jit._builtins.math.factorial(n)
 
 
 def student_t_pdf(mean_rho, mean_theta, rho, theta, dof):
@@ -51,16 +50,16 @@ def student_t_pdf(mean_rho, mean_theta, rho, theta, dof):
     assert dof >= 1, "You need to have at least one degree of freedom."
 
     # Compute delta theta
-    max_angle = np.maximum(mean_theta, theta)
-    min_angle = np.minimum(mean_theta, theta)
+    max_angle = torch.maximum(mean_theta, theta)
+    min_angle = torch.minimum(mean_theta, theta)
     delta_angle = angle_distance(max_angle, min_angle)
     delta_angle = (1 + ((delta_angle ** 2) / dof)) ** (- (dof + 1) / 2)
 
     # Compute delta rho
-    delta_rho = np.abs(rho - mean_rho)
+    delta_rho = torch.abs(rho - mean_rho)
     delta_rho = (1 + ((delta_rho ** 2) / dof)) ** (- (dof + 1) / 2)
 
-    quotient = (gamma_func((dof + 1) / 2) / (np.sqrt(dof * np.pi) * gamma_func(dof / 2))) ** 2
+    quotient = (gamma_func((dof + 1) / 2) / (torch.sqrt(dof * torch.pi) * gamma_func(dof / 2))) ** 2
 
     return quotient * delta_rho * delta_angle
 
@@ -73,7 +72,7 @@ class ConvStudentT(ConvIntrinsic):
 
     def define_kernel_values(self, template_matrix):
         template_matrix[:, :, 0] = template_matrix[:, :, 0] / template_matrix[:, :, 0].max()
-        interpolation_coefficients = np.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1])
+        interpolation_coefficients = torch.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1])
         for mean_rho_idx in range(template_matrix.shape[0]):
             for mean_theta_idx in range(template_matrix.shape[1]):
                 mean_rho, mean_theta = template_matrix[mean_rho_idx, mean_theta_idx]
@@ -83,7 +82,7 @@ class ConvStudentT(ConvIntrinsic):
                         interpolation_coefficients[mean_rho_idx, mean_theta_idx, rho_idx, theta_idx] = student_t_pdf(
                             mean_rho, mean_theta, rho, theta, self.dof
                         )
-                interpolation_coefficients[mean_rho_idx, mean_theta_idx] = sp.special.softmax(
+                interpolation_coefficients[mean_rho_idx, mean_theta_idx] = softmax(
                     interpolation_coefficients[mean_rho_idx, mean_theta_idx]
                 )
         return interpolation_coefficients

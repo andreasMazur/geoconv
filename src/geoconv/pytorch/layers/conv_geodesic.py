@@ -1,11 +1,12 @@
 from geoconv.pytorch.layers.conv_intrinsic import ConvIntrinsic
 
-import numpy as np
-import scipy as sp
+from torch.nn.functional import softmax
+
+import torch
 
 
 def angle_distance(theta_max, theta_min):
-    return np.minimum(theta_max - theta_min, theta_min + 2. * np.pi - theta_max)
+    return torch.min(theta_max - theta_min, theta_min + 2. * torch.pi - theta_max)
 
 
 def normal_pdf(mean_rho, mean_theta, var_rho, var_theta, rho, theta):
@@ -31,13 +32,13 @@ def normal_pdf(mean_rho, mean_theta, var_rho, var_theta, rho, theta):
     float:
         The weight for the interpolation point (rho, theta)
     """
-    norm_coefficient = 1 / np.sqrt((2 * np.pi) ** 2 * var_rho * var_theta)
-    max_angle = np.maximum(mean_theta, theta)
-    min_angle = np.minimum(mean_theta, theta)
+    norm_coefficient = 1 / torch.sqrt((2 * torch.pi) ** 2 * var_rho * var_theta)
+    max_angle = torch.maximum(mean_theta, theta)
+    min_angle = torch.minimum(mean_theta, theta)
     delta_angle = angle_distance(max_angle, min_angle)
-    vec = np.array([rho - mean_rho, delta_angle])
-    mat = np.array([[1 / var_rho, 0], [0, 1 / var_theta]])
-    exp = np.exp(-(1 / 2) * vec.T @ mat @ vec)
+    vec = torch.tensor([rho - mean_rho, delta_angle], dtype=rho.dtype, device=rho.device)
+    mat = torch.tensor([[1. / var_rho, 0.], [0., 1. / var_theta]], dtype=rho.dtype, device=rho.device)
+    exp = torch.exp(-(1 / 2) * vec.T @ mat @ vec)
     return norm_coefficient * exp
 
 
@@ -50,7 +51,7 @@ class ConvGeodesic(ConvIntrinsic):
     """
 
     def define_kernel_values(self, template_matrix):
-        interpolation_coefficients = np.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1])
+        interpolation_coefficients = torch.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1])
         var_rho = template_matrix[:, :, 0].var()
         var_theta = template_matrix[:, :, 1].var()
         for mean_rho_idx in range(template_matrix.shape[0]):
@@ -62,7 +63,7 @@ class ConvGeodesic(ConvIntrinsic):
                         interpolation_coefficients[mean_rho_idx, mean_theta_idx, rho_idx, theta_idx] = normal_pdf(
                             mean_rho, mean_theta, var_rho, var_theta, rho, theta
                         )
-                interpolation_coefficients[mean_rho_idx, mean_theta_idx] = sp.special.softmax(
+                interpolation_coefficients[mean_rho_idx, mean_theta_idx] = softmax(
                     interpolation_coefficients[mean_rho_idx, mean_theta_idx]
                 )
         return interpolation_coefficients

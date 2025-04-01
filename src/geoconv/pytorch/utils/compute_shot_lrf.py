@@ -1,4 +1,5 @@
 import torch
+from typing import Tuple
 
 @torch.jit.script
 def compute_distance_matrix(vertices : torch.FloatTensor) -> torch.FloatTensor:
@@ -24,7 +25,7 @@ def compute_distance_matrix(vertices : torch.FloatTensor) -> torch.FloatTensor:
     return norm.to(torch.float32) 
 
 @torch.jit.script
-def disambiguate_axes(neighborhood_vertices, eigen_vectors):
+def disambiguate_axes(neighborhood_vertices: torch.Tensor, eigen_vectors: torch.Tensor) -> torch.Tensor:
     """Disambiguate axes returned by local Eigenvalue analysis.
 
     Disambiguation follows the formal procedure as described in:
@@ -52,7 +53,7 @@ def disambiguate_axes(neighborhood_vertices, eigen_vectors):
     return torch.where(mask, eigen_vectors, neg_eigen_vectors)
 
 @torch.jit.script
-def shot_lrf(neighborhoods, radii):
+def shot_lrf(neighborhoods: torch.Tensor, radii: torch.Tensor) -> torch.Tensor:
     """Computes SHOT local reference frames.
 
     SHOT computation was introduced in:
@@ -94,7 +95,7 @@ def shot_lrf(neighborhoods, radii):
     return torch.stack([z_axes, y_axes, x_axes], dim=-1)
 
 @torch.jit.script
-def logarithmic_map(lrfs, neighborhoods):
+def logarithmic_map(lrfs: torch.Tensor, neighborhoods: torch.Tensor) -> torch.Tensor:
     """Computes projections of neighborhoods into their local reference frames.
 
     Parameters
@@ -131,7 +132,7 @@ def logarithmic_map(lrfs, neighborhoods):
     return projections
 
 @torch.jit.script
-def knn_shot_lrf(k_neighbors : int, vertices : torch.Tensor, repetitions : int = 4):
+def knn_shot_lrf(k_neighbors : int, vertices : torch.Tensor, repetitions : int = 4) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     # 1.) Compute radius for local parameterization spaces. Keep it equal for all for comparability.
     # 'distance_matrix': (vertices, vertices)
     # 'radii': (vertices,)
