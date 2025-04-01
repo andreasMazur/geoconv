@@ -75,11 +75,9 @@ def load_preprocessed_mnist(dataset_path,
 
     # Add barycentric coordinates to MNIST data
     for bc in barycentric_coordinates:
-
         dataset = datasets.MNIST(mnist_folder, train=set_type == "train", download=True)
         if indices is None:
             dataset = ProcessedMNIST(images=dataset.data, bc=bc, labels=dataset.targets)
         else:
             dataset = ProcessedMNIST(images=dataset.data[indices], bc=bc, labels=dataset.targets[indices])
-
         return DataLoader(dataset, batch_size=batch_size, shuffle=True)
