@@ -58,7 +58,7 @@ def load_preprocessed_mnist(dataset_path,
     mnist_folder: str | None
         The path to the folder containing the MNIST dataset. If not stored there, the dataset will be downloaded.
     indices: np.ndarray | None
-        The indices if elements of the dataset to load.
+        The indices from elements of the dataset to load.
 
     Returns
     -------
