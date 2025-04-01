@@ -13,7 +13,7 @@ def load_preprocessed_mnist(dataset_path,
                             set_type,
                             batch_size=8,
                             mnist_folder=None):
-    """Adds barycentric coordinates to the MNIST dataset and reshapes images to vectors.
+    """Loads MNIST while adding barycentric coordinates to the dataset and reshapes images to vectors.
 
     Parameters
     ----------

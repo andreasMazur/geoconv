@@ -5,7 +5,7 @@ import tensorflow_datasets as tfds
 
 
 def load_preprocessed_mnist(dataset_path, n_radial, n_angular, template_radius, set_type, batch_size=8):
-    """Adds barycentric coordinates to the MNIST dataset and reshapes images to vectors.
+    """Loads MNIST while adding barycentric coordinates to the dataset and reshapes images to vectors.
 
     Parameters
     ----------
