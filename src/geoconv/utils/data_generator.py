@@ -236,7 +236,14 @@ def preprocessed_shape_generator(zipfile_path,
         The loaded files and their corresponding filenames.
     """
     # Load raw zip
-    zip_file = np.load(zipfile_path)
+    try:
+        zip_file = np.load(zipfile_path)
+    except FileNotFoundError as e:
+        if not zipfile_path.endswith(".zip"):
+            zipfile_path += ".zip"
+            zip_file = np.load(zipfile_path)
+        else:
+            raise e
 
     # Load shapes (shapes have to be in a folder with a 'preprocess_properties.json'-file)
     preprocessed_shapes = ["/".join(fn.split("/")[:-1]) for fn in zip_file.files if "preprocess_properties.json" in fn]
@@ -314,7 +321,14 @@ def preprocessed_properties_generator(zipfile_path, return_filename=False, sorti
     """
     # Load the zip-file
     print(f"Loading properties from zip-file.. ({zipfile_path})")
-    zip_file = np.load(zipfile_path)
+    try:
+        zip_file = np.load(zipfile_path)
+    except FileNotFoundError as e:
+        if not zipfile_path.endswith(".zip"):
+            zipfile_path += ".zip"
+            zip_file = np.load(zipfile_path)
+        else:
+            raise e
     print("Done.")
 
     # Get and sort all shape directories from preprocessed shapes
@@ -389,7 +403,14 @@ def read_template_configurations(zipfile_path):
         found in the given zipfile.
     """
     # Load zip-file
-    zip_file = np.load(zipfile_path)
+    try:
+        zip_file = np.load(zipfile_path)
+    except FileNotFoundError as e:
+        if not zipfile_path.endswith(".zip"):
+            zipfile_path += ".zip"
+            zip_file = np.load(zipfile_path)
+        else:
+            raise e
 
     # Load template configuration dictionary
     template_configurations = json.load(BytesIO(zip_file["dataset_properties.json"]))["template_configurations"]
