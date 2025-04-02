@@ -36,7 +36,7 @@ requires-python = ">= 3.10"
 dependencies = [
     "numpy>=1.22.0, <=1.26.4",
     "tqdm>=4.64.0",
-    "trimesh>=3.12.6",
+    "trimesh>=3.12.6, <=4.4.7",
     "pyglet>=1.5.27",
     "matplotlib>=3.5.2",
     "open3d>=0.17.0",
