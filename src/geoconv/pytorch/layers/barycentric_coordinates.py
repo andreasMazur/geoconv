@@ -2,12 +2,12 @@ from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
 from geoconv.pytorch.layers.normalize_point_cloud import NormalizePointCloud
 from geoconv.pytorch.utils.compute_shot_lrf import logarithmic_map, knn_shot_lrf
 
-import torch
-import sys
-
 from typing import Tuple
 
+import torch
+import sys
 import warnings
+
 
 @torch.jit.script
 def compute_det(batched_matrices: torch.Tensor) -> torch.Tensor:
@@ -24,6 +24,7 @@ def compute_det(batched_matrices: torch.Tensor) -> torch.Tensor:
         A 1D-tensor of shape (batch_size,) that contains the determinants of the input matrices.
     """
     return torch.det(batched_matrices)
+
 
 @torch.jit.script
 def sort_angles(angles: torch.Tensor) -> torch.Tensor:
@@ -43,6 +44,7 @@ def sort_angles(angles: torch.Tensor) -> torch.Tensor:
 
     return torch.stack([smaller, 3 - (smaller + largest), largest], dim=-1)
 
+
 @torch.jit.script
 def sort_triangles_ccw(triangles : torch.Tensor) -> torch.Tensor:
     centroid = torch.mean(triangles, dim=1, keepdim=True)
@@ -50,6 +52,7 @@ def sort_triangles_ccw(triangles : torch.Tensor) -> torch.Tensor:
     sorted_indices = sort_angles(angles)
     print(f"centroid: {centroid.shape}; angles: {angles.shape}; sorted_indices: {sorted_indices.shape}")
     return triangles.gather(1, sorted_indices.unsqueeze(-1).expand(-1,-1,2))
+
 
 @torch.jit.script
 def delaunay_condition_check(triangles : torch.Tensor, projections : torch.Tensor) -> torch.Tensor:
@@ -75,6 +78,7 @@ def delaunay_condition_check(triangles : torch.Tensor, projections : torch.Tenso
     # `delaunay_check_matrix.sum(dim=1)`: (n_vertices, `n_neighbors over 3`)
     return delaunay_check_matrix.sum(dim=1) > 0
 
+
 @torch.jit.script
 def create_all_triangles(projections : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """Creates all triangles for a given set of projections."""
@@ -88,6 +92,7 @@ def create_all_triangles(projections : torch.Tensor) -> Tuple[torch.Tensor, torc
     triangles = projections[:, triangle_indices.long().t()].transpose(1,2)
 
     return triangles, triangle_indices
+
 
 @torch.jit.script
 def compute_interpolation_coefficients(triangles : torch.Tensor, template : torch.Tensor) -> torch.Tensor:
@@ -112,6 +117,7 @@ def compute_interpolation_coefficients(triangles : torch.Tensor, template : torc
     nan_mask = torch.isnan(bc_coordinates) 
     bc_coordinates[nan_mask] = torch.tensor([-1.], dtype=bc_coordinates.dtype, device=bc_coordinates.device).repeat(torch.sum(nan_mask))
     return bc_coordinates
+
 
 @torch.jit.script
 def compute_interpolation_weights(template : torch.Tensor, projections : torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -198,6 +204,7 @@ def compute_bc(template : torch.Tensor, projections : torch.Tensor) -> Tuple[tor
     interpolation_weights, interpolation_indices = compute_interpolation_weights(template, projections)
 
     return interpolation_weights, interpolation_indices
+
 
 class BarycentricCoordinates(torch.jit.ScriptModule):
     """A parameter-free neural network layer that approximates barycentric coordinates (BC).
@@ -310,7 +317,3 @@ class BarycentricCoordinates(torch.jit.ScriptModule):
         projections = logarithmic_map(lrfs, neighborhoods)
 
         return projections[:, :self.projection_neighbors, :], neighborhood_indices[:, :self.projection_neighbors]
-
-
-# @torch.jit.script
-# def call_helper(self, )
