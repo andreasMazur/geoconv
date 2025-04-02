@@ -12,23 +12,23 @@ class ProcessedMNIST(Dataset):
 
     Attributes
     ----------
-    images: torch.Tensor
+    data: torch.Tensor
         The images of MNIST, formatted into vectors.
     bc: torch.Tensor
         One set of barycentric coordinates that can be used for any images of MNIST.
-    labels:
+    targets:
         The labels for the MNIST-images.
     """
     def __init__(self, images, bc, labels):
-        self.images = images.reshape(images.shape[0], -1, 1) / 255.
+        self.data = images.reshape(images.shape[0], -1, 1) / 255.
         self.bc = torch.from_numpy(bc)
-        self.labels = labels
+        self.targets = labels
 
     def __len__(self):
-        return self.images.shape[0]
+        return self.data.shape[0]
 
     def __getitem__(self, idx):
-        return (self.images[idx], self.bc), self.labels[idx]
+        return (self.data[idx], self.bc), self.targets[idx]
 
 
 def load_preprocessed_mnist(dataset_path,
@@ -52,11 +52,11 @@ def load_preprocessed_mnist(dataset_path,
     template_radius: float
         The considered template radius during BC-computation.
     set_type: str
-        The set type. Either 'train' or 'test'.
+        The set type. Either 'train' 'test', or 'all'.
     batch_size: int
         The batch-size.
     mnist_folder: str | None
-        The path to the folder containing the MNIST dataset. If not stored there, the dataset will be downloaded.
+        The path to the folder containing the MNIST dataset. If not stored there, the dataset will be doexwnloaded.
     indices: np.ndarray | None
         The indices from elements of the dataset to load.
 
@@ -75,7 +75,16 @@ def load_preprocessed_mnist(dataset_path,
 
     # Add barycentric coordinates to MNIST data
     for bc in barycentric_coordinates:
-        dataset = datasets.MNIST(mnist_folder, train=set_type == "train", download=True)
+        dataset = datasets.MNIST(mnist_folder, train=set_type in ["train", "all"], download=True)
+        # Concatenate train and test set in case all data is requested
+        if set_type == "all":
+            dataset_test = datasets.MNIST(mnist_folder, train=False, download=True)
+            dataset = ProcessedMNIST(
+                images=torch.cat(tensors=[dataset.data, dataset_test.data], axis=0),
+                bc=bc,
+                labels=torch.cat(tensors=[dataset.targets, dataset_test.targets], axis=0)
+            )
+        # Filter for requested indices
         if indices is None:
             dataset = ProcessedMNIST(images=dataset.data, bc=bc, labels=dataset.targets)
         else:
