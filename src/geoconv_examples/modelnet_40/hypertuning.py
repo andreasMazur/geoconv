@@ -48,7 +48,6 @@ def hyper_tuning(dataset_path,
             radial_bins=radial_bins,
             histogram_bins=histogram_bins,
             sphere_radius=sphere_radius,
-            dropout_rate=0.,
             exp_lambda=exp_lambda,
             shift_angular=shift_angular
         )
