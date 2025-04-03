@@ -57,8 +57,8 @@ def compute_gpc_systems_wrapper(shape, output_dir, processes=1, k_th_neighbor=20
     bool:
         Whether preprocessing has been successful.
     """
-    # 0.) Check whether file already exist. If so, skip computing GPC-systems.
-    if not os.path.isfile(f"{output_dir}/preprocess_properties.json"):
+    # 0.) Check whether file already exist. If so and not empty, skip computing GPC-systems.
+    if not os.path.isfile(f"{output_dir}/preprocess_properties.json") or os.path.getsize(f"{output_dir}/preprocess_properties.json") == 0:
         # 1.) Create output dir if not existent
         os.makedirs(output_dir, exist_ok=True)
 
