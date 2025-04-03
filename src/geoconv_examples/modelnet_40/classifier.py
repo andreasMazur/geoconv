@@ -108,9 +108,17 @@ class ModelNetClf(tf.keras.Model):
         else:
             self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
 
-        # Define classification layer
+        # Define classification head
         self.output_dim = 10 if modelnet10 else 40
-        self.clf = tf.keras.layers.Dense(units=self.output_dim, activation="linear")
+        self.clf = tf.keras.models.Sequential([
+            tf.keras.layers.Dense(units=128, activation="linear"),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.ReLU(),
+            tf.keras.layers.Dense(units=128, activation="linear"),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.ReLU(),
+            tf.keras.layers.Dense(units=self.output_dim, activation="linear"),
+        ])
 
     def call(self, inputs, **kwargs):
         # Normalize point-cloud
