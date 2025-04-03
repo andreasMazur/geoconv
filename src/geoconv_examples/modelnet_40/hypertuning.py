@@ -1,5 +1,5 @@
 from geoconv_examples.modelnet_40.classifier import ModelNetClf, WarmupAndExpDecay
-from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet, MN_CLASS_WEIGHTS
+from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 
 import tensorflow as tf
 import keras_tuner as kt
