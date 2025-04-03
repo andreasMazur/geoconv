@@ -46,7 +46,6 @@ class ModelNetClf(tf.keras.Model):
                  radial_bins=2,
                  histogram_bins=6,
                  sphere_radius=0.,
-                 dropout_rate=0.,
                  exp_lambda=2.0,
                  shift_angular=True):
         super().__init__()
