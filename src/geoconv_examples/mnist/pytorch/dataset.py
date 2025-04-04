@@ -4,7 +4,6 @@ from torchvision import datasets
 from torch.utils.data import Dataset, DataLoader
 
 import torch
-import numpy as np
 
 
 class ProcessedMNIST(Dataset):
@@ -21,7 +20,10 @@ class ProcessedMNIST(Dataset):
     """
     def __init__(self, images, bc, labels):
         self.data = images.reshape(images.shape[0], -1, 1) / 255.
-        self.bc = torch.from_numpy(bc)
+        if type(bc) is not torch.Tensor:
+            self.bc = torch.from_numpy(bc)
+        else:
+            self.bc = bc
         self.targets = labels
 
     def __len__(self):
@@ -30,6 +32,32 @@ class ProcessedMNIST(Dataset):
     def __getitem__(self, idx):
         return (self.data[idx], self.bc), self.targets[idx]
 
+    def get_shapes(self):
+        """Returns the shape of the images and barycentric coordinates in the dataset.
+
+        Returns
+        -------
+        tuple: (torch.Size, torch.Size)
+            The shape of the images in the dataset.
+        """
+        return (self.data.shape[1:], self.bc.shape)
+
+    def subset(self, indices):
+        """Creates a subset of the dataset with the given indices.
+
+        Parameters
+        ----------
+        dataset: ProcessedMNIST
+            The dataset to create a subset from.
+        indices: np.ndarray
+            The indices of the elements to include in the subset.
+
+        Returns
+        -------
+        ProcessedMNIST:
+            The subset of the dataset.
+        """
+        return ProcessedMNIST(images=self.data[indices], bc=self.bc, labels=self.targets[indices])
 
 def load_preprocessed_mnist(dataset_path,
                             n_radial,
