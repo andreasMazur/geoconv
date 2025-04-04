@@ -29,7 +29,44 @@ INITIALIZER = {
 }
 
 
-class ConvIntrinsic(ABC, nn.Module):
+def batched_fold_neighbor(template_neighbor_weights: torch.Tensor, interpolations: torch.Tensor, orientations: torch.Tensor) -> torch.Tensor:
+    """Vectorized einsum across multiple orientations.
+
+    Attributes:
+    ----------
+    template_neighbor_weights: torch.Tensor
+        The template neighbor weights.
+        Shape: (templates, radial, angular, input_dim)
+    interpolations: torch.Tensor
+        The interpolations.
+        Shape: (batch_shapes, vertices, radial, angular, input_dim)
+    orientations: torch.Tensor
+        The orientations.
+        Shape: (n_rotations)
+    returns:
+        torch.Tensor
+        The stacked results of the einsum operations. (n_rotations, batch_shapes, vertices, templates)
+    """
+    rolled = []
+    for orientation in orientations:
+        rolled.append(
+            torch.roll(
+                interpolations,
+                shifts=orientation.item(),
+                dims=-2
+            )
+        )
+    rotated_interpolations = torch.stack(rolled, dim=0).float()
+
+    # Broadcast template_neighbor_weights to match the shape (n_rotations, templates, radial, angular, input_dim)
+    expanded_weights = template_neighbor_weights.unsqueeze(0).expand(orientations.shape[0], -1, -1, -1, -1)
+
+    # Apply vmap over orientations
+    return torch.vmap(
+        lambda weights, interps: torch.einsum("traf,skraf->skt", weights, interps)
+    )(expanded_weights, rotated_interpolations)
+
+class ConvIntrinsic(torch.jit.ScriptModule):
     """A metaclass for intrinsic surface convolutions on Riemannian manifolds.
 
     Attributes
@@ -154,21 +191,16 @@ class ConvIntrinsic(ABC, nn.Module):
         # Determine orientations
         if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
-            orientations = torch.arange(start=0, end=self._all_rotations, step=self.rotation_delta, device=self.device)
-
-        def fold_neighbor(orientation):
-            # Weight              : (templates, radial, angular, input_dim)
-            # Mesh interpolations : (batch_shapes, vertices, radial, angular, input_dim)
-            # Result              : (batch_shapes, vertices, templates)
-            return torch.einsum(
-                "traf,skraf->skt",
-                self._template_neighbor_weights,
-                torch.roll(interpolations, shifts=orientation.item(), dims=-2).float()
-            )
+            orientations = torch.arange(start=0, end=self._all_rotations, step=self.rotation_delta, device=interpolations.device)
 
         # Result: (batch_shapes, vertices, n_rotations, templates)
         conv_neighbor = torch.permute(
-            torch.stack(list(map(fold_neighbor, orientations))), dims=[1, 2, 0, 3]
+            batched_fold_neighbor(
+                self._template_neighbor_weights,
+                interpolations,
+                orientations
+            ),
+            dims=[1, 2, 0, 3]
         )
         # conv_neighbor: (batch_shapes, vertices, n_rotations, templates)
         return self._activation(conv_center + conv_neighbor + self._bias)
