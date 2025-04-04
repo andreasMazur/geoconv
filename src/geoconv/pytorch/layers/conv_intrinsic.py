@@ -2,6 +2,7 @@ from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
 
 from abc import ABC, abstractmethod
 from torch import nn
+from typing import Optional, Tuple
 
 import torch
 
@@ -52,13 +53,13 @@ class ConvIntrinsic(ABC, nn.Module):
     """
 
     def __init__(self,
-                 input_shape,
-                 amt_templates,
-                 template_radius,
-                 include_prior=True,
-                 activation="relu",
-                 rotation_delta=1,
-                 initializer="xavier_uniform"):
+                 input_shape: Tuple[torch.Size, torch.Size],
+                 amt_templates: int,
+                 template_radius: float,
+                 include_prior: bool = True,
+                 activation: str = "relu",
+                 rotation_delta: int = 1,
+                 initializer: str = "xavier_uniform"):
         super().__init__()
         self.activation_fn = activation
         self.rotation_delta = rotation_delta
@@ -86,55 +87,57 @@ class ConvIntrinsic(ABC, nn.Module):
 
         Parameters
         ----------
-        input_shape: (tensorflow.TensorShape, tensorflow.TensorShape)
+        input_shape: (torch.Size, torch.Size)
             The shape of the signal and the shape of the barycentric coordinates.
         """
         signal_shape, barycentric_shape = input_shape
 
+        # signal_shape: (8, 784, 1), barycentric_shape: (8, 784, 3, 4, 3, 2)
         # Configure template
-        self._template_size = (barycentric_shape[2], barycentric_shape[3])
+        self._template_size = (barycentric_shape[-4], barycentric_shape[-3])
         self._all_rotations = self._template_size[1]
         self._template_vertices = torch.from_numpy(
             create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius),
-            device=self.device
         )
         self._feature_dim = signal_shape[-1]
 
         # Configure trainable weights
         self._template_neighbor_weights = nn.Parameter(
-            torch.zeros(size=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[-1]), device=self.device)
+            torch.zeros(size=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[-1]))
         )
         self._init_fn(self._template_neighbor_weights)
 
-        self._template_self_weights = nn.Parameter(torch.zeros(size=(self.amt_templates, 1, signal_shape[-1]), device=self.device))
+        self._template_self_weights = nn.Parameter(torch.zeros(size=(self.amt_templates, 1, signal_shape[-1])))
         self._init_fn(self._template_self_weights)
 
-        self._bias = nn.Parameter(torch.zeros(size=(1, self.amt_templates), device=self.device))
+        self._bias = nn.Parameter(torch.zeros(size=(1, self.amt_templates)))
         self._init_fn(self._bias)
 
         # Configure kernel
         self._configure_kernel()
 
-    def forward(self, inputs, orientations=None):
+    def forward(self, mesh_signal: torch.Tensor, bary_coordinates :torch.Tensor, orientations: Optional[torch.Tensor] = None):
         """Computes intrinsic surface convolution on all vertices of a given mesh.
 
         Parameters
         ----------
-        inputs: (tensorflow.Tensor, tensorflow.Tensor)
-            The first tensor represents the signal defined on the manifold. It has size
-            (n_vertices, feature_dim). The second tensor represents the barycentric coordinates. It has
-            size (n_vertices, n_radial, n_angular, 3, 2).
-        orientations: tensorflow.Tensor
+        inputs: (torch.Tensor, torch.Tensor)
+        mesh_signal: (torch.Tensor)
+            Represents the signal defined on the manifold.
+            It has size (n_vertices, feature_dim).
+
+        bary_coordinates: (torch.Tensor) 
+            Represents the barycentric coordinates.
+            It has size (n_vertices, n_radial, n_angular, 3, 2).
+        orientations: torch.Tensor
             Contains an integer that tells how to rotate the data.
 
         Returns
         -------
-        tensorflow.Tensor
+        torch.Tensor
             The geodesic convolution of the template with the signal on the object mesh in every given GPC-system.
             It has size (vertices, n_rotations, templates)
         """
-        mesh_signal, bary_coordinates = inputs
-
         ######################################################
         # Fold center - conv_center: (vertices, 1, templates)
         ######################################################
@@ -175,14 +178,14 @@ class ConvIntrinsic(ABC, nn.Module):
 
         Parameters
         ----------
-        mesh_signal: tensorflow.Tensor
+        mesh_signal: torch.Tensor
             The signal values at the template vertices
-        barycentric_coordinates: tensorflow.Tensor
+        barycentric_coordinates: torch.Tensor
             The barycentric coordinates for the template vertices
 
         Returns
         -------
-        tensorflow.Tensor:
+        torch.Tensor:
             Weighted and interpolated mesh signals
         """
         interpolations = self._signal_retrieval(mesh_signal, barycentric_coordinates)
@@ -200,14 +203,14 @@ class ConvIntrinsic(ABC, nn.Module):
 
         Parameters
         ----------
-        mesh_signal: tensorflow.Tensor
+        mesh_signal: torch.Tensor
             The signal values at the template vertices
-        barycentric_coordinates: tensorflow.Tensor
+        barycentric_coordinates: torch.Tensor
             The barycentric coordinates for the template vertices
 
         Returns
         -------
-        tensorflow.Tensor:
+        torch.Tensor:
             Interpolation values for the template vertices
         """
         all_mesh_signals = []
@@ -223,18 +226,18 @@ class ConvIntrinsic(ABC, nn.Module):
         self._kernel = self.define_kernel_values(self._template_vertices).to(torch.float32)
 
     @abstractmethod
-    def define_kernel_values(self, template_matrix: torch.Tensor) -> torch.Tensor:
+    def define_kernel_values(self, template_matrix):
         """Defines the kernel values for each template vertex.
 
         Parameters
         ----------
-        template_matrix: np.ndarray
+        template_matrix: torch.Tensor
             An array of size [n_radial, n_angular, 2], which contains the positions of the template vertices in
             cartesian coordinates.
 
         Returns
         -------
-        np.ndarray:
+        torch.Tensor:
             An array of size [n_radial, n_angular, n_radial, n_angular], which contains the interpolation weights for
             the patch operator '[D(x)f](rho_in, theta_in)'
         """
