@@ -238,7 +238,7 @@ def preprocessed_shape_generator(zipfile_path,
     # Load raw zip
     try:
         zip_file = np.load(zipfile_path)
-    except FileNotFoundError as e:
+    except (FileNotFoundError, IsADirectoryError) as e:
         if not zipfile_path.endswith(".zip"):
             zipfile_path += ".zip"
             zip_file = np.load(zipfile_path)
@@ -323,7 +323,7 @@ def preprocessed_properties_generator(zipfile_path, return_filename=False, sorti
     print(f"Loading properties from zip-file.. ({zipfile_path})")
     try:
         zip_file = np.load(zipfile_path)
-    except FileNotFoundError as e:
+    except (FileNotFoundError, IsADirectoryError) as e:
         if not zipfile_path.endswith(".zip"):
             zipfile_path += ".zip"
             zip_file = np.load(zipfile_path)
@@ -405,7 +405,7 @@ def read_template_configurations(zipfile_path):
     # Load zip-file
     try:
         zip_file = np.load(zipfile_path)
-    except FileNotFoundError as e:
+    except (FileNotFoundError, IsADirectoryError) as e:
         if not zipfile_path.endswith(".zip"):
             zipfile_path += ".zip"
             zip_file = np.load(zipfile_path)
