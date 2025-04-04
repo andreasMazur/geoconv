@@ -105,7 +105,7 @@ def training(bc_path, logging_dir, k=5, template_configurations=None, variant=No
                 profile_batch=(1, 100)
             )
             save = tf.keras.callbacks.ModelCheckpoint(
-                filepath=f"{logging_dir}/saved_imcnn_{exp_number}",
+                filepath=f"{logging_dir}/saved_imcnn_{exp_number}.keras",
                 monitor="val_loss",
                 save_best_only=True,
                 save_freq="epoch"
