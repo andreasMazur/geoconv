@@ -1,8 +1,8 @@
-from geoconv.tensorflow.backbone.covariance import Covariance
-from geoconv.tensorflow.backbone.resnet_block import ResNetBlock
-from geoconv.tensorflow.layers.barycentric_coordinates import BarycentricCoordinates
-from geoconv.tensorflow.layers.normalize_point_cloud import NormalizePointCloud
-from geoconv.tensorflow.layers.shot_descriptor import PointCloudShotDescriptor
+from geoconv.tensorflow.backbone import Covariance
+from geoconv.tensorflow.backbone import ResNetBlock
+from geoconv.tensorflow.layers import BarycentricCoordinates
+from geoconv.tensorflow.layers import NormalizePointCloud
+from geoconv.tensorflow.layers import PointCloudShotDescriptor
 
 import tensorflow as tf
 

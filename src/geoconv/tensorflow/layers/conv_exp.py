@@ -1,4 +1,4 @@
-from geoconv.tensorflow.layers.conv_intrinsic import ConvIntrinsic
+from geoconv.tensorflow.layers import ConvIntrinsic
 from geoconv.utils.misc import angle_distance
 
 import numpy as np

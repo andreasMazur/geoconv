@@ -1,5 +1,5 @@
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
-from geoconv.tensorflow.layers.normalize_point_cloud import NormalizePointCloud
+from geoconv.tensorflow.layers import NormalizePointCloud
 from geoconv.tensorflow.utils.compute_shot_lrf import logarithmic_map, knn_shot_lrf
 
 import tensorflow as tf

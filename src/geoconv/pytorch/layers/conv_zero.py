@@ -1,4 +1,4 @@
-from geoconv.pytorch.layers.conv_intrinsic import ConvIntrinsic
+from geoconv.pytorch.layers import ConvIntrinsic
 
 import torch
 

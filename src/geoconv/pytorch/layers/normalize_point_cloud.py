@@ -1,5 +1,4 @@
 import torch
-import torch.nn.functional
 
 class NormalizePointCloud(torch.nn.Module):
     def forward(self, inputs):

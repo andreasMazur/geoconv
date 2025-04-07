@@ -1,6 +1,6 @@
-from geoconv.tensorflow.layers.conv_dirac import ConvDirac
-from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
-from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
+from geoconv.tensorflow.layers import ConvDirac
+from geoconv.tensorflow.layers import ConvGeodesic
+from geoconv.tensorflow.layers import AngularMaxPooling
 
 import tensorflow as tf
 

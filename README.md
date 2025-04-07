@@ -52,8 +52,8 @@ minimal example below or the `geoconv_examples`-package for how you configure In
 ### Minimal Example (TensorFlow)
 
 ```python
-from geoconv.tensorflow.layers.conv_geodesic import ConvGeodesic
-from geoconv.tensorflow.layers.pooling.angular_max_pooling import AngularMaxPooling
+from geoconv.tensorflow.layers import ConvGeodesic
+from geoconv.tensorflow.layers import AngularMaxPooling
 
 import keras
 
@@ -79,8 +79,8 @@ def define_model(input_dim, output_dim, n_radial, n_angular):
 ### Minimal Example (PyTorch)
 
 ```python
-from geoconv.pytorch.layers.conv_geodesic import ConvGeodesic
-from geoconv.pytorch.layers.pooling.angular_max_pooling import AngularMaxPooling
+from geoconv.pytorch.layers import ConvGeodesic
+from geoconv.pytorch.layers import AngularMaxPooling
 
 from torch import nn
 

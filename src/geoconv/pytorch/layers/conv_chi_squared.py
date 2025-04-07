@@ -1,5 +1,5 @@
-from geoconv.pytorch.layers.conv_intrinsic import ConvIntrinsic
 from geoconv.utils.misc import angle_distance
+from geoconv.pytorch.layers import ConvIntrinsic
 
 import torch
 from torch.nn.functional import softmax
