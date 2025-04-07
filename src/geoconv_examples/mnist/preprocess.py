@@ -3,6 +3,7 @@ from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
 from geoconv.preprocessing.wrapper import compute_gpc_systems_wrapper
 
 from matplotlib import pyplot as plt
+from io import BytesIO
 
 import numpy as np
 import scipy as sp
@@ -10,7 +11,7 @@ import trimesh
 import shutil
 import json
 import os
-from io import BytesIO
+
 
 def create_grid(n_vertices):
     # Get mesh faces
@@ -30,7 +31,6 @@ def image_to_grid(image, grid):
 
 
 def compute_bc(preprocess_dir):
-
     with open(f"{preprocess_dir}/preprocess_properties.json") as properties_file:
         properties = json.load(properties_file)
         gpc_system_radius = np.mean(properties["gpc_system_radius"])
@@ -70,6 +70,7 @@ def compute_bc(preprocess_dir):
             }
         json.dump(temp_conf_dict, properties_file, indent=4)
 
+
 def check_preprocessed_zipfile_exists(target_path):
     """Checks whether a preprocessed dataset is already present at the target location"""
     
@@ -99,6 +100,7 @@ def check_preprocessed_zipfile_exists(target_path):
             print(f"[Error]: File '{target_path}.zip' is missing the 'dataset_properties.json' file.")
 
     return False
+
 
 def preprocess(output_path, processes, k_th_neighbor=10):
     # Preprocess flat grid
