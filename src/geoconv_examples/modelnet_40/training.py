@@ -140,7 +140,7 @@ def training(dataset_path,
 
                 # Train model
                 training_history = imcnn.fit(
-                    x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=2
+                    x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=200
                 )
 
                 # Collect training statistics
