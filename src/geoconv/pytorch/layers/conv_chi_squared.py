@@ -2,7 +2,7 @@ from geoconv.utils.misc import angle_distance
 from geoconv.pytorch.layers import ConvIntrinsic
 
 import torch
-from torch.nn.functional import softmax
+from .common import scipy_softmax as softmax
 
 
 def gamma_func(dof):

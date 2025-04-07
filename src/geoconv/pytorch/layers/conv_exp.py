@@ -2,7 +2,7 @@ from geoconv.utils.misc import angle_distance
 from geoconv.pytorch.layers import ConvIntrinsic
 
 import torch
-from torch.nn.functional import softmax
+from .common import scipy_softmax as softmax
 
 def exp_pdf(mean_rho, mean_theta, rho, theta, exp_lambda):
     """Exponential probability distribution for geodesic polar coordinates

@@ -1,7 +1,7 @@
 from geoconv.pytorch.layers import ConvIntrinsic
 from geoconv.utils.misc import angle_distance
 
-from torch.nn.functional import softmax
+from .common import scipy_softmax as softmax
 
 import torch
 
@@ -49,8 +49,8 @@ class ConvGeodesic(ConvIntrinsic):
 
     def define_kernel_values(self, template_matrix):
         interpolation_coefficients = torch.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1], dtype=torch.float32)
-        var_rho = template_matrix[:, :, 0].var()
-        var_theta = template_matrix[:, :, 1].var()
+        var_rho = torch.var(template_matrix[:, :, 0], unbiased=False)   # mirrors the behavior of the numpy biased variance
+        var_theta = torch.var(template_matrix[:, :, 1], unbiased=False) # mirrors the behavior of the numpy biased variance
         for mean_rho_idx in range(template_matrix.shape[0]):
             for mean_theta_idx in range(template_matrix.shape[1]):
                 mean_rho, mean_theta = template_matrix[mean_rho_idx, mean_theta_idx]
