@@ -13,7 +13,8 @@ ACTIVATIONS = {
     "leaky_relu": nn.LeakyReLU(),
     "selu": nn.SELU(),
     "sigmoid": nn.Sigmoid(),
-    "tanh": nn.Tanh()
+    "tanh": nn.Tanh(),
+    "linear": nn.Identity(),
 }
 
 INITIALIZER = {
