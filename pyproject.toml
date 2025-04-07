@@ -71,7 +71,8 @@ pytorch = [
 tensorflow = [
     "tensorflow",
     "tensorflow-probability",
-    "tensorflow-datasets"
+    "tensorflow-datasets",
+    "keras_tuner"
 ]
 tensorflow_gpu = [
     "tensorflow[and-cuda]",
