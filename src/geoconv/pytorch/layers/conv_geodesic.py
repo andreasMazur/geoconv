@@ -48,7 +48,7 @@ class ConvGeodesic(ConvIntrinsic):
     """
 
     def define_kernel_values(self, template_matrix):
-        interpolation_coefficients = torch.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1])
+        interpolation_coefficients = torch.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1], dtype=torch.float32)
         var_rho = template_matrix[:, :, 0].var()
         var_theta = template_matrix[:, :, 1].var()
         for mean_rho_idx in range(template_matrix.shape[0]):

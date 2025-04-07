@@ -221,7 +221,7 @@ class ConvIntrinsic(torch.jit.ScriptModule):
         torch.Tensor:
             Weighted and interpolated mesh signals
         """
-        interpolations = self._signal_pullback(mesh_signal, barycentric_coordinates)
+        interpolations = self._signal_pullback(mesh_signal.to(torch.float32), barycentric_coordinates.to(torch.float32))
 
         if self.include_prior:
             # Weight matrix  : (radial, angular, radial, angular)
@@ -246,6 +246,9 @@ class ConvIntrinsic(torch.jit.ScriptModule):
         torch.Tensor:
             Interpolation values for the template vertices
         """
+        mesh_signal.to(torch.float32)
+        barycentric_coordinates.to(torch.float32)
+
         # Get relevant shapes
         B, n_v, F = mesh_signal.shape
         v_idx, n_r, n_a, K = barycentric_coordinates.shape[1:5]
