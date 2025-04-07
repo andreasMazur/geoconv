@@ -203,7 +203,7 @@ class ConvIntrinsic(torch.jit.ScriptModule):
             dims=[1, 2, 0, 3]
         )
         # conv_neighbor: (batch_shapes, vertices, n_rotations, templates)
-        return self._activation(conv_center + conv_neighbor + self._bias)
+        return self._activation(conv_center + conv_neighbor + self._bias.view(-1))
 
     def _patch_operator(self, mesh_signal, barycentric_coordinates):
         """Interpolates and weights mesh signal
