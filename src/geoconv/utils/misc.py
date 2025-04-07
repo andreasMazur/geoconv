@@ -11,6 +11,22 @@ import subprocess
 import os
 import pathlib
 
+def angle_distance(theta_max, theta_min):
+    """Compute the shortest angular distance between two angles
+    
+    Parameters
+    ----------
+    theta_max: float
+        The first angle
+    theta_min: float
+        The second angle
+
+    Returns
+    -------
+    float:
+        The shortest angular distance between the two angles
+    """
+    return np.minimum(theta_max - theta_min, theta_min + 2. * np.pi - theta_max)
 
 def compute_vector_angle(vector_a, vector_b, rotation_axis):
     """Compute the angle between two vectors

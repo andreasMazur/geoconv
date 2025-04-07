@@ -1,11 +1,8 @@
 from geoconv.tensorflow.layers.conv_intrinsic import ConvIntrinsic
+from geoconv.utils.misc import angle_distance
 
 import numpy as np
 import scipy as sp
-
-
-def angle_distance(theta_max, theta_min):
-    return np.minimum(theta_max - theta_min, theta_min + 2. * np.pi - theta_max)
 
 
 def normal_pdf(mean_rho, mean_theta, var_rho, var_theta, rho, theta):

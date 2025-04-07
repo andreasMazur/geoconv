@@ -1,12 +1,9 @@
 from geoconv.pytorch.layers.conv_intrinsic import ConvIntrinsic
+from geoconv.utils.misc import angle_distance
 
 from torch.nn.functional import softmax
 
 import torch
-
-
-def angle_distance(theta_max, theta_min):
-    return torch.min(theta_max - theta_min, theta_min + 2. * torch.pi - theta_max)
 
 
 def normal_pdf(mean_rho, mean_theta, var_rho, var_theta, rho, theta):
