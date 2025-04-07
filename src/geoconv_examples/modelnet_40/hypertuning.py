@@ -11,7 +11,6 @@ def hyper_tuning(dataset_path,
                  template_configuration,
                  neighbors_for_lrf,
                  projection_neighbors,
-                 modelnet10=True,
                  gen_info_file=None,
                  batch_size=4,
                  rotation_delta=1,
@@ -39,7 +38,7 @@ def hyper_tuning(dataset_path,
             n_angular=n_angular,
             template_radius=template_radius,
             isc_layer_conf=isc_layer_conf,
-            modelnet10=modelnet10,
+            modelnet10=True,
             variant=variant,
             rotation_delta=rotation_delta,
             pooling=pooling,
@@ -53,14 +52,16 @@ def hyper_tuning(dataset_path,
         )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
+        lr = 0.0015218449319544082
+        lr_decay = 0.76942
         opt = tf.keras.optimizers.AdamW(
             learning_rate=WarmupAndExpDecay(
-                initial_learning_rate=hp.Float("initial_lr", min_value=0.0, max_value=0.01),
+                initial_learning_rate=hp.Float("initial_lr", min_value=lr / 2, max_value=lr * 2.),
                 decay_steps=2461,
-                decay_rate=hp.Float("lr_decay", min_value=0.9, max_value=1.0),
+                decay_rate=hp.Float("lr_decay", min_value=lr_decay / 2, max_value=1.0),
                 warmup_steps=2461
             ),
-            weight_decay=0.,  # hp.Float("weight_decay", min_value=0.0, max_value=1.0),
+            weight_decay=0.019081993138727875,  # hp.Float("weight_decay", min_value=0.0, max_value=1.0),
             beta_1=0.9,
             beta_2=0.999
         )
@@ -84,14 +85,14 @@ def hyper_tuning(dataset_path,
     train_data = load_preprocessed_modelnet(
         dataset_path,
         set_type="train",
-        modelnet10=modelnet10,
+        modelnet10=True,
         gen_info_file=f"{logging_dir}/{gen_info_file}",
         batch_size=batch_size
     )
     test_data = load_preprocessed_modelnet(
         dataset_path,
         set_type="test",
-        modelnet10=modelnet10,
+        modelnet10=True,
         gen_info_file=f"{logging_dir}/test_{gen_info_file}",
         batch_size=batch_size
     )
