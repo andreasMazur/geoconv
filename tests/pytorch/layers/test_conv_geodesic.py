@@ -36,6 +36,9 @@ class TestConvGeodesicSameOutput(unittest.TestCase):
                         weights_shuffled[b, v, r, a] = weights[b, v, r, a][perm]
         self.bc = np.stack([indices_shuffled, weights_shuffled], axis=-1)
 
+        self.bc = self.bc.astype(np.float32)
+        self.signal = self.signal.astype(np.float32)
+
         # Initialize layers
         self.torch_layer = ConvGeodesic(
             amt_templates=128,
@@ -105,7 +108,7 @@ class TestConvGeodesicSameOutput(unittest.TestCase):
         pt_patch_op = self.torch_layer._patch_operator(pt_signal, pt_bc)
         tf_patch_op = self.tf_layer._patch_operator(self.signal, self.bc)
         self.assertTrue(
-            np.allclose(pt_patch_op.detach().numpy(), tf_patch_op.numpy()),
+            np.allclose(pt_patch_op.detach().numpy(), tf_patch_op.numpy(), atol=1e-5),
             "Patch operator mismatch!"
         )
 
