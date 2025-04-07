@@ -115,7 +115,6 @@ class ConvIntrinsic(torch.jit.ScriptModule):
         self._template_vertices = None
         self._template_neighbor_weights = None
         self._template_self_weights = None
-        self._kernel = None
         self._feature_dim = None
 
         self.build(input_shape)
@@ -272,7 +271,7 @@ class ConvIntrinsic(torch.jit.ScriptModule):
 
     def _configure_kernel(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
-        self._kernel = self.define_kernel_values(self._template_vertices).to(torch.float32)
+        self.register_buffer('_kernel', self.define_kernel_values(self._template_vertices).to(torch.float32))
 
     @abstractmethod
     def define_kernel_values(self, template_matrix):
