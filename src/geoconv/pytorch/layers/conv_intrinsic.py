@@ -181,13 +181,13 @@ class ConvIntrinsic(torch.jit.ScriptModule):
         # Weight matrix : (templates, 1, input_dim)
         # Mesh signal   : (batch_shapes, vertices, input_dim)
         # Result        : (batch_shapes, vertices, 1, n_templates)
-        conv_center = torch.einsum("tef,skf->sket", self._template_self_weights, mesh_signal)
+        conv_center = torch.einsum("tef,skf->sket", self._template_self_weights, mesh_signal.to(torch.float32))
 
         #####################################################################
         # Fold neighbors - conv_neighbor: (vertices, n_rotations, templates)
         #####################################################################
         # Call patch operator
-        interpolations = self._patch_operator(mesh_signal, bary_coordinates)
+        interpolations = self._patch_operator(mesh_signal.to(torch.float32), bary_coordinates.to(torch.float32))
         # Determine orientations
         if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
