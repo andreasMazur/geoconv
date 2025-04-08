@@ -7,7 +7,8 @@ from geoconv.tensorflow.layers import ConvGeodesic as TFConvGeodesic
 
 import os
 
-os.environ.update({"CUDA_VISIBLE_DEVICES": '0'}) # Run all on cpu
+os.environ.update({"CUDA_VISIBLE_DEVICES": "0"})  # Run all on cpu
+
 
 class TestConvGeodesicSameOutput(unittest.TestCase):
     def setUp(self):
@@ -20,7 +21,9 @@ class TestConvGeodesicSameOutput(unittest.TestCase):
 
         # Generate signal
         self.signal = self.rs.randn(self.batch_size, self.n_vertices, self.n_features)
-        weights = self.rs.randn(self.batch_size, self.n_vertices, self.n_radial, self.n_angular, 3)
+        weights = self.rs.randn(
+            self.batch_size, self.n_vertices, self.n_radial, self.n_angular, 3
+        )
         weights /= np.sum(weights, axis=-1, keepdims=True)
 
         base_indices = np.array([0, 1, 2])
@@ -43,16 +46,15 @@ class TestConvGeodesicSameOutput(unittest.TestCase):
         self.torch_layer = ConvGeodesic(
             amt_templates=128,
             template_radius=0.7,
-            activation='elu',
+            activation="elu",
             rotation_delta=1,
-            input_shape=((self.batch_size, self.n_vertices, self.n_features),
-                         (self.batch_size, self.n_vertices, self.n_radial, self.n_angular, 3, 2))
+            input_shape=(
+                (self.batch_size, self.n_vertices, self.n_features),
+                (self.batch_size, self.n_vertices, self.n_radial, self.n_angular, 3, 2),
+            ),
         )
         self.tf_layer = TFConvGeodesic(
-            amt_templates=128,
-            template_radius=0.7,
-            activation='elu',
-            rotation_delta=1
+            amt_templates=128, template_radius=0.7, activation="elu", rotation_delta=1
         )
         self.tf_layer((self.signal, self.bc))
 
@@ -67,29 +69,38 @@ class TestConvGeodesicSameOutput(unittest.TestCase):
         for tfp, ptp in zip(self.tf_layer.weights, self.torch_layer.parameters()):
             self.assertTrue(
                 np.allclose(tfp.numpy().reshape(-1), ptp.detach().numpy().reshape(-1)),
-                "Weights mismatch!"
+                "Weights mismatch!",
             )
 
     def test_kernel_match(self):
-        self.assertTrue(np.allclose(
-            self.tf_layer._template_vertices.numpy(),
-            self.torch_layer._template_vertices.numpy(),
-        ), "Template vertices mismatch!")
+        self.assertTrue(
+            np.allclose(
+                self.tf_layer._template_vertices.numpy(),
+                self.torch_layer._template_vertices.numpy(),
+            ),
+            "Template vertices mismatch!",
+        )
 
-        self.assertTrue(np.allclose(
-            self.tf_layer._kernel.numpy(),
-            self.torch_layer._kernel.numpy(),
-            atol=1e-5
-        ), "Kernel compute mismatch!")
-
+        self.assertTrue(
+            np.allclose(
+                self.tf_layer._kernel.numpy(),
+                self.torch_layer._kernel.numpy(),
+                atol=1e-5,
+            ),
+            "Kernel compute mismatch!",
+        )
 
     def test_forward_preproc(self):
         pt_signal = torch.from_numpy(self.signal)
-        pt_conv_center = torch.einsum('tef,skf->sket', self.torch_layer._template_self_weights, pt_signal)
-        tf_conv_center = tf.einsum('tef,skf->sket', self.tf_layer._template_self_weights, self.signal)
+        pt_conv_center = torch.einsum(
+            "tef,skf->sket", self.torch_layer._template_self_weights, pt_signal
+        )
+        tf_conv_center = tf.einsum(
+            "tef,skf->sket", self.tf_layer._template_self_weights, self.signal
+        )
         self.assertTrue(
             np.allclose(pt_conv_center.detach().numpy(), tf_conv_center.numpy()),
-            "Conv center mismatch!"
+            "Conv center mismatch!",
         )
 
     def test_signal_pullback(self):
@@ -99,7 +110,7 @@ class TestConvGeodesicSameOutput(unittest.TestCase):
         tf_signal_pb = self.tf_layer._signal_pullback(self.signal, self.bc)
         self.assertTrue(
             np.allclose(pt_signal_pb.detach().numpy(), tf_signal_pb.numpy()),
-            "Signal pullback mismatch!"
+            "Signal pullback mismatch!",
         )
 
     def test_patch_operator(self):
@@ -109,7 +120,7 @@ class TestConvGeodesicSameOutput(unittest.TestCase):
         tf_patch_op = self.tf_layer._patch_operator(self.signal, self.bc)
         self.assertTrue(
             np.allclose(pt_patch_op.detach().numpy(), tf_patch_op.numpy(), atol=1e-5),
-            "Patch operator mismatch!"
+            "Patch operator mismatch!",
         )
 
     def test_forward_pass(self):
@@ -119,8 +130,9 @@ class TestConvGeodesicSameOutput(unittest.TestCase):
         tf_out = self.tf_layer((self.signal, self.bc))
         self.assertTrue(
             np.allclose(pt_out.detach().numpy(), tf_out.numpy(), atol=1e-5),
-            "Forward pass output mismatch!"
+            "Forward pass output mismatch!",
         )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -6,13 +6,14 @@ from geoconv.pytorch.layers import ConvDirac
 
 from geoconv.tensorflow.layers import ConvDirac as TFConvDirac
 
+
 class TestConvDiracSameOutput(unittest.TestCase):
     def setUp(self):
         self.batch_size = 8
         self.n_vertices = 10
         self.n_radial = 3
         self.n_angular = 4
-        self.n_features = 1
+        self.n_features = 7
         self.rs = np.random.RandomState(5829201)
 
         # Generate signal
@@ -32,6 +33,9 @@ class TestConvDiracSameOutput(unittest.TestCase):
                         indices_shuffled[b, v, r, a] = base_indices[perm]
                         weights_shuffled[b, v, r, a] = weights[b, v, r, a][perm]
         self.bc = np.stack([indices_shuffled, weights_shuffled], axis=-1)
+
+        self.bc = self.bc.astype(np.float32)
+        self.signal = self.signal.astype(np.float32)
 
         # Initialize layers
         self.torch_layer = ConvDirac(
