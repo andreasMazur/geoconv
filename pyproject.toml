@@ -44,7 +44,8 @@ dependencies = [
     "pygeodesic>=0.1.7",
     "Pillow>=10.0.1",
     "scipy>=1.10.0",
-    "pyglet<2"
+    "pyglet<2",
+    "pillow>=11.1.0"
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
