@@ -18,8 +18,11 @@ class ProcessedMNIST(Dataset):
     targets:
         The labels for the MNIST-images.
     """
-    def __init__(self, images, bc, labels):
-        self.data = images.reshape(images.shape[0], -1, 1) / 255.
+    def __init__(self, images, bc, labels, scale=False):
+        if scale:
+            self.data = images.reshape(images.shape[0], -1, 1) / 255.
+        else:
+            self.data = images.reshape(images.shape[0], -1, 1)
         if type(bc) is not torch.Tensor:
             self.bc = torch.from_numpy(bc)
         else:
@@ -103,6 +106,7 @@ def load_preprocessed_mnist(dataset_path,
 
     # Add barycentric coordinates to MNIST data
     for bc in barycentric_coordinates:
+        is_scaled = False
         dataset = datasets.MNIST(mnist_folder, train=set_type in ["train", "all"], download=True)
         # Concatenate train and test set in case all data is requested
         if set_type == "all":
@@ -110,11 +114,13 @@ def load_preprocessed_mnist(dataset_path,
             dataset = ProcessedMNIST(
                 images=torch.cat(tensors=[dataset.data, dataset_test.data], axis=0),
                 bc=bc,
-                labels=torch.cat(tensors=[dataset.targets, dataset_test.targets], axis=0)
+                labels=torch.cat(tensors=[dataset.targets, dataset_test.targets], axis=0),
+                scale=True
             )
+            is_scaled = True
         # Filter for requested indices
         if indices is None:
-            dataset = ProcessedMNIST(images=dataset.data, bc=bc, labels=dataset.targets)
+            dataset = ProcessedMNIST(images=dataset.data, bc=bc, labels=dataset.targets, scale=not is_scaled)
         else:
-            dataset = ProcessedMNIST(images=dataset.data[indices], bc=bc, labels=dataset.targets[indices])
+            dataset = ProcessedMNIST(images=dataset.data[indices], bc=bc, labels=dataset.targets[indices], scale=not is_scaled)
         return DataLoader(dataset, batch_size=batch_size, shuffle=True)
