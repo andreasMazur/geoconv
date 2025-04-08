@@ -18,9 +18,10 @@ class ProcessedMNIST(Dataset):
     targets:
         The labels for the MNIST-images.
     """
+
     def __init__(self, images, bc, labels, scale=False):
         if scale:
-            self.data = images.reshape(images.shape[0], -1, 1) / 255.
+            self.data = images.reshape(images.shape[0], -1, 1) / 255.0
         else:
             self.data = images.reshape(images.shape[0], -1, 1)
         if type(bc) is not torch.Tensor:
@@ -43,7 +44,7 @@ class ProcessedMNIST(Dataset):
         tuple: (torch.Size, torch.Size)
             The shape of the images in the dataset.
         """
-        return (self.data.shape[1:], self.bc.shape)
+        return self.data.shape[1:], self.bc.shape
 
     def subset(self, indices):
         """Creates a subset of the dataset with the given indices.
@@ -60,16 +61,21 @@ class ProcessedMNIST(Dataset):
         ProcessedMNIST:
             The subset of the dataset.
         """
-        return ProcessedMNIST(images=self.data[indices], bc=self.bc, labels=self.targets[indices])
+        return ProcessedMNIST(
+            images=self.data[indices], bc=self.bc, labels=self.targets[indices]
+        )
 
-def load_preprocessed_mnist(dataset_path,
-                            n_radial,
-                            n_angular,
-                            template_radius,
-                            set_type,
-                            batch_size=8,
-                            mnist_folder=None,
-                            indices=None):
+
+def load_preprocessed_mnist(
+    dataset_path,
+    n_radial,
+    n_angular,
+    template_radius,
+    set_type,
+    batch_size=8,
+    mnist_folder=None,
+    indices=None,
+):
     """Loads MNIST while adding barycentric coordinates to the dataset and reshapes images to vectors.
 
     Parameters
@@ -101,26 +107,42 @@ def load_preprocessed_mnist(dataset_path,
 
     # Load barycentric coordinates
     barycentric_coordinates = barycentric_coordinates_generator(
-        dataset_path, n_radial, n_angular, template_radius, batch_size=1, return_filename=False
+        dataset_path,
+        n_radial,
+        n_angular,
+        template_radius,
+        batch_size=1,
+        return_filename=False,
     )
 
     # Add barycentric coordinates to MNIST data
     for bc in barycentric_coordinates:
         is_scaled = False
-        dataset = datasets.MNIST(mnist_folder, train=set_type in ["train", "all"], download=True)
+        dataset = datasets.MNIST(
+            mnist_folder, train=set_type in ["train", "all"], download=True
+        )
         # Concatenate train and test set in case all data is requested
         if set_type == "all":
             dataset_test = datasets.MNIST(mnist_folder, train=False, download=True)
             dataset = ProcessedMNIST(
                 images=torch.cat(tensors=[dataset.data, dataset_test.data], axis=0),
                 bc=bc,
-                labels=torch.cat(tensors=[dataset.targets, dataset_test.targets], axis=0),
-                scale=True
+                labels=torch.cat(
+                    tensors=[dataset.targets, dataset_test.targets], axis=0
+                ),
+                scale=True,
             )
             is_scaled = True
         # Filter for requested indices
         if indices is None:
-            dataset = ProcessedMNIST(images=dataset.data, bc=bc, labels=dataset.targets, scale=not is_scaled)
+            dataset = ProcessedMNIST(
+                images=dataset.data, bc=bc, labels=dataset.targets, scale=not is_scaled
+            )
         else:
-            dataset = ProcessedMNIST(images=dataset.data[indices], bc=bc, labels=dataset.targets[indices], scale=not is_scaled)
+            dataset = ProcessedMNIST(
+                images=dataset.data[indices],
+                bc=bc,
+                labels=dataset.targets[indices],
+                scale=not is_scaled,
+            )
         return DataLoader(dataset, batch_size=batch_size, shuffle=True)
