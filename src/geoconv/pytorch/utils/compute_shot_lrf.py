@@ -1,8 +1,10 @@
-import torch
 from typing import Tuple
 
+import torch
+
+
 @torch.jit.script
-def compute_distance_matrix(vertices : torch.FloatTensor) -> torch.FloatTensor:
+def compute_distance_matrix(vertices: torch.FloatTensor) -> torch.FloatTensor:
     """Computes the Euclidean distance between given vertices.
 
     Parameters
@@ -18,14 +20,21 @@ def compute_distance_matrix(vertices : torch.FloatTensor) -> torch.FloatTensor:
     vertices = vertices.to(torch.float64)
 
     norm = torch.einsum("ij,ij->i", vertices, vertices)
-    norm = norm.reshape((-1, 1)) - 2 * torch.einsum("ik,jk->ij", vertices, vertices) + norm.reshape((1, -1))
+    norm = (
+        norm.reshape((-1, 1))
+        - 2 * torch.einsum("ik,jk->ij", vertices, vertices)
+        + norm.reshape((1, -1))
+    )
 
     norm = torch.nan_to_num(torch.sqrt(norm))
 
-    return norm.to(torch.float32) 
+    return norm.to(torch.float32)
+
 
 @torch.jit.script
-def disambiguate_axes(neighborhood_vertices: torch.Tensor, eigen_vectors: torch.Tensor) -> torch.Tensor:
+def disambiguate_axes(
+    neighborhood_vertices: torch.Tensor, eigen_vectors: torch.Tensor
+) -> torch.Tensor:
     """Disambiguate axes returned by local Eigenvalue analysis.
 
     Disambiguation follows the formal procedure as described in:
@@ -47,10 +56,15 @@ def disambiguate_axes(neighborhood_vertices: torch.Tensor, eigen_vectors: torch.
         The disambiguated Eigenvectors.
     """
     neg_eigen_vectors = -eigen_vectors
-    ev_count = (torch.einsum("nvk,nk->nv", neighborhood_vertices, eigen_vectors) >= 0).sum(dim=-1)
-    ev_neg_count = (torch.einsum("nvk,nk->nv", neighborhood_vertices, -eigen_vectors) > 0.).sum(dim=-1)
+    ev_count = (
+        torch.einsum("nvk,nk->nv", neighborhood_vertices, eigen_vectors) >= 0
+    ).sum(dim=-1)
+    ev_neg_count = (
+        torch.einsum("nvk,nk->nv", neighborhood_vertices, -eigen_vectors) > 0.0
+    ).sum(dim=-1)
     mask = (ev_count >= ev_neg_count).unsqueeze(-1)
     return torch.where(mask, eigen_vectors, neg_eigen_vectors)
+
 
 @torch.jit.script
 def shot_lrf(neighborhoods: torch.Tensor, radii: torch.Tensor) -> torch.Tensor:
@@ -77,11 +91,15 @@ def shot_lrf(neighborhoods: torch.Tensor, radii: torch.Tensor) -> torch.Tensor:
     # 1.) Compute Eigenvectors
     # Calculate neighbor weights
     # 'distance_weights': (vertices, n_neighbors)
-    distance_weights = torch.unsqueeze(radii, dim=-1) - torch.linalg.norm(neighborhoods, dim=-1)
+    distance_weights = torch.unsqueeze(radii, dim=-1) - torch.linalg.norm(
+        neighborhoods, dim=-1
+    )
 
     # Compute weighted covariance matrices
     # 'weighted_cov': (vertices, 3, 3)
-    weighted_cov = torch.einsum("nv,nvi,nvj->nij", distance_weights, neighborhoods, neighborhoods)
+    weighted_cov = torch.einsum(
+        "nv,nvi,nvj->nij", distance_weights, neighborhoods, neighborhoods
+    )
 
     # 2.) Disambiguate axes
     # First eigen vector corresponds to smallest eigen value (i.e. plane normal)
@@ -93,6 +111,7 @@ def shot_lrf(neighborhoods: torch.Tensor, radii: torch.Tensor) -> torch.Tensor:
     y_axes = torch.linalg.cross(z_axes, x_axes)
 
     return torch.stack([z_axes, y_axes, x_axes], dim=-1)
+
 
 @torch.jit.script
 def logarithmic_map(lrfs: torch.Tensor, neighborhoods: torch.Tensor) -> torch.Tensor:
@@ -115,29 +134,40 @@ def logarithmic_map(lrfs: torch.Tensor, neighborhoods: torch.Tensor) -> torch.Te
     normals = lrfs[:, 0, :]
 
     # Compute tangent plane projections (logarithmic map)
-    scaled_normals = neighborhoods @ torch.unsqueeze(normals, dim=-1) * torch.unsqueeze(normals, dim=1)
+    scaled_normals = (
+        neighborhoods @ torch.unsqueeze(normals, dim=-1) * torch.unsqueeze(normals, dim=1)
+    )
     projections = neighborhoods - scaled_normals
 
     # Basis change of neighborhoods into lrf coordinates
-    projections = torch.einsum("vij,vnj->vni", torch.linalg.inv(lrfs.permute([0, 2, 1])), projections)[:, :, 1:]
+    projections = torch.einsum(
+        "vij,vnj->vni", torch.linalg.inv(lrfs.permute([0, 2, 1])), projections
+    )[:, :, 1:]
 
     # Use 'projection / adjacent * hypotenuse' as estimate to geodesic distance
-    adj, hy = torch.linalg.norm(projections, dim=-1), torch.linalg.norm(neighborhoods, dim=-1)
-    adj = torch.where(adj == 0., 1., adj)
-    hy = torch.where(adj == 0, 1., hy)
+    adj, hy = torch.linalg.norm(projections, dim=-1), torch.linalg.norm(
+        neighborhoods, dim=-1
+    )
+    adj = torch.where(adj == 0.0, 1.0, adj)
+    hy = torch.where(adj == 0, 1.0, hy)
 
     # Rescale projections to their original Euclidean distances
     projections = projections / adj[..., None] * hy[..., None]
 
     return projections
 
+
 @torch.jit.script
-def knn_shot_lrf(k_neighbors : int, vertices : torch.Tensor, repetitions : int = 4) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def knn_shot_lrf(
+    k_neighbors: int, vertices: torch.Tensor, repetitions: int = 4
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     # 1.) Compute radius for local parameterization spaces. Keep it equal for all for comparability.
     # 'distance_matrix': (vertices, vertices)
     # 'radii': (vertices,)
     distance_matrix = compute_distance_matrix(vertices)
-    radii = distance_matrix.gather(1, distance_matrix.argsort(dim=-1)[:, k_neighbors].unsqueeze(1)).squeeze(1)
+    radii = distance_matrix.gather(
+        1, distance_matrix.argsort(dim=-1)[:, k_neighbors].unsqueeze(1)
+    ).squeeze(1)
 
     # 2.) Get vertex-neighborhoods
     # 'neighborhoods': (vertices, n_neighbors, 3)
@@ -149,7 +179,12 @@ def knn_shot_lrf(k_neighbors : int, vertices : torch.Tensor, repetitions : int =
     lrfs = shot_lrf(neighborhoods, radii)
 
     # 4.) Make normal vectors point away from centroid (outwards from shape)
-    signs = -((torch.einsum("vi,vi->v", lrfs[:, :, 0], vertices.mean(dim=0) - vertices) >= 0).int())
+    signs = -(
+        (
+            torch.einsum("vi,vi->v", lrfs[:, :, 0], vertices.mean(dim=0) - vertices)
+            >= 0
+        ).int()
+    )
     signs = signs + (signs == 0).int()
     normals = signs.float().unsqueeze(-1) * lrfs[:, :, 0]
     lrfs = torch.stack([normals, lrfs[:, :, 1], lrfs[:, :, 2]], dim=-1)
@@ -158,8 +193,15 @@ def knn_shot_lrf(k_neighbors : int, vertices : torch.Tensor, repetitions : int =
     # (non-convex shapes -> "outwards" might differ locally)
     for rep in range(repetitions):
         normals = lrfs[:, :, 0][neighborhood_indices[:, 1:]]
-        signs = -((torch.sum((torch.einsum("vi,vni->vn", lrfs[:, :, 0], normals) >= 0).int(), dim=-1)
-                   <= k_neighbors // 2).int())
+        signs = -(
+            (
+                torch.sum(
+                    (torch.einsum("vi,vni->vn", lrfs[:, :, 0], normals) >= 0).int(),
+                    dim=-1,
+                )
+                <= k_neighbors // 2
+            ).int()
+        )
         signs = signs + (signs == 0).int()
         normals = signs.float().unsqueeze(-1) * lrfs[:, :, 0]
         lrfs = torch.stack([normals, lrfs[:, :, 1], lrfs[:, :, 2]], dim=-1)

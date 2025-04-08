@@ -16,9 +16,13 @@ def compute_distance_matrix(vertices):
         A square distance matrix for the given vertices.
     """
     vertices = tf.cast(vertices, tf.float64)
-    
+
     norm = tf.einsum("ij,ij->i", vertices, vertices)
-    norm = tf.reshape(norm, (-1, 1)) - 2 * tf.einsum("ik,jk->ij", vertices, vertices) + tf.reshape(norm, (1, -1))
+    norm = (
+        tf.reshape(norm, (-1, 1))
+        - 2 * tf.einsum("ik,jk->ij", vertices, vertices)
+        + tf.reshape(norm, (1, -1))
+    )
 
     where_nans = tf.where(tf.math.is_nan(tf.sqrt(norm)))
     norm = tf.tensor_scatter_nd_update(
@@ -51,10 +55,16 @@ def disambiguate_axes(neighborhood_vertices, eigen_vectors):
         The disambiguated Eigenvectors.
     """
     neg_eigen_vectors = -eigen_vectors
-    ev_count = tf.math.count_nonzero(tf.einsum("nvk,nk->nv", neighborhood_vertices, eigen_vectors) >= 0, axis=-1)
-    ev_neg_count = tf.math.count_nonzero(tf.einsum("nvk,nk->nv", neighborhood_vertices, -eigen_vectors) > 0., axis=-1)
+    ev_count = tf.math.count_nonzero(
+        tf.einsum("nvk,nk->nv", neighborhood_vertices, eigen_vectors) >= 0, axis=-1
+    )
+    ev_neg_count = tf.math.count_nonzero(
+        tf.einsum("nvk,nk->nv", neighborhood_vertices, -eigen_vectors) > 0.0, axis=-1
+    )
     return tf.gather(
-        tf.stack([neg_eigen_vectors, eigen_vectors], axis=1), tf.cast(ev_count >= ev_neg_count, tf.int32), batch_dims=1
+        tf.stack([neg_eigen_vectors, eigen_vectors], axis=1),
+        tf.cast(ev_count >= ev_neg_count, tf.int32),
+        batch_dims=1,
     )
 
 
@@ -87,7 +97,9 @@ def shot_lrf(neighborhoods, radii):
 
     # Compute weighted covariance matrices
     # 'weighted_cov': (vertices, 3, 3)
-    weighted_cov = tf.einsum("nv,nvi,nvj->nij", distance_weights, neighborhoods, neighborhoods)
+    weighted_cov = tf.einsum(
+        "nv,nvi,nvj->nij", distance_weights, neighborhoods, neighborhoods
+    )
 
     # 2.) Disambiguate axes
     # First eigen vector corresponds to smallest eigen value (i.e. plane normal)
@@ -122,17 +134,27 @@ def logarithmic_map(lrfs, neighborhoods):
     normals = lrfs[:, 0, :]
 
     # Compute tangent plane projections (logarithmic map)
-    scaled_normals = neighborhoods @ tf.expand_dims(normals, axis=-1) * tf.expand_dims(normals, axis=1)
+    scaled_normals = (
+        neighborhoods @ tf.expand_dims(normals, axis=-1) * tf.expand_dims(normals, axis=1)
+    )
     projections = neighborhoods - scaled_normals
 
     # Basis change of neighborhoods into lrf coordinates
-    projections = tf.einsum("vij,vnj->vni", tf.linalg.inv(tf.transpose(lrfs, perm=[0, 2, 1])), projections)[:, :, 1:]
+    projections = tf.einsum(
+        "vij,vnj->vni", tf.linalg.inv(tf.transpose(lrfs, perm=[0, 2, 1])), projections
+    )[:, :, 1:]
 
     # Use 'projection / adjacent * hypotenuse' as estimate to geodesic distance
-    adj, hy = tf.linalg.norm(projections, axis=-1), tf.linalg.norm(neighborhoods, axis=-1)
-    zero_indices = tf.where(adj == 0.)
-    adj = tf.tensor_scatter_nd_update(adj, zero_indices, tf.ones((tf.shape(zero_indices)[0],)))
-    hy = tf.tensor_scatter_nd_update(hy, zero_indices, tf.ones((tf.shape(zero_indices)[0],)))
+    adj, hy = tf.linalg.norm(projections, axis=-1), tf.linalg.norm(
+        neighborhoods, axis=-1
+    )
+    zero_indices = tf.where(adj == 0.0)
+    adj = tf.tensor_scatter_nd_update(
+        adj, zero_indices, tf.ones((tf.shape(zero_indices)[0],))
+    )
+    hy = tf.tensor_scatter_nd_update(
+        hy, zero_indices, tf.ones((tf.shape(zero_indices)[0],))
+    )
 
     # Rescale projections to their original Euclidean distances
     projections = projections / adj[..., None] * hy[..., None]
@@ -146,28 +168,44 @@ def compute_neighborhood(vertices, k_neighbors):
     # 'distance_matrix': (batch, vertices, vertices)
     # 'radii': (batch, vertices)
     distance_matrix = tf.map_fn(compute_distance_matrix, vertices)
-    radii = tf.gather(distance_matrix, tf.argsort(distance_matrix, axis=-1)[..., k_neighbors], batch_dims=2)
+    radii = tf.gather(
+        distance_matrix,
+        tf.argsort(distance_matrix, axis=-1)[..., k_neighbors],
+        batch_dims=2,
+    )
 
     # 2.) Get vertex-neighborhoods
     # 'neighborhoods': (batch, vertices, n_neighbors, 3)
     neighborhoods, neighborhood_indices = tf.math.top_k(-distance_matrix, k_neighbors)
-    neighborhoods = tf.gather(vertices, neighborhood_indices, batch_dims=1) - vertices[..., None, :]
+    neighborhoods = (
+        tf.gather(vertices, neighborhood_indices, batch_dims=1) - vertices[..., None, :]
+    )
 
     return neighborhoods, neighborhood_indices, radii
 
 
 @tf.function(jit_compile=True)
 def knn_shot_lrf(k_neighbors, vertices, repetitions=4):
-    # 1.) Compute
-    neighborhoods, neighborhood_indices, radii = compute_neighborhood(vertices[None, ...], k_neighbors)
-    neighborhoods, neighborhood_indices, radii = neighborhoods[0], neighborhood_indices[0], radii[0]
+    # 1.) Compute neighborhoods
+    neighborhoods, neighborhood_indices, radii = compute_neighborhood(
+        vertices[None, ...], k_neighbors
+    )
+    neighborhoods, neighborhood_indices, radii = (
+        neighborhoods[0],
+        neighborhood_indices[0],
+        radii[0],
+    )
 
     # 2.) Get local reference frames
     # 'lrfs': (vertices, 3, 3)
     lrfs = shot_lrf(neighborhoods, radii)
 
     # 3.) Make normal vectors point away from centroid (outwards from shape)
-    signs = -tf.cast(tf.einsum("vi,vi->v", lrfs[..., 0], tf.reduce_mean(vertices, axis=0) - vertices) >= 0, tf.int32)
+    signs = -tf.cast(
+        tf.einsum("vi,vi->v", lrfs[..., 0], tf.reduce_mean(vertices, axis=0) - vertices)
+        >= 0,
+        tf.int32,
+    )
     signs = signs + tf.cast(signs == 0, tf.int32)
     normals = tf.expand_dims(tf.cast(signs, tf.float32), axis=-1) * lrfs[..., 0]
     lrfs = tf.stack([normals, lrfs[..., 1], lrfs[..., 2]], axis=-1)
@@ -178,9 +216,11 @@ def knn_shot_lrf(k_neighbors, vertices, repetitions=4):
         normals = tf.gather(lrfs[..., 0], neighborhood_indices[:, 1:])
         signs = -tf.cast(
             tf.reduce_sum(
-                tf.cast(tf.einsum("vi,vni->vn", lrfs[..., 0], normals) >= 0, tf.int32), axis=-1
-            ) <= tf.math.floordiv(k_neighbors, 2),
-            tf.int32
+                tf.cast(tf.einsum("vi,vni->vn", lrfs[..., 0], normals) >= 0, tf.int32),
+                axis=-1,
+            )
+            <= tf.math.floordiv(k_neighbors, 2),
+            tf.int32,
         )
         signs = signs + tf.cast(signs == 0, tf.int32)
         normals = tf.expand_dims(tf.cast(signs, tf.float32), axis=-1) * lrfs[..., 0]

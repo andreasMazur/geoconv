@@ -1,7 +1,10 @@
 import torch
 
+
 @torch.jit.script
-def tensor_scatter_nd_update_(tensor : torch.Tensor, indices : torch.Tensor, updates : torch.Tensor):
+def tensor_scatter_nd_update_(
+    tensor: torch.Tensor, indices: torch.Tensor, updates: torch.Tensor
+):
     """In-place updates the tensor at the specified indices with the given updates.
 
     Parameters
@@ -24,8 +27,11 @@ def tensor_scatter_nd_update_(tensor : torch.Tensor, indices : torch.Tensor, upd
     flat_updates = updates.view(-1)
     tensor.index_put_(flat_indices, flat_updates, accumulate=False)
 
+
 @torch.jit.script
-def tensor_scatter_nd_add_(tensor : torch.Tensor, indices : torch.Tensor, updates : torch.Tensor):
+def tensor_scatter_nd_add_(
+    tensor: torch.Tensor, indices: torch.Tensor, updates: torch.Tensor
+):
     """In-place adds `updates` to `tensor` at `indices`.
 
     Parameters
@@ -46,15 +52,23 @@ def tensor_scatter_nd_add_(tensor : torch.Tensor, indices : torch.Tensor, update
 
     flat_indices = list(indices.view(-1, tensor.dim()).t())
     flat_updates = updates.view(-1)
-    tensor += torch.zeros_like(tensor).index_put_(flat_indices, flat_updates, accumulate=True)
+    tensor += torch.zeros_like(tensor).index_put_(
+        flat_indices, flat_updates, accumulate=True
+    )
+
 
 @torch.jit.script
-def histogram_fixed_width_bins(values : torch.Tensor, value_range : torch.Tensor, n_bins : int, dtype : torch.dtype = torch.float32) -> torch.Tensor:
+def histogram_fixed_width_bins(
+    values: torch.Tensor,
+    value_range: torch.Tensor,
+    n_bins: int,
+    dtype: torch.dtype = torch.float32,
+) -> torch.Tensor:
     """Bins the given values for use in a histogram.
 
     Given the tensor `values`, this function returns a rank 1 `Tensor`
-    representing the indices of a histogram into which each element 
-    of `values` would be binned. The bins are equal width and 
+    representing the indices of a histogram into which each element
+    of `values` would be binned. The bins are equal width and
     determined by the argument `value_range` and `n_bins`.
 
     Parameters
@@ -69,7 +83,7 @@ def histogram_fixed_width_bins(values : torch.Tensor, value_range : torch.Tensor
         The number of bins to use.
     dtype: torch.dtype
         The data type of the returned histogram.
-    
+
     Returns
     -------
     torch.Tensor:
@@ -80,7 +94,9 @@ def histogram_fixed_width_bins(values : torch.Tensor, value_range : torch.Tensor
     n_bins_torch = torch.tensor(n_bins, dtype=dtype, device=values.device)
 
     # Map tensor values that fall within value_range to [0, 1]
-    scaled_values = torch.true_divide(values - value_range[0], value_range[1] - value_range[0])
+    scaled_values = torch.true_divide(
+        values - value_range[0], value_range[1] - value_range[0]
+    )
 
     # Map tensor values within the open interval value_range to {0, ..., n_bins - 1}
     # values outside the open interval will be 0 or less, or n_bins or more
