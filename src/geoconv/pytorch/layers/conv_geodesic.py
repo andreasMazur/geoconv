@@ -33,8 +33,14 @@ def normal_pdf(mean_rho, mean_theta, var_rho, var_theta, rho, theta):
     max_angle = torch.maximum(mean_theta, theta)
     min_angle = torch.minimum(mean_theta, theta)
     delta_angle = angle_distance(max_angle, min_angle)
-    vec = torch.tensor([rho - mean_rho, delta_angle], dtype=rho.dtype, device=rho.device)
-    mat = torch.tensor([[1. / var_rho, 0.], [0., 1. / var_theta]], dtype=rho.dtype, device=rho.device)
+    vec = torch.tensor(
+        [rho - mean_rho, delta_angle], dtype=rho.dtype, device=rho.device
+    )
+    mat = torch.tensor(
+        [[1.0 / var_rho, 0.0], [0.0, 1.0 / var_theta]],
+        dtype=rho.dtype,
+        device=rho.device,
+    )
     exp = torch.exp(-(1 / 2) * vec.T @ mat @ vec)
     return norm_coefficient * exp
 
@@ -48,16 +54,24 @@ class ConvGeodesic(ConvIntrinsic):
     """
 
     def define_kernel_values(self, template_matrix):
-        interpolation_coefficients = torch.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1], dtype=torch.float32)
-        var_rho = torch.var(template_matrix[:, :, 0], unbiased=False)   # mirrors the behavior of the numpy biased variance
-        var_theta = torch.var(template_matrix[:, :, 1], unbiased=False) # mirrors the behavior of the numpy biased variance
+        interpolation_coefficients = torch.zeros(
+            template_matrix.shape[:-1] + template_matrix.shape[:-1], dtype=torch.float32
+        )
+        var_rho = torch.var(
+            template_matrix[:, :, 0], unbiased=False
+        )  # mirrors the behavior of the numpy biased variance
+        var_theta = torch.var(
+            template_matrix[:, :, 1], unbiased=False
+        )  # mirrors the behavior of the numpy biased variance
         for mean_rho_idx in range(template_matrix.shape[0]):
             for mean_theta_idx in range(template_matrix.shape[1]):
                 mean_rho, mean_theta = template_matrix[mean_rho_idx, mean_theta_idx]
                 for rho_idx in range(template_matrix.shape[0]):
                     for theta_idx in range(template_matrix.shape[1]):
                         rho, theta = template_matrix[rho_idx, theta_idx]
-                        interpolation_coefficients[mean_rho_idx, mean_theta_idx, rho_idx, theta_idx] = normal_pdf(
+                        interpolation_coefficients[
+                            mean_rho_idx, mean_theta_idx, rho_idx, theta_idx
+                        ] = normal_pdf(
                             mean_rho, mean_theta, var_rho, var_theta, rho, theta
                         )
                 interpolation_coefficients[mean_rho_idx, mean_theta_idx] = softmax(
