@@ -159,11 +159,9 @@ class ConvIntrinsic(torch.jit.ScriptModule):
 
         Parameters
         ----------
-        inputs: (torch.Tensor, torch.Tensor)
         mesh_signal: (torch.Tensor)
             Represents the signal defined on the manifold.
             It has size (n_vertices, feature_dim).
-
         bary_coordinates: (torch.Tensor) 
             Represents the barycentric coordinates.
             It has size (n_vertices, n_radial, n_angular, 3, 2).
