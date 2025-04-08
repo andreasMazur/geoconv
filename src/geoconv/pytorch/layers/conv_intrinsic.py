@@ -1,6 +1,6 @@
 from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from torch import nn
 from typing import Optional, Tuple
 
@@ -66,6 +66,7 @@ def batched_fold_neighbor(template_neighbor_weights: torch.Tensor, interpolation
     return torch.vmap(
         lambda weights, interps: torch.einsum("traf,skraf->skt", weights, interps)
     )(expanded_weights, rotated_interpolations)
+
 
 class ConvIntrinsic(torch.jit.ScriptModule):
     """A metaclass for intrinsic surface convolutions on Riemannian manifolds.
@@ -248,26 +249,26 @@ class ConvIntrinsic(torch.jit.ScriptModule):
         mesh_signal.to(torch.float32)
         barycentric_coordinates.to(torch.float32)
 
-        # Get relevant shapes
-        B, n_v, F = mesh_signal.shape
-        v_idx, n_r, n_a, K = barycentric_coordinates.shape[1:5]
+        # Get input-related shapes
+        B, n_v = mesh_signal.shape[:-1]
 
-        # Split indices and weights 
+        # Split indices and weights
         vertex_indices = barycentric_coordinates[..., 0].long()
         weights = barycentric_coordinates[..., 1]
 
         # Expand mesh signal and indices so we can use torch.gather to gather along the vertex dimension
-        mesh_signal_exp = mesh_signal.view(B, n_v, 1, 1, 1, F).expand(B, n_v, n_r, n_a, K, F)
-        indices_exp = vertex_indices.unsqueeze(-1).expand(B, v_idx, n_r, n_a, K, F)
-
+        mesh_signal_exp = mesh_signal.view(B, n_v, 1, 1, 1, self._feature_dim).expand(
+            B, n_v, self._template_size[0], self._template_size[1], 3, self._feature_dim
+        )
+        indices_exp = vertex_indices.unsqueeze(-1).expand(
+            B, n_v, self._template_size[0], self._template_size[1], 3, self._feature_dim
+        )
+        # mesh_signal_exp[b, indices_exp[b, v, r, a, i, f], r, a, i, f]
+        # GPU/differentiability friendly: https://github.com/pytorch/pytorch/issues/15245
         gathered = torch.gather(mesh_signal_exp, dim=1, index=indices_exp)
 
-        # Weigh gathered
-        interpolated = (gathered * weights.unsqueeze(-1))
-
-        # Return aggregated interpolations
-        return interpolated.sum(dim=-2)
-
+        # Weigh gathered and return aggregated interpolations
+        return (gathered * weights.unsqueeze(-1)).sum(dim=-2)
 
     def _configure_kernel(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
