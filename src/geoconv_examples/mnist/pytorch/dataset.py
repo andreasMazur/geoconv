@@ -121,6 +121,7 @@ def load_preprocessed_mnist(
         dataset = datasets.MNIST(
             mnist_folder, train=set_type in ["train", "all"], download=True
         )
+
         # Concatenate train and test set in case all data is requested
         if set_type == "all":
             dataset_test = datasets.MNIST(mnist_folder, train=False, download=True)
@@ -133,6 +134,7 @@ def load_preprocessed_mnist(
                 scale=True,
             )
             is_scaled = True
+
         # Filter for requested indices
         if indices is None:
             dataset = ProcessedMNIST(
@@ -145,4 +147,5 @@ def load_preprocessed_mnist(
                 labels=dataset.targets[indices],
                 scale=not is_scaled,
             )
+
         return DataLoader(dataset, batch_size=batch_size, shuffle=True)
