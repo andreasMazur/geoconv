@@ -8,7 +8,10 @@ class SetFunction(tf.keras.layers.Layer):
     > [Deep Sets](https://arxiv.org/abs/1703.06114)
     > Manzil Zaheer et al.
     """
-    def __init__(self, phi_units, rho_units, phi_activation="relu", rho_activation="linear"):
+
+    def __init__(
+        self, phi_units, rho_units, phi_activation="relu", rho_activation="linear"
+    ):
         super().__init__()
         self.phi = tf.keras.layers.Dense(phi_units, activation=phi_activation)
         self.rho = tf.keras.layers.Dense(rho_units, activation=rho_activation)

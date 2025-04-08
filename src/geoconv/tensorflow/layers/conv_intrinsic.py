@@ -26,14 +26,16 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         Whether to weight the interpolations according to a pre-defined kernel.
     """
 
-    def __init__(self,
-                 amt_templates,
-                 template_radius,
-                 include_prior=True,
-                 activation="relu",
-                 rotation_delta=1,
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        amt_templates,
+        template_radius,
+        include_prior=True,
+        activation="relu",
+        rotation_delta=1,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
 
         self.amt_templates = amt_templates
@@ -70,7 +72,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
                 "include_prior": self.include_prior,
                 "activation": self.activation,
                 "rotation_delta": self.rotation_delta,
-                "input_shape": self._input_shape
+                "input_shape": self._input_shape,
             }
         )
         return config
@@ -108,7 +110,11 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         # Configure layer-attributes that depend on the input shapes
         self._template_size = (barycentric_shape[-4], barycentric_shape[-3])
         self._template_vertices = tf.constant(
-            create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius)
+            create_template_matrix(
+                self._template_size[0],
+                self._template_size[1],
+                radius=self.template_radius,
+            )
         )
         self._all_rotations = self._template_size[1]
         self._feature_dim = signal_shape[-1]
@@ -116,18 +122,21 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         # Configure trainable weights
         self._template_neighbor_weights = self.add_weight(
             name="neighbor_weights",
-            shape=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[-1]),
-            trainable=True
+            shape=(
+                self.amt_templates,
+                self._template_size[0],
+                self._template_size[1],
+                signal_shape[-1],
+            ),
+            trainable=True,
         )
         self._template_self_weights = self.add_weight(
             name="center_weights",
             shape=(self.amt_templates, 1, signal_shape[-1]),
-            trainable=True
+            trainable=True,
         )
         self._bias = self.add_weight(
-            name="bias",
-            shape=(self.amt_templates,),
-            trainable=True
+            name="bias", shape=(self.amt_templates,), trainable=True
         )
 
         # Configure kernel
@@ -161,7 +170,9 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         # Weight matrix : (templates, 1, input_dim)
         # Mesh signal   : (batch_shapes, vertices, input_dim)
         # Result        : (batch_shapes, vertices, 1, templates)
-        conv_center = tf.einsum("tef,skf->sket", self._template_self_weights, mesh_signal)
+        conv_center = tf.einsum(
+            "tef,skf->sket", self._template_self_weights, mesh_signal
+        )
 
         #####################################################################
         # Fold neighbors - conv_neighbor: (batch_shapes, vertices, n_rotations, templates)
@@ -171,7 +182,9 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         # Determine orientations
         if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
-            orientations = tf.range(start=0, limit=self._all_rotations, delta=self.rotation_delta)
+            orientations = tf.range(
+                start=0, limit=self._all_rotations, delta=self.rotation_delta
+            )
 
         def fold_neighbor(o):
             # Weight              : (templates, radial, angular, input_dim)
@@ -180,12 +193,13 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
             return tf.einsum(
                 "traf,skraf->skt",
                 self._template_neighbor_weights,
-                tf.roll(interpolations, shift=o, axis=-2)
+                tf.roll(interpolations, shift=o, axis=-2),
             )
 
         # conv_neighbor: (batch_shapes, vertices, n_rotations, templates)
         conv_neighbor = tf.transpose(
-            tf.map_fn(fold_neighbor, orientations, fn_output_signature=tf.float32), perm=[1, 2, 0, 3]
+            tf.map_fn(fold_neighbor, orientations, fn_output_signature=tf.float32),
+            perm=[1, 2, 0, 3],
         )
         return self._activation(conv_center + conv_neighbor + self._bias)
 
@@ -235,23 +249,25 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         # Get vertex indices from BC-tensor
         vertex_indices = tf.reshape(
             tf.cast(barycentric_coordinates[:, :, :, :, :, 0], tf.int32),
-            (-1, tf.reduce_prod(tf.shape(barycentric_coordinates)[1:-1]), 1)
+            (-1, tf.reduce_prod(tf.shape(barycentric_coordinates)[1:-1]), 1),
         )
 
         # Use retrieved vertex indices to gather vertex signals required for interpolation
         mesh_signal = tf.reshape(
-            tf.gather_nd(mesh_signal, vertex_indices, batch_dims=1), (
+            tf.gather_nd(mesh_signal, vertex_indices, batch_dims=1),
+            (
                 -1,
                 tf.shape(barycentric_coordinates)[1],
                 self._template_size[0],
                 self._template_size[1],
                 3,
-                self._feature_dim
-            )
+                self._feature_dim,
+            ),
         )
         # (batch_shapes, vertices, n_radial, n_angular, input_dim)
         return tf.math.reduce_sum(
-            tf.expand_dims(barycentric_coordinates[:, :, :, :, :, 1], axis=-1) * mesh_signal, axis=-2
+            tf.expand_dims(barycentric_coordinates[:, :, :, :, :, 1], axis=-1) * mesh_signal,
+            axis=-2,
         )
 
     def _configure_kernel(self):

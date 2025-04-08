@@ -1,5 +1,6 @@
 import torch
 
+
 class NormalizePointCloud(torch.nn.Module):
     def forward(self, inputs):
         # Move point-cloud into origin

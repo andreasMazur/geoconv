@@ -26,11 +26,15 @@ INITIALIZER = {
     "kaiming_uniform": nn.init.kaiming_uniform_,
     "kaiming_normal": nn.init.kaiming_normal_,
     "trunc_normal": nn.init.trunc_normal_,
-    "sparse_": nn.init.sparse_
+    "sparse_": nn.init.sparse_,
 }
 
 
-def batched_fold_neighbor(template_neighbor_weights: torch.Tensor, interpolations: torch.Tensor, orientations: torch.Tensor) -> torch.Tensor:
+def batched_fold_neighbor(
+    template_neighbor_weights: torch.Tensor,
+    interpolations: torch.Tensor,
+    orientations: torch.Tensor,
+) -> torch.Tensor:
     """Vectorized einsum across multiple orientations.
 
     Attributes:
@@ -50,17 +54,13 @@ def batched_fold_neighbor(template_neighbor_weights: torch.Tensor, interpolation
     """
     rolled = []
     for orientation in orientations:
-        rolled.append(
-            torch.roll(
-                interpolations,
-                shifts=orientation.item(),
-                dims=-2
-            )
-        )
+        rolled.append(torch.roll(interpolations, shifts=orientation.item(), dims=-2))
     rotated_interpolations = torch.stack(rolled, dim=0).float()
 
     # Broadcast template_neighbor_weights to match the shape (n_rotations, templates, radial, angular, input_dim)
-    expanded_weights = template_neighbor_weights.unsqueeze(0).expand(orientations.shape[0], -1, -1, -1, -1)
+    expanded_weights = template_neighbor_weights.unsqueeze(0).expand(
+        orientations.shape[0], -1, -1, -1, -1
+    )
 
     # Apply vmap over orientations
     return torch.vmap(
@@ -91,14 +91,16 @@ class ConvIntrinsic(torch.jit.ScriptModule):
         Whether to weight the interpolations according to a pre-defined kernel.
     """
 
-    def __init__(self,
-                 input_shape: Tuple[torch.Size, torch.Size],
-                 amt_templates: int,
-                 template_radius: float,
-                 include_prior: bool = True,
-                 activation: str = "relu",
-                 rotation_delta: int = 1,
-                 initializer: str = "xavier_uniform"):
+    def __init__(
+        self,
+        input_shape: Tuple[torch.Size, torch.Size],
+        amt_templates: int,
+        template_radius: float,
+        include_prior: bool = True,
+        activation: str = "relu",
+        rotation_delta: int = 1,
+        initializer: str = "xavier_uniform",
+    ):
         super().__init__()
         self.activation_fn = activation
         self.rotation_delta = rotation_delta
@@ -135,26 +137,44 @@ class ConvIntrinsic(torch.jit.ScriptModule):
         self._template_size = (barycentric_shape[-4], barycentric_shape[-3])
         self._all_rotations = self._template_size[1]
         self._template_vertices = torch.from_numpy(
-            create_template_matrix(self._template_size[0], self._template_size[1], radius=self.template_radius),
+            create_template_matrix(
+                self._template_size[0],
+                self._template_size[1],
+                radius=self.template_radius,
+            ),
         )
         self._feature_dim = signal_shape[-1]
 
         # Configure trainable weights
         self._template_neighbor_weights = nn.Parameter(
-            torch.zeros(size=(self.amt_templates, self._template_size[0], self._template_size[1], signal_shape[-1]))
+            torch.zeros(
+                size=(
+                    self.amt_templates,
+                    self._template_size[0],
+                    self._template_size[1],
+                    signal_shape[-1],
+                )
+            )
         )
         self._init_fn(self._template_neighbor_weights)
 
-        self._template_self_weights = nn.Parameter(torch.zeros(size=(self.amt_templates, 1, signal_shape[-1])))
+        self._template_self_weights = nn.Parameter(
+            torch.zeros(size=(self.amt_templates, 1, signal_shape[-1]))
+        )
         self._init_fn(self._template_self_weights)
 
-        self._bias = nn.Parameter(torch.zeros(size=(self.amt_templates,1)))
+        self._bias = nn.Parameter(torch.zeros(size=(self.amt_templates, 1)))
         self._init_fn(self._bias)
 
         # Configure kernel
         self._configure_kernel()
 
-    def forward(self, mesh_signal: torch.Tensor, bary_coordinates :torch.Tensor, orientations: Optional[torch.Tensor] = None):
+    def forward(
+        self,
+        mesh_signal: torch.Tensor,
+        bary_coordinates: torch.Tensor,
+        orientations: Optional[torch.Tensor] = None,
+    ):
         """Computes intrinsic surface convolution on all vertices of a given mesh.
 
         Parameters
@@ -162,7 +182,7 @@ class ConvIntrinsic(torch.jit.ScriptModule):
         mesh_signal: (torch.Tensor)
             Represents the signal defined on the manifold.
             It has size (n_vertices, feature_dim).
-        bary_coordinates: (torch.Tensor) 
+        bary_coordinates: (torch.Tensor)
             Represents the barycentric coordinates.
             It has size (n_vertices, n_radial, n_angular, 3, 2).
         orientations: torch.Tensor
@@ -180,26 +200,33 @@ class ConvIntrinsic(torch.jit.ScriptModule):
         # Weight matrix : (templates, 1, input_dim)
         # Mesh signal   : (batch_shapes, vertices, input_dim)
         # Result        : (batch_shapes, vertices, 1, n_templates)
-        conv_center = torch.einsum("tef,skf->sket", self._template_self_weights, mesh_signal.to(torch.float32))
+        conv_center = torch.einsum(
+            "tef,skf->sket", self._template_self_weights, mesh_signal.to(torch.float32)
+        )
 
         #####################################################################
         # Fold neighbors - conv_neighbor: (vertices, n_rotations, templates)
         #####################################################################
         # Call patch operator
-        interpolations = self._patch_operator(mesh_signal.to(torch.float32), bary_coordinates.to(torch.float32))
+        interpolations = self._patch_operator(
+            mesh_signal.to(torch.float32), bary_coordinates.to(torch.float32)
+        )
         # Determine orientations
         if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
-            orientations = torch.arange(start=0, end=self._all_rotations, step=self.rotation_delta, device=interpolations.device)
+            orientations = torch.arange(
+                start=0,
+                end=self._all_rotations,
+                step=self.rotation_delta,
+                device=interpolations.device,
+            )
 
         # Result: (batch_shapes, vertices, n_rotations, templates)
         conv_neighbor = torch.permute(
             batched_fold_neighbor(
-                self._template_neighbor_weights,
-                interpolations,
-                orientations
+                self._template_neighbor_weights, interpolations, orientations
             ),
-            dims=[1, 2, 0, 3]
+            dims=[1, 2, 0, 3],
         )
         # conv_neighbor: (batch_shapes, vertices, n_rotations, templates)
         return self._activation(conv_center + conv_neighbor + self._bias.view(-1))
@@ -219,7 +246,9 @@ class ConvIntrinsic(torch.jit.ScriptModule):
         torch.Tensor:
             Weighted and interpolated mesh signals
         """
-        interpolations = self._signal_pullback(mesh_signal.to(torch.float32), barycentric_coordinates.to(torch.float32))
+        interpolations = self._signal_pullback(
+            mesh_signal.to(torch.float32), barycentric_coordinates.to(torch.float32)
+        )
 
         if self.include_prior:
             # Weight matrix  : (radial, angular, radial, angular)
@@ -270,7 +299,10 @@ class ConvIntrinsic(torch.jit.ScriptModule):
 
     def _configure_kernel(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
-        self.register_buffer('_kernel', self.define_kernel_values(self._template_vertices).to(torch.float32))
+        self.register_buffer(
+            "_kernel",
+            self.define_kernel_values(self._template_vertices).to(torch.float32),
+        )
 
     @abstractmethod
     def define_kernel_values(self, template_matrix):

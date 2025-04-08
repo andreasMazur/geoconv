@@ -1,8 +1,9 @@
 from geoconv.utils.misc import angle_distance
 from geoconv.pytorch.layers import ConvIntrinsic
 
-import torch
 from .common import scipy_softmax as softmax
+
+import torch
 
 
 def gamma_func(dof):
@@ -20,10 +21,10 @@ def gamma_func(dof):
     """
     assert dof >= 1, "You need to have at least one degree of freedom."
     r = dof / 2
-    if dof == 1/2:
+    if dof == 1 / 2:
         return torch.sqrt(torch.pi)
     elif dof == 1:
-        return 1.
+        return 1.0
     else:
         return r * gamma_func(dof - 1)
 
@@ -56,38 +57,45 @@ def chi_squared_pdf(mean_rho, mean_theta, rho, theta, dof):
     min_angle = torch.minimum(mean_theta, theta)
     delta_angle = angle_distance(max_angle, min_angle)
     if delta_angle == 0 and dof == 1:
-        return 1.
+        return 1.0
     delta_angle_p = delta_angle ** (dof / 2 - 1)
 
     # Compute delta rho
     delta_rho = torch.abs(rho - mean_rho)
     if delta_rho == 0 and dof == 1:
-        return 1.
+        return 1.0
     delta_rho_p = delta_rho ** (dof / 2 - 1)
 
     gamma = (1 / (2 ** (dof / 2) * gamma_func(dof))) ** 2
 
-    return gamma * delta_rho_p * delta_angle_p * torch.exp(-(delta_rho + delta_angle) / 2)
+    return (
+        gamma * delta_rho_p * delta_angle_p * torch.exp(-(delta_rho + delta_angle) / 2)
+    )
 
 
 class ConvChiSquared(ConvIntrinsic):
     """Chi-squared vertex weighting"""
+
     def __init__(self, *args, dof=2, **kwargs):
         self.dof = dof
         super().__init__(*args, **kwargs)
 
     def define_kernel_values(self, template_matrix: torch.Tensor) -> torch.Tensor:
-        template_matrix[:, :, 0] = template_matrix[:, :, 0] / template_matrix[:, :, 0].max()
-        interpolation_coefficients = torch.zeros(template_matrix.shape[:-1] + template_matrix.shape[:-1], device=self.device)
+        template_matrix[:, :, 0] = (
+            template_matrix[:, :, 0] / template_matrix[:, :, 0].max()
+        )
+        interpolation_coefficients = torch.zeros(
+            template_matrix.shape[:-1] + template_matrix.shape[:-1], device=self.device
+        )
         for mean_rho_idx in range(template_matrix.shape[0]):
             for mean_theta_idx in range(template_matrix.shape[1]):
                 mean_rho, mean_theta = template_matrix[mean_rho_idx, mean_theta_idx]
                 for rho_idx in range(template_matrix.shape[0]):
                     for theta_idx in range(template_matrix.shape[1]):
                         rho, theta = template_matrix[rho_idx, theta_idx]
-                        interpolation_coefficients[mean_rho_idx, mean_theta_idx, rho_idx, theta_idx] = chi_squared_pdf(
-                            mean_rho, mean_theta, rho, theta, self.dof
-                        )
+                        interpolation_coefficients[
+                            mean_rho_idx, mean_theta_idx, rho_idx, theta_idx
+                        ] = chi_squared_pdf(mean_rho, mean_theta, rho, theta, self.dof)
                 interpolation_coefficients[mean_rho_idx, mean_theta_idx] = softmax(
                     interpolation_coefficients[mean_rho_idx, mean_theta_idx]
                 )
