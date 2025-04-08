@@ -6,16 +6,21 @@ import tensorflow as tf
 
 
 class ResNetBlock(tf.keras.Model):
-    def __init__(self,
-                 amt_templates,
-                 template_radius,
-                 rotation_delta,
-                 conv_type="dirac",
-                 activation="relu",
-                 input_dim=-1):
+    def __init__(
+        self,
+        amt_templates,
+        template_radius,
+        rotation_delta,
+        conv_type="dirac",
+        activation="relu",
+        input_dim=-1,
+    ):
         super(ResNetBlock, self).__init__()
 
-        assert conv_type in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
+        assert conv_type in [
+            "dirac",
+            "geodesic",
+        ], "Please choose a layer type from: ['dirac', 'geodesic']."
         self.layer_type = ConvGeodesic if conv_type == "geodesic" else ConvDirac
 
         # block 1
@@ -24,9 +29,11 @@ class ResNetBlock(tf.keras.Model):
             template_radius=template_radius,
             activation="linear",
             name="ResNetBlock_1",
-            rotation_delta=rotation_delta
+            rotation_delta=rotation_delta,
         )
-        self.bn1 = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
+        self.bn1 = tf.keras.layers.BatchNormalization(
+            axis=-1, name=f"batch_normalization"
+        )
         self.amp1 = AngularMaxPooling()
 
         # block 2
@@ -35,9 +42,11 @@ class ResNetBlock(tf.keras.Model):
             template_radius=template_radius,
             activation="linear",
             name="ResNetBlock_2",
-            rotation_delta=rotation_delta
+            rotation_delta=rotation_delta,
         )
-        self.bn2 = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
+        self.bn2 = tf.keras.layers.BatchNormalization(
+            axis=-1, name=f"batch_normalization"
+        )
         self.amp2 = AngularMaxPooling()
 
         self.add = tf.keras.layers.Add()
@@ -51,9 +60,11 @@ class ResNetBlock(tf.keras.Model):
                 template_radius=template_radius,
                 activation="linear",
                 name="ResNetBlock_rescale",
-                rotation_delta=rotation_delta
+                rotation_delta=rotation_delta,
             )
-            self.bn_rescale = tf.keras.layers.BatchNormalization(axis=-1, name=f"batch_normalization")
+            self.bn_rescale = tf.keras.layers.BatchNormalization(
+                axis=-1, name=f"batch_normalization"
+            )
             self.amp_rescale = AngularMaxPooling()
         self.output_activation = tf.keras.activations.get(activation)
 
@@ -62,7 +73,9 @@ class ResNetBlock(tf.keras.Model):
         input_signal, bc = inputs
 
         if tf.constant(training):
-            orientations = tf.range(start=0, limit=tf.shape(bc)[3], delta=self.rotation_delta)
+            orientations = tf.range(
+                start=0, limit=tf.shape(bc)[3], delta=self.rotation_delta
+            )
         else:
             orientations = tf.range(tf.shape(bc)[3])
 
