@@ -5,6 +5,7 @@ from .conv_exp import ConvExp
 from .conv_geodesic import ConvGeodesic
 from .conv_student_t import ConvStudentT
 from .conv_zero import ConvZero
+from .barycentric_coordinates import BarycentricCoordinates
 
 from .pooling import AngularAvgPooling, AngularMaxPooling, AngularMinPooling, GravityPooling
 
