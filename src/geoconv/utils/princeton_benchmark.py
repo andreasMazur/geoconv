@@ -23,7 +23,9 @@ def plot_geodesic_errors_scalar_field(mesh, geodesic_errors, cmap_str="Reds"):
         A string that describes the colormap to use when plotting the scalar field.
     """
     cmap = plt.get_cmap(cmap_str)
-    point_cloud = trimesh.PointCloud(vertices=mesh.vertices, colors=cmap(geodesic_errors))
+    point_cloud = trimesh.PointCloud(
+        vertices=mesh.vertices, colors=cmap(geodesic_errors)
+    )
     point_cloud.show()
 
 
@@ -45,23 +47,27 @@ def geodesic_alg_wrapper(ground_truth_and_prediction, reference_mesh):
     float:
         The geodesic distance between the ground truth and predicted vertex.
     """
-    geoalg = geodesic.PyGeodesicAlgorithmExact(reference_mesh.vertices, reference_mesh.faces)
+    geoalg = geodesic.PyGeodesicAlgorithmExact(
+        reference_mesh.vertices, reference_mesh.faces
+    )
     gt, pred = ground_truth_and_prediction
     return geoalg.geodesicDistance(pred, gt)[0]
 
 
-def princeton_benchmark(imcnn,
-                        test_dataset,
-                        ref_mesh_path,
-                        file_name,
-                        normalize=True,
-                        plot_title="Princeton Benchmark",
-                        curve_label=None,
-                        plot=True,
-                        processes=1,
-                        geodesic_diameter=None,
-                        pytorch_model=False,
-                        add_csv=True):
+def princeton_benchmark(
+    imcnn,
+    test_dataset,
+    ref_mesh_path,
+    file_name,
+    normalize=True,
+    plot_title="Princeton Benchmark",
+    curve_label=None,
+    plot=True,
+    processes=1,
+    geodesic_diameter=None,
+    pytorch_model=False,
+    add_csv=True,
+):
     """Plots the accuracy w.r.t. a gradually changing geodesic error
 
     Princeton benchmark has been introduced in:
@@ -101,14 +107,16 @@ def princeton_benchmark(imcnn,
     ###########################
     reference_mesh = trimesh.load_mesh(ref_mesh_path)
     if normalize:
-        reference_mesh, _ = normalize_mesh(reference_mesh, geodesic_diameter=geodesic_diameter)
+        reference_mesh, _ = normalize_mesh(
+            reference_mesh, geodesic_diameter=geodesic_diameter
+        )
 
     #######################################################
     # Compute geodesic errors on normalized reference mesh
     #######################################################
     mesh_number = 0
     geodesic_errors = []
-    for ((signal, barycentric), ground_truth) in test_dataset:
+    for (signal, barycentric), ground_truth in test_dataset:
         # Get predictions of the model
         if pytorch_model:
             prediction = imcnn([signal, barycentric]).cpu()
@@ -120,13 +128,20 @@ def princeton_benchmark(imcnn,
 
         # Create ground-truth/prediction-pairs and prepare data for multiprocessing
         # TODO: Account for batch sizes > 1!  'np.stack([ground_truth, prediction], axis=-1)-->[0]<--'
-        batched = [(data, reference_mesh) for data in np.stack([ground_truth, prediction], axis=-1)[0]]
+        batched = [
+            (data, reference_mesh)
+            for data in np.stack([ground_truth, prediction], axis=-1)[0]
+        ]
 
         # Calculate geodesic distance of ground-truth to prediction on the given reference mesh
         with Pool(processes) as p:
             mesh_errors = p.starmap(
                 geodesic_alg_wrapper,
-                tqdm(batched, total=len(batched), postfix=f"Computing Princeton benchmark for test mesh {mesh_number}")
+                tqdm(
+                    batched,
+                    total=len(batched),
+                    postfix=f"Computing Princeton benchmark for test mesh {mesh_number}",
+                ),
             )
         geodesic_errors.append(mesh_errors)
         mesh_number += 1
@@ -153,7 +168,9 @@ def princeton_benchmark(imcnn,
     x_y_values = np.stack([x_values, y_values], axis=-1)
     np.save(f"{file_name}_plot_values.npy", x_y_values)
     if add_csv:
-        np.savetxt(f"{file_name}_plot_values.csv", x_y_values, delimiter=",", fmt="%.18f")
+        np.savetxt(
+            f"{file_name}_plot_values.csv", x_y_values, delimiter=",", fmt="%.18f"
+        )
 
     ###########
     # Plotting

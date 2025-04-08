@@ -31,9 +31,14 @@ def get_folds_and_splits(dataset_path, amount_folds):
 
     # Determine splits
     fold_indices = list(range(amount_folds))
-    dataset_split_indices = {split: fold_indices[:split] + fold_indices[split + 1:] for split in fold_indices}
+    dataset_split_indices = {
+        split: fold_indices[:split] + fold_indices[split + 1 :]
+        for split in fold_indices
+    }
     dataset_splits = {}
     for key, fold_indices in dataset_split_indices.items():
-        dataset_splits[key] = [shape_idx for idx in fold_indices for shape_idx in dataset_folds[idx]]
+        dataset_splits[key] = [
+            shape_idx for idx in fold_indices for shape_idx in dataset_folds[idx]
+        ]
 
     return dataset_folds, dataset_splits

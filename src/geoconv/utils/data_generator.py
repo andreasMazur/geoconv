@@ -59,25 +59,29 @@ def down_sample_mesh(mesh, target_number_of_triangles):
     trimesh.Trimesh:
         The down-sampled mesh.
     """
-    mesh = mesh.as_open3d.simplify_quadric_decimation(target_number_of_triangles=target_number_of_triangles)
+    mesh = mesh.as_open3d.simplify_quadric_decimation(
+        target_number_of_triangles=target_number_of_triangles
+    )
     mesh = trimesh.Trimesh(vertices=mesh.vertices, faces=mesh.triangles)
     trimesh.repair.fill_holes(mesh)
     return mesh
 
 
-def zip_file_generator(zipfile_path,
-                       file_type,
-                       manifold_plus_executable=None,
-                       target_amount_faces=None,
-                       return_filename=False,
-                       min_vertices=100,
-                       timeout_in_sec=20,
-                       mp_depth=8,
-                       shape_path_contains=None,
-                       epsilon=0.25,
-                       remove_non_manifold_edges=True,
-                       normalize=False,
-                       repair_shapes=True):
+def zip_file_generator(
+    zipfile_path,
+    file_type,
+    manifold_plus_executable=None,
+    target_amount_faces=None,
+    return_filename=False,
+    min_vertices=100,
+    timeout_in_sec=20,
+    mp_depth=8,
+    shape_path_contains=None,
+    epsilon=0.25,
+    remove_non_manifold_edges=True,
+    normalize=False,
+    repair_shapes=True,
+):
     """Loads shapes from a given zip-file and removes non-manifold edges.
 
     Parameters
@@ -124,11 +128,15 @@ def zip_file_generator(zipfile_path,
     for shape_path in zip_content:
         # Skip irrelevant shapes
         if shape_path_contains is not None:
-            if np.all([substring not in shape_path for substring in shape_path_contains]):
+            if np.all(
+                [substring not in shape_path for substring in shape_path_contains]
+            ):
                 continue
 
         # Load shape
-        shape = trimesh.load_mesh(BytesIO(zip_file.read(shape_path)), file_type=file_type)
+        shape = trimesh.load_mesh(
+            BytesIO(zip_file.read(shape_path)), file_type=file_type
+        )
 
         # Concat meshes if a scene was loaded
         if type(shape) == trimesh.scene.Scene:
@@ -146,8 +154,16 @@ def zip_file_generator(zipfile_path,
             if np.asarray(shape.as_open3d.get_non_manifold_edges()).shape[0] > 0:
                 try:
                     subprocess.run(
-                        [manifold_plus_executable, "--input", in_file, "--output", out_file, "--depth", f"{mp_depth}"],
-                        timeout=timeout_in_sec
+                        [
+                            manifold_plus_executable,
+                            "--input",
+                            in_file,
+                            "--output",
+                            out_file,
+                            "--depth",
+                            f"{mp_depth}",
+                        ],
+                        timeout=timeout_in_sec,
                     )
                 except subprocess.TimeoutExpired:
                     print(
@@ -163,11 +179,19 @@ def zip_file_generator(zipfile_path,
             os.remove(in_file)
 
         # Simplify shape
-        if target_amount_faces is not None and shape.faces.shape[0] > target_amount_faces:
+        if (
+            target_amount_faces is not None
+            and shape.faces.shape[0] > target_amount_faces
+        ):
             shape = down_sample_mesh(shape, target_amount_faces)
             # Check result and skip if it is too far from target amount of faces
-            if shape.faces.shape[0] > target_amount_faces + target_amount_faces * epsilon:
-                print(f"*** {shape_path} couldn't be down-sampled close enough to {target_amount_faces}.")
+            if (
+                shape.faces.shape[0]
+                > target_amount_faces + target_amount_faces * epsilon
+            ):
+                print(
+                    f"*** {shape_path} couldn't be down-sampled close enough to {target_amount_faces}."
+                )
                 continue
 
         # Remove non-manifold edges
@@ -192,16 +216,20 @@ def zip_file_generator(zipfile_path,
             else:
                 yield shape
         else:
-            print(f"{shape_path} has less then {min_vertices} vertices. Skipping to next shape..")
+            print(
+                f"{shape_path} has less then {min_vertices} vertices. Skipping to next shape.."
+            )
 
 
-def preprocessed_shape_generator(zipfile_path,
-                                 filter_list,
-                                 batch_size,
-                                 sorting_key=None,
-                                 generator_info="",
-                                 shuffle_seed=None,
-                                 directive=None):
+def preprocessed_shape_generator(
+    zipfile_path,
+    filter_list,
+    batch_size,
+    sorting_key=None,
+    generator_info="",
+    shuffle_seed=None,
+    directive=None,
+):
     """Loads all shapes within a preprocessed dataset and filters within each shape-directory for files.
 
     This function sorts alphanumerically after the shape-directory name.
@@ -246,12 +274,18 @@ def preprocessed_shape_generator(zipfile_path,
             raise e
 
     # Load shapes (shapes have to be in a folder with a 'preprocess_properties.json'-file)
-    preprocessed_shapes = ["/".join(fn.split("/")[:-1]) for fn in zip_file.files if "preprocess_properties.json" in fn]
+    preprocessed_shapes = [
+        "/".join(fn.split("/")[:-1])
+        for fn in zip_file.files
+        if "preprocess_properties.json" in fn
+    ]
 
     # Sort shape directories
     if sorting_key is None:
+
         def sorting_key(file_name):
             return file_name.split("/")[-1]
+
     preprocessed_shapes.sort(key=sorting_key)
 
     # Remember zip-file content
@@ -261,6 +295,7 @@ def preprocessed_shape_generator(zipfile_path,
             sfp_dict = json.load(gen_info_fd)
         shape_file_paths = [psf for psf in sfp_dict.values()]
     else:
+
         def check_path(path):
             for f in filter_list:
                 if re.search(f, path) is not None:
@@ -269,8 +304,12 @@ def preprocessed_shape_generator(zipfile_path,
 
         # Iterate over shape's data and collect with filters
         shape_file_paths = []
-        for shape_dir_content in tqdm(preprocessed_shapes, postfix="Preparing generator.."):
-            shape_file_paths.append([x for x in zip_file.files if shape_dir_content in x and check_path(x)])
+        for shape_dir_content in tqdm(
+            preprocessed_shapes, postfix="Preparing generator.."
+        ):
+            shape_file_paths.append(
+                [x for x in zip_file.files if shape_dir_content in x and check_path(x)]
+            )
         shape_file_paths = list(filter(lambda x: x != [], shape_file_paths))
 
         # Apply user-defined directive on file-dictionary
@@ -293,14 +332,23 @@ def preprocessed_shape_generator(zipfile_path,
 
     # Batching
     n_batches = math.ceil(len(shape_file_paths) / batch_size)
-    shape_file_paths = [shape_file_paths[i * batch_size:(i * batch_size) + batch_size] for i in range(n_batches)]
+    shape_file_paths = [
+        shape_file_paths[i * batch_size : (i * batch_size) + batch_size]
+        for i in range(n_batches)
+    ]
 
     # Return batch of files and their corresponding file names
     for batch in shape_file_paths:
-        yield [(zip_file[shape_file], shape_file) for directory in batch for shape_file in directory]
+        yield [
+            (zip_file[shape_file], shape_file)
+            for directory in batch
+            for shape_file in directory
+        ]
 
 
-def preprocessed_properties_generator(zipfile_path, return_filename=False, sorting_key=None):
+def preprocessed_properties_generator(
+    zipfile_path, return_filename=False, sorting_key=None
+):
     """Loads all shape properties files from preprocessed dataset. First yielded file describes dataset properties.
 
     Parameters
@@ -333,13 +381,19 @@ def preprocessed_properties_generator(zipfile_path, return_filename=False, sorti
 
     # Get and sort all shape directories from preprocessed shapes
     pr_str = "preprocess_properties.json"
-    properties_files = [f"{'/'.join(fn.split('/')[:-1])}/{pr_str}" for fn in zip_file.files if pr_str in fn]
+    properties_files = [
+        f"{'/'.join(fn.split('/')[:-1])}/{pr_str}"
+        for fn in zip_file.files
+        if pr_str in fn
+    ]
     properties_files = ["dataset_properties.json"] + properties_files
 
     # Sort properties files
     if sorting_key is None:
+
         def sorting_key(file_name):
             return file_name.split("/")[-1]
+
     properties_files.sort(key=sorting_key)
 
     # Yield properties and, if wanted, properties path
@@ -350,12 +404,14 @@ def preprocessed_properties_generator(zipfile_path, return_filename=False, sorti
             yield json.load(BytesIO(zip_file[properties_path]))
 
 
-def barycentric_coordinates_generator(zipfile_path,
-                                      n_radial,
-                                      n_angular,
-                                      template_radius,
-                                      batch_size,
-                                      return_filename=False):
+def barycentric_coordinates_generator(
+    zipfile_path,
+    n_radial,
+    n_angular,
+    template_radius,
+    batch_size,
+    return_filename=False,
+):
     """Loads barycentric coordinates from a preprocessed dataset
 
     Parameters
@@ -379,7 +435,9 @@ def barycentric_coordinates_generator(zipfile_path,
         Barycentric coordinates.
     """
     psg = preprocessed_shape_generator(
-        zipfile_path, batch_size=batch_size, filter_list=[f"BC_{n_radial}_{n_angular}_{template_radius}"]
+        zipfile_path,
+        batch_size=batch_size,
+        filter_list=[f"BC_{n_radial}_{n_angular}_{template_radius}"],
     )
     for filtered_files in psg:
         if return_filename:
@@ -413,12 +471,20 @@ def read_template_configurations(zipfile_path):
             raise e
 
     # Load template configuration dictionary
-    template_configurations = json.load(BytesIO(zip_file["dataset_properties.json"]))["template_configurations"]
+    template_configurations = json.load(BytesIO(zip_file["dataset_properties.json"]))[
+        "template_configurations"
+    ]
 
     # Convert to list and return
     as_list = []
     for temp_conf in template_configurations.values():
-        as_list.append((temp_conf["n_radial"], temp_conf["n_angular"], temp_conf["template_radius"]))
+        as_list.append(
+            (
+                temp_conf["n_radial"],
+                temp_conf["n_angular"],
+                temp_conf["template_radius"],
+            )
+        )
     return as_list
 
 
@@ -438,17 +504,19 @@ def inspect_gpc_systems(zipfile_path, shuffle=True, show_all_gpc_systems=False):
         zipfile_path=zipfile_path,
         filter_list=["stl", "gpc_systems/.+"],
         shuffle_seed=42 if shuffle else None,
-        batch_size=False
+        batch_size=False,
     )
     for content_list in psg:
         # Load GPC-systems and properties from bytes
         shape_dict = {}
         shape, content_path = None, None
-        for (content, content_path) in content_list:
+        for content, content_path in content_list:
             if content_path[-3:] == "stl":
                 shape = trimesh.load_mesh(BytesIO(content), file_type="stl")
             elif content_path[-4:] == "json":
-                shape_dict[content_path.split("/")[-1][:-5]] = json.load(BytesIO(content))
+                shape_dict[content_path.split("/")[-1][:-5]] = json.load(
+                    BytesIO(content)
+                )
             else:
                 shape_dict[content_path.split("/")[-1][:-4]] = np.load(BytesIO(content))
 
@@ -476,5 +544,5 @@ def inspect_gpc_systems(zipfile_path, shuffle=True, show_all_gpc_systems=False):
                 gpc_system_idx,
                 gpc_systems.object_mesh_gpc_systems[gpc_system_idx].radial_coordinates,
                 gpc_systems.object_mesh_gpc_systems[gpc_system_idx].angular_coordinates,
-                shape
+                shape,
             )

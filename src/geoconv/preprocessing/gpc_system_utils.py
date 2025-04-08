@@ -6,7 +6,9 @@ import c_extension
 import numpy as np
 
 
-def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis):
+def compute_u_ijk_and_angle(
+    vertex_i, vertex_j, vertex_k, u, theta, object_mesh, use_c, rotation_axis
+):
     """Euclidean update procedure for a vertex i in a given triangle and angle computation
 
     See Section 3 in:
@@ -46,7 +48,7 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
     vertex_i, vertex_j, vertex_k = object_mesh.vertices[[vertex_i, vertex_j, vertex_k]]
 
     if use_c:
-        result = np.array([0., 0.])
+        result = np.array([0.0, 0.0])
         c_extension.compute_dist_and_dir(
             result,
             vertex_i,
@@ -56,7 +58,7 @@ def compute_u_ijk_and_angle(vertex_i, vertex_j, vertex_k, u, theta, object_mesh,
             u_k,
             theta_j,
             theta_k,
-            rotation_axis
+            rotation_axis,
         )
         u_ijk, theta_i = result
     else:
@@ -189,7 +191,10 @@ def compute_distance_and_angle(vertex_i, vertex_j, gpc_system, use_c, rotation_a
         vertex_k = [v for v in face if v not in [vertex_i, vertex_j]][0]
         k_vertices.append(vertex_k)
         # We need to know the distance to `vertex_k`
-        if gpc_system.radial_coordinates[vertex_k] < np.inf and gpc_system.angular_coordinates[vertex_k] >= 0.:
+        if (
+            gpc_system.radial_coordinates[vertex_k] < np.inf
+            and gpc_system.angular_coordinates[vertex_k] >= 0.0
+        ):
             u_ijk, phi_i = compute_u_ijk_and_angle(
                 vertex_i,
                 vertex_j,
@@ -198,7 +203,7 @@ def compute_distance_and_angle(vertex_i, vertex_j, gpc_system, use_c, rotation_a
                 gpc_system.angular_coordinates,
                 gpc_system.object_mesh,
                 use_c,
-                rotation_axis
+                rotation_axis,
             )
             updates.append((u_ijk, phi_i, vertex_k))
 

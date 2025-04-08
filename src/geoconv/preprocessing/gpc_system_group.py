@@ -35,12 +35,14 @@ class GPCSystemGroup:
                 tqdm(
                     [(vi, u_max[vi]) for vi in vertex_indices],
                     total=n_vertices,
-                    postfix="Computing GPC-systems"
-                )
+                    postfix="Computing GPC-systems",
+                ),
             )
         self.object_mesh_gpc_systems = np.array(gpc_systems).flatten()
 
-    def compute_gpc_system(self, source_point, u_max, gpc_system=None, plot_path="", max_iter=10_000):
+    def compute_gpc_system(
+        self, source_point, u_max, gpc_system=None, plot_path="", max_iter=10_000
+    ):
         """Computes local GPC for one given source point.
 
         This method implements the algorithm of:
@@ -101,7 +103,7 @@ class GPCSystemGroup:
                     j,
                     gpc_system,
                     self.use_c,
-                    rotation_axis=self.object_mesh.vertex_normals[source_point]
+                    rotation_axis=self.object_mesh.vertex_normals[source_point],
                 )
                 # Break if max-iteration has been exceeded
                 iteration += 1
@@ -109,10 +111,18 @@ class GPCSystemGroup:
                     break
                 # In difference to the original pseudocode, we add 'new_u_i < u_max' to this IF-query
                 # to ensure that the radial coordinates do not exceed 'u_max'.
-                if new_u_i < u_max and gpc_system.radial_coordinates[i] / new_u_i > 1 + self.eps:
+                if (
+                    new_u_i < u_max
+                    and gpc_system.radial_coordinates[i] / new_u_i > 1 + self.eps
+                ):
                     if plot_path:
                         if gpc_system.update(
-                            i, new_u_i, new_theta_i, j, k_vertices, plot_name=f"{plot_path}/{plot_number}"
+                            i,
+                            new_u_i,
+                            new_theta_i,
+                            j,
+                            k_vertices,
+                            plot_name=f"{plot_path}/{plot_number}",
                         ):
                             heapq.heappush(candidates, (new_u_i, i))
                             plot_number += 1
@@ -121,7 +131,9 @@ class GPCSystemGroup:
                             heapq.heappush(candidates, (new_u_i, i))
             # Break if max-iteration has been exceeded
             if iteration >= max_iter:
-                print(f"**** GPC-algorithm: Source Point {source_point} - Maximum iterations reached! ****")
+                print(
+                    f"**** GPC-algorithm: Source Point {source_point} - Maximum iterations reached! ****"
+                )
                 break
         return gpc_system
 
@@ -150,7 +162,7 @@ class GPCSystemGroup:
 
             # Collect information about all GPC-systems
             for gpc_system_idx, gpc_system in tqdm(
-                    enumerate(self.object_mesh_gpc_systems), postfix="Saving GPC-systems.."
+                enumerate(self.object_mesh_gpc_systems), postfix="Saving GPC-systems.."
             ):
                 # Store current GPC-system properties in saving dictionaries
                 radial_dict[f"{gpc_system_idx}"] = gpc_system.radial_coordinates
@@ -159,8 +171,10 @@ class GPCSystemGroup:
                 y_coordinates_dict[f"{gpc_system_idx}"] = gpc_system.y_coordinates
                 gpc_properties_dict[f"{gpc_system_idx}"] = {
                     "edges": {int(k): v for k, v in gpc_system.edges.items()},
-                    "faces": {f"{k1},{k2}": v for (k1, k2), v in gpc_system.faces.items()},
-                    "source_point": int(gpc_system.source_point)
+                    "faces": {
+                        f"{k1},{k2}": v for (k1, k2), v in gpc_system.faces.items()
+                    },
+                    "source_point": int(gpc_system.source_point),
                 }
 
             # Save all GPC-system properties in one corresponding file
@@ -175,7 +189,7 @@ class GPCSystemGroup:
         ###############################################################################
         else:
             for gpc_system_idx, gpc_system in tqdm(
-                    enumerate(self.object_mesh_gpc_systems), postfix="Saving GPC-systems.."
+                enumerate(self.object_mesh_gpc_systems), postfix="Saving GPC-systems.."
             ):
                 gpc_system.save(f"{path}/{gpc_system_idx}")
 
@@ -191,7 +205,9 @@ class GPCSystemGroup:
         load_compressed: bool
             Whether to load from a compressed store-format (cf. self.save()).
         """
-        assert path is not None or from_dict is not None, "Either provide a path or a dictionary to load GPC-systems."
+        assert (
+            path is not None or from_dict is not None
+        ), "Either provide a path or a dictionary to load GPC-systems."
 
         # Initialize GPC-system list
         gpc_systems = []
@@ -199,16 +215,23 @@ class GPCSystemGroup:
         # Load from dictionary
         if from_dict is not None:
             for source_point in tqdm(
-                    range(len(from_dict["properties"].keys())), postfix=f"Loading GPC-systems from given dictionary."
+                range(len(from_dict["properties"].keys())),
+                postfix=f"Loading GPC-systems from given dictionary.",
             ):
                 gpc_system = GPCSystem(source_point, self.object_mesh, use_c=True)
-                gpc_system.load(from_dict={
-                    "angular_coordinates": from_dict["angular_coordinates"][f"{source_point}"],
-                    "radial_coordinates": from_dict["radial_coordinates"][f"{source_point}"],
-                    "x_coordinates": from_dict["x_coordinates"][f"{source_point}"],
-                    "y_coordinates": from_dict["y_coordinates"][f"{source_point}"],
-                    "properties": from_dict["properties"][f"{source_point}"]
-                })
+                gpc_system.load(
+                    from_dict={
+                        "angular_coordinates": from_dict["angular_coordinates"][
+                            f"{source_point}"
+                        ],
+                        "radial_coordinates": from_dict["radial_coordinates"][
+                            f"{source_point}"
+                        ],
+                        "x_coordinates": from_dict["x_coordinates"][f"{source_point}"],
+                        "y_coordinates": from_dict["y_coordinates"][f"{source_point}"],
+                        "properties": from_dict["properties"][f"{source_point}"],
+                    }
+                )
                 gpc_systems.append(gpc_system)
         # Load compressed GPC-system format
         elif load_compressed:
@@ -221,15 +244,24 @@ class GPCSystemGroup:
                 properties = json.load(properties_file)
 
             # Initialize all GPC-systems using the information stored within the compressed files
-            for source_point in tqdm(range(len(properties.keys())), postfix=f"Loading GPC-systems from: '{path}'"):
+            for source_point in tqdm(
+                range(len(properties.keys())),
+                postfix=f"Loading GPC-systems from: '{path}'",
+            ):
                 gpc_system = GPCSystem(source_point, self.object_mesh, use_c=True)
-                gpc_system.load(from_dict={
-                    "angular_coordinates": angular_coordinates_dict[f"{source_point}"],
-                    "radial_coordinates": radial_coordinates_dict[f"{source_point}"],
-                    "x_coordinates": x_coordinates_dict[f"{source_point}"],
-                    "y_coordinates": y_coordinates_dict[f"{source_point}"],
-                    "properties": properties[f"{source_point}"]
-                })
+                gpc_system.load(
+                    from_dict={
+                        "angular_coordinates": angular_coordinates_dict[
+                            f"{source_point}"
+                        ],
+                        "radial_coordinates": radial_coordinates_dict[
+                            f"{source_point}"
+                        ],
+                        "x_coordinates": x_coordinates_dict[f"{source_point}"],
+                        "y_coordinates": y_coordinates_dict[f"{source_point}"],
+                        "properties": properties[f"{source_point}"],
+                    }
+                )
                 gpc_systems.append(gpc_system)
         # Load regular GPC-system format (each GPC-system has individual subdirectory)
         else:
@@ -239,7 +271,8 @@ class GPCSystemGroup:
 
             # Iterate over root-directory content and load each GPC-system individually from file-system
             for source_point, gpc_system_directory in tqdm(
-                    enumerate(gpc_system_directories), postfix=f"Loading GPC-systems from: '{path}'"
+                enumerate(gpc_system_directories),
+                postfix=f"Loading GPC-systems from: '{path}'",
             ):
                 gpc_system = GPCSystem(source_point, self.object_mesh, use_c=True)
                 gpc_system.load(f"{path}/{gpc_system_directory}")

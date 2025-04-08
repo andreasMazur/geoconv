@@ -36,7 +36,9 @@ def sample_surface(shape, count, output_dir):
         json.dump({}, properties_file, indent=4)
 
 
-def compute_gpc_systems_wrapper(shape, output_dir, processes=1, k_th_neighbor=20, geodesic_diameter=None):
+def compute_gpc_systems_wrapper(
+    shape, output_dir, processes=1, k_th_neighbor=20, geodesic_diameter=None
+):
     """Wrapper function that computes all GPC systems for one given shape.
 
     Parameters
@@ -58,13 +60,18 @@ def compute_gpc_systems_wrapper(shape, output_dir, processes=1, k_th_neighbor=20
         Whether preprocessing has been successful.
     """
     # 0.) Check whether file already exist. If so and not empty, skip computing GPC-systems.
-    if not os.path.isfile(f"{output_dir}/preprocess_properties.json") or os.path.getsize(f"{output_dir}/preprocess_properties.json") == 0:
+    if (
+        not os.path.isfile(f"{output_dir}/preprocess_properties.json")
+        or os.path.getsize(f"{output_dir}/preprocess_properties.json") == 0
+    ):
         # 1.) Create output dir if not existent
         os.makedirs(output_dir, exist_ok=True)
 
         # 2.) Normalize shape
         try:
-            shape, geodesic_diameter = normalize_mesh(shape, geodesic_diameter=geodesic_diameter)
+            shape, geodesic_diameter = normalize_mesh(
+                shape, geodesic_diameter=geodesic_diameter
+            )
         except RuntimeError:
             print(f"{output_dir} crashed during normalization. Skipping preprocessing.")
             shutil.rmtree(output_dir)
@@ -86,29 +93,35 @@ def compute_gpc_systems_wrapper(shape, output_dir, processes=1, k_th_neighbor=20
         with open(properties_file_path, "w") as properties_file:
             json.dump(
                 {
-                    "non_manifold_edges": np.asarray(shape.as_open3d.get_non_manifold_edges()).shape[0],
+                    "non_manifold_edges": np.asarray(
+                        shape.as_open3d.get_non_manifold_edges()
+                    ).shape[0],
                     "gpc_system_radius": gpc_system_radius.tolist(),
                     "original_geodesic_diameter": geodesic_diameter,
-                    "amount_gpc_systems": gpc_systems.object_mesh_gpc_systems.shape[0]
+                    "amount_gpc_systems": gpc_systems.object_mesh_gpc_systems.shape[0],
                 },
                 properties_file,
-                indent=4
+                indent=4,
             )
 
         # 5.) Export preprocessed mesh
         shape.export(f"{output_dir}/normalized_mesh.stl")
         return True
     else:
-        print(f"{output_dir}/preprocess_properties.json already exists. Skipping preprocessing.")
+        print(
+            f"{output_dir}/preprocess_properties.json already exists. Skipping preprocessing."
+        )
         return False
 
 
-def compute_bc_wrapper(preprocess_dir,
-                       template_sizes,
-                       scales=None,
-                       load_compressed_gpc_systems=True,
-                       processes=10,
-                       shape_path_contains=None):
+def compute_bc_wrapper(
+    preprocess_dir,
+    template_sizes,
+    scales=None,
+    load_compressed_gpc_systems=True,
+    processes=10,
+    shape_path_contains=None,
+):
     """Given a directory structure containing GPC-systems, this function computes corresponding barycentric coordinates.
 
     Parameters
@@ -135,7 +148,7 @@ def compute_bc_wrapper(preprocess_dir,
     """
     # Get average template radius as well as most seen GPC-systems in a shape
     shape_directories, gpc_system_radii, most_gpc_systems = [], [], 0
-    for (dir_path, sub_dir_names, dir_files) in os.walk(preprocess_dir):
+    for dir_path, sub_dir_names, dir_files in os.walk(preprocess_dir):
         # Search for shape-directories
         if "preprocess_properties.json" in dir_files:
             shape_directories.append(dir_path)
@@ -144,31 +157,46 @@ def compute_bc_wrapper(preprocess_dir,
                 properties = json.load(properties_file)
                 gpc_system_radii.append(properties["gpc_system_radius"])
                 n_gpc_systems = properties["amount_gpc_systems"]
-                most_gpc_systems = n_gpc_systems if n_gpc_systems > most_gpc_systems else most_gpc_systems
+                most_gpc_systems = (
+                    n_gpc_systems
+                    if n_gpc_systems > most_gpc_systems
+                    else most_gpc_systems
+                )
     # Compute final average GPC-system radius
     avg_gpc_system_radius = np.array(gpc_system_radii).mean()
 
     # Configure template size
     if scales is None:
-        scales = [0.75, 1., 1.25]
+        scales = [0.75, 1.0, 1.25]
     template_configurations = [
-        template_size + (avg_gpc_system_radius * scale,) for template_size in template_sizes for scale in scales
+        template_size + (avg_gpc_system_radius * scale,)
+        for template_size in template_sizes
+        for scale in scales
     ]
 
     # Split the list of all directories into multiple chunks
     shape_directories.sort(key=lambda directory_name: directory_name.split("/")[-1])
     if shape_path_contains is not None:
         shape_directories = [
-            d for d in shape_directories if np.any([substring in d for substring in shape_path_contains])
+            d
+            for d in shape_directories
+            if np.any([substring in d for substring in shape_path_contains])
         ]
     preprocessed_shapes = len(shape_directories)
     per_chunk = math.ceil(len(shape_directories) / processes)
-    shape_directories = [shape_directories[i * per_chunk:(i * per_chunk) + per_chunk] for i in range(processes)]
+    shape_directories = [
+        shape_directories[i * per_chunk : (i * per_chunk) + per_chunk]
+        for i in range(processes)
+    ]
 
     # Compute barycentric coordinates
     with Pool(processes=processes) as p:
         all_bc_computed = p.starmap(
-            bc_helper, [(d, template_configurations, load_compressed_gpc_systems) for d in shape_directories]
+            bc_helper,
+            [
+                (d, template_configurations, load_compressed_gpc_systems)
+                for d in shape_directories
+            ],
         )
 
     # Check whether all barycentric coordinates have been computed
@@ -181,18 +209,22 @@ def compute_bc_wrapper(preprocess_dir,
             temp_conf_dict = {
                 "preprocessed_shapes": preprocessed_shapes,
                 "most_gpc_systems": most_gpc_systems,
-                "template_configurations": {}
+                "template_configurations": {},
             }
             for idx, tconf in enumerate(template_configurations):
                 temp_conf_dict["template_configurations"][f"{idx}"] = {
-                    "n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]
+                    "n_radial": tconf[0],
+                    "n_angular": tconf[1],
+                    "template_radius": tconf[2],
                 }
             json.dump(temp_conf_dict, properties_file, indent=4)
         # Return 'True' to indicate everything worked out.
         return True
 
 
-def bc_helper(assigned_directories, template_configurations, load_compressed_gpc_systems):
+def bc_helper(
+    assigned_directories, template_configurations, load_compressed_gpc_systems
+):
     """Given a set of shape directories, compute barycentric coordinates for given template configurations.
 
     Parameters
@@ -213,28 +245,44 @@ def bc_helper(assigned_directories, template_configurations, load_compressed_gpc
     loading_succeeded = True
     for shape_dir in assigned_directories:
         gpc_systems = None
-        for (n_radial, n_angular, template_radius) in template_configurations:
-            bc_file_name = f"{shape_dir}/BC_{n_radial}_{n_angular}_{template_radius}.npy"
+        for n_radial, n_angular, template_radius in template_configurations:
+            bc_file_name = (
+                f"{shape_dir}/BC_{n_radial}_{n_angular}_{template_radius}.npy"
+            )
             # Only compute new BC-coordinates if nonexistent so far
             if not os.path.isfile(bc_file_name):
 
                 # Load GPC-systems for current mesh
                 if gpc_systems is None:
-                    gpc_systems = GPCSystemGroup(object_mesh=trimesh.load_mesh(f"{shape_dir}/normalized_mesh.stl"))
+                    gpc_systems = GPCSystemGroup(
+                        object_mesh=trimesh.load_mesh(
+                            f"{shape_dir}/normalized_mesh.stl"
+                        )
+                    )
                     try:
-                        gpc_systems.load(f"{shape_dir}/gpc_systems", load_compressed=load_compressed_gpc_systems)
+                        gpc_systems.load(
+                            f"{shape_dir}/gpc_systems",
+                            load_compressed=load_compressed_gpc_systems,
+                        )
                     except RecursionError:
-                        print(f"*** Recursion-error occurred while loading GPC-systems of: {shape_dir}")
+                        print(
+                            f"*** Recursion-error occurred while loading GPC-systems of: {shape_dir}"
+                        )
                         loading_succeeded = False
                         break
                     except KeyError:
-                        print(f"*** Key-error occurred while loading GPC-systems of: {shape_dir}")
+                        print(
+                            f"*** Key-error occurred while loading GPC-systems of: {shape_dir}"
+                        )
                         loading_succeeded = False
                         break
 
                 # Compute barycentric coordinates
                 bc = compute_barycentric_coordinates(
-                    gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius
+                    gpc_systems,
+                    n_radial=n_radial,
+                    n_angular=n_angular,
+                    radius=template_radius,
                 )
 
                 # Save barycentric coordinates

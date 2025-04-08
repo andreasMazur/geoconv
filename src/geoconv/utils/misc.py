@@ -1,7 +1,6 @@
-from io import BytesIO
-
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
 
+from io import BytesIO
 from scipy.linalg import blas
 
 import numpy as np
@@ -11,9 +10,10 @@ import subprocess
 import os
 import pathlib
 
+
 def angle_distance(theta_max, theta_min):
     """Compute the shortest angular distance between two angles
-    
+
     Parameters
     ----------
     theta_max: float
@@ -26,7 +26,8 @@ def angle_distance(theta_max, theta_min):
     float:
         The shortest angular distance between the two angles
     """
-    return np.minimum(theta_max - theta_min, theta_min + 2. * np.pi - theta_max)
+    return np.minimum(theta_max - theta_min, theta_min + 2.0 * np.pi - theta_max)
+
 
 def compute_vector_angle(vector_a, vector_b, rotation_axis):
     """Compute the angle between two vectors
@@ -158,10 +159,17 @@ def repair_mesh(mesh):
     # trimesh.Trimesh(vertices=mesh.vertices, faces=mesh.faces, process=True, validate=True)
 
     # Merges vertices
-    loaded_mesh = trimesh.load_mesh(BytesIO(mesh.export(file_type="stl")), file_type="stl")
+    loaded_mesh = trimesh.load_mesh(
+        BytesIO(mesh.export(file_type="stl")), file_type="stl"
+    )
 
     # Repairs faces
-    mesh = trimesh.Trimesh(vertices=loaded_mesh.vertices, faces=loaded_mesh.faces, process=True, validate=True)
+    mesh = trimesh.Trimesh(
+        vertices=loaded_mesh.vertices,
+        faces=loaded_mesh.faces,
+        process=True,
+        validate=True,
+    )
 
     return mesh
 
@@ -186,8 +194,12 @@ def compute_geodesic_diameter(mesh):
 
         current_env = os.environ.copy()
         proc = subprocess.run(
-            [f"python", f"{pathlib.Path(__file__).parent.resolve()}/safe_pygeodesic.py", tempdir],
-            env=current_env
+            [
+                f"python",
+                f"{pathlib.Path(__file__).parent.resolve()}/safe_pygeodesic.py",
+                tempdir,
+            ],
+            env=current_env,
         )
         if proc.returncode != 0:
             should_raise = True
@@ -234,13 +246,20 @@ def reconstruct_template(gpc_system, b_coordinates):
 
     """
 
-    reconstructed_template = np.zeros((b_coordinates.shape[0], b_coordinates.shape[1], 2))
+    reconstructed_template = np.zeros(
+        (b_coordinates.shape[0], b_coordinates.shape[1], 2)
+    )
     for rc in range(b_coordinates.shape[0]):
         for ac in range(b_coordinates.shape[1]):
             # Get vertices
             vertex_indices = b_coordinates[rc, ac, :, 0].astype(np.int16)
-            vertices = [(gpc_system[vertex_indices[idx], 0], gpc_system[vertex_indices[idx], 1]) for idx in range(3)]
-            vertices = np.array([polar_to_cart(angles=y, scales=x) for x, y in vertices])
+            vertices = [
+                (gpc_system[vertex_indices[idx], 0], gpc_system[vertex_indices[idx], 1])
+                for idx in range(3)
+            ]
+            vertices = np.array(
+                [polar_to_cart(angles=y, scales=x) for x, y in vertices]
+            )
 
             # Interpolate vertices
             weights = b_coordinates[rc, ac, :, 1]
@@ -274,7 +293,11 @@ def compute_distance_matrix(vertices):
         A square distance matrix for the given vertices.
     """
     norm = np.einsum("ij,ij->i", vertices, vertices)
-    norm = np.reshape(norm, (-1, 1)) - 2 * np.einsum("ik,jk->ij", vertices, vertices) + np.reshape(norm, (1, -1))
-    norm[np.isnan(np.sqrt(norm))] = 0.
+    norm = (
+        np.reshape(norm, (-1, 1))
+        - 2 * np.einsum("ik,jk->ij", vertices, vertices)
+        + np.reshape(norm, (1, -1))
+    )
+    norm[np.isnan(np.sqrt(norm))] = 0.0
 
     return np.sqrt(norm)

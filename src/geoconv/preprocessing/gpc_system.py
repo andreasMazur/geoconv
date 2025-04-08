@@ -1,5 +1,10 @@
 from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
-from geoconv.utils.misc import get_neighbors, get_faces_of_edge, compute_vector_angle, gpc_systems_into_cart
+from geoconv.utils.misc import (
+    get_neighbors,
+    get_faces_of_edge,
+    compute_vector_angle,
+    gpc_systems_into_cart,
+)
 
 from matplotlib import pyplot as plt
 from matplotlib.patches import Polygon
@@ -49,33 +54,54 @@ class GPCSystem:
         r3_source_point = object_mesh.vertices[source_point]
         r3_neighbors = object_mesh.vertices[source_point_neighbors]
         self.radial_coordinates[source_point_neighbors] = np.linalg.norm(
-            r3_neighbors - np.stack([r3_source_point for _ in range(len(source_point_neighbors))]), ord=2, axis=-1
+            r3_neighbors
+            - np.stack([r3_source_point for _ in range(len(source_point_neighbors))]),
+            ord=2,
+            axis=-1,
         )
-        self.radial_coordinates[source_point] = .0
+        self.radial_coordinates[source_point] = 0.0
 
         ########################################
         # Calculate initial angular coordinates
         ########################################
         ref_neighbor = source_point_neighbors[0]
         rotation_axis = object_mesh.vertex_normals[source_point]
-        theta_neighbors = np.full((len(source_point_neighbors, )), .0)
+        theta_neighbors = np.full(
+            (
+                len(
+                    source_point_neighbors,
+                )
+            ),
+            0.0,
+        )
         for idx, neighbor in enumerate(source_point_neighbors):
-            vector_a = object_mesh.vertices[ref_neighbor] - object_mesh.vertices[source_point]
-            vector_b = object_mesh.vertices[neighbor] - object_mesh.vertices[source_point]
+            vector_a = (
+                object_mesh.vertices[ref_neighbor] - object_mesh.vertices[source_point]
+            )
+            vector_b = (
+                object_mesh.vertices[neighbor] - object_mesh.vertices[source_point]
+            )
             if use_c:
-                theta_neighbors[idx] = c_extension.compute_angle_360(vector_a, vector_b, rotation_axis)
+                theta_neighbors[idx] = c_extension.compute_angle_360(
+                    vector_a, vector_b, rotation_axis
+                )
             else:
-                theta_neighbors[idx] = compute_vector_angle(vector_a, vector_b, rotation_axis)
+                theta_neighbors[idx] = compute_vector_angle(
+                    vector_a, vector_b, rotation_axis
+                )
         self.angular_coordinates[source_point_neighbors] = theta_neighbors
         self.angular_coordinates[source_point] = 0.0
 
         ##########################################
         # Calculate initial Cartesian coordinates
         ##########################################
-        self.x_coordinates[source_point] = 0.
-        self.y_coordinates[source_point] = 0.
+        self.x_coordinates[source_point] = 0.0
+        self.y_coordinates[source_point] = 0.0
         for neighbor in source_point_neighbors:
-            x, y = polar_to_cart(angles=self.angular_coordinates[neighbor], scales=self.radial_coordinates[neighbor])
+            x, y = polar_to_cart(
+                angles=self.angular_coordinates[neighbor],
+                scales=self.radial_coordinates[neighbor],
+            )
             self.x_coordinates[neighbor] = x
             self.y_coordinates[neighbor] = y
 
@@ -87,7 +113,9 @@ class GPCSystem:
             self.faces = {(-1, -1): []}
         self.edges[source_point] = []
         for neighbor in source_point_neighbors:
-            edge, considered_faces = get_faces_of_edge(np.array([source_point, neighbor]), object_mesh)
+            edge, considered_faces = get_faces_of_edge(
+                np.array([source_point, neighbor]), object_mesh
+            )
             edge = list(edge)
             # Add edges to edge-cache
             self.add_edge(edge)
@@ -116,7 +144,9 @@ class GPCSystem:
             The edge to add
         """
         if np.inf in [self.x_coordinates[edge[0]], self.x_coordinates[edge[1]]]:
-            raise RuntimeError(f"Edge {edge} lacks GPC: {[self.x_coordinates[edge[0]], self.x_coordinates[edge[1]]]}")
+            raise RuntimeError(
+                f"Edge {edge} lacks GPC: {[self.x_coordinates[edge[0]], self.x_coordinates[edge[1]]]}"
+            )
 
         edge = np.sort(edge).astype(np.int32).tolist()
         # Check if edge was seen once
@@ -141,9 +171,7 @@ class GPCSystem:
         face = np.sort(face).astype(np.int32).tolist()
         if face not in self.faces[(-1, -1)]:
             self.faces[(-1, -1)].append(face)
-        face_edges = [
-            [face[0], face[1]], [face[1], face[2]], [face[0], face[2]]
-        ]
+        face_edges = [[face[0], face[1]], [face[1], face[2]], [face[0], face[2]]]
         for edge in face_edges:
             if (edge[0], edge[1]) not in self.faces.keys():
                 self.faces[(edge[0], edge[1])] = [face]
@@ -154,19 +182,23 @@ class GPCSystem:
             for new_face in get_faces_of_edge(edge, self.object_mesh)[1]:
                 new_face = np.sort(new_face)
                 # If all face coordinates are known and face has not been seen, then update GPC-system with `new_face`
-                if (not np.array_equal(new_face, face)
+                if (
+                    not np.array_equal(new_face, face)
                     and not np.any(np.isinf(self.radial_coordinates[new_face]))
-                    and list(new_face) not in self.faces[(-1, -1)]):
+                    and list(new_face) not in self.faces[(-1, -1)]
+                ):
                     self.update(
                         new_face[0],
                         self.radial_coordinates[new_face[0]],
                         self.angular_coordinates[new_face[0]],
                         new_face[1],
                         [new_face[2]],
-                        update=False
+                        update=False,
                     )
 
-    def update(self, vertex_i, rho_i, theta_i, vertex_j, k_vertices, plot_name="", update=True):
+    def update(
+        self, vertex_i, rho_i, theta_i, vertex_j, k_vertices, plot_name="", update=True
+    ):
         """Update the GPC-system while preventing to edge intersections
 
         Parameters
@@ -191,7 +223,9 @@ class GPCSystem:
         bool:
             Whether the update succeeded, i.e. the update on `vertex_i` did not cause intersections
         """
-        for vertex_k in [k for k in k_vertices if not np.isinf(self.radial_coordinates[k])]:
+        for vertex_k in [
+            k for k in k_vertices if not np.isinf(self.radial_coordinates[k])
+        ]:
             # Sort vertex indices such that edge-cache does not store edges twice
             sorted_face = np.sort([vertex_i, vertex_j, vertex_k])
 
@@ -199,7 +233,9 @@ class GPCSystem:
             # Collect all edges of `vertex_i` that will be added or are captured by the current GPC-system
             ###############################################################################################
             updated_face_edges = [
-                [sorted_face[0], sorted_face[1]], [sorted_face[1], sorted_face[2]], [sorted_face[0], sorted_face[2]]
+                [sorted_face[0], sorted_face[1]],
+                [sorted_face[1], sorted_face[2]],
+                [sorted_face[0], sorted_face[2]],
             ]
 
             if vertex_i in self.edges.keys():
@@ -220,12 +256,18 @@ class GPCSystem:
                 if edge[0] == vertex_i:
                     edge_fst_vertex = [x, y]
                 else:
-                    edge_fst_vertex = [self.x_coordinates[edge[0]], self.y_coordinates[edge[0]]]
+                    edge_fst_vertex = [
+                        self.x_coordinates[edge[0]],
+                        self.y_coordinates[edge[0]],
+                    ]
 
                 if edge[1] == vertex_i:
                     edge_snd_vertex = [x, y]
                 else:
-                    edge_snd_vertex = [self.x_coordinates[edge[1]], self.y_coordinates[edge[1]]]
+                    edge_snd_vertex = [
+                        self.x_coordinates[edge[1]],
+                        self.y_coordinates[edge[1]],
+                    ]
 
                 if self.line_segment_intersection(edge_fst_vertex, edge_snd_vertex):
                     # Return 'False' to indicate failed update due to intersection
@@ -271,8 +313,14 @@ class GPCSystem:
         y_new_0 = self.y_coordinates[new_line[0]]
         x_new_1 = self.x_coordinates[new_line[1]]
         y_new_1 = self.y_coordinates[new_line[1]]
-        ax.plot([x_new_0, x_new_1], [y_new_0, y_new_1], color="blue", linewidth=2., label="Updated Line")
-        ax.scatter([x_new_0], [y_new_0], color="blue", s=50., label="Updated Vertex")
+        ax.plot(
+            [x_new_0, x_new_1],
+            [y_new_0, y_new_1],
+            color="blue",
+            linewidth=2.0,
+            label="Updated Line",
+        )
+        ax.scatter([x_new_0], [y_new_0], color="blue", s=50.0, label="Updated Vertex")
 
         all_coordinates = set()
         for face in self.faces[(-1, -1)]:
@@ -289,7 +337,7 @@ class GPCSystem:
             for c in coordinates:
                 all_coordinates.add(c)
 
-            polygon = Polygon(np.array(coordinates), alpha=.4, edgecolor="red")
+            polygon = Polygon(np.array(coordinates), alpha=0.4, edgecolor="red")
             ax.add_patch(polygon)
 
         all_coordinates = np.array([list(c) for c in all_coordinates])
@@ -321,11 +369,17 @@ class GPCSystem:
         x1, y1 = edge_fst_vertex[0], edge_fst_vertex[1]
         x2, y2 = edge_snd_vertex[0], edge_snd_vertex[1]
         all_edges = np.array(self.edges[-1])
-        xs3, ys3 = self.x_coordinates[all_edges[:, 0]], self.y_coordinates[all_edges[:, 0]]
-        xs4, ys4 = self.x_coordinates[all_edges[:, 1]], self.y_coordinates[all_edges[:, 1]]
+        xs3, ys3 = (
+            self.x_coordinates[all_edges[:, 0]],
+            self.y_coordinates[all_edges[:, 0]],
+        )
+        xs4, ys4 = (
+            self.x_coordinates[all_edges[:, 1]],
+            self.y_coordinates[all_edges[:, 1]],
+        )
 
         denominators = (x1 - x2) * (ys3 - ys4) - (y1 - y2) * (xs3 - xs4)
-        if 0. in denominators:
+        if 0.0 in denominators:
             denominators += sys.float_info.min
         nominators_1 = (x1 - xs3) * (ys3 - ys4) - (y1 - ys3) * (xs3 - xs4)
         nominators_2 = (x1 - xs3) * (y1 - y2) - (y1 - ys3) * (x1 - x2)
@@ -335,7 +389,10 @@ class GPCSystem:
 
         eps = 1e-5
         return np.any(
-            np.logical_and(np.logical_and(0. + eps < xs, xs < 1. - eps), np.logical_and(0. + eps < ys, ys < 1. - eps))
+            np.logical_and(
+                np.logical_and(0.0 + eps < xs, xs < 1.0 - eps),
+                np.logical_and(0.0 + eps < ys, ys < 1.0 - eps),
+            )
         )
 
     def get_gpc_system(self):
@@ -381,9 +438,9 @@ class GPCSystem:
                 {
                     "edges": {int(k): v for k, v in self.edges.items()},
                     "faces": {f"{k1},{k2}": v for (k1, k2), v in self.faces.items()},
-                    "source_point": int(self.source_point)
+                    "source_point": int(self.source_point),
                 },
-                properties_file
+                properties_file,
             )
 
     def load(self, path=None, from_dict=None):
@@ -411,7 +468,10 @@ class GPCSystem:
             with open(f"{path}/properties.json", "r") as properties_file:
                 properties = json.load(properties_file)
                 self.edges = {int(k): v for k, v in properties["edges"].items()}
-                self.faces = {tuple([int(k) for k in k_str.split(",")]): v for k_str, v in properties["faces"].items()}
+                self.faces = {
+                    tuple([int(k) for k in k_str.split(",")]): v
+                    for k_str, v in properties["faces"].items()
+                }
                 self.source_point = properties["source_point"]
         elif from_dict is not None:
             self.angular_coordinates = from_dict["angular_coordinates"]
@@ -421,7 +481,10 @@ class GPCSystem:
 
             properties = from_dict["properties"]
             self.edges = {int(k): v for k, v in properties["edges"].items()}
-            self.faces = {tuple([int(k) for k in k_str.split(",")]): v for k_str, v in properties["faces"].items()}
+            self.faces = {
+                tuple([int(k) for k in k_str.split(",")]): v
+                for k_str, v in properties["faces"].items()
+            }
             self.source_point = properties["source_point"]
         else:
             raise RuntimeError(

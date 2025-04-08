@@ -31,7 +31,7 @@ def process_logs(csv_files, file_name):
         # Average current statistic
         stats_dict[statistic] = {
             "mean": np.mean(stats_dict[statistic]),
-            "variance": np.var(stats_dict[statistic])
+            "variance": np.var(stats_dict[statistic]),
         }
 
     # Log stats-dict into *.json-file

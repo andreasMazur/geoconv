@@ -37,7 +37,11 @@ def compute_barycentric(query_vertex, triangle):
     point_1_weight = (dot00 * dot12 - dot01 * dot02) / denominator
     point_0_weight = 1 - point_2_weight - point_1_weight
 
-    is_inside_triangle = point_2_weight > 0 and point_1_weight > 0 and point_2_weight + point_1_weight <= 1
+    is_inside_triangle = (
+        point_2_weight > 0
+        and point_1_weight > 0
+        and point_2_weight + point_1_weight <= 1
+    )
 
     return (point_0_weight, point_1_weight, point_2_weight), is_inside_triangle
 
@@ -66,10 +70,10 @@ def interpolation(query_point, gpc_triangles, gpc_triangles_node_indices):
         b_coordinates, lies_within = compute_barycentric(query_point, triangle)
         if lies_within:
             return b_coordinates, gpc_triangles_node_indices[idx]
-    return np.array([0., 0., 0.]), np.array([0, 0, 0])
+    return np.array([0.0, 0.0, 0.0]), np.array([0, 0, 0])
 
 
-def polar_to_cart(angles, scales=1.):
+def polar_to_cart(angles, scales=1.0):
     """Returns x and y for a given angle.
 
     Parameters
@@ -88,7 +92,9 @@ def polar_to_cart(angles, scales=1.):
     return np.stack([scales * np.cos(angles), scales * np.sin(angles)], axis=-1)
 
 
-def create_template_matrix(n_radial, n_angular, radius, in_cart=False, exp_lambda=1.0, shift_angular=True):
+def create_template_matrix(
+    n_radial, n_angular, radius, in_cart=False, exp_lambda=1.0, shift_angular=True
+):
     """Creates a template matrix with radius `radius` and `n_radial` radial- and `n_angular` angular coordinates.
 
     Parameters
@@ -117,7 +123,9 @@ def create_template_matrix(n_radial, n_angular, radius, in_cart=False, exp_lambd
     for j in range(1, n_radial + 1):
         radial_coordinate = ((j / n_radial) ** exp_lambda) * radius
         for k in range(1, n_angular + 1):
-            angular_coordinate = (2 * k * np.pi + int(shift_angular) * np.mod(j, 2) * np.pi) / n_angular
+            angular_coordinate = (
+                2 * k * np.pi + int(shift_angular) * np.mod(j, 2) * np.pi
+            ) / n_angular
 
             coordinates[j - 1, k - 1, 0] = radial_coordinate
             coordinates[j - 1, k - 1, 1] = angular_coordinate
@@ -125,7 +133,9 @@ def create_template_matrix(n_radial, n_angular, radius, in_cart=False, exp_lambd
     if in_cart:
         for rc in range(coordinates.shape[0]):
             for ac in range(coordinates.shape[1]):
-                coordinates[rc, ac] = polar_to_cart(coordinates[rc, ac, 1], coordinates[rc, ac, 0])
+                coordinates[rc, ac] = polar_to_cart(
+                    coordinates[rc, ac, 1], coordinates[rc, ac, 0]
+                )
 
     return coordinates
 
@@ -161,12 +171,17 @@ def compute_barycentric_coordinates(gpc_systems, n_radial=2, n_angular=4, radius
     """
 
     # Define template vertices at which interpolation values will be needed
-    template_matrix = create_template_matrix(n_radial=n_radial, n_angular=n_angular, radius=radius, in_cart=True)
+    template_matrix = create_template_matrix(
+        n_radial=n_radial, n_angular=n_angular, radius=radius, in_cart=True
+    )
     n_gpc_systems = gpc_systems.object_mesh_gpc_systems.shape[0]
     barycentric_coordinates = np.zeros((n_gpc_systems, n_radial, n_angular, 3, 2))
 
     template_info = f"n_radial: {n_radial} | n_angular: {n_angular} | radius: {radius}"
-    for gpc_system_idx in tqdm(range(n_gpc_systems), postfix=f"Computing barycentric coordinates: " + template_info):
+    for gpc_system_idx in tqdm(
+        range(n_gpc_systems),
+        postfix=f"Computing barycentric coordinates: " + template_info,
+    ):
         gpc_system = gpc_systems.object_mesh_gpc_systems[gpc_system_idx]
         gpc_triangles = gpc_system.get_gpc_triangles(in_cart=True)
         for radial_coordinate in range(n_radial):
@@ -174,9 +189,13 @@ def compute_barycentric_coordinates(gpc_systems, n_radial=2, n_angular=4, radius
                 bc, indices = interpolation(
                     template_matrix[radial_coordinate, angular_coordinate],
                     gpc_triangles,
-                    gpc_system.faces[(-1, -1)]
+                    gpc_system.faces[(-1, -1)],
                 )
-                barycentric_coordinates[gpc_system_idx, radial_coordinate, angular_coordinate, :, 0] = indices
-                barycentric_coordinates[gpc_system_idx, radial_coordinate, angular_coordinate, :, 1] = bc
+                barycentric_coordinates[
+                    gpc_system_idx, radial_coordinate, angular_coordinate, :, 0
+                ] = indices
+                barycentric_coordinates[
+                    gpc_system_idx, radial_coordinate, angular_coordinate, :, 1
+                ] = bc
 
     return barycentric_coordinates

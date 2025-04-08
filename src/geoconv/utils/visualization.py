@@ -27,30 +27,41 @@ def draw_barycentric_coordinates(gpc_system, barycentric_coordinates, save_name=
             triangle_indices = barycentric_coordinates[rc, ac, :, 0].astype(np.int16)
             triangle_interpolation_coefficients = barycentric_coordinates[rc, ac, :, 1]
             triangle_coordinates = np.stack(
-                [gpc_system.x_coordinates[triangle_indices], gpc_system.y_coordinates[triangle_indices]],
-                axis=-1
+                [
+                    gpc_system.x_coordinates[triangle_indices],
+                    gpc_system.y_coordinates[triangle_indices],
+                ],
+                axis=-1,
             )
-            dot_interpolation = triangle_coordinates.T @ triangle_interpolation_coefficients
+            dot_interpolation = (
+                triangle_coordinates.T @ triangle_interpolation_coefficients
+            )
             interpolated_points.append(dot_interpolation)
-            pc = ["blue" for _ in range(len(interpolated_points) - 1)] + ["yellow"] + ["orange" for _ in range(3)]
+            pc = (
+                ["blue" for _ in range(len(interpolated_points) - 1)]
+                + ["yellow"]
+                + ["orange" for _ in range(3)]
+            )
             draw_triangles(
                 gpc_system.get_gpc_triangles(in_cart=True),
                 points=np.array(interpolated_points + list(triangle_coordinates)),
                 point_color=pc,
                 title=f"Interpolation Coefficients: {triangle_interpolation_coefficients}",
                 plot=True,
-                save_name=f"{save_name}_{rc}_{ac}"
+                save_name=f"{save_name}_{rc}_{ac}",
             )
 
 
-def draw_gpc_on_mesh(center_vertex,
-                     radial_coordinates,
-                     angular_coordinates,
-                     object_mesh,
-                     save_name="",
-                     angles=(0., 0., 0.),
-                     distance=1.,
-                     center=(0., 0., 0.)):
+def draw_gpc_on_mesh(
+    center_vertex,
+    radial_coordinates,
+    angular_coordinates,
+    object_mesh,
+    save_name="",
+    angles=(0.0, 0.0, 0.0),
+    distance=1.0,
+    center=(0.0, 0.0, 0.0),
+):
     """Visualizes the radial and angular coordinates of a local GPC-system on an object mesh.
 
     This function first shows you the radial coordinates and then the angular coordinates.
@@ -107,7 +118,9 @@ def draw_gpc_on_mesh(center_vertex,
         matplotlib.image.imsave(f"{save_name}_angular_coords.png", image_array)
 
 
-def draw_triangles(triangles, points=None, point_color="blue", title="", plot=True, save_name=""):
+def draw_triangles(
+    triangles, points=None, point_color="blue", title="", plot=True, save_name=""
+):
     """Draws a single triangle and optionally a point in 2D space.
 
     Parameters
@@ -128,7 +141,7 @@ def draw_triangles(triangles, points=None, point_color="blue", title="", plot=Tr
     fig, ax = plt.subplots(1, 1)
     ax.set_title(title)
     for tri in triangles:
-        polygon = Polygon(tri, alpha=.4, edgecolor="red")
+        polygon = Polygon(tri, alpha=0.4, edgecolor="red")
         ax.add_patch(polygon)
 
     if points is not None:
@@ -146,15 +159,17 @@ def draw_triangles(triangles, points=None, point_color="blue", title="", plot=Tr
         plt.show()
 
 
-def draw_gpc_triangles(gpc_system,
-                       template_matrix=None,
-                       alpha=.4,
-                       edge_color="red",
-                       scatter_color="green",
-                       highlight_face=-1,
-                       plot=True,
-                       title="",
-                       save_name=""):
+def draw_gpc_triangles(
+    gpc_system,
+    template_matrix=None,
+    alpha=0.4,
+    edge_color="red",
+    scatter_color="green",
+    highlight_face=-1,
+    plot=True,
+    title="",
+    save_name="",
+):
     """Draws the triangles of a local GPC-system.
 
     Parameters
@@ -194,18 +209,27 @@ def draw_gpc_triangles(gpc_system,
     # Print template
     if template_matrix is not None:
         for radial_idx in range(template_matrix.shape[0]):
-            ax.scatter(template_matrix[radial_idx, :, 0], template_matrix[radial_idx, :, 1], color=scatter_color)
+            ax.scatter(
+                template_matrix[radial_idx, :, 0],
+                template_matrix[radial_idx, :, 1],
+                color=scatter_color,
+            )
 
     # Highlight triangle
     if highlight_face > -1:
         ax.add_patch(
-            Polygon(gpc_system_faces[highlight_face], linewidth=3., fill=False, edgecolor="purple")
+            Polygon(
+                gpc_system_faces[highlight_face],
+                linewidth=3.0,
+                fill=False,
+                edgecolor="purple",
+            )
         )
         ax.scatter(
             gpc_system_faces[highlight_face][:, 0],
             gpc_system_faces[highlight_face][:, 1],
-            s=90.,
-            color="purple"
+            s=90.0,
+            color="purple",
         )
         for idx, annotation in enumerate(["a", "b", "c"]):
             x = gpc_system_faces[highlight_face][idx, 0]
@@ -237,7 +261,7 @@ def visualize_lrf(origin, local_reference_frame, vertices, scale_lrf=0.05):
         A scaling factor for the local reference frame vectors.
     """
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
     ax.scatter(vertices[:, 0], vertices[:, 1], vertices[:, 2])
     for vec in local_reference_frame:
         ax.quiver(*origin, *(scale_lrf * vec), color="r")
