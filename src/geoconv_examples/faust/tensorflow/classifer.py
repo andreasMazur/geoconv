@@ -11,21 +11,23 @@ SIG_DIM = 544
 
 
 class FaustVertexClassifier(tf.keras.Model):
-    def __init__(self,
-                 template_radius,
-                 isc_layer_dims,
-                 middle_layer_dim=1024,
-                 variant=None,
-                 normalize_input=True,
-                 rotation_delta=1,
-                 dropout_rate=0.3,
-                 output_rotation_delta=1,
-                 l1_reg=0.3,
-                 clf_output=True,
-                 signal_dim=SIG_DIM,
-                 initializer="glorot_uniform",
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        template_radius,
+        isc_layer_dims,
+        middle_layer_dim=1024,
+        variant=None,
+        normalize_input=True,
+        rotation_delta=1,
+        dropout_rate=0.3,
+        output_rotation_delta=1,
+        l1_reg=0.3,
+        clf_output=True,
+        signal_dim=SIG_DIM,
+        initializer="glorot_uniform",
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.normalize_input = normalize_input
 
@@ -50,7 +52,7 @@ class FaustVertexClassifier(tf.keras.Model):
                     conv_type=variant,
                     activation="elu",
                     input_dim=signal_dim if idx == 0 else isc_layer_dims[idx - 1],
-                    initializer=initializer
+                    initializer=initializer,
                 )
             )
 
@@ -64,7 +66,7 @@ class FaustVertexClassifier(tf.keras.Model):
             conv_type=variant,
             activation="elu",
             input_dim=isc_layer_dims[-1],
-            initializer=initializer
+            initializer=initializer,
         )
 
         ############
@@ -83,13 +85,15 @@ class FaustVertexClassifier(tf.keras.Model):
                     conv_type=variant,
                     activation="elu",
                     input_dim=-1,
-                    initializer=initializer
+                    initializer=initializer,
                 )
             )
 
         # Auxiliary layers
         if self.normalize_input:
-            self.normalize = tf.keras.layers.Normalization(axis=-1, name="input_normalization")
+            self.normalize = tf.keras.layers.Normalization(
+                axis=-1, name="input_normalization"
+            )
         self.dropout = tf.keras.layers.Dropout(rate=dropout_rate)
 
         # Classification layer
@@ -104,7 +108,7 @@ class FaustVertexClassifier(tf.keras.Model):
                 rotation_delta=output_rotation_delta,
                 template_regularizer=tf.keras.regularizers.L1(l1=l1_reg),
                 bias_regularizer=None,
-                initializer=initializer
+                initializer=initializer,
             )
             self.amp = AngularMaxPooling()
         else:
