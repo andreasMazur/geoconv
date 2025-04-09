@@ -12,6 +12,8 @@ ACTIVATIONS = {
     "relu": nn.ReLU(),
     "leaky_relu": nn.LeakyReLU(),
     "selu": nn.SELU(),
+    "gelu": nn.GELU(),
+    "prelu": nn.PReLU(),
     "sigmoid": nn.Sigmoid(),
     "tanh": nn.Tanh(),
     "linear": nn.Identity(),
