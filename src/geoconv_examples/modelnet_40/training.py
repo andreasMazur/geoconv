@@ -21,7 +21,8 @@ def model_configuration(neighbors_for_lrf,
                         exp_lambda,
                         shift_angular,
                         isc_layer_conf,
-                        pooling):
+                        pooling,
+                        adapt_data):
     # Define model
     imcnn = ModelNetClf(
         neighbors_for_lrf=neighbors_for_lrf,
@@ -57,6 +58,11 @@ def model_configuration(neighbors_for_lrf,
 
     # Compile the model
     imcnn.compile(optimizer=opt, loss=loss, metrics="accuracy", run_eagerly=True)
+
+    # Adapt normalization layer to training data
+    imcnn.normalize_point_cloud.adapt(adapt_data)
+
+    # Build model
     imcnn(tf.random.uniform(shape=[1, 1024, 3]), training=False)
     imcnn.summary()
 
@@ -85,6 +91,14 @@ def training(dataset_path,
                 os.makedirs(f"{rep_logging_dir}", exist_ok=True)
 
                 # Get classification model
+                train_data = load_preprocessed_modelnet(
+                    dataset_path,
+                    set_type="train",
+                    modelnet10=True,
+                    gen_info_file=f"{rep_logging_dir}/generator_info.json",
+                    batch_size=batch_size,
+                    debug_data=True
+                )
                 imcnn = model_configuration(
                     neighbors_for_lrf=neighbors_for_lrf,
                     projection_neighbors=projection_neighbors,
@@ -97,7 +111,8 @@ def training(dataset_path,
                     exp_lambda=exp_lambda,
                     shift_angular=shift_angular,
                     isc_layer_conf=[128, 128],
-                    pooling=pooling
+                    pooling=pooling,
+                    adapt_data=train_data
                 )
 
                 # Define callbacks
