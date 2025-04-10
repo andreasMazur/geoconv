@@ -221,6 +221,34 @@ def zip_file_generator(
             )
 
 
+def safe_zip_loading(zipfile_path):
+    """This function adds the 'zip'-ending to the filename in case it misses and then loads the zip-file.
+
+    Parameters
+    ----------
+    zipfile_path: str
+        The path to the file.
+
+    Returns
+    -------
+    bool:
+        Whether the file has the given ending.
+    """
+    try:
+        zip_file = np.load(zipfile_path)
+    except (FileNotFoundError, IsADirectoryError) as e:
+        if isinstance(zipfile_path, bytes):
+            has_zip_ending = zipfile_path.endswith(b".zip")
+        else:
+            has_zip_ending = zipfile_path.endswith(".zip")
+        if not has_zip_ending:
+            zipfile_path += ".zip"
+            zip_file = np.load(zipfile_path)
+        else:
+            raise e
+    return zip_file
+
+
 def preprocessed_shape_generator(
     zipfile_path,
     filter_list,
@@ -264,14 +292,7 @@ def preprocessed_shape_generator(
         The loaded files and their corresponding filenames.
     """
     # Load raw zip
-    try:
-        zip_file = np.load(zipfile_path)
-    except (FileNotFoundError, IsADirectoryError) as e:
-        if not zipfile_path.endswith(".zip"):
-            zipfile_path += ".zip"
-            zip_file = np.load(zipfile_path)
-        else:
-            raise e
+    zip_file = safe_zip_loading(zipfile_path)
 
     # Load shapes (shapes have to be in a folder with a 'preprocess_properties.json'-file)
     preprocessed_shapes = [
@@ -282,7 +303,6 @@ def preprocessed_shape_generator(
 
     # Sort shape directories
     if sorting_key is None:
-
         def sorting_key(file_name):
             return file_name.split("/")[-1]
 
@@ -369,14 +389,7 @@ def preprocessed_properties_generator(
     """
     # Load the zip-file
     print(f"Loading properties from zip-file.. ({zipfile_path})")
-    try:
-        zip_file = np.load(zipfile_path)
-    except (FileNotFoundError, IsADirectoryError) as e:
-        if not zipfile_path.endswith(".zip"):
-            zipfile_path += ".zip"
-            zip_file = np.load(zipfile_path)
-        else:
-            raise e
+    zip_file = safe_zip_loading(zipfile_path)
     print("Done.")
 
     # Get and sort all shape directories from preprocessed shapes
