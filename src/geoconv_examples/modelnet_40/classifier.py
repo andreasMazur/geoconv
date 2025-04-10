@@ -1,6 +1,6 @@
 from geoconv.tensorflow.backbone import Covariance
 from geoconv.tensorflow.backbone import ResNetBlock
-from geoconv.tensorflow.layers import BarycentricCoordinates
+from geoconv.tensorflow.layers import BarycentricCoordinates, SpatialDropout
 from geoconv.tensorflow.layers import NormalizePointCloud
 from geoconv.tensorflow.layers import PointCloudShotDescriptor
 
@@ -84,6 +84,7 @@ class ModelNetClf(tf.keras.Model):
         # Define embedding architecture
         self.gravity_pooling_layers = []
         self.isc_layers = []
+        self.dropout = SpatialDropout(rate=0.3)
         for idx, _ in enumerate(isc_layer_conf):
             self.isc_layers.append(
                 ResNetBlock(
@@ -128,6 +129,7 @@ class ModelNetClf(tf.keras.Model):
         # Compute vertex embeddings
         for idx, _ in enumerate(self.isc_layers):
             signal = self.isc_layers[idx]([signal, bc])
+            signal = self.dropout(signal)
 
         # Pool local surface descriptors into global point-cloud descriptor
         signal = self.pool(signal)
