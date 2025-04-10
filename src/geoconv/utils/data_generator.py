@@ -474,14 +474,7 @@ def read_template_configurations(zipfile_path):
         found in the given zipfile.
     """
     # Load zip-file
-    try:
-        zip_file = np.load(zipfile_path)
-    except (FileNotFoundError, IsADirectoryError) as e:
-        if not zipfile_path.endswith(".zip"):
-            zipfile_path += ".zip"
-            zip_file = np.load(zipfile_path)
-        else:
-            raise e
+    zip_file = safe_zip_loading(zipfile_path)
 
     # Load template configuration dictionary
     template_configurations = json.load(BytesIO(zip_file["dataset_properties.json"]))[
