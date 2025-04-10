@@ -100,7 +100,7 @@ def training(dataset_path,
                     modelnet10=True,
                     gen_info_file=f"{rep_logging_dir}/generator_info.json",
                     batch_size=batch_size,
-                    debug_data=True
+                    debug_data=False
                 )
                 imcnn = model_configuration(
                     neighbors_for_lrf=neighbors_for_lrf,
@@ -139,7 +139,7 @@ def training(dataset_path,
                     modelnet10=True,
                     gen_info_file=f"{rep_logging_dir}/generator_info.json",
                     batch_size=batch_size,
-                    debug_data=True
+                    debug_data=False
                 )
                 test_data = load_preprocessed_modelnet(
                     dataset_path,
@@ -147,7 +147,7 @@ def training(dataset_path,
                     modelnet10=True,
                     gen_info_file=f"{rep_logging_dir}/test_generator_info.json",
                     batch_size=batch_size,
-                    debug_data=True
+                    debug_data=False
                 )
                 save = tf.keras.callbacks.ModelCheckpoint(
                     filepath=f"{rep_logging_dir}/saved_imcnn_{exp_number}.keras",
