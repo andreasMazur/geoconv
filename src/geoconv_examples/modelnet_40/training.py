@@ -78,7 +78,10 @@ def training(dataset_path,
              rotation_delta=1,
              exp_lambda=2.0,
              shift_angular=True,
-             pooling="avg"):
+             pooling="avg",
+             isc_layer_conf=None):
+    if isc_layer_conf is None:
+        isc_layer_conf = [128, 128]
     os.makedirs(logging_dir, exist_ok=True)
     n_radial, n_angular = template_resolution
     training_summary = {}
@@ -110,7 +113,7 @@ def training(dataset_path,
                     rotation_delta=rotation_delta,
                     exp_lambda=exp_lambda,
                     shift_angular=shift_angular,
-                    isc_layer_conf=[128, 128],
+                    isc_layer_conf=isc_layer_conf,
                     pooling=pooling,
                     adapt_data=train_data
                 )
