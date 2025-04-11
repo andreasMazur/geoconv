@@ -33,7 +33,8 @@ class ModelNetClf(tf.keras.Model):
     def __init__(self,
                  n_radial,
                  n_angular,
-                 template_radius,
+                 bc_adapt_data,
+                 template_scale,
                  isc_layer_conf,
                  neighbors_for_lrf=32,
                  projection_neighbors=10,
@@ -46,7 +47,7 @@ class ModelNetClf(tf.keras.Model):
                  radial_bins=2,
                  histogram_bins=6,
                  sphere_radius=0.,
-                 exp_lambda=2.0,
+                 exp_lambda=3.0,
                  shift_angular=True):
         super().__init__()
 
@@ -73,7 +74,13 @@ class ModelNetClf(tf.keras.Model):
             neighbors_for_lrf=neighbors_for_lrf,
             projection_neighbors=projection_neighbors
         )
-        self.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda, shift_angular=shift_angular)
+        # Adapt barycentric coordinates layer to data
+        template_radius = self.bc_layer.adapt(
+            data=bc_adapt_data,
+            template_scale=template_scale,
+            exp_lambda=exp_lambda,
+            shift_angular=shift_angular
+        )
 
         #################
         # EMBEDDING PART

@@ -6,30 +6,29 @@ import tensorflow as tf
 import json
 import gc
 
-TEMPLATE_SCALES = [0.75, 1.0, 1.25]
-RHOS = [(10, 0.2342197448015213), (14, 0.27853941917419434),  (18, 0.3163464069366455)]
 
-
-def model_configuration(neighbors_for_lrf,
-                        projection_neighbors,
-                        n_radial,
+def model_configuration(n_radial,
                         n_angular,
-                        template_radius,
+                        bc_adapt_data,
+                        template_scale,
+                        isc_layer_conf,
+                        neighbors_for_lrf,
+                        projection_neighbors,
                         modelnet10,
                         kernel,
                         rotation_delta,
+                        pooling,
                         exp_lambda,
-                        shift_angular,
-                        isc_layer_conf,
-                        pooling):
+                        shift_angular):
     # Define model
     imcnn = ModelNetClf(
-        neighbors_for_lrf=neighbors_for_lrf,
-        projection_neighbors=projection_neighbors,
         n_radial=n_radial,
         n_angular=n_angular,
-        template_radius=template_radius,
+        bc_adapt_data=bc_adapt_data,
+        template_scale=template_scale,
         isc_layer_conf=isc_layer_conf,
+        neighbors_for_lrf=neighbors_for_lrf,  # Set higher than projection-neighbors
+        projection_neighbors=projection_neighbors,
         modelnet10=modelnet10,
         variant=kernel,
         rotation_delta=rotation_delta,
@@ -68,11 +67,9 @@ def model_configuration(neighbors_for_lrf,
 def training(dataset_path,
              logging_dir,
              template_resolution,
-             neighbors_for_lrf=16,
              batch_size=1,
              kernel=None,
-             rotation_delta=1,
-             exp_lambda=2.0,
+             exp_lambda=3.0,
              shift_angular=True,
              pooling="avg",
              isc_layer_conf=None):
@@ -82,78 +79,98 @@ def training(dataset_path,
     n_radial, n_angular = template_resolution
     training_summary = {}
 
-    for (projection_neighbors, rho) in RHOS:
-        for template_scale in TEMPLATE_SCALES:
-            training_summary[rho * template_scale] = []
-            for repetition in range(5):
-                rep_logging_dir = f"{logging_dir}/{repetition}"
-                os.makedirs(f"{rep_logging_dir}", exist_ok=True)
+    for projection_neighbors in [10, 20, 30, 40, 50, 60]:
+        for template_scale in [0.75, 1.0, 1.25]:
+            for neighbors_for_lrf in [i for i in range(projection_neighbors + 5, 70, 10)]:
+                for rotation_delta in range(1, n_angular):
+                    training_summary[
+                        f"proj_neigh_{projection_neighbors}_"
+                        f"temp_scale_{template_scale}_"
+                        f"neighbors_for_lrf_{neighbors_for_lrf}_"
+                        f"rotation_delta_{rotation_delta}"
+                    ] = []
+                    for repetition in range(1):
+                        rep_logging_dir = f"{logging_dir}/{repetition}"
+                        os.makedirs(f"{rep_logging_dir}", exist_ok=True)
 
-                # Get classification model
-                imcnn = model_configuration(
-                    neighbors_for_lrf=neighbors_for_lrf,
-                    projection_neighbors=projection_neighbors,
-                    n_radial=n_radial,
-                    n_angular=n_angular,
-                    template_radius=rho * template_scale,
-                    modelnet10=True,
-                    kernel=kernel,
-                    rotation_delta=rotation_delta,
-                    exp_lambda=exp_lambda,
-                    shift_angular=shift_angular,
-                    isc_layer_conf=isc_layer_conf,
-                    pooling=pooling
-                )
+                        # Get classification model
+                        imcnn = model_configuration(
+                            n_radial=n_radial,
+                            n_angular=n_angular,
+                            bc_adapt_data=load_preprocessed_modelnet(
+                                dataset_path,
+                                set_type="train",
+                                modelnet10=True,
+                                gen_info_file=f"{rep_logging_dir}/generator_info.json",
+                                batch_size=1,
+                                debug_data=False
+                            ),
+                            template_scale=template_scale,
+                            isc_layer_conf=isc_layer_conf,
+                            neighbors_for_lrf=neighbors_for_lrf,
+                            projection_neighbors=projection_neighbors,
+                            modelnet10=True,
+                            kernel=kernel,
+                            rotation_delta=rotation_delta,
+                            pooling=pooling,
+                            exp_lambda=exp_lambda,
+                            shift_angular=shift_angular
+                        )
 
-                # Define callbacks
-                exp_number = f"{n_radial}_{n_angular}_{template_scale}"
-                csv_file_name = f"{rep_logging_dir}/training_{exp_number}.log"
-                csv = tf.keras.callbacks.CSVLogger(csv_file_name)
-                stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, min_delta=0.01, verbose=True)
-                tb = tf.keras.callbacks.TensorBoard(
-                    log_dir=f"{rep_logging_dir}/tensorboard_{exp_number}",
-                    histogram_freq=1,
-                    write_graph=False,
-                    write_steps_per_second=True,
-                    update_freq="epoch",
-                    profile_batch=(1, 200)
-                )
+                        # Define callbacks
+                        exp_number = f"{n_radial}_{n_angular}_{template_scale}"
+                        csv_file_name = f"{rep_logging_dir}/training_{exp_number}.log"
+                        csv = tf.keras.callbacks.CSVLogger(csv_file_name)
+                        stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, min_delta=0.01, verbose=True)
+                        tb = tf.keras.callbacks.TensorBoard(
+                            log_dir=f"{rep_logging_dir}/tensorboard_{exp_number}",
+                            histogram_freq=1,
+                            write_graph=False,
+                            write_steps_per_second=True,
+                            update_freq="epoch",
+                            profile_batch=(1, 200)
+                        )
 
-                # Load data
-                train_data = load_preprocessed_modelnet(
-                    dataset_path,
-                    set_type="train",
-                    modelnet10=True,
-                    gen_info_file=f"{rep_logging_dir}/generator_info.json",
-                    batch_size=batch_size,
-                    debug_data=False
-                )
-                test_data = load_preprocessed_modelnet(
-                    dataset_path,
-                    set_type="test",
-                    modelnet10=True,
-                    gen_info_file=f"{rep_logging_dir}/test_generator_info.json",
-                    batch_size=batch_size,
-                    debug_data=False
-                )
-                save = tf.keras.callbacks.ModelCheckpoint(
-                    filepath=f"{rep_logging_dir}/saved_imcnn_{exp_number}.keras",
-                    monitor="val_accuracy",
-                    save_best_only=True,
-                    save_freq="epoch"
-                )
+                        # Load data
+                        train_data = load_preprocessed_modelnet(
+                            dataset_path,
+                            set_type="train",
+                            modelnet10=True,
+                            gen_info_file=f"{rep_logging_dir}/generator_info.json",
+                            batch_size=batch_size,
+                            debug_data=False
+                        )
+                        test_data = load_preprocessed_modelnet(
+                            dataset_path,
+                            set_type="test",
+                            modelnet10=True,
+                            gen_info_file=f"{rep_logging_dir}/test_generator_info.json",
+                            batch_size=batch_size,
+                            debug_data=False
+                        )
+                        save = tf.keras.callbacks.ModelCheckpoint(
+                            filepath=f"{rep_logging_dir}/saved_imcnn_{exp_number}.keras",
+                            monitor="val_accuracy",
+                            save_best_only=True,
+                            save_freq="epoch"
+                        )
 
-                # Train model
-                training_history = imcnn.fit(
-                    x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=200
-                )
+                        # Train model
+                        training_history = imcnn.fit(
+                            x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=200
+                        )
 
-                # Collect training statistics
-                training_summary[rho * template_scale].append(max(training_history.history["val_accuracy"]))
+                        # Collect training statistics
+                        training_summary[
+                            f"proj_neigh_{projection_neighbors}_"
+                            f"temp_scale_{template_scale}_"
+                            f"neighbors_for_lrf_{neighbors_for_lrf}_"
+                            f"rotation_delta_{rotation_delta}"
+                        ].append(max(training_history.history["val_accuracy"]))
 
-                # Free memory
-                gc.collect()
-                tf.keras.backend.clear_session()
+                        # Free memory
+                        gc.collect()
+                        tf.keras.backend.clear_session()
 
-            with open(f"{logging_dir}/repetitions_summary.json", "w") as f:
-                json.dump(training_summary, f, indent=4)
+                    with open(f"{logging_dir}/repetitions_summary.json", "w") as f:
+                        json.dump(training_summary, f, indent=4)
