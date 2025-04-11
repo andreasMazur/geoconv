@@ -255,6 +255,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         self.template = None
         self.projection_neighbors = projection_neighbors
         self.neighbors_for_lrf = neighbors_for_lrf
+        self.template_radius = None
 
         if projection_neighbors > neighbors_for_lrf:
             warnings.warn(
@@ -312,10 +313,10 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
                     tf.shape(vertices)[0] == 1
                 ), "Use a batch-size of one for BC-layer adaptation."
 
-                sys.stdout.write(f"\rCurrently at point-cloud {idx}.")
+                sys.stdout.write(f"\rAdapting BC-layer to data. Currently at point-cloud {idx}.")
                 # 0.) Point-cloud normalization
                 if with_normalization:
-                    vertices = normalization_layer(vertices)
+                    vertices, _ = normalization_layer(vertices)
 
                 # 1.) Compute projections
                 projections, _ = self.project(vertices[0])
@@ -345,6 +346,8 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             ),
             dtype=tf.float32,
         )
+        # Remember template radius
+        self.template_radius = template_radius
 
         # Return used template radius
         return template_radius
