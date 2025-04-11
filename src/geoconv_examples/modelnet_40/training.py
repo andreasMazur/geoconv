@@ -83,14 +83,15 @@ def training(dataset_path,
         for template_scale in [0.75, 1.0, 1.25]:
             for neighbors_for_lrf in [i for i in range(projection_neighbors + 5, 70, 10)]:
                 for rotation_delta in range(1, n_angular):
-                    training_summary[
+                    experiment_id = (
                         f"proj_neigh_{projection_neighbors}_"
                         f"temp_scale_{template_scale}_"
                         f"neighbors_for_lrf_{neighbors_for_lrf}_"
                         f"rotation_delta_{rotation_delta}"
-                    ] = []
+                    )
+                    training_summary[experiment_id] = []
                     for repetition in range(1):
-                        rep_logging_dir = f"{logging_dir}/{repetition}"
+                        rep_logging_dir = f"{logging_dir}/{repetition}/{experiment_id}"
                         os.makedirs(f"{rep_logging_dir}", exist_ok=True)
 
                         # Get classification model
@@ -118,12 +119,13 @@ def training(dataset_path,
                         )
 
                         # Define callbacks
-                        exp_number = f"{n_radial}_{n_angular}_{template_scale}"
-                        csv_file_name = f"{rep_logging_dir}/training_{exp_number}.log"
+                        csv_file_name = f"{rep_logging_dir}/{experiment_id}.log"
                         csv = tf.keras.callbacks.CSVLogger(csv_file_name)
-                        stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, min_delta=0.01, verbose=True)
+                        stop = tf.keras.callbacks.EarlyStopping(
+                            monitor="val_loss", patience=20, min_delta=0.01, verbose=True
+                        )
                         tb = tf.keras.callbacks.TensorBoard(
-                            log_dir=f"{rep_logging_dir}/tensorboard_{exp_number}",
+                            log_dir=f"{rep_logging_dir}/tensorboard_{experiment_id}",
                             histogram_freq=1,
                             write_graph=False,
                             write_steps_per_second=True,
@@ -149,7 +151,7 @@ def training(dataset_path,
                             debug_data=False
                         )
                         save = tf.keras.callbacks.ModelCheckpoint(
-                            filepath=f"{rep_logging_dir}/saved_imcnn_{exp_number}.keras",
+                            filepath=f"{rep_logging_dir}/saved_imcnn_{experiment_id}.keras",
                             monitor="val_accuracy",
                             save_best_only=True,
                             save_freq="epoch"
@@ -161,12 +163,7 @@ def training(dataset_path,
                         )
 
                         # Collect training statistics
-                        training_summary[
-                            f"proj_neigh_{projection_neighbors}_"
-                            f"temp_scale_{template_scale}_"
-                            f"neighbors_for_lrf_{neighbors_for_lrf}_"
-                            f"rotation_delta_{rotation_delta}"
-                        ].append(max(training_history.history["val_accuracy"]))
+                        training_summary[experiment_id].append(max(training_history.history["val_accuracy"]))
 
                         # Free memory
                         gc.collect()
