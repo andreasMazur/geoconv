@@ -68,16 +68,6 @@ def hyper_tuning(dataset_path,
 
         imcnn.compile(optimizer=opt, loss=loss, metrics="accuracy", run_eagerly=True)
 
-        # Adapt normalization layer to training data
-        train_data = load_preprocessed_modelnet(
-            dataset_path,
-            set_type="train",
-            modelnet10=True,
-            gen_info_file=f"{logging_dir}/{gen_info_file}",
-            batch_size=batch_size
-        )
-        imcnn.normalize_point_cloud.adapt(train_data)
-
         return imcnn
 
     tuner = kt.BayesianOptimization(
