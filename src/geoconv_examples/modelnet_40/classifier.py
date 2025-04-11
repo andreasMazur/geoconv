@@ -183,7 +183,7 @@ class ModelNetClf(tf.keras.Model):
 
     @classmethod
     def from_config(cls, config, **kwargs):
-        """Re-instantiates the layer from the config dictionary.
+        """Re-instantiates the model from the config dictionary.
 
         Parameters
         ----------
