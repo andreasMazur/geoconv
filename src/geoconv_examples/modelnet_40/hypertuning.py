@@ -22,7 +22,7 @@ def hyper_tuning(dataset_path,
                  radial_bins=2,
                  histogram_bins=6,
                  sphere_radius=0.,
-                 exp_lambda=2.0,
+                 exp_lambda=3.0,
                  shift_angular=True):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
@@ -32,24 +32,23 @@ def hyper_tuning(dataset_path,
     def build_hypermodel(hp):
         # Configure classifier
         imcnn = ModelNetClf(
-            neighbors_for_lrf=neighbors_for_lrf,
-            projection_neighbors=projection_neighbors,
             n_radial=n_radial,
             n_angular=n_angular,
-            template_radius=template_radius,
             isc_layer_conf=isc_layer_conf,
+            template_radius=template_radius,
+            neighbors_for_lrf=neighbors_for_lrf,
+            projection_neighbors=projection_neighbors,
             modelnet10=True,
-            variant=variant,
+            kernel=variant,
             rotation_delta=rotation_delta,
             pooling=pooling,
             azimuth_bins=azimuth_bins,
             elevation_bins=elevation_bins,
             radial_bins=radial_bins,
             histogram_bins=histogram_bins,
-            sphere_radius=sphere_radius,
-            exp_lambda=exp_lambda,
-            shift_angular=shift_angular
+            sphere_radius=sphere_radius
         )
+        imcnn.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda, shift_angular=shift_angular)
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
         lr = 0.0007673139778927575

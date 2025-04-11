@@ -1,3 +1,4 @@
+from geoconv.tensorflow.layers import BarycentricCoordinates
 from geoconv_examples.modelnet_40.classifier import ModelNetClf
 from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 
@@ -20,27 +21,38 @@ def model_configuration(n_radial,
                         pooling,
                         exp_lambda,
                         shift_angular):
+    # Determine template-radius
+    template_radius = BarycentricCoordinates(
+        n_radial=n_radial,
+        n_angular=n_angular,
+        neighbors_for_lrf=neighbors_for_lrf,
+        projection_neighbors=projection_neighbors
+    ).adapt(
+        data=bc_adapt_data,
+        template_scale=template_scale,
+        exp_lambda=exp_lambda,
+        shift_angular=shift_angular
+    ).numpy()
+
     # Define model
     imcnn = ModelNetClf(
         n_radial=n_radial,
         n_angular=n_angular,
-        bc_adapt_data=bc_adapt_data,
-        template_scale=template_scale,
         isc_layer_conf=isc_layer_conf,
+        template_radius=float(template_radius),
         neighbors_for_lrf=neighbors_for_lrf,  # Set higher than projection-neighbors
         projection_neighbors=projection_neighbors,
         modelnet10=modelnet10,
-        variant=kernel,
+        kernel=kernel,
         rotation_delta=rotation_delta,
         pooling=pooling,
         azimuth_bins=8,
         elevation_bins=6,
         radial_bins=2,
         histogram_bins=6,
-        sphere_radius=0.,
-        exp_lambda=exp_lambda,
-        shift_angular=shift_angular
+        sphere_radius=0.
     )
+    imcnn.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda, shift_angular=shift_angular)
 
     # Define loss and optimizer
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")

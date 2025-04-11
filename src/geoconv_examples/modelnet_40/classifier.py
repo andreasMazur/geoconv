@@ -33,22 +33,19 @@ class ModelNetClf(tf.keras.Model):
     def __init__(self,
                  n_radial,
                  n_angular,
-                 bc_adapt_data,
-                 template_scale,
                  isc_layer_conf,
+                 template_radius,
                  neighbors_for_lrf=32,
                  projection_neighbors=10,
                  modelnet10=False,
-                 variant=None,
+                 kernel=None,
                  rotation_delta=1,
                  pooling="avg",
                  azimuth_bins=8,
                  elevation_bins=6,
                  radial_bins=2,
                  histogram_bins=6,
-                 sphere_radius=0.,
-                 exp_lambda=3.0,
-                 shift_angular=True):
+                 sphere_radius=0.):
         super().__init__()
 
         #############
@@ -58,65 +55,72 @@ class ModelNetClf(tf.keras.Model):
         self.normalize_point_cloud = NormalizePointCloud()
 
         # For initial vertex signals
+        self.neighbors_for_lrf = neighbors_for_lrf
+        self.azimuth_bins = azimuth_bins
+        self.elevation_bins = elevation_bins
+        self.radial_bins = radial_bins
+        self.histogram_bins = histogram_bins
+        self.sphere_radius = sphere_radius
         self.shot_descriptor = PointCloudShotDescriptor(
-            neighbors_for_lrf=neighbors_for_lrf,
-            azimuth_bins=azimuth_bins,
-            elevation_bins=elevation_bins,
-            radial_bins=radial_bins,
-            histogram_bins=histogram_bins,
-            sphere_radius=sphere_radius,
+            neighbors_for_lrf=self.neighbors_for_lrf,
+            azimuth_bins=self.azimuth_bins,
+            elevation_bins=self.elevation_bins,
+            radial_bins=self.radial_bins,
+            histogram_bins=self.histogram_bins,
+            sphere_radius=self.sphere_radius,
         )
 
         # Init barycentric coordinates layer
+        self.n_radial = n_radial
+        self.n_angular = n_angular
+        self.projection_neighbors = projection_neighbors
         self.bc_layer = BarycentricCoordinates(
-            n_radial=n_radial,
-            n_angular=n_angular,
-            neighbors_for_lrf=neighbors_for_lrf,
-            projection_neighbors=projection_neighbors
-        )
-        # Adapt barycentric coordinates layer to data
-        template_radius = self.bc_layer.adapt(
-            data=bc_adapt_data,
-            template_scale=template_scale,
-            exp_lambda=exp_lambda,
-            shift_angular=shift_angular
+            n_radial=self.n_radial,
+            n_angular=self.n_angular,
+            neighbors_for_lrf=self.neighbors_for_lrf,
+            projection_neighbors=self.projection_neighbors
         )
 
         #################
         # EMBEDDING PART
         #################
         # Determine which layer type shall be used
-        assert variant in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
+        self.kernel = kernel
+        assert self.kernel in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
 
         # Define embedding architecture
-        self.gravity_pooling_layers = []
+        self.isc_layer_conf = isc_layer_conf
+        self.rotation_delta = rotation_delta
+        self.template_radius = template_radius
         self.isc_layers = []
         self.dropout = SpatialDropout(rate=0.3)
-        for idx, _ in enumerate(isc_layer_conf):
+        for idx, _ in enumerate(self.isc_layer_conf):
             self.isc_layers.append(
                 ResNetBlock(
-                    amt_templates=isc_layer_conf[idx],
-                    template_radius=template_radius,
-                    rotation_delta=rotation_delta,
-                    conv_type=variant,
+                    amt_templates=self.isc_layer_conf[idx],
+                    template_radius=self.template_radius,
+                    rotation_delta=self.rotation_delta,
+                    conv_type=self.kernel,
                     activation="relu",
-                    input_dim=-1 if idx == 0 else isc_layer_conf[idx - 1]
+                    input_dim=-1 if idx == 0 else self.isc_layer_conf[idx - 1]
                 )
             )
 
         ######################
         # CLASSIFICATION PART
         ######################
-        assert pooling in ["cov", "max", "avg"], "Please set your pooling to either 'cov', 'max' or 'avg'."
-        if pooling == "cov":
+        self.pooling = pooling
+        assert self.pooling in ["cov", "max", "avg"], "Please set your pooling to either 'cov', 'max' or 'avg'."
+        if self.pooling == "cov":
             self.pool = Covariance()
-        elif pooling == "avg":
+        elif self.pooling == "avg":
             self.pool = tf.keras.layers.GlobalAvgPool1D(data_format="channels_last")
         else:
             self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
 
         # Define classification head
-        self.output_dim = 10 if modelnet10 else 40
+        self.modelnet10 = modelnet10
+        self.output_dim = 10 if self.modelnet10 else 40
         self.clf = tf.keras.models.Sequential([
             tf.keras.layers.Dense(units=128, activation="relu"),
             tf.keras.layers.Dense(units=self.output_dim, activation="linear"),
@@ -146,3 +150,50 @@ class ModelNetClf(tf.keras.Model):
 
         # Return classification of point-cloud descriptor
         return self.clf(signal)
+
+    def get_config(self):
+        """Get the configuration dictionary.
+
+        Returns
+        -------
+        dict:
+            The configuration dictionary.
+        """
+        config = super(ModelNetClf, self).get_config()
+        config.update(
+            {
+                "n_radial": self.n_radial,
+                "n_angular": self.n_angular,
+                "isc_layer_conf": self.isc_layer_conf,
+                "template_radius": self.template_radius,
+                "neighbors_for_lrf": self.neighbors_for_lrf,
+                "projection_neighbors": self.projection_neighbors,
+                "modelnet10": self.modelnet10,
+                "kernel": self.kernel,
+                "rotation_delta": self.rotation_delta,
+                "pooling": self.pooling,
+                "azimuth_bins": self.azimuth_bins,
+                "elevation_bins": self.elevation_bins,
+                "radial_bins": self.radial_bins,
+                "histogram_bins": self.histogram_bins,
+                "sphere_radius": self.sphere_radius
+            }
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config, **kwargs):
+        """Re-instantiates the layer from the config dictionary.
+
+        Parameters
+        ----------
+        **kwargs
+        config: dict
+            The configuration dictionary.
+
+        Returns
+        -------
+        ConvIntrinsic:
+            The layer.
+        """
+        return cls(**config)
