@@ -89,18 +89,29 @@ def training(dataset_path,
         isc_layer_conf = [128, 128]
     os.makedirs(logging_dir, exist_ok=True)
     n_radial, n_angular = template_resolution
-    training_summary = {}
+
+    # Initialize training summary
+    repetitions_summary_path = f"{logging_dir}/repetitions_summary.json"
+    if os.path.isfile(repetitions_summary_path):
+        training_summary = json.load(open(f"{logging_dir}/repetitions_summary.json", "r"))
+    else:
+        training_summary = {}
 
     for projection_neighbors in [10, 20, 30, 40, 50, 60]:
         for template_scale in [0.75, 1.0, 1.25]:
             for neighbors_for_lrf in [i for i in range(projection_neighbors + 5, 70, 10)]:
                 for rotation_delta in range(1, n_angular):
+                    # TODO: Add repetition number to experiment ID
                     experiment_id = (
                         f"proj_neigh_{projection_neighbors}_"
                         f"temp_scale_{template_scale}_"
                         f"neighbors_for_lrf_{neighbors_for_lrf}_"
                         f"rotation_delta_{rotation_delta}"
                     )
+                    # Skip experiment if it's already stored in training summary
+                    if experiment_id in training_summary.keys():
+                        continue
+
                     training_summary[experiment_id] = []
                     for repetition in range(1):
                         rep_logging_dir = f"{logging_dir}/{repetition}/{experiment_id}"
@@ -181,5 +192,5 @@ def training(dataset_path,
                         gc.collect()
                         tf.keras.backend.clear_session()
 
-                    with open(f"{logging_dir}/repetitions_summary.json", "w") as f:
+                    with open(repetitions_summary_path, "w") as f:
                         json.dump(training_summary, f, indent=4)
