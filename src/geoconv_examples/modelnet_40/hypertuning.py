@@ -52,12 +52,11 @@ def hyper_tuning(dataset_path,
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
         lr = 0.0007673139778927575
-        lr_decay = 0.76942
         opt = tf.keras.optimizers.AdamW(
             learning_rate=WarmupAndExpDecay(
                 initial_learning_rate=hp.Float("initial_lr", min_value=lr / 2, max_value=lr * 2.),
                 decay_steps=2461,
-                decay_rate=hp.Float("lr_decay", min_value=lr_decay / 2, max_value=1.0),
+                decay_rate=hp.Float("lr_decay", min_value=0.5, max_value=1.0),
                 warmup_steps=2461
             ),
             weight_decay=0.019081993138727875,  # hp.Float("weight_decay", min_value=0.0, max_value=1.0),
