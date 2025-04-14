@@ -84,7 +84,11 @@ def training(dataset_path,
              exp_lambda=3.0,
              shift_angular=True,
              pooling="avg",
-             isc_layer_conf=None):
+             isc_layer_conf=None,
+             projection_neighbor_list=None,
+             coefficient_list=None,
+             neighbors_for_lrf_list=None,
+             rotation_delta_list=None):
     if isc_layer_conf is None:
         isc_layer_conf = [128, 128]
     os.makedirs(logging_dir, exist_ok=True)
@@ -97,10 +101,20 @@ def training(dataset_path,
     else:
         training_summary = {}
 
-    for projection_neighbors in [10, 20, 30, 40, 50, 60]:
-        for template_scale in [0.75, 1.0, 1.25]:
-            for neighbors_for_lrf in [i for i in range(projection_neighbors + 5, 70, 10)]:
-                for rotation_delta in range(1, n_angular):
+    # Initialize default testing-values
+    if projection_neighbor_list is None:
+        projection_neighbor_list = [10, 20, 30, 40, 50, 60]
+    if coefficient_list is None:
+        coefficient_list = [0.75, 1.0, 1.25]
+    if rotation_delta_list is None:
+        rotation_delta_list = list(range(1, n_angular))
+
+    for projection_neighbors in projection_neighbor_list:
+        if neighbors_for_lrf_list is None:
+            neighbors_for_lrf_list = [i for i in range(projection_neighbors + 5, 70, 10)]
+        for template_scale in coefficient_list:
+            for neighbors_for_lrf in neighbors_for_lrf_list:
+                for rotation_delta in rotation_delta_list:
                     # TODO: Add repetition number to experiment ID
                     experiment_id = (
                         f"proj_neigh_{projection_neighbors}_"
