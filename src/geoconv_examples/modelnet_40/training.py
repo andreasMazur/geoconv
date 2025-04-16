@@ -103,7 +103,7 @@ def training(dataset_path,
 
     # Initialize default testing-values
     if projection_neighbor_list is None:
-        projection_neighbor_list = [10, 20, 30, 40, 50, 60]
+        projection_neighbor_list = [8, 16, 24, 32]
     if coefficient_list is None:
         coefficient_list = [0.75, 1.0, 1.25]
     if rotation_delta_list is None:
@@ -111,7 +111,7 @@ def training(dataset_path,
 
     for projection_neighbors in projection_neighbor_list:
         if neighbors_for_lrf_list is None:
-            neighbors_for_lrf_list = [i for i in range(projection_neighbors + 5, 70, 10)]
+            neighbors_for_lrf_list = [i for i in range(projection_neighbors, 40, 8)]
         for template_scale in coefficient_list:
             for neighbors_for_lrf in neighbors_for_lrf_list:
                 for rotation_delta in rotation_delta_list:
