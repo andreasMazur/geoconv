@@ -77,6 +77,13 @@ def shot_lrf(neighborhoods, radii):
      description.](https://doi.org/10.1016/j.cviu.2014.04.011)
     > Salti, Samuele, Federico Tombari, and Luigi Di Stefano.
 
+    The z-axis (point-normals) can be by:
+        'returned_tensor[..., 0]'
+    ... the y-axis by:
+        'returned_tensor[..., 1]'
+    ... the x-axis by:
+        'returned_tensor[..., 2]'
+
     Parameters
     ----------
     neighborhoods: tf.Tensor
@@ -199,31 +206,5 @@ def knn_shot_lrf(k_neighbors, vertices, repetitions=4):
     # 2.) Get local reference frames
     # 'lrfs': (vertices, 3, 3)
     lrfs = shot_lrf(neighborhoods, radii)
-
-    # 3.) Make normal vectors point away from centroid (outwards from shape)
-    signs = -tf.cast(
-        tf.einsum("vi,vi->v", lrfs[..., 0], tf.reduce_mean(vertices, axis=0) - vertices)
-        >= 0,
-        tf.int32,
-    )
-    signs = signs + tf.cast(signs == 0, tf.int32)
-    normals = tf.expand_dims(tf.cast(signs, tf.float32), axis=-1) * lrfs[..., 0]
-    lrfs = tf.stack([normals, lrfs[..., 1], lrfs[..., 2]], axis=-1)
-
-    # 4.) Make normal vectors in neighborhoods point the same direction
-    # (non-convex shapes -> "outwards" might differ locally)
-    for rep in range(repetitions):
-        normals = tf.gather(lrfs[..., 0], neighborhood_indices[:, 1:])
-        signs = -tf.cast(
-            tf.reduce_sum(
-                tf.cast(tf.einsum("vi,vni->vn", lrfs[..., 0], normals) >= 0, tf.int32),
-                axis=-1,
-            )
-            <= tf.math.floordiv(k_neighbors, 2),
-            tf.int32,
-        )
-        signs = signs + tf.cast(signs == 0, tf.int32)
-        normals = tf.expand_dims(tf.cast(signs, tf.float32), axis=-1) * lrfs[..., 0]
-        lrfs = tf.stack([normals, lrfs[..., 1], lrfs[..., 2]], axis=-1)
 
     return lrfs, neighborhoods, neighborhood_indices
