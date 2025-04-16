@@ -106,7 +106,7 @@ def create_all_triangles(projections):
     # Filter out invalid combinations (where i < j < k)
     triangle_indices = tf.where(tf.logical_and((I < J), (J < K)))
 
-    # 'index_tensor': (n_vertices, `n_neighbors over 3`, 3, 2)
+    # 'triangles': (n_vertices, `n_neighbors over 3`, 3, 2)
     triangles = tf.gather(
         projections,
         tf.tile(triangle_indices[None, ...], (p_shape[0], 1, 1)),
