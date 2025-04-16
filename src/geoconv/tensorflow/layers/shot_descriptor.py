@@ -34,7 +34,7 @@ class PointCloudShotDescriptor(tf.keras.layers.Layer):
         if self.sphere_radius > 0.0:
             return shot_descr(
                 neighborhoods=neighborhoods,
-                normals=lrfs[:, :, 0],
+                normals=lrfs[..., 0],
                 neighborhood_indices=neighborhoods_indices,
                 radius=self.sphere_radius,
                 azimuth_bins=self.azimuth_bins,
@@ -45,7 +45,7 @@ class PointCloudShotDescriptor(tf.keras.layers.Layer):
         else:
             return shot_descr(
                 neighborhoods=neighborhoods,
-                normals=lrfs[:, :, 0],
+                normals=lrfs[..., 0],
                 neighborhood_indices=neighborhoods_indices,
                 radius=tf.reduce_max(tf.linalg.norm(neighborhoods, axis=-1)),
                 azimuth_bins=self.azimuth_bins,
