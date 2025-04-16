@@ -192,7 +192,7 @@ def compute_neighborhood(vertices, k_neighbors):
 
 
 @tf.function(jit_compile=True)
-def knn_shot_lrf(k_neighbors, vertices, repetitions=4):
+def knn_shot_lrf(k_neighbors, vertices):
     # 1.) Compute neighborhoods
     neighborhoods, neighborhood_indices, radii = compute_neighborhood(
         vertices[None, ...], k_neighbors
