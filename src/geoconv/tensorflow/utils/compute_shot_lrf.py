@@ -138,7 +138,7 @@ def logarithmic_map(lrfs, neighborhoods):
         within the tangent plane. Euclidean distance are preserved and used as an approximate to geodesic distances.
     """
     # Get tangent plane normals (z-axes of lrfs)
-    normals = lrfs[:, 0, :]
+    normals = lrfs[..., 0]
 
     # Compute tangent plane projections (logarithmic map)
     scaled_normals = (
@@ -147,14 +147,12 @@ def logarithmic_map(lrfs, neighborhoods):
     projections = neighborhoods - scaled_normals
 
     # Basis change of neighborhoods into lrf coordinates
-    projections = tf.einsum(
-        "vij,vnj->vni", tf.linalg.inv(tf.transpose(lrfs, perm=[0, 2, 1])), projections
-    )[:, :, 1:]
+    projections = tf.einsum("vij,vnj->vni", tf.linalg.inv(lrfs), projections)[:, :, 1:]
 
     # Use 'projection / adjacent * hypotenuse' as estimate to geodesic distance
-    adj, hy = tf.linalg.norm(projections, axis=-1), tf.linalg.norm(
-        neighborhoods, axis=-1
-    )
+    adj = tf.linalg.norm(projections, axis=-1)
+    hy = tf.linalg.norm(neighborhoods, axis=-1)
+
     zero_indices = tf.where(adj == 0.0)
     adj = tf.tensor_scatter_nd_update(
         adj, zero_indices, tf.ones((tf.shape(zero_indices)[0],))
