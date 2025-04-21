@@ -124,7 +124,9 @@ def training(dataset_path,
                     )
                     # Skip experiment if it's already stored in training summary
                     if experiment_id in training_summary.keys():
+                        print(f"Experiment '{experiment_id}' already done, skipping...")
                         continue
+                    print(f"Running experiment: '{experiment_id}'...")
 
                     training_summary[experiment_id] = []
                     for repetition in range(1):
