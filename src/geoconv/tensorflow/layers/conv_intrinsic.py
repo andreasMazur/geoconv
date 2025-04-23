@@ -114,6 +114,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
                 self._template_size[0],
                 self._template_size[1],
                 radius=self.template_radius,
+                in_cart=False
             )
         )
         self._all_rotations = self._template_size[1]
@@ -230,7 +231,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         else:
             return interpolations
 
-    @tf.function
+    # @tf.function
     def _signal_pullback(self, mesh_signal, barycentric_coordinates):
         """Interpolates signals at template vertices
 
@@ -284,7 +285,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         ----------
         template_matrix: np.ndarray
             An array of size [n_radial, n_angular, 2], which contains the positions of the template vertices in
-            cartesian coordinates.
+            polar coordinates.
 
         Returns
         -------
