@@ -16,7 +16,9 @@ class WarmupAndExpDecay(tf.keras.optimizers.schedules.LearningRateSchedule):
 
     def __call__(self, step):
         if step >= self.warmup_steps:
-            return self.initial_learning_rate * self.decay_rate ** ((step - self.warmup_steps) / self.decay_steps)
+            return self.initial_learning_rate * self.decay_rate ** (
+                (step - self.warmup_steps) / self.decay_steps
+            )
         else:
             return step / self.warmup_steps * self.initial_learning_rate
 
@@ -25,27 +27,29 @@ class WarmupAndExpDecay(tf.keras.optimizers.schedules.LearningRateSchedule):
             "initial_learning_rate": self.initial_learning_rate,
             "decay_rate": self.decay_rate,
             "decay_steps": self.decay_steps,
-            "warmup_steps": self.warmup_steps
+            "warmup_steps": self.warmup_steps,
         }
 
 
 class ModelNetClf(tf.keras.Model):
-    def __init__(self,
-                 n_radial,
-                 n_angular,
-                 isc_layer_conf,
-                 template_radius,
-                 neighbors_for_lrf=32,
-                 projection_neighbors=10,
-                 modelnet10=False,
-                 kernel=None,
-                 rotation_delta=1,
-                 pooling="avg",
-                 azimuth_bins=8,
-                 elevation_bins=6,
-                 radial_bins=2,
-                 histogram_bins=6,
-                 sphere_radius=0.):
+    def __init__(
+        self,
+        n_radial,
+        n_angular,
+        isc_layer_conf,
+        template_radius,
+        neighbors_for_lrf=32,
+        projection_neighbors=10,
+        modelnet10=False,
+        kernel=None,
+        rotation_delta=1,
+        pooling="avg",
+        azimuth_bins=8,
+        elevation_bins=6,
+        radial_bins=2,
+        histogram_bins=6,
+        sphere_radius=0.0,
+    ):
         super().__init__()
 
         #############
@@ -78,7 +82,7 @@ class ModelNetClf(tf.keras.Model):
             n_radial=self.n_radial,
             n_angular=self.n_angular,
             neighbors_for_lrf=self.neighbors_for_lrf,
-            projection_neighbors=self.projection_neighbors
+            projection_neighbors=self.projection_neighbors,
         )
 
         #################
@@ -86,7 +90,11 @@ class ModelNetClf(tf.keras.Model):
         #################
         # Determine which layer type shall be used
         self.kernel = kernel
-        assert self.kernel in ["dirac", "geodesic"], "Please choose a layer type from: ['dirac', 'geodesic']."
+        assert self.kernel in [
+            "dirac",
+            "geodesic",
+            "zero",
+        ], "Please choose a layer type from: ['dirac', 'geodesic', 'zero']."
 
         # Define embedding architecture
         self.isc_layer_conf = isc_layer_conf
@@ -102,7 +110,7 @@ class ModelNetClf(tf.keras.Model):
                     rotation_delta=self.rotation_delta,
                     conv_type=self.kernel,
                     activation="relu",
-                    input_dim=-1 if idx == 0 else self.isc_layer_conf[idx - 1]
+                    input_dim=-1 if idx == 0 else self.isc_layer_conf[idx - 1],
                 )
             )
 
@@ -110,7 +118,11 @@ class ModelNetClf(tf.keras.Model):
         # CLASSIFICATION PART
         ######################
         self.pooling = pooling
-        assert self.pooling in ["cov", "max", "avg"], "Please set your pooling to either 'cov', 'max' or 'avg'."
+        assert self.pooling in [
+            "cov",
+            "max",
+            "avg",
+        ], "Please set your pooling to either 'cov', 'max' or 'avg'."
         if self.pooling == "cov":
             self.pool = Covariance()
         elif self.pooling == "avg":
@@ -121,10 +133,12 @@ class ModelNetClf(tf.keras.Model):
         # Define classification head
         self.modelnet10 = modelnet10
         self.output_dim = 10 if self.modelnet10 else 40
-        self.clf = tf.keras.models.Sequential([
-            tf.keras.layers.Dense(units=128, activation="relu"),
-            tf.keras.layers.Dense(units=self.output_dim, activation="linear"),
-        ])
+        self.clf = tf.keras.models.Sequential(
+            [
+                tf.keras.layers.Dense(units=128, activation="relu"),
+                tf.keras.layers.Dense(units=self.output_dim, activation="linear"),
+            ]
+        )
 
     def call(self, inputs, **kwargs):
         # Normalize point-cloud
@@ -176,7 +190,7 @@ class ModelNetClf(tf.keras.Model):
                 "elevation_bins": self.elevation_bins,
                 "radial_bins": self.radial_bins,
                 "histogram_bins": self.histogram_bins,
-                "sphere_radius": self.sphere_radius
+                "sphere_radius": self.sphere_radius,
             }
         )
         return config

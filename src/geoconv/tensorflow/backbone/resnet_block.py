@@ -1,4 +1,4 @@
-from geoconv.tensorflow.layers import ConvDirac
+from geoconv.tensorflow.layers import ConvDirac, ConvZero
 from geoconv.tensorflow.layers import ConvGeodesic
 from geoconv.tensorflow.layers import AngularMaxPooling
 
@@ -20,8 +20,14 @@ class ResNetBlock(tf.keras.Model):
         assert conv_type in [
             "dirac",
             "geodesic",
-        ], "Please choose a layer type from: ['dirac', 'geodesic']."
-        self.layer_type = ConvGeodesic if conv_type == "geodesic" else ConvDirac
+            "zero",
+        ], "Please choose a layer type from: ['dirac', 'geodesic', 'zero']."
+        if conv_type == "zero":
+            self.layer_type = ConvZero
+        elif conv_type == "geodesic":
+            self.layer_type = ConvGeodesic
+        else:
+            self.layer_type = ConvDirac
 
         # block 1
         self.conv1 = self.layer_type(
