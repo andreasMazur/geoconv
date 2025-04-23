@@ -3,6 +3,7 @@ from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
 from abc import ABC, abstractmethod
 
 import tensorflow as tf
+import numpy as np
 
 
 class ConvIntrinsic(ABC, tf.keras.layers.Layer):
@@ -33,6 +34,8 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         include_prior=True,
         activation="relu",
         rotation_delta=1,
+        exp_lambda=1.0,
+        shift_angular=False,
         *args,
         **kwargs,
     ):
@@ -43,6 +46,8 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         self.include_prior = include_prior
         self.activation = activation
         self.rotation_delta = rotation_delta
+        self.exp_lambda = exp_lambda
+        self.shift_angular = shift_angular
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = tf.keras.layers.Activation(self.activation)
@@ -114,7 +119,9 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
                 self._template_size[0],
                 self._template_size[1],
                 radius=self.template_radius,
-                in_cart=False
+                in_cart=False,
+                exp_lambda=self.exp_lambda,
+                shift_angular=self.shift_angular
             )
         )
         self._all_rotations = self._template_size[1]
@@ -231,7 +238,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         else:
             return interpolations
 
-    # @tf.function
+    @tf.function
     def _signal_pullback(self, mesh_signal, barycentric_coordinates):
         """Interpolates signals at template vertices
 
@@ -247,29 +254,24 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         tensorflow.Tensor:
             Interpolation values for the template vertices
         """
-        # Get vertex indices from BC-tensor
-        vertex_indices = tf.reshape(
-            tf.cast(barycentric_coordinates[:, :, :, :, :, 0], tf.int32),
-            (-1, tf.reduce_prod(tf.shape(barycentric_coordinates)[1:-1]), 1),
+        # n_batch, n_vertices, n_radial, n_angular, 3, 2
+        bc_shape = tf.shape(barycentric_coordinates)
+
+        # (n_batch, n_vertices * n_radial * n_angular * 3)
+        barycentric_coordinates_indices = tf.cast(
+            tf.reshape(barycentric_coordinates[..., 0], (bc_shape[0], -1)), tf.int32
         )
 
-        # Use retrieved vertex indices to gather vertex signals required for interpolation
+        # (n_batch, n_vertices * n_radial * n_angular * 3, input_dim)
+        mesh_signal = tf.gather(mesh_signal, barycentric_coordinates_indices, batch_dims=1)
+
+        # (n_batch, n_vertices, n_radial, n_angular, 3, input_dim)
         mesh_signal = tf.reshape(
-            tf.gather_nd(mesh_signal, vertex_indices, batch_dims=1),
-            (
-                -1,
-                tf.shape(barycentric_coordinates)[1],
-                self._template_size[0],
-                self._template_size[1],
-                3,
-                self._feature_dim,
-            ),
+            mesh_signal, (bc_shape[0], bc_shape[1], bc_shape[2], bc_shape[3], 3, self._feature_dim)
         )
-        # (batch_shapes, vertices, n_radial, n_angular, input_dim)
-        return tf.math.reduce_sum(
-            tf.expand_dims(barycentric_coordinates[:, :, :, :, :, 1], axis=-1) * mesh_signal,
-            axis=-2,
-        )
+
+        # (n_batch, n_vertices, n_radial, n_angular, input_dim)
+        return tf.reduce_sum(tf.expand_dims(barycentric_coordinates[..., 1], axis=-1) * mesh_signal, axis=-2)
 
     def _configure_kernel(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
