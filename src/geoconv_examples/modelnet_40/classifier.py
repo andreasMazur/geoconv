@@ -1,6 +1,6 @@
 from geoconv.tensorflow.backbone import Covariance
-from geoconv.tensorflow.backbone import ResNetBlock
-from geoconv.tensorflow.layers import BarycentricCoordinates, SpatialDropout
+from geoconv.tensorflow.layers import BarycentricCoordinates, SpatialDropout, ConvZero, ConvGeodesic, ConvDirac, \
+    AngularMaxPooling
 from geoconv.tensorflow.layers import NormalizePointCloud
 from geoconv.tensorflow.layers import PointCloudShotDescriptor
 
@@ -44,6 +44,8 @@ class ModelNetClf(tf.keras.Model):
         kernel=None,
         rotation_delta=1,
         pooling="avg",
+        exp_lambda=1.0,
+        shift_angular=True,
         azimuth_bins=8,
         elevation_bins=6,
         radial_bins=2,
@@ -95,22 +97,36 @@ class ModelNetClf(tf.keras.Model):
             "geodesic",
             "zero",
         ], "Please choose a layer type from: ['dirac', 'geodesic', 'zero']."
+        if self.kernel == "zero":
+            self.layer_type = ConvZero
+        elif self.kernel == "geodesic":
+            self.layer_type = ConvGeodesic
+        else:
+            self.layer_type = ConvDirac
 
         # Define embedding architecture
         self.isc_layer_conf = isc_layer_conf
         self.rotation_delta = rotation_delta
         self.template_radius = template_radius
+        self.exp_lambda = exp_lambda
+        self.shift_angular = shift_angular
         self.isc_layers = []
         self.dropout = SpatialDropout(rate=0.3)
         for idx, _ in enumerate(self.isc_layer_conf):
             self.isc_layers.append(
-                ResNetBlock(
-                    amt_templates=self.isc_layer_conf[idx],
-                    template_radius=self.template_radius,
-                    rotation_delta=self.rotation_delta,
-                    conv_type=self.kernel,
-                    activation="relu",
-                    input_dim=-1 if idx == 0 else self.isc_layer_conf[idx - 1],
+                tf.keras.models.Sequential(
+                    [
+                        self.layer_type(
+                            amt_templates=self.isc_layer_conf[idx],
+                            template_radius=self.template_radius,
+                            rotation_delta=self.rotation_delta,
+                            activation="relu",
+                            exp_lambda=self.exp_lambda,
+                            shift_angular=self.shift_angular,
+                        ),
+                        AngularMaxPooling()
+                    ],
+                    name=f"isc_layer_{idx}",
                 )
             )
 
@@ -135,7 +151,7 @@ class ModelNetClf(tf.keras.Model):
         self.output_dim = 10 if self.modelnet10 else 40
         self.clf = tf.keras.models.Sequential(
             [
-                tf.keras.layers.Dense(units=128, activation="relu"),
+                # tf.keras.layers.Dense(units=128, activation="relu"),
                 tf.keras.layers.Dense(units=self.output_dim, activation="linear"),
             ]
         )

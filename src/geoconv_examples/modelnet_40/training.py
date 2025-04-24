@@ -46,6 +46,8 @@ def model_configuration(n_radial,
         kernel=kernel,
         rotation_delta=rotation_delta,
         pooling=pooling,
+        exp_lambda=exp_lambda,
+        shift_angular=shift_angular,
         azimuth_bins=8,
         elevation_bins=6,
         radial_bins=2,
@@ -58,7 +60,7 @@ def model_configuration(n_radial,
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
     opt = tf.keras.optimizers.AdamW(
         learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=0.0007673139778927575,
+            initial_learning_rate=0.0007673139778927575 * 10,
             decay_steps=2461,
             decay_rate=0.7080237438158256,
             staircase=False
