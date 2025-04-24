@@ -164,7 +164,8 @@ def logarithmic_map(lrfs, neighborhoods):
     # Rescale projections to their original Euclidean distances
     projections = projections / adj[..., None] * hy[..., None]
 
-    return projections
+    # Prevent numerical issues of too small projections by scaling them such that mean over all projections equals 1
+    return projections / tf.reduce_mean(projections)
 
 
 @tf.function(jit_compile=True)

@@ -163,8 +163,10 @@ def compute_interpolation_weights(template, projections):
     barycentric_coordinates = compute_interpolation_coefficients(triangles, template)
 
     # 'negative_mask': (n_vertices, n_radial, n_angular, `n_neighbors over 3`)
+    # 'negative_mask[v, r, a, t]': True if barycentric coordinates of triangle 't' for template vertex '(r, a)'
+    # are within [0, 1] and triangle 't' meets Delaunay condition (considering projections around vertex 'v')
     bc_condition = tf.math.reduce_any(
-        tf.logical_or(barycentric_coordinates > 1.0, barycentric_coordinates < 0.0),
+        tf.logical_or(barycentric_coordinates >= 1., barycentric_coordinates <= 0.),
         axis=-1,
     )
     negative_mask = tf.logical_or(delaunay_condition[:, None, None, :], bc_condition)
