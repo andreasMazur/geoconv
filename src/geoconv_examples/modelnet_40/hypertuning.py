@@ -96,7 +96,7 @@ def hyper_tuning(dataset_path,
 
     # Start hyperparameter tuning
     stop = tf.keras.callbacks.EarlyStopping(monitor="val_accuracy", patience=5, min_delta=0.001)
-    tuner.search(x=train_data, validation_data=test_data, epochs=25, callbacks=[stop])
+    tuner.search(x=train_data, validation_data=test_data, epochs=50, callbacks=[stop])
 
     # Print best hyperparameters
     best_hp = tuner.get_best_hyperparameters()[0]
