@@ -55,7 +55,7 @@ def hyper_tuning(dataset_path,
             learning_rate=WarmupAndExpDecay(
                 initial_learning_rate=hp.Float("initial_lr", min_value=0.0004, max_value=0.004),
                 decay_steps=2461,
-                decay_rate=hp.Float("lr_decay", min_value=0.8, max_value=1.0),
+                decay_rate=hp.Float("lr_decay", min_value=0.65, max_value=1.0),
                 warmup_steps=2461
             ),
             weight_decay=0.019081993138727875,  # hp.Float("weight_decay", min_value=0.0, max_value=1.0),
