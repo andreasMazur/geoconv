@@ -163,7 +163,7 @@ def training(dataset_path,
                         csv_file_name = f"{rep_logging_dir}/{experiment_id}.log"
                         csv = tf.keras.callbacks.CSVLogger(csv_file_name)
                         stop = tf.keras.callbacks.EarlyStopping(
-                            monitor="val_loss", patience=20, min_delta=0.01, verbose=True
+                            monitor="val_loss", patience=50, min_delta=0.01, verbose=True
                         )
                         tb = tf.keras.callbacks.TensorBoard(
                             log_dir=f"{rep_logging_dir}/tensorboard_{experiment_id}",
