@@ -94,23 +94,25 @@ def training(dataset_path,
              neighbors_for_lrf_list=None,
              rotation_delta_list=None,
              n_repetitions=3):
+    # Create logging dir
+    os.makedirs(logging_dir, exist_ok=True)
+
+    # Initialize training summary
+    repetitions_summary_path = f"{logging_dir}/repetitions_summary.json"
+    if os.path.isfile(repetitions_summary_path):
+        training_summary = json.load(open(f"{logging_dir}/repetitions_summary.json", "r"))
+    else:
+        training_summary = {}
+
+    if isc_layer_conf is None:
+        isc_layer_conf = [32, 32]
+    n_radial, n_angular = template_resolution
+
     for repetition in range(n_repetitions):
         # Set seeds
         np.random.seed(repetition)
         tf.random.set_seed(repetition)
         random.seed(repetition)
-
-        if isc_layer_conf is None:
-            isc_layer_conf = [32, 32]
-        os.makedirs(logging_dir, exist_ok=True)
-        n_radial, n_angular = template_resolution
-
-        # Initialize training summary
-        repetitions_summary_path = f"{logging_dir}/repetitions_summary.json"
-        if os.path.isfile(repetitions_summary_path):
-            training_summary = json.load(open(f"{logging_dir}/repetitions_summary.json", "r"))
-        else:
-            training_summary = {}
 
         # Set path to generator info file
         gen_info_path = f"{logging_dir}/{repetition}"
