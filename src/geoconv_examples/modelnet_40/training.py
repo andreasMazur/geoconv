@@ -109,11 +109,6 @@ def training(dataset_path,
     n_radial, n_angular = template_resolution
 
     for repetition in range(n_repetitions):
-        # Set seeds
-        np.random.seed(repetition)
-        tf.random.set_seed(repetition)
-        random.seed(repetition)
-
         # Set path to generator info file
         gen_info_path = f"{logging_dir}/{repetition}"
 
@@ -148,6 +143,11 @@ def training(dataset_path,
 
                         rep_logging_dir = f"{logging_dir}/{repetition}/{experiment_id}"
                         os.makedirs(f"{rep_logging_dir}", exist_ok=True)
+
+                        # Set seeds
+                        np.random.seed(repetition)
+                        tf.random.set_seed(repetition)
+                        random.seed(repetition)
 
                         # Get classification model
                         imcnn = model_configuration(
