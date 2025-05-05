@@ -92,53 +92,58 @@ def training(dataset_path,
              projection_neighbor_list=None,
              coefficient_list=None,
              neighbors_for_lrf_list=None,
-             rotation_delta_list=None):
-    # Set seeds
-    np.random.seed(42)
-    tf.random.set_seed(42)
-    random.seed(42)
+             rotation_delta_list=None,
+             n_repetitions=3):
+    for repetition in range(n_repetitions):
+        # Set seeds
+        np.random.seed(repetition)
+        tf.random.set_seed(repetition)
+        random.seed(repetition)
 
-    if isc_layer_conf is None:
-        isc_layer_conf = [128, 128]
-    os.makedirs(logging_dir, exist_ok=True)
-    n_radial, n_angular = template_resolution
+        if isc_layer_conf is None:
+            isc_layer_conf = [32, 32]
+        os.makedirs(logging_dir, exist_ok=True)
+        n_radial, n_angular = template_resolution
 
-    # Initialize training summary
-    repetitions_summary_path = f"{logging_dir}/repetitions_summary.json"
-    if os.path.isfile(repetitions_summary_path):
-        training_summary = json.load(open(f"{logging_dir}/repetitions_summary.json", "r"))
-    else:
-        training_summary = {}
+        # Initialize training summary
+        repetitions_summary_path = f"{logging_dir}/repetitions_summary.json"
+        if os.path.isfile(repetitions_summary_path):
+            training_summary = json.load(open(f"{logging_dir}/repetitions_summary.json", "r"))
+        else:
+            training_summary = {}
 
-    # Initialize default testing-values
-    if projection_neighbor_list is None:
-        projection_neighbor_list = [8, 16, 24, 32]
-    if coefficient_list is None:
-        coefficient_list = [0.75, 1.0, 1.25]
-    if rotation_delta_list is None:
-        rotation_delta_list = list(range(1, n_angular))
+        # Set path to generator info file
+        gen_info_path = f"{logging_dir}/{repetition}"
 
-    for projection_neighbors in projection_neighbor_list:
-        if neighbors_for_lrf_list is None:
-            neighbors_for_lrf_list = [i for i in range(projection_neighbors, 20, 4)]
-        for template_scale in coefficient_list:
-            for neighbors_for_lrf in neighbors_for_lrf_list:
-                for rotation_delta in rotation_delta_list:
-                    # TODO: Add repetition number to experiment ID
-                    experiment_id = (
-                        f"proj_neigh_{projection_neighbors}_"
-                        f"temp_scale_{template_scale}_"
-                        f"neighbors_for_lrf_{neighbors_for_lrf}_"
-                        f"rotation_delta_{rotation_delta}"
-                    )
-                    # Skip experiment if it's already stored in training summary
-                    if experiment_id in training_summary.keys():
-                        print(f"Experiment '{experiment_id}' already done, skipping...")
-                        continue
-                    print(f"Running experiment: '{experiment_id}'...")
+        # Initialize default testing-values
+        if projection_neighbor_list is None:
+            projection_neighbor_list = [8, 16, 24, 32]
+        if coefficient_list is None:
+            coefficient_list = [0.75, 1.0, 1.25]
+        if rotation_delta_list is None:
+            rotation_delta_list = list(range(1, n_angular))
 
-                    training_summary[experiment_id] = []
-                    for repetition in range(1):
+        for projection_neighbors in projection_neighbor_list:
+            if neighbors_for_lrf_list is None:
+                neighbors_for_lrf_list = [i for i in range(projection_neighbors, 20, 4)]
+            for template_scale in coefficient_list:
+                for neighbors_for_lrf in neighbors_for_lrf_list:
+                    for rotation_delta in rotation_delta_list:
+                        experiment_id = (
+                            f"repetition_{repetition}_"
+                            f"proj_neigh_{projection_neighbors}_"
+                            f"temp_scale_{template_scale}_"
+                            f"neighbors_for_lrf_{neighbors_for_lrf}_"
+                            f"rotation_delta_{rotation_delta}"
+                        )
+                        # Skip experiment if it's already stored in training summary
+                        if experiment_id in training_summary.keys():
+                            print(f"Experiment '{experiment_id}' already done, skipping...")
+                            continue
+                        print(f"Running experiment: '{experiment_id}'...")
+
+                        training_summary[experiment_id] = []
+
                         rep_logging_dir = f"{logging_dir}/{repetition}/{experiment_id}"
                         os.makedirs(f"{rep_logging_dir}", exist_ok=True)
 
@@ -150,7 +155,7 @@ def training(dataset_path,
                                 dataset_path,
                                 set_type="train",
                                 modelnet10=True,
-                                gen_info_file=f"{rep_logging_dir}/generator_info.json",
+                                gen_info_file=f"{gen_info_path}/generator_info.json",
                                 batch_size=1,
                                 debug_data=False
                             ),
@@ -186,7 +191,7 @@ def training(dataset_path,
                             dataset_path,
                             set_type="train",
                             modelnet10=True,
-                            gen_info_file=f"{rep_logging_dir}/generator_info.json",
+                            gen_info_file=f"{gen_info_path}/generator_info.json",
                             batch_size=batch_size,
                             debug_data=False
                         )
@@ -194,7 +199,7 @@ def training(dataset_path,
                             dataset_path,
                             set_type="test",
                             modelnet10=True,
-                            gen_info_file=f"{rep_logging_dir}/test_generator_info.json",
+                            gen_info_file=f"{gen_info_path}/test_generator_info.json",
                             batch_size=batch_size,
                             debug_data=False
                         )
@@ -217,5 +222,5 @@ def training(dataset_path,
                         gc.collect()
                         tf.keras.backend.clear_session()
 
-                    with open(repetitions_summary_path, "w") as f:
-                        json.dump(training_summary, f, indent=4)
+                        with open(repetitions_summary_path, "w") as f:
+                            json.dump(training_summary, f, indent=4)
