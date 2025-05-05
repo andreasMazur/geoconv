@@ -113,7 +113,7 @@ def training(dataset_path,
 
     for projection_neighbors in projection_neighbor_list:
         if neighbors_for_lrf_list is None:
-            neighbors_for_lrf_list = [i for i in range(projection_neighbors, 40, 8)]
+            neighbors_for_lrf_list = [i for i in range(projection_neighbors, 20, 4)]
         for template_scale in coefficient_list:
             for neighbors_for_lrf in neighbors_for_lrf_list:
                 for rotation_delta in rotation_delta_list:
@@ -163,7 +163,7 @@ def training(dataset_path,
                         csv_file_name = f"{rep_logging_dir}/{experiment_id}.log"
                         csv = tf.keras.callbacks.CSVLogger(csv_file_name)
                         stop = tf.keras.callbacks.EarlyStopping(
-                            monitor="val_loss", patience=50, min_delta=0.01, verbose=True
+                            monitor="val_loss", patience=25, min_delta=0.01, verbose=True
                         )
                         tb = tf.keras.callbacks.TensorBoard(
                             log_dir=f"{rep_logging_dir}/tensorboard_{experiment_id}",
