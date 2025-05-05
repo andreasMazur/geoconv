@@ -117,7 +117,7 @@ def training(dataset_path,
 
         # Initialize default testing-values
         if projection_neighbor_list is None:
-            projection_neighbor_list = [8, 16, 24, 32]
+            projection_neighbor_list = [8, 12, 16]
         if coefficient_list is None:
             coefficient_list = [0.75, 1.0, 1.25]
         if rotation_delta_list is None:
