@@ -6,6 +6,8 @@ import os
 import tensorflow as tf
 import json
 import gc
+import numpy as np
+import random
 
 
 def model_configuration(n_radial,
@@ -91,6 +93,11 @@ def training(dataset_path,
              coefficient_list=None,
              neighbors_for_lrf_list=None,
              rotation_delta_list=None):
+    # Set seeds
+    np.random.seed(42)
+    tf.random.set_seed(42)
+    random.seed(42)
+
     if isc_layer_conf is None:
         isc_layer_conf = [128, 128]
     os.makedirs(logging_dir, exist_ok=True)
