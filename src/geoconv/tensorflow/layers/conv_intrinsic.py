@@ -271,8 +271,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         )
 
         # (n_batch, n_vertices, n_radial, n_angular, input_dim)
-        # return tf.reduce_sum(tf.expand_dims(barycentric_coordinates[..., 1], axis=-1) * mesh_signal, axis=-2)
-        return tf.reduce_max(mesh_signal, axis=-2)
+        return tf.reduce_sum(tf.expand_dims(barycentric_coordinates[..., 1], axis=-1) * mesh_signal, axis=-2)
 
     def _configure_kernel(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
