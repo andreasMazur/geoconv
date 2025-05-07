@@ -50,9 +50,9 @@ def model_configuration(n_radial,
         pooling=pooling,
         exp_lambda=exp_lambda,
         shift_angular=shift_angular,
-        azimuth_bins=8,
-        elevation_bins=6,
-        radial_bins=2,
+        azimuth_bins=4,
+        elevation_bins=4,
+        radial_bins=3,
         histogram_bins=6,
         sphere_radius=0.
     )
