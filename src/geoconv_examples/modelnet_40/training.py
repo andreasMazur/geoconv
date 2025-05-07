@@ -155,7 +155,7 @@ def training(dataset_path,
                                 dataset_path,
                                 set_type="train",
                                 modelnet10=True,
-                                gen_info_file=gen_info_file,
+                                gen_info_file=f"{gen_info_file}_train.json",
                                 batch_size=1,
                                 debug_data=False
                             ),
@@ -191,7 +191,7 @@ def training(dataset_path,
                             dataset_path,
                             set_type="train",
                             modelnet10=True,
-                            gen_info_file=gen_info_file,
+                            gen_info_file=f"{gen_info_file}_train.json",
                             batch_size=batch_size,
                             debug_data=False
                         )
@@ -199,7 +199,7 @@ def training(dataset_path,
                             dataset_path,
                             set_type="test",
                             modelnet10=True,
-                            gen_info_file=gen_info_file,
+                            gen_info_file=f"{gen_info_file}_test.json",
                             batch_size=batch_size,
                             debug_data=False
                         )
