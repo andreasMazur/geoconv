@@ -83,6 +83,7 @@ def model_configuration(n_radial,
 def training(dataset_path,
              logging_dir,
              template_resolution,
+             gen_info_file,
              batch_size=1,
              kernel=None,
              exp_lambda=3.0,
@@ -109,9 +110,6 @@ def training(dataset_path,
     n_radial, n_angular = template_resolution
 
     for repetition in range(n_repetitions):
-        # Set path to generator info file
-        gen_info_path = f"{logging_dir}/{repetition}"
-
         # Initialize default testing-values
         if projection_neighbor_list is None:
             projection_neighbor_list = [8, 12, 16]
@@ -157,7 +155,7 @@ def training(dataset_path,
                                 dataset_path,
                                 set_type="train",
                                 modelnet10=True,
-                                gen_info_file=f"{gen_info_path}/generator_info.json",
+                                gen_info_file=gen_info_file,
                                 batch_size=1,
                                 debug_data=False
                             ),
@@ -193,7 +191,7 @@ def training(dataset_path,
                             dataset_path,
                             set_type="train",
                             modelnet10=True,
-                            gen_info_file=f"{gen_info_path}/generator_info.json",
+                            gen_info_file=gen_info_file,
                             batch_size=batch_size,
                             debug_data=False
                         )
@@ -201,7 +199,7 @@ def training(dataset_path,
                             dataset_path,
                             set_type="test",
                             modelnet10=True,
-                            gen_info_file=f"{gen_info_path}/test_generator_info.json",
+                            gen_info_file=gen_info_file,
                             batch_size=batch_size,
                             debug_data=False
                         )
