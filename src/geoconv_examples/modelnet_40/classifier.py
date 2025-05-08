@@ -1,6 +1,12 @@
 from geoconv.tensorflow.backbone import Covariance
-from geoconv.tensorflow.layers import BarycentricCoordinates, SpatialDropout, ConvZero, ConvGeodesic, ConvDirac, \
+from geoconv.tensorflow.layers import (
+    BarycentricCoordinates,
+    SpatialDropout,
+    ConvZero,
+    ConvGeodesic,
+    ConvDirac,
     AngularMaxPooling
+)
 from geoconv.tensorflow.layers import NormalizePointCloud
 from geoconv.tensorflow.layers import PointCloudShotDescriptor
 
@@ -226,4 +232,6 @@ class ModelNetClf(tf.keras.Model):
         ConvIntrinsic:
             The layer.
         """
-        return cls(**config)
+        model = cls(**config)
+        model.bc_layer.adapt(template_radius=config["template_radius"])
+        return model

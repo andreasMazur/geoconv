@@ -422,3 +422,41 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             projections[:, : self.projection_neighbors, :],
             neighborhoods_indices[:, : self.projection_neighbors],
         )
+
+    def get_config(self):
+        """Get the configuration dictionary.
+
+        Returns
+        -------
+        dict:
+            The configuration dictionary.
+        """
+        config = super(BarycentricCoordinates, self).get_config()
+        config.update(
+            {
+                "n_radial": self.n_radial,
+                "n_angular": self.n_angular,
+                "projection_neighbors": self.projection_neighbors,
+                "neighbors_for_lrf": self.neighbors_for_lrf,
+                "template_radius": self.template_radius
+            }
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        """Create a new instance of the layer from its configuration dictionary.
+
+        Parameters
+        ----------
+        config: dict
+            The configuration dictionary.
+
+        Returns
+        -------
+        BarycentricCoordinates:
+            An instance of the layer.
+        """
+        bc_layer = cls(**config)
+        bc_layer.adapt(config["template_radius"])
+        return bc_layer
