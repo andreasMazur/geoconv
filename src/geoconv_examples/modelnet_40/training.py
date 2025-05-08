@@ -50,10 +50,10 @@ def model_configuration(n_radial,
         pooling=pooling,
         exp_lambda=exp_lambda,
         shift_angular=shift_angular,
-        azimuth_bins=3,
-        elevation_bins=3,
-        radial_bins=3,
-        histogram_bins=3,
+        azimuth_bins=8,
+        elevation_bins=6,
+        radial_bins=2,
+        histogram_bins=6,
         sphere_radius=0.
     )
     imcnn.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda, shift_angular=shift_angular)
