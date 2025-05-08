@@ -458,5 +458,5 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             An instance of the layer.
         """
         bc_layer = cls(**config)
-        bc_layer.adapt(config["template_radius"])
+        bc_layer.adapt(template_radius=config["template_radius"])
         return bc_layer
