@@ -55,7 +55,8 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         self._all_rotations = None
         self._template_size = None  # (#radial, #angular)
         self._template_vertices = None
-        self._template_neighbor_weights = None
+        self._radial_weights = None
+        self._angular_weights = None
         self._template_self_weights = None
         self._kernel = None
         self._feature_dim = None
@@ -130,17 +131,13 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         # Configure trainable weights
         self._radial_weights = self.add_weight(
             name="radial_weights",
-            shape=(signal_shape[-1], self._template_size[0]),
+            shape=(self.amt_templates, signal_shape[-1], self._template_size[0]),
             trainable=True,
         )
         self._angular_weights = self.add_weight(
             name="angular_weights",
-            shape=(signal_shape[-1], self._template_size[1]),
+            shape=(self.amt_templates, signal_shape[-1], self._template_size[1]),
             trainable = True,
-        )
-        self._projection_weights = self.add_weight(
-            name="projection_weights",
-            shape=(signal_shape[-1], self.amt_templates)
         )
 
         self._template_self_weights = self.add_weight(
@@ -199,21 +196,21 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
                 start=0, limit=self._all_rotations, delta=self.rotation_delta
             )
 
-        # Aggregate distance information
-        # Interpolations : (batch_shapes, vertices, n_radial, n_angular, input_dim)
-        # Radial weights : (input_dim, n_radial)
-        # Result         : (batch_shapes, vertices, input_dim, n_angular)
-        interpolations = tf.einsum("bvraf,fr->bvfa", interpolations, self._radial_weights)
+        # Aggregate distance information:
+        # interpolations : (batch_shapes, vertices, n_radial, n_angular, input_dim)
+        # radial_weights : (n_templates, input_dim, n_radial)
+        # ============================================================================
+        # Result         : (batch_shapes, vertices, n_templates, input_dim, n_angular)
+        interpolations = tf.einsum("bvraf,ofr->bvofa", interpolations, self._radial_weights)
 
+        # Aggregate angular information:
         def fold_neighbor(o):
-            # Projection weights : (input_dim, templates)
-            # Angular weights    : (input_dim, n_angular)
-            # Interpolations     : (batch_shapes, vertices, input_dim, n_angular)
+            # Angular weights    : (n_templates, input_dim, n_angular)
+            # Interpolations     : (batch_shapes, vertices, n_templates, input_dim, n_angular)
             # ==============================================================================
             # Result             : (batch_shapes, vertices, templates)
             return tf.einsum(
-                "ft,fa,bvfa->bvt",
-                self._projection_weights,
+                "tfa,bvtfa->bvt",
                 self._angular_weights,
                 tf.roll(interpolations, shift=o, axis=-1)
             )
