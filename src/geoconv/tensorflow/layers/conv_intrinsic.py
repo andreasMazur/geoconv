@@ -128,16 +128,21 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         self._feature_dim = signal_shape[-1]
 
         # Configure trainable weights
-        self._template_neighbor_weights = self.add_weight(
-            name="neighbor_weights",
-            shape=(
-                self.amt_templates,
-                self._template_size[0],
-                self._template_size[1],
-                signal_shape[-1],
-            ),
+        self._radial_weights = self.add_weight(
+            name="radial_weights",
+            shape=(signal_shape[-1], self._template_size[0]),
             trainable=True,
         )
+        self._angular_weights = self.add_weight(
+            name="angular_weights",
+            shape=(signal_shape[-1], self._template_size[1]),
+            trainable = True,
+        )
+        self._projection_weights = self.add_weight(
+            name="projection_weights",
+            shape=(signal_shape[-1], self.amt_templates)
+        )
+
         self._template_self_weights = self.add_weight(
             name="center_weights",
             shape=(self.amt_templates, 1, signal_shape[-1]),
@@ -194,14 +199,23 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
                 start=0, limit=self._all_rotations, delta=self.rotation_delta
             )
 
+        # Aggregate distance information
+        # Interpolations : (batch_shapes, vertices, n_radial, n_angular, input_dim)
+        # Radial weights : (input_dim, n_radial)
+        # Result         : (batch_shapes, vertices, input_dim, n_angular)
+        interpolations = tf.einsum("bvraf,fr->bvfa", interpolations, self._radial_weights)
+
         def fold_neighbor(o):
-            # Weight              : (templates, radial, angular, input_dim)
-            # Mesh interpolations : (batch_shapes, vertices, radial, angular, input_dim)
-            # Result              : (batch_shapes, vertices, templates)
+            # Projection weights : (input_dim, templates)
+            # Angular weights    : (input_dim, n_angular)
+            # Interpolations     : (batch_shapes, vertices, input_dim, n_angular)
+            # ==============================================================================
+            # Result             : (batch_shapes, vertices, templates)
             return tf.einsum(
-                "traf,skraf->skt",
-                self._template_neighbor_weights,
-                tf.roll(interpolations, shift=o, axis=-2),
+                "ft,fa,bvfa->bvt",
+                self._projection_weights,
+                self._angular_weights,
+                tf.roll(interpolations, shift=o, axis=-1)
             )
 
         # conv_neighbor: (batch_shapes, vertices, n_rotations, templates)
