@@ -22,7 +22,12 @@ def model_configuration(n_radial,
                         rotation_delta,
                         pooling,
                         exp_lambda,
-                        shift_angular):
+                        shift_angular,
+                        azimuth_bins=8,
+                        elevation_bins=6,
+                        radial_bins=2,
+                        histogram_bins=6,
+                        sphere_radius=0.):
     # Determine template-radius
     template_radius = BarycentricCoordinates(
         n_radial=n_radial,
@@ -50,11 +55,11 @@ def model_configuration(n_radial,
         pooling=pooling,
         exp_lambda=exp_lambda,
         shift_angular=shift_angular,
-        azimuth_bins=8,
-        elevation_bins=6,
-        radial_bins=2,
-        histogram_bins=6,
-        sphere_radius=0.
+        azimuth_bins=azimuth_bins,
+        elevation_bins=elevation_bins,
+        radial_bins=radial_bins,
+        histogram_bins=histogram_bins,
+        sphere_radius=sphere_radius
     )
     imcnn.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda, shift_angular=shift_angular)
 
@@ -94,7 +99,12 @@ def training(dataset_path,
              coefficient_list=None,
              neighbors_for_lrf_list=None,
              rotation_delta_list=None,
-             n_repetitions=3):
+             n_repetitions=3,
+             azimuth_bins=8,
+             elevation_bins=6,
+             radial_bins=2,
+             histogram_bins=6,
+             sphere_radius=0.):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -168,7 +178,12 @@ def training(dataset_path,
                             rotation_delta=rotation_delta,
                             pooling=pooling,
                             exp_lambda=exp_lambda,
-                            shift_angular=shift_angular
+                            shift_angular=shift_angular,
+                            azimuth_bins=azimuth_bins,
+                            elevation_bins=elevation_bins,
+                            radial_bins=radial_bins,
+                            histogram_bins=histogram_bins,
+                            sphere_radius=sphere_radius
                         )
 
                         # Define callbacks
