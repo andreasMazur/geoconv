@@ -4,7 +4,9 @@ from geoconv.utils.visualization import draw_gpc_on_mesh, draw_gpc_triangles
 
 from io import BytesIO
 from tqdm import tqdm
+from collections import defaultdict
 
+import fnmatch
 import zipfile
 import trimesh
 import numpy as np
@@ -295,16 +297,12 @@ def preprocessed_shape_generator(
     zip_file = safe_zip_loading(zipfile_path)
 
     # Load shapes (shapes have to be in a folder with a 'preprocess_properties.json'-file)
-    preprocessed_shapes = [
-        "/".join(fn.split("/")[:-1])
-        for fn in zip_file.files
-        if "preprocess_properties.json" in fn
-    ]
+    preprocessed_shapes = [p.removesuffix("/preprocess_properties.json") for p in fnmatch.filter(zip_file.files, "**/preprocess_properties.json")]
 
     # Sort shape directories
     if sorting_key is None:
         def sorting_key(file_name):
-            return file_name.split("/")[-1]
+            return file_name.rsplit("/", 1)[-1]
 
     preprocessed_shapes.sort(key=sorting_key)
 
@@ -315,30 +313,21 @@ def preprocessed_shape_generator(
             sfp_dict = json.load(gen_info_fd)
         shape_file_paths = [psf for psf in sfp_dict.values()]
     else:
-
-        def check_path(path):
-            for f in filter_list:
-                if re.search(f, path) is not None:
-                    return True
-            return False
-
+        preprocessed_shapes_tuple = tuple(preprocessed_shapes)
         # Iterate over shape's data and collect with filters
-        shape_file_paths = []
-        for shape_dir_content in tqdm(
-            preprocessed_shapes, postfix="Preparing generator.."
-        ):
-            shape_file_paths.append(
-                [x for x in zip_file.files if shape_dir_content in x and check_path(x)]
-            )
-        shape_file_paths = list(filter(lambda x: x != [], shape_file_paths))
+        compiled_filter_list = [re.compile(f) for f in filter_list]
 
-        # Apply user-defined directive on file-dictionary
-        sfp_dict = {}
-        for sfp in shape_file_paths:
-            sfp_dict["/".join(sfp[0].split("/")[:-1])] = sfp
+        sfp_dict = defaultdict(list)
+        [sfp_dict[path.rsplit("/", 1)[0]].append(path) 
+         for path in tqdm(zip_file.files, postfix="Preparing generator..")
+         if path.startswith(preprocessed_shapes_tuple)
+         and any(compiled_filter.search(path) for compiled_filter in compiled_filter_list)
+        ]
+
         if directive is not None:
             sfp_dict = directive(sfp_dict)
-            shape_file_paths = [psf for psf in sfp_dict.values()]
+        shape_file_paths = list(sfp_dict.values())
+        print(len(shape_file_paths), " shapes found.")
 
         # Shuffle shapes
         if shuffle_seed is not None:
