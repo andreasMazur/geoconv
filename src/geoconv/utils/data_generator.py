@@ -297,10 +297,14 @@ def preprocessed_shape_generator(
     zip_file = safe_zip_loading(zipfile_path)
 
     # Load shapes (shapes have to be in a folder with a 'preprocess_properties.json'-file)
-    preprocessed_shapes = [p.removesuffix("/preprocess_properties.json") for p in fnmatch.filter(zip_file.files, "**/preprocess_properties.json")]
+    preprocessed_shapes = [
+        p.removesuffix("/preprocess_properties.json")
+        for p in fnmatch.filter(zip_file.files, "**/preprocess_properties.json")
+    ]
 
     # Sort shape directories
     if sorting_key is None:
+
         def sorting_key(file_name):
             return file_name.rsplit("/", 1)[-1]
 
@@ -318,10 +322,13 @@ def preprocessed_shape_generator(
         compiled_filter_list = [re.compile(f) for f in filter_list]
 
         sfp_dict = defaultdict(list)
-        [sfp_dict[path.rsplit("/", 1)[0]].append(path) 
-         for path in tqdm(zip_file.files, postfix="Preparing generator..")
-         if path.startswith(preprocessed_shapes_tuple)
-         and any(compiled_filter.search(path) for compiled_filter in compiled_filter_list)
+        [
+            sfp_dict[path.rsplit("/", 1)[0]].append(path)
+            for path in tqdm(zip_file.files, postfix="Preparing generator..")
+            if path.startswith(preprocessed_shapes_tuple)
+            and any(
+                compiled_filter.search(path) for compiled_filter in compiled_filter_list
+            )
         ]
 
         if directive is not None:
