@@ -28,7 +28,8 @@ def model_configuration(n_radial,
                         radial_bins=2,
                         histogram_bins=6,
                         sphere_radius=0.,
-                        l1_reg_strength=0.):
+                        l1_reg_strength=0.,
+                        l2_reg_strength=0.):
     # Determine template-radius
     template_radius = BarycentricCoordinates(
         n_radial=n_radial,
@@ -61,20 +62,20 @@ def model_configuration(n_radial,
         radial_bins=radial_bins,
         histogram_bins=histogram_bins,
         sphere_radius=sphere_radius,
-        l1_reg_strength=l1_reg_strength
+        l1_reg_strength=l1_reg_strength,
+        l2_reg_strength=l2_reg_strength
     )
     imcnn.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda, shift_angular=shift_angular)
 
     # Define loss and optimizer
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
-    opt = tf.keras.optimizers.AdamW(
+    opt = tf.keras.optimizers.Adam(
         learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate=0.0020618479317126375,
             decay_steps=2461,
             decay_rate=0.8762837040974372,
             staircase=False
-        ),
-        weight_decay=0.019081993138727875
+        )
     )
 
     # Compile the model
@@ -107,7 +108,8 @@ def training(dataset_path,
              radial_bins=2,
              histogram_bins=6,
              sphere_radius=0.,
-             l1_reg_strength=0.0):
+             l1_reg_strength=0.0,
+             l2_reg_strength=0.0):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -187,7 +189,8 @@ def training(dataset_path,
                             radial_bins=radial_bins,
                             histogram_bins=histogram_bins,
                             sphere_radius=sphere_radius,
-                            l1_reg_strength=l1_reg_strength
+                            l1_reg_strength=l1_reg_strength,
+                            l2_reg_strength=l2_reg_strength
                         )
 
                         # Define callbacks
