@@ -27,7 +27,8 @@ def model_configuration(n_radial,
                         elevation_bins=6,
                         radial_bins=2,
                         histogram_bins=6,
-                        sphere_radius=0.):
+                        sphere_radius=0.,
+                        l1_reg_strength=0.):
     # Determine template-radius
     template_radius = BarycentricCoordinates(
         n_radial=n_radial,
@@ -59,7 +60,8 @@ def model_configuration(n_radial,
         elevation_bins=elevation_bins,
         radial_bins=radial_bins,
         histogram_bins=histogram_bins,
-        sphere_radius=sphere_radius
+        sphere_radius=sphere_radius,
+        l1_reg_strength=l1_reg_strength
     )
     imcnn.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda, shift_angular=shift_angular)
 
@@ -104,7 +106,8 @@ def training(dataset_path,
              elevation_bins=6,
              radial_bins=2,
              histogram_bins=6,
-             sphere_radius=0.):
+             sphere_radius=0.,
+             l1_reg_strength=0.0):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -183,7 +186,8 @@ def training(dataset_path,
                             elevation_bins=elevation_bins,
                             radial_bins=radial_bins,
                             histogram_bins=histogram_bins,
-                            sphere_radius=sphere_radius
+                            sphere_radius=sphere_radius,
+                            l1_reg_strength=l1_reg_strength
                         )
 
                         # Define callbacks

@@ -36,6 +36,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         rotation_delta=1,
         exp_lambda=1.0,
         shift_angular=False,
+        l1_reg_strength=0.0,
         *args,
         **kwargs,
     ):
@@ -48,6 +49,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         self.rotation_delta = rotation_delta
         self.exp_lambda = exp_lambda
         self.shift_angular = shift_angular
+        self.l1_reg_strength = l1_reg_strength
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = tf.keras.layers.Activation(self.activation)
@@ -137,7 +139,8 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         self._angular_weights = self.add_weight(
             name="angular_weights",
             shape=(self.amt_templates, signal_shape[-1], self._template_size[1]),
-            trainable = True,
+            trainable=True,
+            regularizer=tf.keras.regularizers.L1(l1=self.l1_reg_strength)
         )
 
         self._template_self_weights = self.add_weight(

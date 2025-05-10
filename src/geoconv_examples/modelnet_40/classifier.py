@@ -57,6 +57,7 @@ class ModelNetClf(tf.keras.Model):
         radial_bins=2,
         histogram_bins=6,
         sphere_radius=0.0,
+        l1_reg_strength=0.0,
     ):
         super().__init__()
 
@@ -129,6 +130,7 @@ class ModelNetClf(tf.keras.Model):
                             activation="relu",
                             exp_lambda=self.exp_lambda,
                             shift_angular=self.shift_angular,
+                            l1_reg_strength=l1_reg_strength
                         ),
                         AngularMaxPooling()
                     ],
