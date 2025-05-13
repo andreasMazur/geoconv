@@ -58,7 +58,8 @@ class ModelNetClf(tf.keras.Model):
         histogram_bins=6,
         sphere_radius=0.0,
         l1_reg_strength=0.0,
-        l2_reg_strength=0.0
+        l2_reg_strength=0.0,
+        dropout_rate=0.0
     ):
         super().__init__()
 
@@ -119,7 +120,8 @@ class ModelNetClf(tf.keras.Model):
         self.exp_lambda = exp_lambda
         self.shift_angular = shift_angular
         self.isc_layers = []
-        self.dropout = SpatialDropout(rate=0.3)
+        self.dropout_rate = dropout_rate
+        self.dropout = SpatialDropout(rate=self.dropout_rate)
         for idx, _ in enumerate(self.isc_layer_conf):
             self.isc_layers.append(
                 tf.keras.models.Sequential(
