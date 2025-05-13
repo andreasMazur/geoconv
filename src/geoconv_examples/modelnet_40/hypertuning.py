@@ -23,7 +23,8 @@ def hyper_tuning(dataset_path,
                  histogram_bins=6,
                  sphere_radius=0.,
                  exp_lambda=3.0,
-                 shift_angular=True):
+                 shift_angular=True,
+                 dropout_rate=0.0):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -48,7 +49,8 @@ def hyper_tuning(dataset_path,
             histogram_bins=histogram_bins,
             sphere_radius=sphere_radius,
             l1_reg_strength=hp.Float("l1_reg", min_value=0.0001, max_value=0.1),
-            l2_reg_strength=0.0
+            l2_reg_strength=0.0,
+            dropout_rate=dropout_rate
         )
         imcnn.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda, shift_angular=shift_angular)
 
