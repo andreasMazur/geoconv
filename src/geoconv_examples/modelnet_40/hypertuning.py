@@ -48,22 +48,22 @@ def hyper_tuning(dataset_path,
             histogram_bins=histogram_bins,
             sphere_radius=sphere_radius,
             l1_reg_strength=hp.Float("l1_reg", min_value=0.0001, max_value=0.1),
-            l2_reg_strength=hp.Float("l2_reg", min_value=0.0, max_value=0.1)
+            l2_reg_strength=0.0
         )
         imcnn.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda, shift_angular=shift_angular)
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
         opt = tf.keras.optimizers.Adam(
-            learning_rate=WarmupAndExpDecay(
-                initial_learning_rate=hp.Float("initial_lr", min_value=0.0004, max_value=0.004),
-                decay_steps=998,
-                decay_rate=hp.Float("lr_decay", min_value=0.65, max_value=1.0),
-                warmup_steps=998
-            ),
+            learning_rate=hp.Float("initial_lr", min_value=0.0001, max_value=0.01),
+            # learning_rate=WarmupAndExpDecay(
+            #     initial_learning_rate=hp.Float("initial_lr", min_value=0.0004, max_value=0.004),
+            #     decay_steps=998,
+            #     decay_rate=hp.Float("lr_decay", min_value=0.65, max_value=1.0),
+            #     warmup_steps=998
+            # ),
             beta_1=0.9,
             beta_2=0.999
         )
-
         imcnn.compile(optimizer=opt, loss=loss, metrics="accuracy", run_eagerly=True)
 
         return imcnn
