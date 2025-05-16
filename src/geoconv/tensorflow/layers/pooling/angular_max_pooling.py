@@ -21,5 +21,5 @@ class AngularMaxPooling(keras.layers.Layer):
         tensorflow.Tensor:
             A three-dimensional tensor of size (batch_shapes, n_vertices, feature_dim).
         """
-        # return tf.reduce_max(inputs, axis=-2)
-        return tf.gather(inputs, tf.argmax(tf.linalg.norm(inputs, ord="euclidean", axis=-1), axis=-1), batch_dims=2)
+        return tf.reduce_max(inputs, axis=-2)
+        # return tf.gather(inputs, tf.argmax(tf.linalg.norm(inputs, ord="euclidean", axis=-1), axis=-1), batch_dims=2)
