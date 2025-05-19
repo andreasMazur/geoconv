@@ -171,7 +171,7 @@ class ModelNetClf(tf.keras.Model):
     def call(self, inputs, **kwargs):
         # Normalize point-cloud
         coordinates = inputs
-        coordinates, aabb = self.normalize_point_cloud(coordinates)
+        coordinates, _ = self.normalize_point_cloud(coordinates)
 
         # Compute barycentric coordinates from 3D coordinates
         bc = self.bc_layer(coordinates)
@@ -186,9 +186,6 @@ class ModelNetClf(tf.keras.Model):
 
         # Pool local surface descriptors into global point-cloud descriptor
         signal = self.pool(signal)
-
-        # Add bounding box information to shape descriptor
-        signal = tf.concat([signal, aabb], axis=-1)
 
         # Return classification of point-cloud descriptor
         return self.clf(signal)
