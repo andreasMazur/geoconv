@@ -29,7 +29,7 @@ def training(dataset_path,
              radial_bins=2,
              histogram_bins=6,
              sphere_radius=0.,
-             l1_reg_strength=0.0,
+             l1_reg_strength=0.03701103775417488,
              l2_reg_strength=0.0,
              dropout_rate=0.0):
     # Create logging dir
@@ -125,12 +125,13 @@ def training(dataset_path,
                             from_logits=True, reduction="sum_over_batch_size"
                         )
                         opt = tf.keras.optimizers.Adam(
-                            learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-                                initial_learning_rate=0.0020618479317126375,
-                                decay_steps=2461,
-                                decay_rate=0.8762837040974372,
-                                staircase=False
-                            )
+                            learning_rate=0.003851085713706044
+                            # learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
+                            #     initial_learning_rate=0.0020618479317126375,
+                            #     decay_steps=2461,
+                            #     decay_rate=0.8762837040974372,
+                            #     staircase=False
+                            # )
                         )
 
                         # Compile the model
