@@ -1,4 +1,3 @@
-from geoconv.tensorflow.layers import BarycentricCoordinates
 from geoconv_examples.modelnet_40.classifier import ModelNetClf
 from geoconv_examples.modelnet_40.dataset import load_preprocessed_modelnet
 
