@@ -28,35 +28,45 @@ def hyper_tuning(dataset_path,
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
-    n_radial, n_angular, template_radius = template_configuration
+    n_radial, n_angular = template_configuration
 
     def build_hypermodel(hp):
         # Configure classifier
         imcnn = ModelNetClf(
-            n_radial=n_radial,
-            n_angular=n_angular,
-            isc_layer_conf=isc_layer_conf,
-            template_radius=template_radius,
+            kernel=variant,
+            pooling=pooling,
             neighbors_for_lrf=neighbors_for_lrf,
             projection_neighbors=projection_neighbors,
-            modelnet10=True,
-            kernel=variant,
-            rotation_delta=rotation_delta,
-            pooling=pooling,
             azimuth_bins=azimuth_bins,
             elevation_bins=elevation_bins,
             radial_bins=radial_bins,
             histogram_bins=histogram_bins,
             sphere_radius=sphere_radius,
-            l1_reg_strength=hp.Float("l1_reg", min_value=0.0001, max_value=0.1),
+            n_radial=n_radial,
+            n_angular=n_angular,
+            exp_lambda=exp_lambda,
+            shift_angular=shift_angular,
+            template_scale=1.0,
+            isc_layer_conf=isc_layer_conf,
+            rotation_delta=rotation_delta,
+            dropout_rate=dropout_rate,
+            l1_reg_strength=hp.Float("l1_reg", min_value=0.037 / 2, max_value=0.037 * 2),
             l2_reg_strength=0.0,
-            dropout_rate=dropout_rate
+            modelnet10=True
         )
-        imcnn.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda, shift_angular=shift_angular)
+        imcnn.adapt(
+            adapt_data=load_preprocessed_modelnet(
+                dataset_path,
+                set_type="train",
+                modelnet10=True,
+                gen_info_file=f"{logging_dir}/{gen_info_file}",
+                batch_size=batch_size
+            )
+        )
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
         opt = tf.keras.optimizers.Adam(
-            learning_rate=hp.Float("initial_lr", min_value=0.0001, max_value=0.01),
+            learning_rate=hp.Float("initial_lr", min_value=0.0038 / 2, max_value=0.0038 * 2),
             # learning_rate=WarmupAndExpDecay(
             #     initial_learning_rate=hp.Float("initial_lr", min_value=0.0004, max_value=0.004),
             #     decay_steps=998,
