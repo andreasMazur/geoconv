@@ -40,66 +40,30 @@ class WarmupAndExpDecay(tf.keras.optimizers.schedules.LearningRateSchedule):
 class ModelNetClf(tf.keras.Model):
     def __init__(
         self,
+        kernel,
+        pooling,
+        neighbors_for_lrf,
+        projection_neighbors,
+        azimuth_bins,
+        elevation_bins,
+        radial_bins,
+        histogram_bins,
+        sphere_radius,
         n_radial,
         n_angular,
+        exp_lambda,
+        shift_angular,
+        template_scale,
         isc_layer_conf,
-        template_radius,
-        neighbors_for_lrf=32,
-        projection_neighbors=10,
-        modelnet10=False,
-        kernel=None,
-        rotation_delta=1,
-        pooling="avg",
-        exp_lambda=1.0,
-        shift_angular=True,
-        azimuth_bins=8,
-        elevation_bins=6,
-        radial_bins=2,
-        histogram_bins=6,
-        sphere_radius=0.0,
-        l1_reg_strength=0.0,
-        l2_reg_strength=0.0,
-        dropout_rate=0.0
+        rotation_delta,
+        dropout_rate,
+        l1_reg_strength,
+        l2_reg_strength,
+        modelnet10
     ):
         super().__init__()
 
-        #############
-        # INPUT PART
-        #############
-        # For centering point clouds
-        self.normalize_point_cloud = NormalizePointCloud()
-
-        # For initial vertex signals
-        self.neighbors_for_lrf = neighbors_for_lrf
-        self.azimuth_bins = azimuth_bins
-        self.elevation_bins = elevation_bins
-        self.radial_bins = radial_bins
-        self.histogram_bins = histogram_bins
-        self.sphere_radius = sphere_radius
-        self.shot_descriptor = PointCloudShotDescriptor(
-            neighbors_for_lrf=self.neighbors_for_lrf,
-            azimuth_bins=self.azimuth_bins,
-            elevation_bins=self.elevation_bins,
-            radial_bins=self.radial_bins,
-            histogram_bins=self.histogram_bins,
-            sphere_radius=self.sphere_radius,
-        )
-
-        # Init barycentric coordinates layer
-        self.n_radial = n_radial
-        self.n_angular = n_angular
-        self.projection_neighbors = projection_neighbors
-        self.bc_layer = BarycentricCoordinates(
-            n_radial=self.n_radial,
-            n_angular=self.n_angular,
-            neighbors_for_lrf=self.neighbors_for_lrf,
-            projection_neighbors=self.projection_neighbors,
-        )
-
-        #################
-        # EMBEDDING PART
-        #################
-        # Determine which layer type shall be used
+        # Determine which kernel shall be used
         self.kernel = kernel
         assert self.kernel in [
             "dirac",
@@ -113,38 +77,7 @@ class ModelNetClf(tf.keras.Model):
         else:
             self.layer_type = ConvDirac
 
-        # Define embedding architecture
-        self.isc_layer_conf = isc_layer_conf
-        self.rotation_delta = rotation_delta
-        self.template_radius = template_radius
-        self.exp_lambda = exp_lambda
-        self.shift_angular = shift_angular
-        self.isc_layers = []
-        self.dropout_rate = dropout_rate
-        self.dropout = SpatialDropout(rate=self.dropout_rate)
-        for idx, _ in enumerate(self.isc_layer_conf):
-            self.isc_layers.append(
-                tf.keras.models.Sequential(
-                    [
-                        self.layer_type(
-                            amt_templates=self.isc_layer_conf[idx],
-                            template_radius=self.template_radius,
-                            rotation_delta=self.rotation_delta,
-                            activation="relu",
-                            exp_lambda=self.exp_lambda,
-                            shift_angular=self.shift_angular,
-                            l1_reg_strength=l1_reg_strength,
-                            l2_reg_strength=l2_reg_strength
-                        ),
-                        AngularMaxPooling()
-                    ],
-                    name=f"isc_layer_{idx}",
-                )
-            )
-
-        ######################
-        # CLASSIFICATION PART
-        ######################
+        # Determine how to pool local surface descriptors into a global shape descriptor
         self.pooling = pooling
         assert self.pooling in [
             "cov",
@@ -158,15 +91,69 @@ class ModelNetClf(tf.keras.Model):
         else:
             self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
 
+        # Set projection hyperparameters
+        self.neighbors_for_lrf = neighbors_for_lrf
+        self.projection_neighbors = projection_neighbors
+
+        # Set SHOT descriptor hyperparameters
+        self.azimuth_bins = azimuth_bins
+        self.elevation_bins = elevation_bins
+        self.radial_bins = radial_bins
+        self.histogram_bins = histogram_bins
+        self.sphere_radius = sphere_radius
+
+        # Set template hyperparameters
+        self.n_radial = n_radial
+        self.n_angular = n_angular
+        self.exp_lambda = exp_lambda
+        self.shift_angular = shift_angular
+        self.template_scale = template_scale
+        self.template_radius = None  # set in adapt()
+
+        # Set architecture hyperparameters
+        self.isc_layer_conf = isc_layer_conf
+        self.rotation_delta = rotation_delta
+        self.dropout_rate = dropout_rate
+        self.l1_reg_strength = l1_reg_strength
+        self.l2_reg_strength = l2_reg_strength
+
         # Define classification head
         self.modelnet10 = modelnet10
         self.output_dim = 10 if self.modelnet10 else 40
-        self.clf = tf.keras.models.Sequential(
-            [
-                # tf.keras.layers.Dense(units=128, activation="relu"),
-                tf.keras.layers.Dense(units=self.output_dim, activation="linear"),
-            ]
+
+        # Configure the barycentric coordinates layer
+        self.bc_layer = BarycentricCoordinates(
+            n_radial=self.n_radial,
+            n_angular=self.n_angular,
+            neighbors_for_lrf=self.neighbors_for_lrf,
+            projection_neighbors=self.projection_neighbors,
         )
+
+        # Initialize the point-cloud normalization layer
+        self.normalize_point_cloud = NormalizePointCloud()
+
+        # Configure the SHOT-descriptor layer
+        self.shot_layer = PointCloudShotDescriptor(
+            neighbors_for_lrf=self.neighbors_for_lrf,
+            azimuth_bins=self.azimuth_bins,
+            elevation_bins=self.elevation_bins,
+            radial_bins=self.radial_bins,
+            histogram_bins=self.histogram_bins,
+            sphere_radius=self.sphere_radius,
+        )
+
+        # Configure the dropout layer
+        self.dropout_layer = SpatialDropout(rate=self.dropout_rate)
+
+        # Surface convolutions depend on template radius, which is determined by the BC-layer.
+        # Thus, we cannot initialize the ISC layers here, but in the adapt() method.
+        self.isc_layers = []
+
+        # Initialize the angular max-pooling layer
+        self.amp = AngularMaxPooling()
+
+        # Configure the classification head
+        self.clf = tf.keras.layers.Dense(units=self.output_dim, activation="linear")
 
     def call(self, inputs, **kwargs):
         # Normalize point-cloud
@@ -177,12 +164,13 @@ class ModelNetClf(tf.keras.Model):
         bc = self.bc_layer(coordinates)
 
         # Compute SHOT-descriptor as initial local vertex features
-        signal = self.shot_descriptor(coordinates)
+        signal = self.shot_layer(coordinates)
 
         # Compute vertex embeddings
-        for idx, _ in enumerate(self.isc_layers):
-            signal = self.isc_layers[idx]([signal, bc])
-            signal = self.dropout(signal)
+        for idx, isc_layer in enumerate(self.isc_layers):
+            signal = isc_layer([signal, bc])
+            signal = self.amp(signal)
+            signal = self.dropout_layer(signal)
 
         # Pool local surface descriptors into global point-cloud descriptor
         signal = self.pool(signal)
@@ -201,21 +189,27 @@ class ModelNetClf(tf.keras.Model):
         config = super(ModelNetClf, self).get_config()
         config.update(
             {
-                "n_radial": self.n_radial,
-                "n_angular": self.n_angular,
-                "isc_layer_conf": self.isc_layer_conf,
-                "template_radius": self.template_radius,
+                "kernel": self.kernel,
+                "pooling": self.pooling,
                 "neighbors_for_lrf": self.neighbors_for_lrf,
                 "projection_neighbors": self.projection_neighbors,
-                "modelnet10": self.modelnet10,
-                "kernel": self.kernel,
-                "rotation_delta": self.rotation_delta,
-                "pooling": self.pooling,
                 "azimuth_bins": self.azimuth_bins,
                 "elevation_bins": self.elevation_bins,
                 "radial_bins": self.radial_bins,
                 "histogram_bins": self.histogram_bins,
                 "sphere_radius": self.sphere_radius,
+                "n_radial": self.n_radial,
+                "n_angular": self.n_angular,
+                "exp_lambda": self.exp_lambda,
+                "shift_angular": self.shift_angular,
+                "template_scale": self.template_scale,
+                "template_radius": self.template_radius,
+                "isc_layer_conf": self.isc_layer_conf,
+                "rotation_delta": self.rotation_delta,
+                "dropout_rate": self.dropout_rate,
+                "l1_reg_strength": self.l1_reg_strength,
+                "l2_reg_strength": self.l2_reg_strength,
+                "modelnet10": self.modelnet10
             }
         )
         return config
@@ -236,5 +230,36 @@ class ModelNetClf(tf.keras.Model):
             The layer.
         """
         model = cls(**config)
-        model.bc_layer.adapt(template_radius=config["template_radius"])
+        model.adapt(template_radius=config["template_radius"])
         return model
+
+    def adapt(self, template_radius=None, adapt_data=None):
+        # Adapt the BC-layer
+        if adapt_data is not None:
+            self.template_radius = self.bc_layer.adapt(
+                data=adapt_data,
+                template_scale=self.template_scale,
+                exp_lambda=self.exp_lambda,
+                shift_angular=self.shift_angular
+            )
+        elif template_radius is not None:
+            self.template_radius = self.bc_layer.adapt(template_radius=template_radius)
+        else:
+            raise AssertionError(
+                "Please provide either a template_radius or adapt BC-layer of the model to your training data."
+            )
+
+        for idx, _ in enumerate(self.isc_layer_conf):
+            self.isc_layers.append(
+                self.layer_type(
+                    amt_templates=self.isc_layer_conf[idx],
+                    template_radius=self.template_radius,  # Determined by the BC-layer
+                    rotation_delta=self.rotation_delta,
+                    activation="relu",
+                    exp_lambda=self.exp_lambda,
+                    shift_angular=self.shift_angular,
+                    l1_reg_strength=self.l1_reg_strength,
+                    l2_reg_strength=self.l2_reg_strength,
+                    name=f"isc_layer_{idx}"
+                )
+            )

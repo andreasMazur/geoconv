@@ -10,94 +10,14 @@ import numpy as np
 import random
 
 
-def model_configuration(n_radial,
-                        n_angular,
-                        bc_adapt_data,
-                        template_scale,
-                        isc_layer_conf,
-                        neighbors_for_lrf,
-                        projection_neighbors,
-                        modelnet10,
-                        kernel,
-                        rotation_delta,
-                        pooling,
-                        exp_lambda,
-                        shift_angular,
-                        azimuth_bins=8,
-                        elevation_bins=6,
-                        radial_bins=2,
-                        histogram_bins=6,
-                        sphere_radius=0.,
-                        l1_reg_strength=0.,
-                        l2_reg_strength=0.,
-                        dropout_rate=0.):
-    # Determine template-radius
-    template_radius = BarycentricCoordinates(
-        n_radial=n_radial,
-        n_angular=n_angular,
-        neighbors_for_lrf=neighbors_for_lrf,
-        projection_neighbors=projection_neighbors
-    ).adapt(
-        data=bc_adapt_data,
-        template_scale=template_scale,
-        exp_lambda=exp_lambda,
-        shift_angular=shift_angular
-    ).numpy()
-
-    # Define model
-    imcnn = ModelNetClf(
-        n_radial=n_radial,
-        n_angular=n_angular,
-        isc_layer_conf=isc_layer_conf,
-        template_radius=float(template_radius),
-        neighbors_for_lrf=neighbors_for_lrf,  # Set higher than projection-neighbors
-        projection_neighbors=projection_neighbors,
-        modelnet10=modelnet10,
-        kernel=kernel,
-        rotation_delta=rotation_delta,
-        pooling=pooling,
-        exp_lambda=exp_lambda,
-        shift_angular=shift_angular,
-        azimuth_bins=azimuth_bins,
-        elevation_bins=elevation_bins,
-        radial_bins=radial_bins,
-        histogram_bins=histogram_bins,
-        sphere_radius=sphere_radius,
-        l1_reg_strength=l1_reg_strength,
-        l2_reg_strength=l2_reg_strength,
-        dropout_rate=dropout_rate
-    )
-    imcnn.bc_layer.adapt(template_radius=template_radius, exp_lambda=exp_lambda, shift_angular=shift_angular)
-
-    # Define loss and optimizer
-    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True, reduction="sum_over_batch_size")
-    opt = tf.keras.optimizers.Adam(
-        learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=0.0020618479317126375,
-            decay_steps=2461,
-            decay_rate=0.8762837040974372,
-            staircase=False
-        )
-    )
-
-    # Compile the model
-    imcnn.compile(optimizer=opt, loss=loss, metrics="accuracy", run_eagerly=True)
-
-    # Build model
-    imcnn(tf.random.uniform(shape=[1, 1024, 3]), training=False)
-    imcnn.summary()
-
-    return imcnn
-
-
 def training(dataset_path,
              logging_dir,
              template_resolution,
              gen_info_file,
              batch_size=1,
              kernel=None,
-             exp_lambda=3.0,
-             shift_angular=True,
+             exp_lambda=1.0,
+             shift_angular=False,
              pooling="avg",
              isc_layer_conf=None,
              projection_neighbor_list=None,
@@ -165,37 +85,57 @@ def training(dataset_path,
                         tf.random.set_seed(repetition)
                         random.seed(repetition)
 
-                        # Get classification model
-                        imcnn = model_configuration(
-                            n_radial=n_radial,
-                            n_angular=n_angular,
-                            bc_adapt_data=load_preprocessed_modelnet(
-                                dataset_path,
-                                set_type="train",
-                                modelnet10=True,
-                                gen_info_file=f"{gen_info_file}_train.json",
-                                batch_size=1,
-                                debug_data=False
-                            ),
-                            template_scale=template_scale,
-                            isc_layer_conf=isc_layer_conf,
+                        # Define model
+                        imcnn = ModelNetClf(
+                            kernel=kernel,
+                            pooling=pooling,
                             neighbors_for_lrf=neighbors_for_lrf,
                             projection_neighbors=projection_neighbors,
-                            modelnet10=True,
-                            kernel=kernel,
-                            rotation_delta=rotation_delta,
-                            pooling=pooling,
-                            exp_lambda=exp_lambda,
-                            shift_angular=shift_angular,
                             azimuth_bins=azimuth_bins,
                             elevation_bins=elevation_bins,
                             radial_bins=radial_bins,
                             histogram_bins=histogram_bins,
                             sphere_radius=sphere_radius,
+                            n_radial=n_radial,
+                            n_angular=n_angular,
+                            exp_lambda=exp_lambda,
+                            shift_angular=shift_angular,
+                            template_scale=template_scale,
+                            isc_layer_conf=isc_layer_conf,
+                            rotation_delta=rotation_delta,
+                            dropout_rate=dropout_rate,
                             l1_reg_strength=l1_reg_strength,
                             l2_reg_strength=l2_reg_strength,
-                            dropout_rate=dropout_rate
+                            modelnet10=True
                         )
+                        imcnn.adapt(
+                            adapt_data=load_preprocessed_modelnet(
+                                dataset_path=dataset_path,
+                                set_type="train",
+                                modelnet10=True,
+                                gen_info_file=f"{gen_info_file}_train.json",
+                                batch_size=1,
+                                debug_data=False
+                            )
+                        )
+                        imcnn(tf.random.uniform((1, 1024, 3)))
+                        imcnn.summary()
+
+                        # Define loss and optimizer
+                        loss = tf.keras.losses.SparseCategoricalCrossentropy(
+                            from_logits=True, reduction="sum_over_batch_size"
+                        )
+                        opt = tf.keras.optimizers.Adam(
+                            learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
+                                initial_learning_rate=0.0020618479317126375,
+                                decay_steps=2461,
+                                decay_rate=0.8762837040974372,
+                                staircase=False
+                            )
+                        )
+
+                        # Compile the model
+                        imcnn.compile(optimizer=opt, loss=loss, metrics="accuracy", run_eagerly=True)
 
                         # Define callbacks
                         csv_file_name = f"{rep_logging_dir}/{experiment_id}.log"
