@@ -254,7 +254,7 @@ class ModelNetClf(tf.keras.Model):
                 self.layer_type(
                     amt_templates=self.isc_layer_conf[idx],
                     template_radius=self.template_radius,  # Determined by the BC-layer
-                    rotation_delta=self.rotation_delta,
+                    rotation_delta=self.rotation_delta if idx == 0 else self.n_angular,
                     activation="relu",
                     exp_lambda=self.exp_lambda,
                     shift_angular=self.shift_angular,
