@@ -273,7 +273,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         template_radius=None,
         with_normalization=True,
         exp_lambda=1.0,
-        shift_angular=True
+        shift_angular=False
     ):
         """Sets the template radius to a given or the average neighborhood radius scaled by used defined coefficient.
 
