@@ -158,6 +158,9 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         # Configure kernel
         self._configure_kernel()
 
+        # Set 'built'-flag to True
+        super().build(input_shape)
+
     @tf.function
     def call(self, inputs, orientations=None, **kwargs):
         """Computes intrinsic surface convolution on all vertices of a given mesh.
