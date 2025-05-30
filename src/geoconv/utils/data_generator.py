@@ -322,14 +322,11 @@ def preprocessed_shape_generator(
         compiled_filter_list = [re.compile(f) for f in filter_list]
 
         sfp_dict = defaultdict(list)
-        [
-            sfp_dict[path.rsplit("/", 1)[0]].append(path)
-            for path in tqdm(zip_file.files, postfix="Preparing generator..")
-            if path.startswith(preprocessed_shapes_tuple)
-            and any(
+        for path in tqdm(zip_file.files, postfix="Preparing generator.."):
+            if path.startswith(preprocessed_shapes_tuple) and any(
                 compiled_filter.search(path) for compiled_filter in compiled_filter_list
-            )
-        ]
+            ):
+                sfp_dict[path.rsplit("/", 1)[0]].append(path)
 
         if directive is not None:
             sfp_dict = directive(sfp_dict)
