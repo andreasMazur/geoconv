@@ -229,18 +229,20 @@ class ModelNetClf(tf.keras.Model):
         ConvIntrinsic:
             The layer.
         """
-        model = cls(**config)
+        model = cls(**{k: v for k, v in config.items() if k != "template_radius"})
         model.adapt(template_radius=config["template_radius"])
         return model
 
     def adapt(self, template_radius=None, adapt_data=None):
         # Adapt the BC-layer
         if adapt_data is not None:
-            self.template_radius = self.bc_layer.adapt(
-                data=adapt_data,
-                template_scale=self.template_scale,
-                exp_lambda=self.exp_lambda,
-                shift_angular=self.shift_angular
+            self.template_radius = float(
+                self.bc_layer.adapt(
+                    data=adapt_data,
+                    template_scale=self.template_scale,
+                    exp_lambda=self.exp_lambda,
+                    shift_angular=self.shift_angular
+                ).numpy()
             )
         elif template_radius is not None:
             self.template_radius = self.bc_layer.adapt(template_radius=template_radius)
