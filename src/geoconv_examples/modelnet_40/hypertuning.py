@@ -50,8 +50,8 @@ def hyper_tuning(dataset_path,
             isc_layer_conf=isc_layer_conf,
             rotation_delta=rotation_delta,
             dropout_rate=dropout_rate,
-            l1_reg_strength=hp.Float("l1_reg", min_value=0.037 / 2, max_value=0.037 * 2),
-            l2_reg_strength=0.0,
+            l1_reg_strength=0.0,
+            l2_reg_strength=hp.Float("l1_reg_radial", min_value=0.037 / 2, max_value=0.037 * 2),
             modelnet10=True
         )
         imcnn.adapt(
