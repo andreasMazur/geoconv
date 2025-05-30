@@ -60,7 +60,7 @@ def hyper_tuning(dataset_path,
                 set_type="train",
                 modelnet10=True,
                 gen_info_file=f"{logging_dir}/{gen_info_file}",
-                batch_size=batch_size
+                batch_size=1
             )
         )
 
