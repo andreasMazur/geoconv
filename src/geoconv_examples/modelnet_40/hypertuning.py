@@ -22,8 +22,8 @@ def hyper_tuning(dataset_path,
                  radial_bins=2,
                  histogram_bins=6,
                  sphere_radius=0.,
-                 exp_lambda=3.0,
-                 shift_angular=True,
+                 exp_lambda=1.0,
+                 shift_angular=False,
                  dropout_rate=0.0):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
