@@ -349,7 +349,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             dtype=tf.float32,
         )
         # Remember template radius
-        self.template_radius = template_radius
+        self.template_radius = float(template_radius.numpy())
 
         # Return used template radius
         return template_radius
