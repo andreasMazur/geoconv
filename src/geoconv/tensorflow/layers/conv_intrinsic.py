@@ -137,7 +137,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
             name="radial_weights",
             shape=(self.amt_templates, signal_shape[-1], self._template_size[0]),
             trainable=True,
-            regularizer=tf.keras.regularizers.L1(l1=self.l2_reg_strength)
+            regularizer=tf.keras.regularizers.L2(l2=self.l2_reg_strength)
         )
         self._angular_weights = self.add_weight(
             name="angular_weights",
