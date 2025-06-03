@@ -168,7 +168,7 @@ class ModelNetClf(tf.keras.Model):
 
         # Compute vertex embeddings
         for idx, isc_layer in enumerate(self.isc_layers):
-            signal = isc_layer([signal, bc])
+            signal = isc_layer([signal, bc], training=kwargs["training"])
             signal = self.amp(signal)
             signal = self.dropout_layer(signal)
 

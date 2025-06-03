@@ -117,7 +117,7 @@ def training(dataset_path,
                                 debug_data=False
                             )
                         )
-                        imcnn(tf.random.uniform((1, 1024, 3)))
+                        imcnn(tf.random.uniform((1, 1024, 3)), training=False)
                         imcnn.summary()
 
                         # Define loss and optimizer
