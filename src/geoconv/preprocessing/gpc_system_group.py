@@ -30,15 +30,16 @@ class GPCSystemGroup:
         n_vertices = self.object_mesh.vertices.shape[0]
         vertex_indices = np.arange(n_vertices)
         with Pool(self.processes) as p:
-            gpc_systems = p.starmap(
-                self.compute_gpc_system,
+            gpc_systems = list(
                 tqdm(
-                    [(vi, u_max[vi]) for vi in vertex_indices],
+                    p.imap(self.compute_gpc_system_star, [(vi, u_max[vi]) for vi in vertex_indices]),
                     total=n_vertices,
-                    postfix="Computing GPC-systems",
-                ),
+                )
             )
         self.object_mesh_gpc_systems = np.array(gpc_systems).flatten()
+
+    def compute_gpc_system_star(self, args):
+        return self.compute_gpc_system(*args)
 
     def compute_gpc_system(
         self, source_point, u_max, gpc_system=None, plot_path="", max_iter=10_000
