@@ -199,9 +199,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         # Call patch operator
         interpolations = self._patch_operator(mesh_signal, bary_coordinates)
         # Determine orientations
-        if not kwargs["training"] and orientations is None:
-            orientations = tf.range(start=0, limit=self._all_rotations)
-        elif orientations is None:
+        if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
             orientations = tf.range(
                 start=0, limit=self._all_rotations, delta=self.rotation_delta
