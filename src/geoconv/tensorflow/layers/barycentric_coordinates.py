@@ -257,7 +257,11 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         self.template = None
         self.projection_neighbors = projection_neighbors
         self.neighbors_for_lrf = neighbors_for_lrf
+
+        # Layer attributes set in adapt()
         self.template_radius = None
+        self.exp_lambda = None
+        self.shift_angular = None
 
         if projection_neighbors > neighbors_for_lrf:
             warnings.warn(
@@ -337,14 +341,16 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             template_radius = avg_radius * template_scale
 
         # Initialize template
+        self.exp_lambda = exp_lambda
+        self.shift_angular = shift_angular
         self.template = tf.constant(
             create_template_matrix(
                 n_radial=self.n_radial,
                 n_angular=self.n_angular,
                 radius=template_radius,
                 in_cart=True,
-                exp_lambda=exp_lambda,
-                shift_angular=shift_angular
+                exp_lambda=self.exp_lambda,
+                shift_angular=self.shift_angular
             ),
             dtype=tf.float32,
         )
@@ -441,7 +447,9 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
                 "n_angular": self.n_angular,
                 "projection_neighbors": self.projection_neighbors,
                 "neighbors_for_lrf": self.neighbors_for_lrf,
-                "template_radius": self.template_radius
+                "template_radius": self.template_radius,
+                "exp_lambda": self.exp_lambda,
+                "shift_angular": self.shift_angular,
             }
         )
         return config
@@ -465,5 +473,9 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
                 "n_radial", "n_angular", "projection_neighbors", "neighbors_for_lrf"
             ]}
         )
-        bc_layer.adapt(template_radius=config["template_radius"])
+        bc_layer.adapt(
+            template_radius=config["template_radius"],
+            exp_lambda=config["exp_lambda"],
+            shift_angular=config["shift_angular"]
+        )
         return bc_layer
