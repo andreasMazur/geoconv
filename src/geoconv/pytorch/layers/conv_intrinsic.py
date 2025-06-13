@@ -196,23 +196,49 @@ class ConvIntrinsic(ABC, nn.Module):
             return interpolations
 
     def _signal_retrieval(self, mesh_signal, barycentric_coordinates):
-        """Interpolates signals at template vertices
+        def _signal_retrieval(self, mesh_signal, barycentric_coordinates):
+            """Interpolates signals at template vertices
 
-        Parameters
-        ----------
-        mesh_signal: tensorflow.Tensor
-            The signal values at the template vertices
-        barycentric_coordinates: tensorflow.Tensor
-            The barycentric coordinates for the template vertices
+            Parameters
+            ----------
+            mesh_signal: torch.Tensor
+                The signal values at the template vertices
+            barycentric_coordinates: torch.Tensor
+                The barycentric coordinates for the template vertices
 
-        Returns
-        -------
-        tensorflow.Tensor:
-            Interpolation values for the template vertices
-        """
-        mesh_signal = mesh_signal[barycentric_coordinates[:, :, :, :, 0].int()]
-        # (vertices, n_radial, n_angular, input_dim)
-        return torch.sum(barycentric_coordinates[:, :, :, :, 1].unsqueeze(-1) * mesh_signal, dim=-2)
+            Returns
+            -------
+            torch.Tensor:
+                Interpolation values for the template vertices
+            """
+            mesh_signal = mesh_signal.to(torch.float32)
+            barycentric_coordinates = barycentric_coordinates.to(torch.float32)
+
+            # Get input-related shapes
+            n_vertices = mesh_signal.shape[0]
+
+            # Split indices and weights
+            vertex_indices = barycentric_coordinates[..., 0].long()
+            weights = barycentric_coordinates[..., 1]
+
+            # Expand mesh signal and indices so we can use torch.gather to gather along the vertex dimension
+            # Input mesh-signal: (n_vertices, feature_dim)
+            # Output mesh-signal: (n_vertices, n_radial, n_angular, 3, feature_dim)
+            mesh_signal_exp = mesh_signal.view(n_vertices, 1, 1, 1, self._feature_dim).expand(
+                n_vertices, self._template_size[0], self._template_size[1], 3, self._feature_dim
+            )
+
+            # Input vertex_indices: (n_vertices, n_radial, n_angular, 3)
+            # Output vertex_indices: (n_vertices, n_radial, n_angular, 3, feature_dim)
+            indices_exp = vertex_indices.unsqueeze(-1).expand(
+                n_vertices, self._template_size[0], self._template_size[1], 3, self._feature_dim
+            )
+            # mesh_signal_exp[indices_exp[v, r, a, i, f], r, a, i, f]
+            # GPU/differentiability friendly: https://github.com/pytorch/pytorch/issues/15245
+            gathered = torch.gather(mesh_signal_exp, dim=0, index=indices_exp)
+
+            # Weigh gathered and return aggregated interpolations
+            return (gathered * weights.unsqueeze(-1)).sum(dim=-2)
 
     def _configure_kernel(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
