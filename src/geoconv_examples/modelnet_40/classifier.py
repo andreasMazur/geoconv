@@ -258,8 +258,6 @@ class ModelNetClf(tf.keras.Model):
                     activation="relu",
                     exp_lambda=self.exp_lambda,
                     shift_angular=self.shift_angular,
-                    l1_reg_strength=self.l1_reg_strength,
-                    l2_reg_strength=self.l2_reg_strength,
                     name=f"isc_layer_{idx}"
                 )
             )

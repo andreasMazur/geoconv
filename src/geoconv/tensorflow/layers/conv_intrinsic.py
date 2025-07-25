@@ -36,8 +36,6 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         rotation_delta=1,
         exp_lambda=1.0,
         shift_angular=False,
-        l1_reg_strength=0.0,
-        l2_reg_strength=0.0,
         *args,
         **kwargs,
     ):
@@ -50,8 +48,6 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         self.rotation_delta = rotation_delta
         self.exp_lambda = exp_lambda
         self.shift_angular = shift_angular
-        self.l1_reg_strength = l1_reg_strength
-        self.l2_reg_strength = l2_reg_strength
 
         # Attributes that depend on the data and are set automatically in build
         self._activation = tf.keras.layers.Activation(self.activation)
@@ -59,8 +55,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         self._all_rotations = None
         self._template_size = None  # (#radial, #angular)
         self._template_vertices = None
-        self._radial_weights = None
-        self._angular_weights = None
+        self._template_neighbor_weights = None
         self._template_self_weights = None
         self._kernel = None
         self._feature_dim = None
@@ -133,19 +128,16 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         self._feature_dim = signal_shape[-1]
 
         # Configure trainable weights
-        self._radial_weights = self.add_weight(
-            name="radial_weights",
-            shape=(self.amt_templates, signal_shape[-1], self._template_size[0]),
+        self._template_neighbor_weights = self.add_weight(
+            name="neighbor_weights",
+            shape=(
+                self.amt_templates,
+                self._template_size[0],
+                self._template_size[1],
+                signal_shape[-1],
+            ),
             trainable=True,
-            regularizer=tf.keras.regularizers.L2(l2=self.l2_reg_strength)
         )
-        self._angular_weights = self.add_weight(
-            name="angular_weights",
-            shape=(self.amt_templates, signal_shape[-1], self._template_size[1]),
-            trainable=True,
-            regularizer=tf.keras.regularizers.L1(l1=self.l1_reg_strength)
-        )
-
         self._template_self_weights = self.add_weight(
             name="center_weights",
             shape=(self.amt_templates, 1, signal_shape[-1]),
@@ -157,9 +149,6 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
 
         # Configure kernel
         self._configure_kernel()
-
-        # Set 'built'-flag to True
-        super().build(input_shape)
 
     @tf.function
     def call(self, inputs, orientations=None, **kwargs):
@@ -205,23 +194,14 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
                 start=0, limit=self._all_rotations, delta=self.rotation_delta
             )
 
-        # Aggregate distance information:
-        # interpolations : (batch_shapes, vertices, n_radial, n_angular, input_dim)
-        # radial_weights : (n_templates, input_dim, n_radial)
-        # ============================================================================
-        # Result         : (batch_shapes, vertices, n_templates, input_dim, n_angular)
-        interpolations = tf.einsum("bvraf,ofr->bvofa", interpolations, self._radial_weights)
-
-        # Aggregate angular information:
         def fold_neighbor(o):
-            # Angular weights    : (n_templates, input_dim, n_angular)
-            # Interpolations     : (batch_shapes, vertices, n_templates, input_dim, n_angular)
-            # ==============================================================================
-            # Result             : (batch_shapes, vertices, templates)
+            # Weight              : (templates, radial, angular, input_dim)
+            # Mesh interpolations : (batch_shapes, vertices, radial, angular, input_dim)
+            # Result              : (batch_shapes, vertices, templates)
             return tf.einsum(
-                "tfa,bvtfa->bvt",
-                self._angular_weights,
-                tf.roll(interpolations, shift=o, axis=-1)
+                "traf,skraf->skt",
+                self._template_neighbor_weights,
+                tf.roll(interpolations, shift=o, axis=-2),
             )
 
         # conv_neighbor: (batch_shapes, vertices, n_rotations, templates)
