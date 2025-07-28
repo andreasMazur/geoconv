@@ -30,7 +30,7 @@ def image_to_grid(image, grid):
     trimesh.Scene([grid, grid_image]).show()
 
 
-def compute_bc(preprocess_dir):
+def compute_bc(preprocess_dir, template_configurations=None):
     with open(f"{preprocess_dir}/preprocess_properties.json") as properties_file:
         properties = json.load(properties_file)
         gpc_system_radius = np.mean(properties["gpc_system_radius"])
@@ -40,17 +40,18 @@ def compute_bc(preprocess_dir):
     gpc_systems.load(f"{preprocess_dir}/gpc_systems")
 
     # Define template configurations
-    template_configurations = [
-        (3, 4, gpc_system_radius * .75),
-        (3, 4, gpc_system_radius),
-        (3, 4, gpc_system_radius * 1.25),
-        (3, 6, gpc_system_radius * .75),
-        (3, 6, gpc_system_radius),
-        (3, 6, gpc_system_radius * 1.25),
-        (5, 8, gpc_system_radius * .75),
-        (5, 8, gpc_system_radius),
-        (5, 8, gpc_system_radius * 1.25)
-    ]
+    if template_configurations is None:
+        template_configurations = [
+            (3, 4, gpc_system_radius * .75),
+            (3, 4, gpc_system_radius),
+            (3, 4, gpc_system_radius * 1.25),
+            (3, 6, gpc_system_radius * .75),
+            (3, 6, gpc_system_radius),
+            (3, 6, gpc_system_radius * 1.25),
+            (5, 8, gpc_system_radius * .75),
+            (5, 8, gpc_system_radius),
+            (5, 8, gpc_system_radius * 1.25)
+        ]
 
     for (n_radial, n_angular, template_radius) in template_configurations:
         bc = compute_barycentric_coordinates(
