@@ -13,7 +13,7 @@ import os
 
 
 class MNISTClassifier(keras.Model):
-    def __init__(self, template_radius, variant=None, isc_layer_dims=None):
+    def __init__(self, template_radius, rotation_delta, variant=None, isc_layer_dims=None):
         super().__init__()
 
         if isc_layer_dims is None:
@@ -33,7 +33,7 @@ class MNISTClassifier(keras.Model):
                 amt_templates=n,
                 template_radius=template_radius,
                 activation="elu",
-                rotation_delta=1
+                rotation_delta=rotation_delta
             ) for n in isc_layer_dims
         ]
         self.amp = AngularMaxPooling()
@@ -87,7 +87,8 @@ def training(bc_path, logging_dir, k=5, template_configurations=None, variant=No
             )
 
             # Define and compile model
-            imcnn = MNISTClassifier(template_radius, variant=variant, isc_layer_dims=isc_layer_dims)
+            rotation_delta = train_data.element_spec[0][1].shape[3]
+            imcnn = MNISTClassifier(template_radius, rotation_delta, variant=variant, isc_layer_dims=isc_layer_dims)
             loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
             imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"])
 
