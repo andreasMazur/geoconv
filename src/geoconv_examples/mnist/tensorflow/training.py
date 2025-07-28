@@ -49,6 +49,34 @@ class MNISTClassifier(keras.Model):
         return self.output_layer(signal)
 
 
+def build_mnist_classifier(variant, n_radial, n_angular, template_radius, rotation_delta, isc_layer_dims):
+    if variant is None or variant == "dirac":
+        layer_type = ConvDirac
+    elif variant == "geodesic":
+        layer_type = ConvGeodesic
+    elif variant == "zero":
+        layer_type = ConvZero
+    else:
+        raise RuntimeError("Select a layer type from: ['dirac', 'geodesic', 'zero']")
+
+    image_input = tf.keras.Input(shape=(28 * 28, 1), name="image_input", dtype=tf.float32)
+    bc_input = tf.keras.Input(shape=(28 * 28, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
+    signal = image_input
+    for n in isc_layer_dims:
+        signal = layer_type(
+            amt_templates=n,
+            template_radius=template_radius,
+            activation="elu",
+            rotation_delta=rotation_delta
+        )([signal, bc_input])
+        signal = AngularMaxPooling()(signal)
+    signal = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")(signal)
+    output = tf.keras.layers.Dense(10, activation="linear")(signal)
+    imcnn = keras.Model(inputs=[image_input, bc_input], outputs=output, name="mnist_model")
+    imcnn.summary()
+    return imcnn
+
+
 def training(bc_path, logging_dir, k=5, template_configurations=None, variant=None, batch_size=8, isc_layer_dims=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
