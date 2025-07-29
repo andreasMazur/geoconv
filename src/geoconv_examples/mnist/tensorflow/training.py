@@ -12,43 +12,6 @@ import tensorflow_datasets as tfds
 import os
 
 
-class MNISTClassifier(keras.Model):
-    def __init__(self, template_radius, rotation_delta, variant=None, isc_layer_dims=None):
-        super().__init__()
-
-        if isc_layer_dims is None:
-            isc_layer_dims = [128]
-
-        if variant is None or variant == "dirac":
-            self.layer_type = ConvDirac
-        elif variant == "geodesic":
-            self.layer_type = ConvGeodesic
-        elif variant == "zero":
-            self.layer_type = ConvZero
-        else:
-            raise RuntimeError("Select a layer type from: ['dirac', 'geodesic', 'zero']")
-
-        self.convs = [
-            self.layer_type(
-                amt_templates=n,
-                template_radius=template_radius,
-                activation="elu",
-                rotation_delta=rotation_delta
-            ) for n in isc_layer_dims
-        ]
-        self.amp = AngularMaxPooling()
-        self.pool = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")
-        self.output_layer = keras.layers.Dense(10, activation="linear")
-
-    def call(self, inputs, **kwargs):
-        signal, bc = inputs
-        for layer in self.convs:
-            signal = layer([signal, bc])
-            signal = self.amp(signal)
-        signal = self.pool(signal)
-        return self.output_layer(signal)
-
-
 def build_mnist_classifier(variant, n_radial, n_angular, template_radius, rotation_delta, isc_layer_dims):
     if variant is None or variant == "dirac":
         layer_type = ConvDirac
@@ -73,7 +36,6 @@ def build_mnist_classifier(variant, n_radial, n_angular, template_radius, rotati
     signal = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")(signal)
     output = tf.keras.layers.Dense(10, activation="linear")(signal)
     imcnn = keras.Model(inputs=[image_input, bc_input], outputs=output, name="mnist_model")
-    imcnn.summary()
     return imcnn
 
 
@@ -116,9 +78,11 @@ def training(bc_path, logging_dir, k=5, template_configurations=None, variant=No
 
             # Define and compile model
             rotation_delta = train_data.element_spec[0][1].shape[3]
-            imcnn = MNISTClassifier(template_radius, rotation_delta, variant=variant, isc_layer_dims=isc_layer_dims)
+            imcnn = build_mnist_classifier(
+                variant, n_radial, n_angular, template_radius, rotation_delta, isc_layer_dims
+            )
             loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-            imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"])
+            imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"], run_eagerly=True)
 
             # Define callbacks
             exp_number = f"{exp_no}__{n_radial}_{n_angular}_{template_radius}"
