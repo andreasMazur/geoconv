@@ -50,7 +50,8 @@ def hyper_tuning(dataset_path,
                 learning_rate=hp.Float(name="learning_rate", min_value=1e-6, max_value=0.1)
             ),
             loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-            metrics=["accuracy"]
+            metrics=["accuracy"],
+            run_eagerly=True
         )
 
         return imcnn
