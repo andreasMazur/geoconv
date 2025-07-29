@@ -187,6 +187,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         #####################################################################
         # Call patch operator
         interpolations = self._patch_operator(mesh_signal, bary_coordinates)
+
         # Determine orientations
         if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
@@ -258,12 +259,13 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         bc_shape = tf.shape(barycentric_coordinates)
 
         # (n_batch, n_vertices * n_radial * n_angular * 3)
-        barycentric_coordinates_indices = tf.cast(
-            tf.reshape(barycentric_coordinates[..., 0], (bc_shape[0], -1)), tf.int32
+        bc_indices, bc_values = tf.unstack(barycentric_coordinates, axis=-1)
+        bc_indices = tf.cast(
+            tf.reshape(bc_indices, (bc_shape[0], -1)), tf.int32
         )
 
         # (n_batch, n_vertices * n_radial * n_angular * 3, input_dim)
-        mesh_signal = tf.gather(mesh_signal, barycentric_coordinates_indices, batch_dims=1)
+        mesh_signal = tf.gather(mesh_signal, bc_indices, batch_dims=1)
 
         # (n_batch, n_vertices, n_radial, n_angular, 3, input_dim)
         mesh_signal = tf.reshape(
@@ -271,7 +273,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         )
 
         # (n_batch, n_vertices, n_radial, n_angular, input_dim)
-        return tf.reduce_sum(tf.expand_dims(barycentric_coordinates[..., 1], axis=-1) * mesh_signal, axis=-2)
+        return tf.reduce_sum(tf.expand_dims(bc_values, axis=-1) * mesh_signal, axis=-2)
 
     def _configure_kernel(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
