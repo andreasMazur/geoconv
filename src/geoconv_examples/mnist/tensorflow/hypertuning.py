@@ -1,5 +1,5 @@
 from geoconv_examples.mnist.tensorflow.dataset import load_preprocessed_mnist
-from geoconv_examples.mnist.tensorflow.training import MNISTClassifier, build_mnist_classifier
+from geoconv_examples.mnist.tensorflow.training import build_mnist_classifier
 
 import os
 import keras_tuner as kt
