@@ -41,8 +41,8 @@ def hyper_tuning(dataset_path,
             template_radius=template_radius,
             rotation_delta=train_data.element_spec[0][1].shape[3],
             isc_layer_dims=[
-                hp.Int(name="isc_layer_1", min_value=8, max_value=16, step=8),
-                hp.Int(name="isc_layer_2", min_value=8, max_value=16, step=8),
+                hp.Int(name="isc_layer_1", min_value=8, max_value=256, step=8),
+                hp.Int(name="isc_layer_2", min_value=8, max_value=256, step=8),
             ]
         )
         imcnn.compile(
