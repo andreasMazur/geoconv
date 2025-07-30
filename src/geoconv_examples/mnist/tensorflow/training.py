@@ -39,7 +39,14 @@ def build_mnist_classifier(variant, n_radial, n_angular, template_radius, rotati
     return imcnn
 
 
-def training(bc_path, logging_dir, k=5, template_configurations=None, variant=None, batch_size=8, isc_layer_dims=None):
+def training(bc_path,
+             logging_dir,
+             k=5,
+             template_configurations=None,
+             variant=None,
+             batch_size=8,
+             learning_rate=0.0017807,
+             isc_layer_dims=None):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -82,7 +89,14 @@ def training(bc_path, logging_dir, k=5, template_configurations=None, variant=No
                 variant, n_radial, n_angular, template_radius, rotation_delta, isc_layer_dims
             )
             loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-            imcnn.compile(optimizer="adam", loss=loss, metrics=["accuracy"], run_eagerly=True)
+            imcnn.compile(
+                optimizer=tf.keras.optimizers.Adam(
+                    learning_rate=0.001 if learning_rate is None else learning_rate
+                ),
+                loss=loss,
+                metrics=["accuracy"],
+                run_eagerly=True
+            )
 
             # Define callbacks
             exp_number = f"{exp_no}__{n_radial}_{n_angular}_{template_radius}"
@@ -105,7 +119,7 @@ def training(bc_path, logging_dir, k=5, template_configurations=None, variant=No
             )
 
             # Train model
-            imcnn.fit(x=train_data, callbacks=[tb, csv, save], validation_data=val_data, epochs=10)
+            imcnn.fit(x=train_data, callbacks=[tb, csv, save], validation_data=val_data, epochs=100)
 
         # Process logs
         process_logs(
