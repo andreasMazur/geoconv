@@ -72,40 +72,9 @@ def compute_bc(preprocess_dir, template_configurations=None):
         json.dump(temp_conf_dict, properties_file, indent=4)
 
 
-def check_preprocessed_zipfile_exists(target_path):
-    """Checks whether a preprocessed dataset is already present at the target location"""
-    
-    # Target is file
-    if os.path.isfile(target_path):
-        try:
-            zipfile = np.load(target_path)
-        except Exception:
-            print(f"[Error]: File '{target_path}' is not a valid numpy zipfile.")
-        try:
-            properties = json.load(BytesIO(zipfile["dataset_properties.json"]))
-            if len(properties) > 0:
-                return True
-        except Exception:
-            print(f"[Error]: File '{target_path}' is missing the 'dataset_properties.json' file.")
-    # Target is zipfile but missing extension
-    elif os.path.isfile(f'{target_path}.zip'):
-        try:
-            zipfile = np.load(f'{target_path}.zip')
-        except Exception:
-            print(f"[Error]: File '{target_path}.zip' is not a valid numpy zipfile.")
-        try:
-            properties = json.load(BytesIO(zipfile["dataset_properties.json"]))
-            if len(properties) > 0:
-                return True
-        except Exception:
-            print(f"[Error]: File '{target_path}.zip' is missing the 'dataset_properties.json' file.")
-
-    return False
-
-
 def preprocess(output_path, processes, k_th_neighbor=10):
     # Preprocess flat grid
-    if not check_preprocessed_zipfile_exists:
+    if not os.path.isfile(f"{output_path}.zip"):
         grid = create_grid(n_vertices=28)  # MNIST-images are 28x28
         compute_gpc_systems_wrapper(grid, f"{output_path}/grid", processes=processes, k_th_neighbor=k_th_neighbor)
         compute_bc(f"{output_path}/grid")
