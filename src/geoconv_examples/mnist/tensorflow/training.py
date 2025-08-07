@@ -1,9 +1,7 @@
-from geoconv.tensorflow.layers import ConvGeodesic
-from geoconv.tensorflow.layers import ConvZero
+from geoconv.tensorflow.layers import ConvDirac, ConvGeodesic, ConvZero
 from geoconv.utils.data_generator import read_template_configurations
 from geoconv.utils.prepare_logs import process_logs
 from geoconv_examples.mnist.tensorflow.dataset import load_preprocessed_mnist
-from geoconv.tensorflow.layers import ConvDirac
 from geoconv.tensorflow.layers import AngularMaxPooling
 
 import keras
@@ -84,9 +82,8 @@ def training(bc_path,
             )
 
             # Define and compile model
-            rotation_delta = train_data.element_spec[0][1].shape[3]
             imcnn = build_mnist_classifier(
-                variant, n_radial, n_angular, template_radius, rotation_delta, isc_layer_dims
+                variant, n_radial, n_angular, template_radius, n_angular, isc_layer_dims
             )
             loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
             imcnn.compile(
