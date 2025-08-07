@@ -2,12 +2,26 @@ from geoconv.tensorflow.layers import ConvDirac, ConvGeodesic, ConvZero, Barycen
 from geoconv.utils.data_generator import read_template_configurations
 from geoconv.utils.prepare_logs import process_logs
 from geoconv.tensorflow.layers import AngularMaxPooling
+from geoconv_examples.mnist.preprocess import create_grid
 from geoconv_examples.mnist.tensorflow.dataset_projections import load_preprocessed_mnist_for_projections
 
 import keras
 import tensorflow as tf
 import tensorflow_datasets as tfds
 import os
+
+
+class MNISTClassifier(keras.Model):
+    def __init__(self, bc_coordinates, *args, **kwargs):
+        super(MNISTClassifier, self).__init__(*args, **kwargs)
+        self.bc_coordinates = bc_coordinates
+
+    def call(self, inputs, **kwargs):
+        features, _ = inputs
+        return super().call(
+            [features, tf.tile(self.bc_coordinates, (tf.shape(features)[0], 1, 1, 1, 1, 1))],
+            **kwargs
+        )
 
 
 def build_mnist_classifier(variant, n_radial, n_angular, template_radius, rotation_delta, isc_layer_dims):
@@ -29,12 +43,9 @@ def build_mnist_classifier(variant, n_radial, n_angular, template_radius, rotati
     )
     template_radius = bc_layer.adapt(template_radius=template_radius)
 
-    # Point cloud to barycentric coordinates
-    point_cloud_input = tf.keras.Input(shape=(28 * 28, 3), name="point_cloud_input", dtype=tf.float32)
-    bc = bc_layer(point_cloud_input)
-
     # Fold image input
     image_input = tf.keras.Input(shape=(28 * 28, 1), name="image_input", dtype=tf.float32)
+    bc_input = tf.keras.Input(shape=(28 * 28, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
     signal = image_input
     for n in isc_layer_dims:
         signal = layer_type(
@@ -42,11 +53,16 @@ def build_mnist_classifier(variant, n_radial, n_angular, template_radius, rotati
             template_radius=template_radius,
             activation="elu",
             rotation_delta=rotation_delta
-        )([signal, bc])
+        )([signal, bc_input])
         signal = AngularMaxPooling()(signal)
     signal = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")(signal)
     output = tf.keras.layers.Dense(10, activation="linear")(signal)
-    imcnn = keras.Model(inputs=[image_input, point_cloud_input], outputs=output, name="mnist_model")
+    imcnn = MNISTClassifier(
+        bc_coordinates=bc_layer(create_grid(n_vertices=28).vertices.reshape((1, -1, 3))),
+        inputs=[image_input, bc_input],
+        outputs=output,
+        name="mnist_model"
+    )
     return imcnn, template_radius
 
 
@@ -102,8 +118,7 @@ def training(logging_dir,
                     learning_rate=0.001 if learning_rate is None else learning_rate
                 ),
                 loss=loss,
-                metrics=["accuracy"],
-                run_eagerly=True
+                metrics=["accuracy"]
             )
 
             # Define callbacks

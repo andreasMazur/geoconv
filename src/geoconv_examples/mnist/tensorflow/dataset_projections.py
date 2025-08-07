@@ -30,19 +30,19 @@ def load_preprocessed_mnist_for_projections(set_type, batch_size=8, for_adaptati
     else:
         dataset = splitted_datasets
 
-    # Create 28x28 grid whose vertices are to be processed by BC-layer to barycentric coordinates
-    grid = create_grid(n_vertices=28).vertices
-
     # Define a function to make the dataset compatible with the IMCNN input requirements.
     # If 'for_adaptation' is True, we only return the grid and the label.
     if for_adaptation:
+        # Create 28x28 grid whose vertices are to be processed by BC-layer to barycentric coordinates
+        grid = create_grid(n_vertices=28).vertices
         return tf.data.Dataset.from_tensors((tf.reshape(tf.cast(grid, tf.float32), (1, -1, 3)), None))
     else:
         def make_compatible(image, label):
             image = tf.cast(tf.reshape(image, (-1, 1)), tf.float32)
             label = tf.cast(label, tf.int32)
             # Image normalization, adding barycentric coordinates and adjusting data types
-            return (tf.cast(image, tf.float32) / 255., tf.cast(grid, tf.float32)), label
+            # Second value is a required placeholder for the BC-layer, otherwise graph execution fails
+            return (tf.cast(image, tf.float32) / 255., tf.constant(0.)), label
 
     # Apply 'make_compatible' to each element of MNIST
     dataset = dataset.map(make_compatible)
