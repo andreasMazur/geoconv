@@ -149,7 +149,10 @@ def compute_interpolation_coefficients(triangles, template):
 
 
 @tf.function(jit_compile=True)
-def compute_interpolation_weights(template, projections):
+def compute_bc(template, projections):
+    template = tf.cast(template, tf.float64)
+    projections = tf.cast(projections, tf.float64)
+
     # 'triangles': (n_vertices, `n_neighbors over 3`, 3, 2)
     # 'triangle_indices': (`n_neighbors over 3`, 3)
     triangles, triangle_indices = create_all_triangles(projections)
@@ -200,36 +203,7 @@ def compute_interpolation_weights(template, projections):
         selected_indices, correction_mask, tf.cast(zeros, tf.int32)
     )
 
-    return selected_bc, selected_indices
-
-
-@tf.function(jit_compile=True)
-def compute_bc(template, projections):
-    """Computes barycentric coordinates for a given template in given projections.
-
-    Parameters
-    ----------
-    template: tf.Tensor
-        A 3D-tensor of shape (n_radial, n_angular, 2) that contains 2D cartesian coordinates for template vertices.
-    projections: tf.Tensor
-        A 3D-tensor of shape (vertices, n_neighbors, 2) that contains all projected neighborhoods in 2D cartesian
-        coordinates. I.e., 'projections[i, j]' contains 2D coordinates of vertex 'j' in neighborhood 'i'.
-
-    Returns
-    -------
-    (tf.Tensor, tf.Tensor):
-        A 4D-tensor of shape (vertices, n_radial, n_angular, 3) that contains barycentric coordinates, i.e.,
-        interpolation coefficients, for all template vertices within each projected neighborhood. Additionally,
-        another 4D-tensor of shape (vertices, n_radial, n_angular, 3) that contains the vertex indices of the closest
-        projected vertices to the template vertices in each neighborhood.
-    """
-    template = tf.cast(template, tf.float64)
-    projections = tf.cast(projections, tf.float64)
-    interpolation_weights, interpolation_indices = compute_interpolation_weights(
-        template, projections
-    )
-
-    return interpolation_weights, interpolation_indices
+    return tf.stack([tf.cast(selected_indices, tf.float32), tf.cast(selected_bc, tf.float32)], axis=-1)
 
 
 class BarycentricCoordinates(tf.keras.layers.Layer):
@@ -325,7 +299,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
                     vertices, _ = normalization_layer(vertices)
 
                 # 1.) Compute projections
-                projections, _ = self.project(vertices[0])
+                projections, _ = self.project(vertices)
 
                 # 2.) Use length of farthest projection as radius
                 radii = tf.reduce_max(tf.linalg.norm(projections, axis=-1), axis=-1)
@@ -334,9 +308,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
                 avg_radius = avg_radius + tf.reduce_sum(radii)
 
                 # 4.) Remember amount of collected radii for averaging
-                vertices_count = vertices_count + tf.cast(
-                    tf.shape(radii)[0], tf.float32
-                )
+                vertices_count = vertices_count + tf.cast(tf.shape(radii)[1], tf.float32)
             avg_radius = avg_radius / vertices_count
             template_radius = avg_radius * template_scale
 
@@ -364,7 +336,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         return template_radius
 
     @tf.function(jit_compile=True)
-    def call(self, vertices):
+    def call(self, vertices, **kwargs):
         """Computes barycentric coordinates for multiple shapes.
 
         Parameters
@@ -378,58 +350,44 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
             A 5D-tensor of shape (batch_shapes, vertices, n_radial, n_angular, 3, 2) that describes barycentric
             coordinates.
         """
-        return tf.map_fn(self.call_helper, vertices)
-
-    @tf.function(jit_compile=True)
-    def call_helper(self, vertices):
-        """Computes barycentric coordinates for a single shape.
-
-        Parameters
-        ----------
-        vertices: tf.Tensor
-            A 2D-tensor of shape (n_vertices, 3) that contains the vertices of the shapes.
-
-        Returns
-        -------
-        tf.Tensor:
-            A 4D-tensor of shape (vertices, n_radial, n_angular, 3, 2) that describes barycentric coordinates.
-        """
         # 1.) Compute projection neighborhoods
-        # 'projections': (vertices, self.projection_neighbors, 2)
-        # 'neighborhoods_indices': (vertices, self.projection_neighbors)
+        # 'projections': (batch, vertices, self.projection_neighbors, 2)
+        # 'neighborhoods_indices': (batch, vertices, self.projection_neighbors)
         projections, neighborhoods_indices = self.project(vertices)
 
         # 2.) Compute barycentric coordinates
-        # 'interpolation_weights': (vertices, n_radial, n_angular, 3)
-        # 'closest_proj': (vertices, n_radial, n_angular, 3)
-        interpolation_weights, closest_proj = compute_bc(self.template, projections)
-        interpolation_weights = tf.cast(interpolation_weights, tf.float32)
+        # Local bc contain interpolation weights and closest projection indices.
+        # Local projection indices have to be recast to global vertex indices.
+        # 'local_bc': (batch, vertices, n_radial, n_angular, 3, 2)
+        local_bc = tf.map_fn(lambda x: compute_bc(self.template, x), projections)
 
         # 3.) Get projection indices (convert neighborhood indices to shape vertex indices)
-        # 'projections_indices': (vertices, n_radial, n_angular, 3)
+        # 'projections_indices': (batch, vertices, n_radial, n_angular, 3)
         projections_indices = tf.cast(
-            tf.gather(neighborhoods_indices, closest_proj, batch_dims=1), tf.float32
+            tf.gather(neighborhoods_indices, tf.cast(local_bc[..., 0], tf.int32), batch_dims=2), tf.float32
         )
 
         # 4.) Return barycentric coordinates tensor
-        # (vertices, n_radial, n_angular, 3, 2)
-        return tf.stack([projections_indices, interpolation_weights], axis=-1)
+        # (batch, vertices, n_radial, n_angular, 3, 2)
+        return tf.stack([projections_indices, local_bc[..., 1]], axis=-1)
 
     @tf.function(jit_compile=True)
     def project(self, vertices):
         # Get local reference frames
-        # 'lrfs': (vertices, 3, 3)
+        # 'lrfs': (batch, vertices, 3, 3)
+        # 'neighborhoods': (batch, vertices, n_neighbors, 3)
+        # 'neighborhoods_indices': (batch, vertices, n_neighbors)
         lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(
             self.neighbors_for_lrf, vertices
         )
 
         # Project neighborhoods into their lrfs using the logarithmic map
-        # 'projections': (vertices, n_neighbors, 2)
+        # 'projections': (batch, vertices, n_neighbors, 2)
         projections = logarithmic_map(lrfs, neighborhoods)
 
         return (
-            projections[:, : self.projection_neighbors, :],
-            neighborhoods_indices[:, : self.projection_neighbors],
+            projections[..., :self.projection_neighbors, :],
+            neighborhoods_indices[..., :self.projection_neighbors],
         )
 
     def get_config(self):
