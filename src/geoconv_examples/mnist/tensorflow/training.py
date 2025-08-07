@@ -91,8 +91,7 @@ def training(bc_path,
                     learning_rate=0.001 if learning_rate is None else learning_rate
                 ),
                 loss=loss,
-                metrics=["accuracy"],
-                run_eagerly=True
+                metrics=["accuracy"]
             )
 
             # Define callbacks
