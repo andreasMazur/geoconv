@@ -10,7 +10,7 @@ import tensorflow_datasets as tfds
 import os
 
 
-def build_mnist_classifier(variant, adapt_data, n_radial, n_angular, template_scale, rotation_delta, isc_layer_dims):
+def build_mnist_classifier(variant, n_radial, n_angular, template_radius, rotation_delta, isc_layer_dims):
     if variant is None or variant == "dirac":
         layer_type = ConvDirac
     elif variant == "geodesic":
@@ -27,11 +27,7 @@ def build_mnist_classifier(variant, adapt_data, n_radial, n_angular, template_sc
         neighbors_for_lrf=20,
         projection_neighbors=20,
     )
-    template_radius = bc_layer.adapt(
-        data=adapt_data,
-        template_scale=template_scale,
-    )
-    print(f"### Template scale {template_scale} causes a template radius of: {template_radius} ###")
+    template_radius = bc_layer.adapt(template_radius=template_radius)
 
     # Point cloud to barycentric coordinates
     point_cloud_input = tf.keras.Input(shape=(28 * 28, 3), name="point_cloud_input", dtype=tf.float32)
@@ -78,7 +74,7 @@ def training(logging_dir,
         template_configurations = read_template_configurations(bc_path)
 
     # Run experiments
-    for (n_radial, n_angular, template_scale) in template_configurations:
+    for (n_radial, n_angular, template_radius) in template_configurations:
         csv_file_names = []
         for exp_no in range(len(splits)):
             # Load data
@@ -94,14 +90,9 @@ def training(logging_dir,
             # Define and compile model
             imcnn, template_radius = build_mnist_classifier(
                 variant=variant,
-                adapt_data=load_preprocessed_mnist_for_projections(
-                    set_type=splits[:exp_no] + splits[exp_no + 1:],
-                    batch_size=1,
-                    for_adaptation=True
-                ),
                 n_radial=n_radial,
                 n_angular=n_angular,
-                template_scale=template_scale,
+                template_radius=template_radius,
                 rotation_delta=n_angular,
                 isc_layer_dims=isc_layer_dims
             )
