@@ -1,8 +1,11 @@
 from geoconv.utils.data_generator import preprocessed_shape_generator
-from geoconv_examples.faust.tensorflow.classifer import SIG_DIM
 
 import tensorflow as tf
 import numpy as np
+
+
+N_VERTICES = 6890
+SIG_DIM = 544
 
 
 def faust_generator(
@@ -95,12 +98,11 @@ def load_preprocessed_faust(
     only_signal=False,
     seed=42,
     gen_info_file="",
-    batch_size=1,
-    signal_dim=SIG_DIM,
+    batch_size=1
 ):
     if only_signal:
         output_signature = tf.TensorSpec(
-            shape=(None, signal_dim), dtype=tf.float32
+            shape=(None, SIG_DIM), dtype=tf.float32
         )  # Signal
     else:
         output_signature = (
@@ -108,7 +110,7 @@ def load_preprocessed_faust(
                 tf.TensorSpec(
                     shape=(
                         None,
-                        signal_dim,
+                        SIG_DIM,
                     ),
                     dtype=tf.float32,
                 ),  # Signal

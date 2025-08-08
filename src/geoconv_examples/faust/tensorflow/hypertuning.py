@@ -1,74 +1,9 @@
+from geoconv_examples.faust.tensorflow.classifier import build_faust_classifier
 from geoconv_examples.faust.tensorflow.dataset import load_preprocessed_faust
-from geoconv_examples.faust.tensorflow.training import (
-    SIG_DIM,
-    AMOUNT_VERTICES,
-    FaustVertexClassifier,
-)
 
 import tensorflow as tf
 import keras_tuner as kt
 import os
-
-
-class HyperModel(kt.HyperModel):
-    def __init__(self, n_radial, n_angular, template_radius, adapt_data):
-        super().__init__()
-        self.n_radial = n_radial
-        self.n_angular = n_angular
-        self.template_radius = template_radius
-        self.normalize = tf.keras.layers.Normalization(
-            axis=-1, name="input_normalization"
-        )
-        self.normalize.adapt(adapt_data)
-
-    def build(self, hp):
-        # Define model input
-        signal_input = tf.keras.layers.Input(
-            shape=(AMOUNT_VERTICES, SIG_DIM), name="Signal"
-        )
-        bc_input = tf.keras.layers.Input(
-            shape=(AMOUNT_VERTICES, self.n_radial, self.n_angular, 3, 2), name="BC"
-        )
-
-        # Normalize input
-        signal = self.normalize(signal_input)
-
-        # Predict vertex embeddings
-        vertex_predictions = FaustVertexClassifier(
-            self.template_radius,
-            isc_layer_dims=[256, 128, 64, 32, 16],
-            middle_layer_dim=64,
-            variant="dirac",
-            normalize_input=False,
-            rotation_delta=2,
-            dropout_rate=hp.Float("dropout_rate", min_value=0.01, max_value=0.9),
-            output_rotation_delta=2,
-            l1_reg=hp.Float("l1_reg_coefficient", min_value=0.00001, max_value=0.001),
-            initializer="glorot_uniform",
-        )([signal, bc_input])
-
-        # Compile model
-        imcnn = tf.keras.Model(
-            inputs=[signal_input, bc_input], outputs=vertex_predictions
-        )
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        opt = tf.keras.optimizers.AdamW(
-            learning_rate=hp.Float(
-                "initial_learning_rate", min_value=0.00001, max_value=0.01
-            ),
-            weight_decay=0.005,
-        )
-        imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
-        imcnn.build(
-            input_shape=[
-                tf.TensorShape([None, AMOUNT_VERTICES, 3]),
-                tf.TensorShape(
-                    [None, AMOUNT_VERTICES, self.n_radial, self.n_angular, 3, 2]
-                ),
-            ]
-        )
-
-        return imcnn
 
 
 def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_file=None):
@@ -100,36 +35,40 @@ def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_fil
         batch_size=1,
     )
 
-    # Initialize hypermodel
-    hyper_model = HyperModel(
-        n_radial,
-        n_angular,
-        template_radius,
-        load_preprocessed_faust(
-            dataset_path,
-            n_radial,
-            n_angular,
-            template_radius,
-            is_train=True,
-            gen_info_file=f"{logging_dir}/{gen_info_file}",
-            only_signal=True,
-            batch_size=1,
-        ),
-    )
+    def build_hypermodel(hp):
+        imcnn = build_faust_classifier(
+            variant=hp.Choice(name="kernel", values=["dirac", "geodesic"]),
+            n_radial=n_radial,
+            n_angular=n_angular,
+            isc_layer_dims=[
+                hp.Int(name="isc_layer_1", min_value=8, max_value=16, step=8),
+                hp.Int(name="isc_layer_2", min_value=8, max_value=16, step=8),
+            ],
+            template_radius=template_radius,
+            rotation_delta=train_data.element_spec[0][1].shape[3],
+        )
+        imcnn.compile(
+            optimizer=tf.keras.optimizers.Adam(
+                learning_rate=hp.Float(name="learning_rate", min_value=1e-6, max_value=0.1)
+            ),
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+            metrics=["accuracy"]
+        )
+        return imcnn
 
-    # Run hyper-tuning
-    tuner = kt.Hyperband(
-        hypermodel=hyper_model,
-        objective=kt.Objective("val_accuracy", direction="max"),
-        max_epochs=200,
-        factor=3,
+    tuner = kt.BayesianOptimization(
+        hypermodel=build_hypermodel,
+        objective=kt.Objective(name="val_accuracy", direction="max"),
+        max_trials=10_000,
+        num_initial_points=12,
         directory=logging_dir,
-        project_name="faust_hyper_tuning",
+        project_name="mnist_hyper_tuning",
+        tune_new_entries=True,
+        allow_new_entries=True
     )
 
-    stop = tf.keras.callbacks.EarlyStopping(
-        monitor="val_loss", patience=10, min_delta=0.01
-    )
+    # Start hyperparameter tuning
+    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=10, min_delta=0.01)
     tuner.search(x=train_data, validation_data=test_data, epochs=200, callbacks=[stop])
 
     # Print best hyperparameters

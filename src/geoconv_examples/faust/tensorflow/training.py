@@ -1,7 +1,8 @@
+from geoconv.tensorflow.layers import ConvDirac, ConvGeodesic, ConvZero, AngularMaxPooling
 from geoconv.utils.data_generator import read_template_configurations
 from geoconv.utils.princeton_benchmark import princeton_benchmark
-from geoconv_examples.faust.classifer import FaustVertexClassifier, AMOUNT_VERTICES, SIG_DIM
-from geoconv_examples.faust.dataset import load_preprocessed_faust
+from geoconv_examples.faust.tensorflow.classifier import build_faust_classifier
+from geoconv_examples.faust.tensorflow.dataset import load_preprocessed_faust
 
 import tensorflow as tf
 import os
@@ -16,14 +17,8 @@ def training(dataset_path,
              isc_layer_dims=None,
              learning_rate=0.00165,
              gen_info_file=None,
-             rotation_delta=1,
-             batch_size=1,
-             middle_layer_dim=1024,
-             dropout_rate=0.3,
-             output_rotation_delta=1,
-             l1_reg=0.3,
-             signal_dim=SIG_DIM,
-             initializer="glorot_uniform"):
+             rotation_delta=None,
+             batch_size=1):
     # Create logging dir
     os.makedirs(logging_dir, exist_ok=True)
 
@@ -37,7 +32,6 @@ def training(dataset_path,
 
     # Run experiments
     for (n_radial, n_angular, template_radius) in template_configurations:
-
         # Load data
         train_data = load_preprocessed_faust(
             dataset_path,
@@ -46,8 +40,7 @@ def training(dataset_path,
             template_radius,
             is_train=True,
             gen_info_file=f"{logging_dir}/{gen_info_file}",
-            batch_size=batch_size,
-            signal_dim=signal_dim
+            batch_size=batch_size
         )
         test_data = load_preprocessed_faust(
             dataset_path,
@@ -56,49 +49,22 @@ def training(dataset_path,
             template_radius,
             is_train=False,
             gen_info_file=f"{logging_dir}/test_{gen_info_file}",
-            batch_size=batch_size,
-            signal_dim=signal_dim
+            batch_size=batch_size
         )
 
         # Build model
-        imcnn = FaustVertexClassifier(
-            template_radius,
-            isc_layer_dims=isc_layer_dims,
-            middle_layer_dim=middle_layer_dim,
+        imcnn = build_faust_classifier(
             variant=variant,
-            normalize_input=True,
-            rotation_delta=rotation_delta,
-            dropout_rate=dropout_rate,
-            output_rotation_delta=output_rotation_delta,
-            l1_reg=l1_reg,
-            initializer=initializer
-        )
-        imcnn.build(
-            input_shape=[
-                tf.TensorShape([None, AMOUNT_VERTICES, signal_dim]),
-                tf.TensorShape([None, AMOUNT_VERTICES, n_radial, n_angular, 3, 2])
-            ]
-        )
-        # Adapt normalization: Normalize each vertex-feature-dimension (axis=-1) with individual mean and variance
-        imcnn.normalize.adapt(
-            load_preprocessed_faust(
-                dataset_path,
-                n_radial,
-                n_angular,
-                template_radius,
-                is_train=True,
-                gen_info_file=f"{logging_dir}/{gen_info_file}",
-                only_signal=True,
-                signal_dim=signal_dim
-            )
+            n_radial=n_radial,
+            n_angular=n_angular,
+            isc_layer_dims=isc_layer_dims,
+            template_radius=template_radius,
+            rotation_delta=n_angular if rotation_delta is None else rotation_delta
         )
 
         # Compile model
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        opt = tf.keras.optimizers.AdamW(
-            learning_rate=learning_rate,
-            weight_decay=0.005
-        )
+        opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         imcnn.compile(optimizer=opt, loss=loss, metrics=["accuracy"])
         imcnn.summary()
 
@@ -116,7 +82,7 @@ def training(dataset_path,
             profile_batch=(1, 80)
         )
 
-        saving_path = f"{logging_dir}/saved_imcnn_{exp_number}"
+        saving_path = f"{logging_dir}/saved_imcnn_{exp_number}.keras"
         save = tf.keras.callbacks.ModelCheckpoint(
             filepath=saving_path,
             monitor="val_loss",
@@ -128,22 +94,15 @@ def training(dataset_path,
         imcnn.fit(x=train_data, callbacks=[stop, tb, csv, save], validation_data=test_data, epochs=200)
 
         # Load best model
-        imcnn_best = tf.keras.models.load_model(saving_path)
-        imcnn = FaustVertexClassifier(
-            template_radius,
-            isc_layer_dims=isc_layer_dims,
-            middle_layer_dim=middle_layer_dim,
-            variant=variant,
-            normalize_input=True,
-            rotation_delta=rotation_delta
+        best_imcnn = tf.keras.models.load_model(
+            saving_path,
+            custom_objects={
+                "ConvDirac": ConvDirac,
+                "ConvGeodesic": ConvGeodesic,
+                "ConvZero": ConvZero,
+                "AngularMaxPooling": AngularMaxPooling
+            }
         )
-        imcnn.build(
-            input_shape=[
-                tf.TensorShape([None, AMOUNT_VERTICES, SIG_DIM]),
-                tf.TensorShape([None, AMOUNT_VERTICES, n_radial, n_angular, 3, 2])
-            ]
-        )
-        imcnn.set_weights(imcnn_best.get_weights())
 
         # Evaluate model with Princeton benchmark
         test_data = load_preprocessed_faust(
@@ -153,11 +112,10 @@ def training(dataset_path,
             template_radius,
             is_train=False,
             gen_info_file=f"{logging_dir}/test_{gen_info_file}",
-            batch_size=1,
-            signal_dim=signal_dim
+            batch_size=1
         )
         princeton_benchmark(
-            imcnn=imcnn,
+            imcnn=best_imcnn,
             test_dataset=test_data,
             ref_mesh_path=reference_mesh_path,
             normalize=True,
