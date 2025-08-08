@@ -62,7 +62,7 @@ def hyper_tuning(dataset_path, logging_dir, template_configuration, gen_info_fil
         max_trials=10_000,
         num_initial_points=12,
         directory=logging_dir,
-        project_name="mnist_hyper_tuning",
+        project_name="faust_hyper_tuning",
         tune_new_entries=True,
         allow_new_entries=True
     )
