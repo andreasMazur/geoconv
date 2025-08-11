@@ -5,7 +5,6 @@ from geoconv.utils.data_generator import zip_file_generator
 from geoconv.utils.misc import normalize_mesh, find_largest_one_hop_dist
 from geoconv_examples.faust.geodesic_diameters import GEODESIC_DIAMETERS
 
-import tensorflow as tf
 import numpy as np
 import shutil
 import pyshot
@@ -46,6 +45,12 @@ def proj_preprocess(faust_path, output_path, template_configurations):
 
         # Compute barycentric coordinates
         for n_radial, n_angular, template_radius in template_configurations:
+            print(
+                f"Currently processing:"
+                f" {shape_path} with n_radial={n_radial},"
+                f" n_angular={n_angular},"
+                f" template_radius={template_radius}"
+            )
             bc_layer = BarycentricCoordinates(
                 n_radial=n_radial,
                 n_angular=n_angular,
