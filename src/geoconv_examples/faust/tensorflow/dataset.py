@@ -37,8 +37,13 @@ def faust_generator(
     np.random.seed(seed)
 
     for elements in psg:
-        shot = elements[0][0]
-        bc = elements[1][0]
+        for e in elements:
+            if len(e[0].shape) == 5:
+                bc = e[0]
+            elif len(e[0].shape) == 2:
+                shot = e[0]
+            else:
+                raise RuntimeError(f"Unknown shape {e[0].shape} for element in FAUST dataset.")
 
         assert (
             bc.shape[0] == shot.shape[0]
