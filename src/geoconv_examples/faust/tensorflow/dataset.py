@@ -40,6 +40,9 @@ def faust_generator(
         for e in elements:
             if len(e[0].shape) == 5:
                 bc = e[0]
+            elif len(e[0].shape) == 6:
+                assert e[0].shape[0] == 1, "Expected only one batch element."
+                bc = e[0][0]  # e[0] is a batch of barycentric coordinates
             elif len(e[0].shape) == 2:
                 shot = e[0]
             else:

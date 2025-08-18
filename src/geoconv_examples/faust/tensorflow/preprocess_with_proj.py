@@ -58,7 +58,7 @@ def proj_preprocess(faust_path, output_path, template_configurations):
                 projection_neighbors=20,
             )
             bc_layer.adapt(template_radius=template_radius)
-            bc = bc_layer(shape.vertices.reshape(1, -1, 3))
+            bc = bc_layer(shape.vertices.reshape(1, -1, 3))[0]
             np.save(f"{output_dir}/BC_{n_radial}_{n_angular}_{template_radius}.npy", bc)
 
         # Create preprocess properties file so that loader can find the data
