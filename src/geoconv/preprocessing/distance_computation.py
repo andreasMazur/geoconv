@@ -10,7 +10,11 @@ import math
 import trimesh
 
 
-def calculate_local_charts(triangle_mesh, method="hdm", processes=1, max_radius=np.inf):
+def calculate_local_charts(triangle_mesh,
+                           method="hdm",
+                           processes=1,
+                           max_radius=np.inf,
+                           calculate_angle=True):
     """Calculates local charts on triangle meshes.
 
     Parameters
@@ -23,6 +27,8 @@ def calculate_local_charts(triangle_mesh, method="hdm", processes=1, max_radius=
         The number of processes to use for parallel computation.
     max_radius: float
         The maximum radius for a local chart.
+    calculate_angle: bool
+        Whether to calculate angles.
 
     Returns
     -------
@@ -57,8 +63,38 @@ def calculate_local_charts(triangle_mesh, method="hdm", processes=1, max_radius=
     distances = np.concatenate(distances, axis=0)
     distances[distances > max_radius] = np.inf
 
-    # Compute angles using tangent plane projections
-    angles = compute_angles(triangle_mesh, distances)
+    if calculate_angle:
+        # Compute angles using tangent plane projections
+        angles = compute_angles(triangle_mesh, distances)
 
-    # Combine distances and angles to local charts
-    return np.stack([distances, angles], axis=-1)
+        # Combine distances and angles to local charts
+        return np.stack([distances, angles], axis=-1)
+    else:
+        return distances
+
+
+def normalize_shape(triangle_mesh, method="hdm", processes=1):
+    """Normalizes mesh according to geodesic diameter and point of mass to zero.
+
+    Parameters
+    ----------
+    triangle_mesh: trimesh.Trimesh
+        The mesh to normalize.
+    method: str
+        Either "hdm" (heat diffusion for distance calc.) or "fmm" (fast marching method). Defaults to "hdm".
+    processes: int
+        The number of processes to use for parallel computation.
+
+    Returns
+    -------
+    trimesh.Trimesh:
+        The normalized triangle mesh.
+    """
+    distances = calculate_local_charts(
+        triangle_mesh, method=method, processes=processes, max_radius=np.inf, calculate_angle=False
+    )
+    geodesic_diameter = distances.max()
+    normalized_vertices = triangle_mesh.vertices / geodesic_diameter
+    normalized_vertices = normalized_vertices - np.mean(normalized_vertices, axis=0)
+
+    return trimesh.Trimesh(vertices=normalized_vertices, faces=np.array(triangle_mesh.faces))
