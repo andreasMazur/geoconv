@@ -1,4 +1,4 @@
-from geoconv.preprocessing.wrapper import compute_gpc_systems_wrapper, compute_bc_wrapper
+from geoconv.preprocessing.dgpc.wrapper import compute_gpc_systems_wrapper, compute_bc_wrapper
 from geoconv.utils.data_generator import zip_file_generator
 from geoconv.utils.misc import find_largest_one_hop_dist
 from geoconv_examples.faust.geodesic_diameters import GEODESIC_DIAMETERS

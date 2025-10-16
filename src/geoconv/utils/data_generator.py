@@ -1,4 +1,4 @@
-from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
+from geoconv.preprocessing.dgpc.gpc_system_group import GPCSystemGroup
 from geoconv.utils.misc import get_faces_of_edge, repair_mesh, normalize_mesh
 from geoconv.utils.visualization import draw_gpc_on_mesh, draw_gpc_triangles
 

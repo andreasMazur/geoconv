@@ -1,4 +1,4 @@
-from geoconv.preprocessing.wrapper import sample_surface
+from geoconv.preprocessing.dgpc.wrapper import sample_surface
 from geoconv.utils.data_generator import zip_file_generator
 
 import shutil

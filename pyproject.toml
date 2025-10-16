@@ -30,7 +30,9 @@ keywords = [
     "geometric",
     "geometric-deep-learning",
     "visualization",
-    "benchmarking"
+    "benchmarking",
+    "potpourri3d",
+    "tqdm"
 ]
 requires-python = ">= 3.10"
 dependencies = [

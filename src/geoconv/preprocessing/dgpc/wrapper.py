@@ -1,5 +1,5 @@
 from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
-from geoconv.preprocessing.gpc_system_group import GPCSystemGroup
+from geoconv.preprocessing.dgpc.gpc_system_group import GPCSystemGroup
 from geoconv.utils.misc import normalize_mesh, compute_distance_matrix
 
 from multiprocessing import Pool
