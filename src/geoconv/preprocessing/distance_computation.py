@@ -10,15 +10,8 @@ import math
 import trimesh
 
 
-def calc_local_charts_wrapper(triangle_mesh, method="hdm", processes=1, max_radius=np.inf):
-    """Wrapper for the Heat Diffusion Method for Distance Calculations from Potpourri3D.
-
-    The heat diffusion for distance calculation has been published in:
-    > [The heat method for distance computation](https://dl.acm.org/doi/10.1145/3131280)
-    > Keenan Crane, Clarisse Weischedel, Max Wardetzky
-
-    Code available on GitHub:
-    > https://github.com/nmwsharp/potpourri3d
+def calculate_local_charts(triangle_mesh, method="hdm", processes=1, max_radius=np.inf):
+    """Calculates local charts on triangle meshes.
 
     Parameters
     ----------
