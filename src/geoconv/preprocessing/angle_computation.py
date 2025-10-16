@@ -82,7 +82,7 @@ def compute_angles(triangle_mesh, distance_charts):
         )[:, 1:]
 
         # Get angles
-        angles = np.arctan2(projections[:, 1], projections[:, 0]) * 180 / np.pi + 180
+        angles = np.arctan2(projections[:, 1], projections[:, 0]) + np.pi
 
         # Assign angles
         angle_chart = np.full_like(chart, fill_value=-1.)

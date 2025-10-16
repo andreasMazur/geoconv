@@ -1,7 +1,11 @@
+from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
 from geoconv.preprocessing.distance_computation import normalize_shape, calculate_local_charts
 
 from tqdm import tqdm
+from matplotlib import pyplot as plt
+from matplotlib.collections import PolyCollection
 
+import matplotlib.cm as cm
 import numpy as np
 import trimesh
 import h5py
@@ -90,6 +94,11 @@ class Atlas:
             max_radius=max_radius,
             calculate_angle=True
         )
+
+        # Translate charts into cartesian coordinates (required by BC-computation)
+        self.charts = polar_to_cart(self.charts[..., 1], self.charts[..., 0])
+
+        # Store faces and triangles
         self.chart_faces = determine_faces_for_charts(triangle_mesh, self.charts)
         self.chart_triangles = {k: np.array(self.charts[k][v]) for k, v in self.chart_faces.items()}
 
@@ -120,3 +129,28 @@ class Atlas:
             f.attrs["max_radius"] = self.max_radius
             f.attrs["method"] = self.method
             f.attrs["processes"] = self.processes
+
+    def visualize_chart(self, chart_idx):
+        color_array = np.full((self.charts.shape[0], 4), fill_value=[1, 1, 1, 0.75])
+        chart = self.charts[chart_idx, :, 0][self.charts[chart_idx, :, 0] != np.inf]
+        chart = (chart - chart.min()) / (chart.max() - chart.min())
+        colors = cm.get_cmap("bwr")(chart)
+        color_array[self.charts[chart_idx, :, 0] != np.inf] = colors
+        trimesh.PointCloud(self.triangle_mesh.vertices, colors=color_array).show()
+
+        color_array = np.full((self.charts.shape[0], 4), fill_value=[1, 1, 1, 0.75])
+        chart = self.charts[chart_idx, :, 1][self.charts[chart_idx, :, 0] != np.inf]
+        chart = (chart - chart.min()) / (chart.max() - chart.min())
+        colors = cm.get_cmap("PRGn")(chart)
+        color_array[self.charts[chart_idx, :, 0] != np.inf] = colors
+        trimesh.PointCloud(self.triangle_mesh.vertices, colors=color_array).show()
+
+        fig, ax = plt.subplots()
+        chart = self.charts[chart_idx]
+        chart = chart[chart[:, 0] != np.inf]
+        ax.set_title(f"meta data: max-radius {self.max_radius} - method {self.method}")
+        ax.set_xlim([chart[:, 0].min(), chart[:, 0].max()])
+        ax.set_ylim([chart[:, 1].min(), chart[:, 1].max()])
+        polygons = PolyCollection(self.chart_triangles[chart_idx], alpha=0.4, edgecolors="red")
+        ax.add_collection(polygons)
+        plt.show()
