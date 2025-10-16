@@ -130,20 +130,21 @@ class Atlas:
             f.attrs["method"] = self.method
             f.attrs["processes"] = self.processes
 
-    def visualize_chart(self, chart_idx):
-        color_array = np.full((self.charts.shape[0], 4), fill_value=[1, 1, 1, 0.75])
-        chart = self.charts[chart_idx, :, 0][self.charts[chart_idx, :, 0] != np.inf]
-        chart = (chart - chart.min()) / (chart.max() - chart.min())
-        colors = cm.get_cmap("bwr")(chart)
-        color_array[self.charts[chart_idx, :, 0] != np.inf] = colors
-        trimesh.PointCloud(self.triangle_mesh.vertices, colors=color_array).show()
+    def visualize_chart(self, chart_idx, visualize_3d=False):
+        if visualize_3d:
+            color_array = np.full((self.charts.shape[0], 4), fill_value=[1, 1, 1, 0.75])
+            chart = self.charts[chart_idx, :, 0][self.charts[chart_idx, :, 0] != np.inf]
+            chart = (chart - chart.min()) / (chart.max() - chart.min())
+            colors = cm.get_cmap("Reds")(chart)
+            color_array[self.charts[chart_idx, :, 0] != np.inf] = colors
+            trimesh.PointCloud(self.triangle_mesh.vertices, colors=color_array).show()
 
-        color_array = np.full((self.charts.shape[0], 4), fill_value=[1, 1, 1, 0.75])
-        chart = self.charts[chart_idx, :, 1][self.charts[chart_idx, :, 0] != np.inf]
-        chart = (chart - chart.min()) / (chart.max() - chart.min())
-        colors = cm.get_cmap("PRGn")(chart)
-        color_array[self.charts[chart_idx, :, 0] != np.inf] = colors
-        trimesh.PointCloud(self.triangle_mesh.vertices, colors=color_array).show()
+            color_array = np.full((self.charts.shape[0], 4), fill_value=[1, 1, 1, 0.75])
+            chart = self.charts[chart_idx, :, 1][self.charts[chart_idx, :, 0] != np.inf]
+            chart = (chart - chart.min()) / (chart.max() - chart.min())
+            colors = cm.get_cmap("Greens")(chart)
+            color_array[self.charts[chart_idx, :, 0] != np.inf] = colors
+            trimesh.PointCloud(self.triangle_mesh.vertices, colors=color_array).show()
 
         fig, ax = plt.subplots()
         chart = self.charts[chart_idx]
