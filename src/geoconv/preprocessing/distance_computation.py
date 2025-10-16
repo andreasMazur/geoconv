@@ -23,8 +23,6 @@ def calculate_local_charts(triangle_mesh, method="hdm", processes=1, max_radius=
         The number of processes to use for parallel computation.
     max_radius: float
         The maximum radius for a local chart.
-    normalize_shape: bool
-        Whether to normalize the shape by its geodesic diameter before computing the local charts.
 
     Returns
     -------
