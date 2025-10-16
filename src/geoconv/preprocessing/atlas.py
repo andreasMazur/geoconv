@@ -149,7 +149,7 @@ class Atlas:
         fig, ax = plt.subplots()
         chart = self.charts[chart_idx]
         chart = chart[chart[:, 0] != np.inf]
-        ax.set_title(f"meta data: max-radius {self.max_radius} - method {self.method}")
+        ax.set_title(f"meta data: origin idx {chart_idx} - max-radius {self.max_radius} - method {self.method}")
         ax.set_xlim([chart[:, 0].min(), chart[:, 0].max()])
         ax.set_ylim([chart[:, 1].min(), chart[:, 1].max()])
         polygons = PolyCollection(self.chart_triangles[chart_idx], alpha=0.4, edgecolors="red")
