@@ -46,9 +46,9 @@ def calc_local_charts_wrapper(triangle_mesh, method="hdm", processes=1, max_radi
     n_vertices = mesh_vertices.shape[0]
 
     # Divide indices into subsets for which the solver should calculate distances in parallel
-    chunk_size = math.floor(n_vertices / processes)
     all_vertex_indices = np.arange(n_vertices)
     if n_vertices % processes != 0:
+        chunk_size = math.floor(n_vertices / processes)
         index_subsets = [all_vertex_indices[p * chunk_size:(p + 1) * chunk_size] for p in range(processes+1)]
     else:
         index_subsets = np.split(all_vertex_indices, processes)
