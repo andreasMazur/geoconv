@@ -153,8 +153,6 @@ def compute_barycentric_coordinates(gpc_systems, n_radial=2, n_angular=4, radius
         The amount of angular coordinates of the template you wish to use
     radius: float
         The radius of the template of the template you wish to use
-    verbose: bool
-        Whether to print progress on terminal
 
     Returns
     -------
