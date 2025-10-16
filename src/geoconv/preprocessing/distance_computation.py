@@ -71,9 +71,3 @@ def calc_local_charts_wrapper(triangle_mesh, method="hdm", processes=1, max_radi
 
     # Combine distances and angles to local charts
     return np.stack([distances, angles], axis=-1)
-
-
-if __name__ == "__main__":
-    mesh = trimesh.load_mesh("/home/andreas/Uni/datasets/MPI-FAUST/training/registrations/tr_reg_000.ply")
-    calc_local_charts_wrapper(mesh, method="fmm", max_radius=0.05, processes=10, normalize_shape=True)
-    calc_local_charts_wrapper(mesh, method="hdm", max_radius=0.05, processes=10, normalize_shape=True)
