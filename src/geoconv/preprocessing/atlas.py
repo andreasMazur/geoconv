@@ -27,7 +27,7 @@ def determine_faces_for_charts(triangle_mesh, local_charts):
         faces_in_local_coords = chart[triangle_mesh.faces]
         mask = faces_in_local_coords[..., 0] != np.inf
         all_coords_available = mask.astype(np.int32).prod(axis=-1).astype(np.bool_)
-        available_faces[chart_idx] = triangle_mesh.faces[all_coords_available]
+        available_faces[chart_idx] = np.array(triangle_mesh.faces[all_coords_available])
     return available_faces
 
 
@@ -56,15 +56,19 @@ def load_atlas(filepath):
         method = f.attrs.get("method")
         processes = f.attrs.get("processes")
 
-    # Instantiate a new atlas
+    # Instantiate loaded atlas
     atlas = Atlas.__new__(Atlas)
+
+    # Meta information
+    atlas.max_radius = max_radius
+    atlas.method = method
+    atlas.processes = processes
+
+    # Triangle mesh and charts information
     atlas.triangle_mesh = triangle_mesh
     atlas.charts = charts
-    atlas.available_faces = chart_faces
-    atlas.available_triangles = chart_triangles
-    atlas.method = method
-    atlas.max_radius = max_radius
-    atlas.processes = processes
+    atlas.chart_faces = chart_faces
+    atlas.chart_triangles = chart_triangles
 
     # Return instantiated atlas
     return atlas
@@ -87,7 +91,7 @@ class Atlas:
             calculate_angle=True
         )
         self.chart_faces = determine_faces_for_charts(triangle_mesh, self.charts)
-        self.chart_triangles = {k: self.triangle_mesh.vertices[v] for k, v in self.chart_faces.items()}
+        self.chart_triangles = {k: np.array(self.charts[k][v]) for k, v in self.chart_faces.items()}
 
     def save(self, filepath):
         with h5py.File(filepath, "w") as f:

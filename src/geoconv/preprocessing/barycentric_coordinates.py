@@ -140,13 +140,13 @@ def create_template_matrix(
     return coordinates
 
 
-def compute_barycentric_coordinates(gpc_systems, n_radial=2, n_angular=4, radius=0.05):
+def compute_barycentric_coordinates(atlas, n_radial=2, n_angular=4, radius=0.05):
     """Compute the barycentric coordinates for the given GPC-systems
 
     Parameters
     ----------
-    gpc_systems: GPCSystemGroup
-        The GPC-system-group for the underlying mesh
+    atlas: Atlas
+        The atlas for the underlying mesh
     n_radial: int
         The amount of radial coordinates of the template you wish to use
     n_angular: int
@@ -172,28 +172,26 @@ def compute_barycentric_coordinates(gpc_systems, n_radial=2, n_angular=4, radius
     template_matrix = create_template_matrix(
         n_radial=n_radial, n_angular=n_angular, radius=radius, in_cart=True
     )
-    n_gpc_systems = gpc_systems.object_mesh_gpc_systems.shape[0]
-    barycentric_coordinates = np.zeros((n_gpc_systems, n_radial, n_angular, 3, 2))
+    n_charts = atlas.charts.shape[0]
+    barycentric_coordinates = np.zeros((n_charts, n_radial, n_angular, 3, 2))
 
     template_info = f"n_radial: {n_radial} | n_angular: {n_angular} | radius: {radius}"
-    for gpc_system_idx in tqdm(
-        range(n_gpc_systems),
+    for chart_idx in tqdm(
+        range(n_charts),
         postfix=f"Computing barycentric coordinates: " + template_info,
     ):
-        gpc_system = gpc_systems.object_mesh_gpc_systems[gpc_system_idx]
-        gpc_triangles = gpc_system.get_gpc_triangles(in_cart=True)
         for radial_coordinate in range(n_radial):
             for angular_coordinate in range(n_angular):
                 bc, indices = interpolation(
                     template_matrix[radial_coordinate, angular_coordinate],
-                    gpc_triangles,
-                    gpc_system.faces[(-1, -1)],
+                    atlas.chart_triangles[chart_idx],
+                    atlas.chart_faces[chart_idx],
                 )
                 barycentric_coordinates[
-                    gpc_system_idx, radial_coordinate, angular_coordinate, :, 0
+                    chart_idx, radial_coordinate, angular_coordinate, :, 0
                 ] = indices
                 barycentric_coordinates[
-                    gpc_system_idx, radial_coordinate, angular_coordinate, :, 1
+                    chart_idx, radial_coordinate, angular_coordinate, :, 1
                 ] = bc
 
     return barycentric_coordinates
