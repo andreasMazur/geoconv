@@ -75,16 +75,8 @@ void compute_dist_and_dir(double vertex_i[],
     double theta_i;
     if(radicand <= 0)
     {
-        double j = u_j + cblas_dnrm2(3, e_j, 1);
-        double k = u_k + cblas_dnrm2(3, e_k, 1);
-        if(j <= k)
-        {
-            u_ijk = INFINITY;
-            theta_i = -1;
-        } else {
-            u_ijk = INFINITY;
-            theta_i = -1;
-        }
+        u_ijk = INFINITY;
+        theta_i = -1;
     } else {
         double H = sqrt(radicand);
         double u_j_sq = pow(u_j, 2);
@@ -92,16 +84,8 @@ void compute_dist_and_dir(double vertex_i[],
         double x_j = A * (e_kj_sqnrm + u_k_sq - u_j_sq) + cblas_ddot(3, e_k, 1, e_kj, 1) * H;
         double x_k = A * (e_kj_sqnrm + u_j_sq - u_k_sq) - cblas_ddot(3, e_j, 1, e_kj, 1) * H;
         if (x_j < 0 || x_k < 0) {
-            double j = u_j + cblas_dnrm2(3, e_j, 1);
-            double k = u_k + cblas_dnrm2(3, e_k, 1);
-            if(j <= k)
-            {
-                u_ijk = j;
-                theta_i = theta_j;
-            } else {
-                u_ijk = k;
-                theta_i = theta_k;
-            }
+            u_ijk = INFINITY;
+            theta_i = -1;
         } else {
             // Compute distance
             double denominator = 2 * A * e_kj_sqnrm;
@@ -124,8 +108,14 @@ void compute_dist_and_dir(double vertex_i[],
             cblas_daxpy(3, -1.0, s, 1, vertex_j, 1);
             cblas_daxpy(3, -1.0, s, 1, vertex_i, 1);
 
-            double phi_kj = compute_angle(vertex_k, vertex_j);
-            double phi_ij = compute_angle(vertex_i, vertex_j);
+            double phi_kj, phi_ij;
+            if (theta_k <= theta_j) {
+                phi_kj = compute_angle(vertex_k, vertex_j);
+                phi_ij = compute_angle(vertex_i, vertex_j);
+            } else {
+                phi_kj = compute_angle(vertex_j, vertex_k);
+                phi_ij = compute_angle(vertex_i, vertex_k);
+            }
             double alpha = phi_ij / phi_kj;
 
             if (theta_k <= theta_j) {

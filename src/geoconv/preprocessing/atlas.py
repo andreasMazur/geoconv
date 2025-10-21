@@ -79,17 +79,21 @@ def load_atlas(filepath):
 
 
 class Atlas:
-    def __init__(self, triangle_mesh, max_radius, method="hdm", processes=1):
+    def __init__(self, triangle_mesh, max_radius, method="hdm", normalization_method="hdm", processes=1):
         # Meta information
         self.max_radius = max_radius
         self.method = method
         self.processes = processes
 
         # Triangle mesh and atlas information
-        self.triangle_mesh = normalize_shape(triangle_mesh, method=method, processes=processes)
+        self.triangle_mesh = normalize_shape(
+            triangle_mesh,
+            method=normalization_method,
+            processes=processes
+        )
         self.charts = calculate_local_charts(
             triangle_mesh,
-            method=method,
+            method=method,  # DGPC does not work well for normalization
             processes=processes,
             max_radius=max_radius,
             calculate_angle=True
@@ -132,15 +136,24 @@ class Atlas:
 
     def visualize_chart(self, chart_idx, visualize_3d=False):
         if visualize_3d:
+            # Cartesian to polar conversion for visualization
+            selected_chart = self.charts[chart_idx][self.charts[chart_idx, :, 0] != np.inf]
+            selected_chart = np.stack(
+                [np.linalg.norm(selected_chart, axis=-1), np.arctan2(selected_chart[:, 1], selected_chart[:, 0])],
+                axis=-1
+            )
+
+            # Visualize radial coordinates
             color_array = np.full((self.charts.shape[0], 4), fill_value=[1, 1, 1, 0.75])
-            chart = self.charts[chart_idx, :, 0][self.charts[chart_idx, :, 0] != np.inf]
+            chart = selected_chart[:, 0]
             chart = (chart - chart.min()) / (chart.max() - chart.min())
             colors = cm.get_cmap("Reds")(chart)
             color_array[self.charts[chart_idx, :, 0] != np.inf] = colors
             trimesh.PointCloud(self.triangle_mesh.vertices, colors=color_array).show()
 
+            # Visualize angular coordinates
             color_array = np.full((self.charts.shape[0], 4), fill_value=[1, 1, 1, 0.75])
-            chart = self.charts[chart_idx, :, 1][self.charts[chart_idx, :, 0] != np.inf]
+            chart = selected_chart[:, 1]
             chart = (chart - chart.min()) / (chart.max() - chart.min())
             colors = cm.get_cmap("Greens")(chart)
             color_array[self.charts[chart_idx, :, 0] != np.inf] = colors
@@ -154,4 +167,5 @@ class Atlas:
         ax.set_ylim([chart[:, 1].min(), chart[:, 1].max()])
         polygons = PolyCollection(self.chart_triangles[chart_idx], alpha=0.4, edgecolors="red")
         ax.add_collection(polygons)
+        plt.grid()
         plt.show()

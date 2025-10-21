@@ -1,4 +1,5 @@
 from geoconv.preprocessing.angle_computation import compute_angles
+from geoconv.preprocessing.dgpc.wrapper import pickable_dgpc
 from geoconv.preprocessing.fmm.wrapper import pickable_fmm
 from geoconv.preprocessing.hdm.wrapper import pickable_hdm
 
@@ -14,7 +15,8 @@ def calculate_local_charts(triangle_mesh,
                            method="hdm",
                            processes=1,
                            max_radius=np.inf,
-                           calculate_angle=True):
+                           calculate_angle=True,
+                           process_description=""):
     """Calculates local charts on triangle meshes.
 
     Parameters
@@ -29,6 +31,8 @@ def calculate_local_charts(triangle_mesh,
         The maximum radius for a local chart.
     calculate_angle: bool
         Whether to calculate angles.
+    process_description: str
+        A description to show in the progress bar.
 
     Returns
     -------
@@ -36,7 +40,7 @@ def calculate_local_charts(triangle_mesh,
         The computed local charts.
     """
     assert processes > 0, "Number of processes must be greater than 0."
-    assert method in ["hdm", "fmm"], "Choose either 'hdm' or 'fmm' as distance calculation method."
+    assert method in ["hdm", "fmm", "dgpc"], "Choose either 'hdm', 'fmm' pr 'dgpc' as distance calculation method."
 
     mesh_vertices = np.array(triangle_mesh.vertices)
     mesh_faces = np.array(triangle_mesh.faces)
@@ -50,17 +54,38 @@ def calculate_local_charts(triangle_mesh,
     else:
         index_subsets = np.split(all_vertex_indices, processes)
 
-    # Compute geodesic distances
+    # Compute geodesic distances (and angles if method = "dgpc")
     with Pool(processes) as p:
+        # Choose method
+        if method == "hdm":
+            method_fn = pickable_hdm
+            arg_list = [(idx_subset, mesh_vertices, mesh_faces) for idx_subset in index_subsets]
+        elif method == "fmm":
+            method_fn = pickable_fmm
+            arg_list = [(idx_subset, mesh_vertices, mesh_faces) for idx_subset in index_subsets]
+        elif method == "dgpc":
+            method_fn = pickable_dgpc
+            arg_list = [(idx_subset, mesh_vertices, mesh_faces, max_radius) for idx_subset in index_subsets]
+        else:
+            raise RuntimeError("Unknown method for calculating geodesic distances.")
+
+        # Initiate parallel computation
+        if process_description == "":
+            process_description = f"Computing local charts using '{method}'"
         distances = p.starmap(
-            pickable_hdm if method == "hdm" else pickable_fmm,
-            tqdm(
-                [(idx_subset, mesh_vertices, mesh_faces) for idx_subset in index_subsets],
-                total=len(index_subsets),
-                postfix=f"Computing local charts using '{method}'",
-            )
+            method_fn,
+            tqdm(arg_list, total=len(index_subsets), postfix=process_description)
         )
     distances = np.concatenate(distances, axis=0)
+
+    if method == "dgpc":
+        # The DGPC-algorithm returns both radial- and angular coordinates.
+        # Thus, if user expects only distances, we extract them here.
+        if not calculate_angle:
+            distances = distances[..., 0]
+
+        # DGPC algorithm computes distances only up to max_radius internally.
+        return distances
     distances[distances > max_radius] = np.inf
 
     if calculate_angle:
@@ -90,8 +115,15 @@ def normalize_shape(triangle_mesh, method="hdm", processes=1):
     trimesh.Trimesh:
         The normalized triangle mesh.
     """
+    assert method in ["hdm", "fmm"], "For normalization, choose either 'hdm' or 'fmm' as distance calculation method."
+
     distances = calculate_local_charts(
-        triangle_mesh, method=method, processes=processes, max_radius=np.inf, calculate_angle=False
+        triangle_mesh,
+        method=method,
+        processes=processes,
+        max_radius=np.inf,
+        calculate_angle=False,
+        process_description=f"Normalizing shape using {method}"
     )
     geodesic_diameter = distances.max()
     normalized_vertices = triangle_mesh.vertices / geodesic_diameter
