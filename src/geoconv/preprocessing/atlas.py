@@ -275,9 +275,9 @@ class Atlas:
             )
             ax.add_patch(circle_median)
 
-            eps = 0.05 * self.max_radius
-            ax.set_xlim([-self.max_radius - eps, self.max_radius + eps])
-            ax.set_ylim([-self.max_radius - eps, self.max_radius + eps])
+            eps = 0.01 * self.max_chart_radius
+            ax.set_xlim([-self.max_chart_radius - eps, self.max_chart_radius + eps])
+            ax.set_ylim([-self.max_chart_radius - eps, self.max_chart_radius + eps])
 
             fig.subplots_adjust(right=0.79)
             fig.legend(loc="lower right", bbox_to_anchor=(1.0, 0.5), fontsize="small")
@@ -286,7 +286,7 @@ class Atlas:
             ax.set_ylim([chart[:, 1].min(), chart[:, 1].max()])
 
         # Misc
-        ax.set_title(f"meta data: origin idx {chart_idx} - max-radius {self.max_radius} - method {self.method}")
+        ax.set_title(f"Config: origin idx {chart_idx} - max-radius {self.max_radius} - method {self.method}")
         plt.grid()
         plt.show()
 
