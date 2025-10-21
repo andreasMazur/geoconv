@@ -32,7 +32,8 @@ keywords = [
     "visualization",
     "benchmarking",
     "potpourri3d",
-    "tqdm"
+    "tqdm",
+    "h5py"
 ]
 requires-python = ">= 3.10"
 dependencies = [
