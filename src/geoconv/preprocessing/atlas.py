@@ -71,6 +71,12 @@ def load_atlas(filepath):
         std_chart_radius = f.attrs.get("std_chart_radius")
         median_chart_radius = f.attrs.get("median_chart_radius")
 
+        # Load barycentric coordinates
+        barycentric_coordinates = {}
+        for template_res in f["barycentric_coordinates"].keys():
+            template_res_key = tuple([int(x) for x in template_res.split("_")])
+            barycentric_coordinates[template_res_key] = np.array(f["barycentric_coordinates"]["2_4"])
+
     # Instantiate loaded atlas
     atlas = Atlas.__new__(Atlas)
 
@@ -93,6 +99,7 @@ def load_atlas(filepath):
     atlas.charts_radii = chart_radii
     atlas.chart_faces = chart_faces
     atlas.chart_triangles = chart_triangles
+    atlas.barycentric_coordinates = barycentric_coordinates
 
     # Return instantiated atlas
     return atlas
@@ -176,6 +183,11 @@ class Atlas:
             f.attrs["avg_chart_radius"] = self.avg_chart_radius
             f.attrs["std_chart_radius"] = self.std_chart_radius
             f.attrs["median_chart_radius"] = self.median_chart_radius
+
+            # Save computed barycentric coordinates
+            h5_bc_information = f.create_group("barycentric_coordinates")
+            for (n_radial, n_angular), bc in self.barycentric_coordinates.items():
+                h5_bc_information.create_dataset(f"{n_radial}_{n_angular}", data=bc, compression="gzip")
 
     def visualize_chart(self, chart_idx, visualize_3d=False, show_statistics=True):
         if visualize_3d:
@@ -278,10 +290,11 @@ class Atlas:
         plt.grid()
         plt.show()
 
-    def determine_barycentric_coordinates(self, n_radial, n_angular, radius):
+    def determine_barycentric_coordinates(self, n_radial, n_angular, radius, processes=None):
         self.barycentric_coordinates[(n_radial, n_angular)] = compute_barycentric_coordinates(
             self,
             n_radial=n_radial,
             n_angular=n_angular,
-            radius=radius
+            radius=radius,
+            processes=self.processes if processes is None else processes
         )
