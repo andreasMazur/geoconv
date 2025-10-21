@@ -75,7 +75,7 @@ def load_atlas(filepath):
         barycentric_coordinates = {}
         for template_res in f["barycentric_coordinates"].keys():
             template_res_key = tuple([int(x) for x in template_res.split("_")])
-            barycentric_coordinates[template_res_key] = np.array(f["barycentric_coordinates"]["2_4"])
+            barycentric_coordinates[template_res_key] = np.array(f["barycentric_coordinates"][template_res])
 
     # Instantiate loaded atlas
     atlas = Atlas.__new__(Atlas)
