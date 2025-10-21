@@ -129,4 +129,4 @@ def normalize_shape(triangle_mesh, method="hdm", processes=1):
     normalized_vertices = triangle_mesh.vertices / geodesic_diameter
     normalized_vertices = normalized_vertices - np.mean(normalized_vertices, axis=0)
 
-    return trimesh.Trimesh(vertices=normalized_vertices, faces=np.array(triangle_mesh.faces))
+    return trimesh.Trimesh(vertices=normalized_vertices, faces=np.array(triangle_mesh.faces)), geodesic_diameter

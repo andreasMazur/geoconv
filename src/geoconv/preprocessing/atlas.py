@@ -59,6 +59,7 @@ def load_atlas(filepath):
         max_radius = f.attrs.get("max_radius")
         method = f.attrs.get("method")
         processes = f.attrs.get("processes")
+        original_geodesic_diameter = f.attrs.get("original_geodesic_diameter")
 
     # Instantiate loaded atlas
     atlas = Atlas.__new__(Atlas)
@@ -67,6 +68,7 @@ def load_atlas(filepath):
     atlas.max_radius = max_radius
     atlas.method = method
     atlas.processes = processes
+    atlas.original_geodesic_diameter = original_geodesic_diameter
 
     # Triangle mesh and charts information
     atlas.triangle_mesh = triangle_mesh
@@ -86,11 +88,13 @@ class Atlas:
         self.processes = processes
 
         # Triangle mesh and atlas information
-        self.triangle_mesh = normalize_shape(
+        self.triangle_mesh, geodesic_diameter = normalize_shape(
             triangle_mesh,
             method=normalization_method,
             processes=processes
         )
+        self.original_geodesic_diameter = geodesic_diameter
+
         self.charts = calculate_local_charts(
             triangle_mesh,
             method=method,  # DGPC does not work well for normalization
@@ -133,6 +137,7 @@ class Atlas:
             f.attrs["max_radius"] = self.max_radius
             f.attrs["method"] = self.method
             f.attrs["processes"] = self.processes
+            f.attrs["original_geodesic_diameter"] = self.original_geodesic_diameter
 
     def visualize_chart(self, chart_idx, visualize_3d=False):
         if visualize_3d:
