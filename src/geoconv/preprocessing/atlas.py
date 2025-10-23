@@ -202,6 +202,7 @@ class Atlas:
         filepath: str
             The location at which to store the atlas.
         """
+        filepath = f"{filepath}.hdf5" if not filepath.endswith(".hdf5") else filepath
         with h5py.File(filepath, "w") as f:
             # Save mesh information
             h5_triangle_mesh = f.create_group("triangle_mesh")
