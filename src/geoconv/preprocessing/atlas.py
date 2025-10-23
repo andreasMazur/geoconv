@@ -225,6 +225,9 @@ class Atlas:
         polygons = PolyCollection(self.chart_triangles[chart_idx], alpha=0.4, edgecolors="red")
         ax.add_collection(polygons)
 
+        # Mark center
+        ax.scatter(0., 0., color="black", s=10, label="Chart origin")
+
         # Circle
         if show_statistics:
             # Min radius
