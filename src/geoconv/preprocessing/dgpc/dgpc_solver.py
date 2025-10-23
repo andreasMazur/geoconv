@@ -142,13 +142,15 @@ class DgpcSolver:
                     new_u_i, new_theta_i = min(updates_list, key=lambda x: x[0])
 
                     # Euclidean distance is the lower bound for the radial coordinate
-                    euclidean_distance = np.linalg.norm(
+                    euc_dist_s = np.linalg.norm(
                         self.triangle_mesh.vertices[i] - self.triangle_mesh.vertices[source_point]
                     )
+                    if euc_dist_s > new_u_i + self.eps:
+                        continue
 
                     # As long as new_u_i is smaller than the current radial coordinate of vertex i
                     # and u_max, we update it
-                    if euclidean_distance <= new_u_i <= self.u_max and new_u_i < radial_coordinates[i]:
+                    if new_u_i <= self.u_max and new_u_i < radial_coordinates[i]:
                         radial_coordinates[i] = new_u_i
                         angular_coordinates[i] = new_theta_i
 

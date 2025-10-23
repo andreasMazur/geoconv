@@ -33,14 +33,12 @@ def visualize(colors, origins, vectors, in_3d=False):
 
 def dgpc_angle_update(vector_i, vector_j, vector_k, theta_j, theta_k):
     # Angles w.r.t. between vector and vector having the largest angle
+    phi_kj = compute_vector_angle(vector_k, vector_j, None)
+    phi_ij = compute_vector_angle(vector_i, vector_j, None)
     if theta_k <= theta_j:
-        phi_kj = compute_vector_angle(vector_k, vector_j, None)
-        phi_ij = compute_vector_angle(vector_i, vector_j, None)
         if theta_j - theta_k >= np.pi:
             theta_k = theta_k + 2 * np.pi
     else:
-        phi_kj = compute_vector_angle(vector_j, vector_k, None)
-        phi_ij = compute_vector_angle(vector_i, vector_k, None)
         if theta_k - theta_j >= np.pi:
             theta_j = theta_j + 2 * np.pi
     alpha = phi_ij / phi_kj
@@ -89,6 +87,8 @@ def dgpc_update_step_python(vertex_i_3d, vertex_j_3d, vertex_k_3d, u_j, u_k, the
                     theta_j=theta_j,
                     theta_k=theta_k
                 )
+                if theta_i == -1.:
+                    return np.inf, -1.
                 return np.linalg.norm(linear_comb), theta_i
     else:
         return np.inf, -1.

@@ -109,13 +109,8 @@ void compute_dist_and_dir(double vertex_i[],
             cblas_daxpy(3, -1.0, s, 1, vertex_i, 1);
 
             double phi_kj, phi_ij;
-            if (theta_k <= theta_j) {
-                phi_kj = compute_angle(vertex_k, vertex_j);
-                phi_ij = compute_angle(vertex_i, vertex_j);
-            } else {
-                phi_kj = compute_angle(vertex_j, vertex_k);
-                phi_ij = compute_angle(vertex_i, vertex_k);
-            }
+            phi_kj = compute_angle(vertex_k, vertex_j);
+            phi_ij = compute_angle(vertex_i, vertex_j);
             double alpha = phi_ij / phi_kj;
 
             if (theta_k <= theta_j) {
