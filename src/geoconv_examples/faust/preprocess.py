@@ -1,77 +1,50 @@
-from geoconv.preprocessing.dgpc.wrapper import compute_gpc_systems_wrapper, compute_bc_wrapper
-from geoconv.utils.data_generator import zip_file_generator
-from geoconv.utils.misc import find_largest_one_hop_dist
-from geoconv_examples.faust.geodesic_diameters import GEODESIC_DIAMETERS
+from geoconv.preprocessing.atlas import Atlas
 
+import os
+import trimesh
 import shutil
-import pyshot
-import numpy as np
 
 
-def preprocess(faust_path,
-               output_path,
-               processes,
-               zip_when_done=True,
-               compute_gpc=True,
-               compute_bc=True,
-               k_th_neighbor=20,
-               template_size=None):
-    assert compute_gpc or compute_bc, "You must either set 'compute_gpc' or 'compute_bc' to 'True'."
+def preprocess_faust(registration_dir,
+                     output_path,
+                     max_chart_radius,
+                     n_radial,
+                     n_angular,
+                     max_temp_radius=None,
+                     method="hdm",
+                     normalization_method="hdm",
+                     processes=1):
+    # 1.) Prepare path to registration directory
+    registrations = [f for f in os.listdir(registration_dir) if f.endswith(".ply")]
+    registrations.sort(key=lambda x: int(x.split("_")[-1].split(".")[0]))
 
-    if compute_gpc:
-        # Initialize shape generator
-        shape_generator = zip_file_generator(
-            faust_path,
-            file_type="ply",
-            manifold_plus_executable=None,
-            target_amount_faces=None,
-            return_filename=True,
-            shape_path_contains=["registrations"],
-            normalize=False  # normalize during GPC-system computation to store original geodesic diameter
-        )
+    # 2.) Prepare output directory
+    os.makedirs(output_path, exist_ok=True)
 
-        # Compute GPC-systems
-        for shape_idx, (shape, shape_path) in enumerate(shape_generator):
-            print(f"*** Preprocessing: '{shape_path}'")
-            # Remove file-ending from folder name
-            output_dir = f"{output_path}/{shape_path}"[:-4]
-
-            # Compute GPC-systems
-            compute_gpc_systems_wrapper(
-                shape,
-                output_dir,
-                processes=processes,
-                geodesic_diameter=GEODESIC_DIAMETERS[shape_idx],
-                k_th_neighbor=k_th_neighbor
+    # 3.) Preprocess shapes
+    for ply_filename in registrations:
+        mesh = trimesh.load(f"{registration_dir}/{ply_filename}")
+        mesh_save_path = f"{output_path}/{ply_filename.split('.')[0]}.hdf5"
+        if not os.path.isfile(mesh_save_path):
+            print(f"Currently preprocessing: '{ply_filename}'")
+            atlas = Atlas(
+                triangle_mesh=mesh,
+                max_radius=max_chart_radius,
+                method=method,
+                normalization_method=normalization_method,
+                processes=processes
             )
-
-            # Compute SHOT-descriptor
-            radius = find_largest_one_hop_dist(shape) * 2.5
-            shot_descriptor = pyshot.get_descriptors(
-                shape.vertices,
-                shape.faces,
-                radius=radius,
-                local_rf_radius=radius,
-                min_neighbors=10,
-                n_bins=16,
-                double_volumes_sectors=True,
-                use_interpolation=True,
-                use_normalization=True
+            atlas.determine_barycentric_coordinates(
+                n_radial=n_radial,
+                n_angular=n_angular,
+                radius=atlas.median_chart_radius if max_temp_radius is None else max_temp_radius
             )
-            np.save(f"{output_dir}/SIGNAL.npy", shot_descriptor)
+            atlas.save(mesh_save_path)
+        else:
+            print(f"Preprocessed dataset already exists at {mesh_save_path}.")
 
-    if compute_bc:
-        # Compute BC
-        compute_bc_wrapper(
-            preprocess_dir=output_path,
-            template_sizes=[(3, 4), (3, 6), (5, 8)] if template_size is None else template_size,
-            scales=[0.75, 1.0, 1.25],
-            load_compressed_gpc_systems=True,
-            processes=processes
-        )
-
-    if zip_when_done:
-        print("Zipping..")
-        shutil.make_archive(base_name=output_path, format="zip", root_dir=output_path)
-        shutil.rmtree(output_path)
-        print("Done.")
+    # 4.) Zip dataset
+    print("Zipping..")
+    shutil.make_archive(base_name=output_path, format="zip", root_dir=output_path)
+    shutil.rmtree(output_path)
+    print("Done.")
