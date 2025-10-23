@@ -50,6 +50,7 @@ class DgpcSolver:
         for neighbor in neighbors[1:]:  # skip the reference neighbor
             vector_b = self.triangle_mesh.vertices[neighbor] - self.triangle_mesh.vertices[source_point]
             angular_coordinates[neighbor] = c_extension.compute_angle_360(vector_a, vector_b, rotation_axis)
+        angular_coordinates[reference_neighbor] = 0.0
         angular_coordinates[source_point] = 0.0
 
         # Return initial radial- and angular coordinates
@@ -140,8 +141,14 @@ class DgpcSolver:
                     # Select the smallest update among all considered faces
                     new_u_i, new_theta_i = min(updates_list, key=lambda x: x[0])
 
-                    # As long as new_u_i is smaller than the current radial coordinate of vertex i, we update it
-                    if new_u_i < radial_coordinates[i]:
+                    # Euclidean distance is the lower bound for the radial coordinate
+                    euclidean_distance = np.linalg.norm(
+                        self.triangle_mesh.vertices[i] - self.triangle_mesh.vertices[source_point]
+                    )
+
+                    # As long as new_u_i is smaller than the current radial coordinate of vertex i
+                    # and u_max, we update it
+                    if euclidean_distance <= new_u_i <= self.u_max and new_u_i < radial_coordinates[i]:
                         radial_coordinates[i] = new_u_i
                         angular_coordinates[i] = new_theta_i
 

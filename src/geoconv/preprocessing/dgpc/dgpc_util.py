@@ -7,7 +7,7 @@ import c_extension
 
 
 def visualize(colors, origins, vectors, in_3d=False):
-    mpl.use('Qt5Agg')
+    mpl.use("Qt5Agg")
     if in_3d:
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -36,18 +36,16 @@ def dgpc_angle_update(vector_i, vector_j, vector_k, theta_j, theta_k):
     if theta_k <= theta_j:
         phi_kj = compute_vector_angle(vector_k, vector_j, None)
         phi_ij = compute_vector_angle(vector_i, vector_j, None)
-    else:
-        phi_kj = compute_vector_angle(vector_j, vector_k, None)
-        phi_ij = compute_vector_angle(vector_i, vector_k, None)
-    alpha = phi_ij / phi_kj
-
-    # Pay attention to 0-2pi-discontinuity
-    if theta_k <= theta_j:
         if theta_j - theta_k >= np.pi:
             theta_k = theta_k + 2 * np.pi
     else:
+        phi_kj = compute_vector_angle(vector_j, vector_k, None)
+        phi_ij = compute_vector_angle(vector_i, vector_k, None)
         if theta_k - theta_j >= np.pi:
             theta_j = theta_j + 2 * np.pi
+    alpha = phi_ij / phi_kj
+
+    # Pay attention to 0-2pi-discontinuity
     return np.fmod((1 - alpha) * theta_j + alpha * theta_k, 2 * np.pi)
 
 
