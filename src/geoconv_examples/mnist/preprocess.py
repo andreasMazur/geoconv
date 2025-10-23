@@ -1,14 +1,9 @@
-from geoconv.preprocessing.barycentric_coordinates import compute_barycentric_coordinates
-from geoconv.preprocessing.dgpc.gpc_system_group import GPCSystemGroup
-from geoconv.preprocessing.dgpc.wrapper import compute_gpc_systems_wrapper
+from geoconv.preprocessing.atlas import Atlas, load_atlas
 
-from matplotlib import pyplot as plt
-
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sp
 import trimesh
-import shutil
-import json
 import os
 
 
@@ -29,58 +24,31 @@ def image_to_grid(image, grid):
     trimesh.Scene([grid, grid_image]).show()
 
 
-def compute_bc(preprocess_dir, template_configurations=None):
-    with open(f"{preprocess_dir}/preprocess_properties.json") as properties_file:
-        properties = json.load(properties_file)
-        gpc_system_radius = np.mean(properties["gpc_system_radius"])
-
-    # Load GPC-systems
-    gpc_systems = GPCSystemGroup(object_mesh=trimesh.load_mesh(f"{preprocess_dir}/normalized_mesh.stl"))
-    gpc_systems.load(f"{preprocess_dir}/gpc_systems")
-
-    # Define template configurations
-    if template_configurations is None:
-        template_configurations = [
-            (3, 4, gpc_system_radius * .75),
-            (3, 4, gpc_system_radius),
-            (3, 4, gpc_system_radius * 1.25),
-            (3, 6, gpc_system_radius * .75),
-            (3, 6, gpc_system_radius),
-            (3, 6, gpc_system_radius * 1.25),
-            (5, 8, gpc_system_radius * .75),
-            (5, 8, gpc_system_radius),
-            (5, 8, gpc_system_radius * 1.25)
-        ]
-
-    for (n_radial, n_angular, template_radius) in template_configurations:
-        bc = compute_barycentric_coordinates(
-            gpc_systems, n_radial=n_radial, n_angular=n_angular, radius=template_radius
+def preprocess_mnist(output_path,
+                     max_chart_radius,
+                     n_radial,
+                     n_angular,
+                     max_temp_radius=None,
+                     method="hdm",
+                     normalization_method="hdm",
+                     processes=1):
+    output_path = f"{output_path}.hdf5" if not output_path.endswith(".hdf5") else output_path
+    if not os.path.isfile(output_path):
+        grid = create_grid(n_vertices=28)  # MNIST-images are 28x28 grids
+        atlas = Atlas(
+            triangle_mesh=grid,
+            max_radius=max_chart_radius,
+            method=method,
+            normalization_method=normalization_method,
+            processes=processes
         )
-        np.save(f"{preprocess_dir}/BC_{n_radial}_{n_angular}_{template_radius}.npy", bc)
-
-    with open(f"{'/'.join(preprocess_dir.split('/')[:-1])}/dataset_properties.json", "a") as properties_file:
-        temp_conf_dict = {
-            "preprocessed_shapes": -1,
-            "most_gpc_systems": -1,
-            "template_configurations": {}
-        }
-        for idx, tconf in enumerate(template_configurations):
-            temp_conf_dict["template_configurations"][f"{idx}"] = {
-                "n_radial": tconf[0], "n_angular": tconf[1], "template_radius": tconf[2]
-            }
-        json.dump(temp_conf_dict, properties_file, indent=4)
-
-
-def preprocess(output_path, processes, k_th_neighbor=10):
-    # Preprocess flat grid
-    if not os.path.isfile(f"{output_path}.zip"):
-        grid = create_grid(n_vertices=28)  # MNIST-images are 28x28
-        compute_gpc_systems_wrapper(grid, f"{output_path}/grid", processes=processes, k_th_neighbor=k_th_neighbor)
-        compute_bc(f"{output_path}/grid")
-
-        print(f"Barycentric coordinates done. Zipping..")
-        shutil.make_archive(base_name=output_path, format="zip", root_dir=output_path)
-        shutil.rmtree(output_path)
-        print("Done.")
+        atlas.determine_barycentric_coordinates(
+            n_radial=n_radial,
+            n_angular=n_angular,
+            radius=atlas.median_chart_radius if max_temp_radius is None else max_temp_radius
+        )
+        atlas.save(output_path)
+        return atlas
     else:
         print(f'Preprocessed dataset already exists at {output_path}.')
+        return load_atlas(output_path)
