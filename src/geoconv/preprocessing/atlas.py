@@ -38,6 +38,18 @@ def determine_faces_for_charts(triangle_mesh, local_charts):
 
 
 def load_atlas(filepath):
+    """Loads an atlas.
+
+    Parameters
+    ----------
+    filepath: str
+        The filepath to the stored atlas.
+
+    Returns
+    -------
+    Atlas:
+        The loaded atlas.
+    """
     with h5py.File(filepath, "r") as f:
         # Load mesh
         vertices = np.array(f["triangle_mesh/vertices"])
@@ -106,6 +118,41 @@ def load_atlas(filepath):
 
 
 class Atlas:
+    """A class that computes, administrates and visualizes sets of local charts for one shape.
+
+    Attributes
+    ----------
+    max_radius: float
+        The maximal radius of charts during chart-computation.
+    method: str
+        The method to use to compute geodesic distances and angular direction. Select from ['dgpc', 'fmm', 'hdm].
+    processes: int
+        The concurrent processes for computed the charts.
+    triangle_mesh: trimesh.Trimesh
+        The shape for which charts are calculated.
+    original_geodesic_diameter: float
+        The original geodesic diameter of a chart.
+    charts: np.ndarray
+        The computed charts.
+    chart_radii: np.ndarray
+        An array of maximal geodesic distances for the computed charts.
+    max_chart_radius: float
+        The maximal observed geodesic distance among all charts.
+    min_chart_radius: float
+        The minimal observed geodesic distance among all charts.
+    avg_chart_radius: float
+        The average observed geodesic distance among all charts.
+    std_chart_radius: float
+        The standard deviation of observed geodesic distances among all charts.
+    median_chart_radius: float
+        The median observed geodesic distance among all charts.
+    chart_faces: dict
+        A dictionary that contains the faces that can be entirely described by local coordinates of charts.
+    chart_triangles: dict
+        A dictionary that contains the triangles that can be entirely described by local coordinates of charts.
+    barycentric_coordinates: dict
+        A dictionary that contains barycentric coordinates that are computed with the given charts.
+    """
     def __init__(self, triangle_mesh, max_radius, method="hdm", normalization_method="hdm", processes=1):
         # Meta information
         self.max_radius = max_radius
@@ -148,6 +195,13 @@ class Atlas:
         self.barycentric_coordinates = {}
 
     def save(self, filepath):
+        """Saves the entire atlas.
+
+        Parameters
+        ----------
+        filepath: str
+            The location at which to store the atlas.
+        """
         with h5py.File(filepath, "w") as f:
             # Save mesh information
             h5_triangle_mesh = f.create_group("triangle_mesh")
@@ -189,7 +243,20 @@ class Atlas:
             for (n_radial, n_angular), bc in self.barycentric_coordinates.items():
                 h5_bc_information.create_dataset(f"{n_radial}_{n_angular}", data=bc, compression="gzip")
 
-    def visualize_chart(self, chart_idx, visualize_3d=False, show_statistics=True):
+    def visualize_chart(self, chart_idx, visualize_3d=False, show_statistics=True, show_vertex_indices=False):
+        """Visualizes one chart of the atlas.
+
+        Parameters
+        ----------
+        chart_idx: int
+            The index of the chart to visualize.
+        visualize_3d: bool
+            Whether to show the chart on the shape in 3D.
+        show_statistics: bool
+            Whether to include statistics in the plot.
+        show_vertex_indices: bool
+            Whether to include vertex indices at their corresponding positions in the plot.
+        """
         if visualize_3d:
             # Cartesian to polar conversion for visualization
             selected_chart = self.charts[chart_idx][self.charts[chart_idx, :, 0] != np.inf]
@@ -224,6 +291,14 @@ class Atlas:
         # Scatter plot
         polygons = PolyCollection(self.chart_triangles[chart_idx], alpha=0.4, edgecolors="red")
         ax.add_collection(polygons)
+
+        # Annotate each point with its number
+        if show_vertex_indices:
+            cf = self.chart_faces[chart_idx]
+            ct = self.chart_triangles[chart_idx]
+            for f, t in zip(cf, ct):
+                for idx in range(3):
+                    plt.text(t[idx][0], t[idx][1], str(f[idx]), fontsize=8, ha="right", va="bottom")
 
         # Mark center
         ax.scatter(0., 0., color="black", s=10, label="Chart origin")
@@ -285,8 +360,9 @@ class Atlas:
             fig.subplots_adjust(right=0.79)
             fig.legend(loc="lower right", bbox_to_anchor=(1.0, 0.5), fontsize="small")
         else:
-            ax.set_xlim([chart[:, 0].min(), chart[:, 0].max()])
-            ax.set_ylim([chart[:, 1].min(), chart[:, 1].max()])
+            eps = 0.01 * chart[:, 0].max()
+            ax.set_xlim([chart[:, 0].min() - eps, chart[:, 0].max() + eps])
+            ax.set_ylim([chart[:, 1].min() - eps, chart[:, 1].max() + eps])
 
         # Misc
         ax.set_title(f"Config: origin idx {chart_idx} - max-radius {self.max_radius} - method {self.method}")
