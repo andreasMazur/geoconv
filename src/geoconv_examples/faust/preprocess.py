@@ -23,10 +23,10 @@ def preprocess_faust(registration_dir,
 
     # 3.) Preprocess shapes
     for ply_filename in registrations:
-        mesh = trimesh.load(f"{registration_dir}/{ply_filename}")
         mesh_save_path = f"{output_path}/{ply_filename.split('.')[0]}.hdf5"
         if not os.path.isfile(mesh_save_path):
             print(f"Currently preprocessing: '{ply_filename}'")
+            mesh = trimesh.load(f"{registration_dir}/{ply_filename}")
             atlas = Atlas(
                 triangle_mesh=mesh,
                 max_radius=max_chart_radius,

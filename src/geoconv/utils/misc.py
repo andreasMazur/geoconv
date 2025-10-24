@@ -1,14 +1,9 @@
-from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
-
 from io import BytesIO
 from scipy.linalg import blas
+from tqdm import tqdm
 
 import numpy as np
 import trimesh
-import tempfile
-import subprocess
-import os
-import pathlib
 
 
 def angle_distance(theta_max, theta_min):
@@ -81,8 +76,37 @@ def get_faces_of_edge(edge, object_mesh):
     # 2.) Get faces of `sorted_edge` by retrieving `face_indices` for the found `edge_indices`
     face_indices = object_mesh.edges_face[edge_indices]
     considered_faces = object_mesh.faces[face_indices]
-    # 3.) Return sorted edge and corresponding faces
-    return edge, considered_faces
+    # 3.) Return faces of sorted edge
+    return np.array(considered_faces)
+
+
+def remove_nme(mesh):
+    """Removes non-manifold edges by removing all their faces.
+
+    Parameters
+    ----------
+    mesh: trimesh.Trimesh
+        The triangle mesh.
+
+    Returns
+    -------
+    trimesh.Trimesh:
+        The mesh without non-manifold edges.
+    """
+    # Check if non-manifold edges exist
+    non_manifold_edges = np.asarray(mesh.as_open3d.get_non_manifold_edges())
+    if non_manifold_edges.shape[0] > 0:
+        # Compute mask that removes non-manifold edges and all their faces
+        face_mask = np.full(mesh.faces.shape[0], True)
+        for edge in tqdm(non_manifold_edges, desc="Removing non-manifold edges.."):
+            sorted_edge = np.sort(edge)
+            edge_faces = get_faces_of_edge(sorted_edge, mesh)
+            for edge_f in edge_faces:
+                update_mask = np.logical_not((edge_f == mesh.faces).all(axis=-1))
+                face_mask = np.logical_and(face_mask, update_mask)
+        # Remove non-manifold edges and faces with mask
+        mesh = trimesh.Trimesh(mesh.vertices, mesh.faces[face_mask])
+    return mesh
 
 
 def get_neighbors(vertex, object_mesh):
@@ -102,40 +126,6 @@ def get_neighbors(vertex, object_mesh):
     """
 
     return list(object_mesh.vertex_adjacency_graph[vertex].keys())
-
-
-def normalize_mesh(mesh, geodesic_diameter=None):
-    """Center mesh and scale x, y and z dimension with '1/geodesic diameter' as well as merge vertices.
-
-    Parameters
-    ----------
-    mesh: trimesh.Trimesh
-        The triangle mesh, that shall be normalized
-    geodesic_diameter: float
-        The geodesic diameter. If not provided, this function will compute the geodesic diameter.
-
-    Returns
-    -------
-    (trimesh.Trimesh, float):
-        The normalized mesh and the geodesic diameter, with which the mesh was normalized
-    """
-    # Center mesh
-    for dim in range(3):
-        mesh.vertices[:, dim] = mesh.vertices[:, dim] - mesh.vertices[:, dim].mean()
-
-    # Determine geodesic diameter
-    if geodesic_diameter is None:
-        distance_matrix, geodesic_diameter = compute_geodesic_diameter(mesh)
-
-    # Scale mesh
-    for dim in range(3):
-        mesh.vertices[:, dim] = mesh.vertices[:, dim] * (1 / geodesic_diameter)
-    print(f"-> Normalized with geodesic diameter: {geodesic_diameter}")
-
-    # Merge vertices
-    mesh = repair_mesh(mesh)
-
-    return mesh, geodesic_diameter
 
 
 def repair_mesh(mesh):
@@ -172,111 +162,6 @@ def repair_mesh(mesh):
     )
 
     return mesh
-
-
-def compute_geodesic_diameter(mesh):
-    """Computes the largest geodesic distance within a mesh.
-
-    Parameters
-    ----------
-    mesh: trimesh.Trimesh
-        The triangle mesh, for which the geodesic diameter shall be calculated.
-
-    Returns
-    -------
-    (np.array, float):
-        The distance matrix between all vertices of the mesh and the geodesic diameter of the mesh.
-    """
-    should_raise = False
-    with tempfile.TemporaryDirectory(dir=".") as tempdir:
-        np.save(f"{tempdir}/mesh_vertices.npy", mesh.vertices)
-        np.save(f"{tempdir}/mesh_faces.npy", mesh.faces)
-
-        current_env = os.environ.copy()
-        proc = subprocess.run(
-            [
-                f"python",
-                f"{pathlib.Path(__file__).parent.resolve()}/safe_pygeodesic.py",
-                tempdir,
-            ],
-            env=current_env,
-        )
-        if proc.returncode != 0:
-            should_raise = True
-        else:
-            distance_matrix = np.load(f"{tempdir}/distance_matrix.npy")
-    if should_raise:
-        raise RuntimeError("Pygeodesic crashed processing!")
-
-    return distance_matrix, distance_matrix[distance_matrix != np.inf].max()
-
-
-def gpc_systems_into_cart(gpc_systems):
-    """Translates the geodesic polar coordinates of given GPC-systems into cartesian
-
-    Parameters
-    ----------
-    gpc_systems: np.ndarray
-        A 3D-array containing all GPC-systems which shall be translated
-
-    Returns
-    -------
-    np.ndarray:
-        The same GPC-systems but in cartesian coordinates
-    """
-    gpc_systems_cart = np.copy(gpc_systems)
-    return polar_to_cart(gpc_systems_cart[:, :, 1], gpc_systems_cart[:, :, 0])
-
-
-def reconstruct_template(gpc_system, b_coordinates):
-    """Reconstructs the template vertices with barycentric coordinates
-
-    Parameters
-    ----------
-    gpc_system: np.ndarray
-        A 2D-array that describes a GPC-system. I.e. 'gpc_system[i]' contains the
-        geodesic polar coordinates (radial, angle) for the i-th vertex of the underlying
-        object mesh.
-    b_coordinates: np.ndarray
-        Contains the barycentric coordinates from which the template shall be reconstructed.
-    Returns
-    -------
-    np.ndarray:
-        Cartesian template coordinates in the same format as returned by 'create_template_matrix'.
-
-    """
-
-    reconstructed_template = np.zeros(
-        (b_coordinates.shape[0], b_coordinates.shape[1], 2)
-    )
-    for rc in range(b_coordinates.shape[0]):
-        for ac in range(b_coordinates.shape[1]):
-            # Get vertices
-            vertex_indices = b_coordinates[rc, ac, :, 0].astype(np.int16)
-            vertices = [
-                (gpc_system[vertex_indices[idx], 0], gpc_system[vertex_indices[idx], 1])
-                for idx in range(3)
-            ]
-            vertices = np.array(
-                [polar_to_cart(angles=y, scales=x) for x, y in vertices]
-            )
-
-            # Interpolate vertices
-            weights = b_coordinates[rc, ac, :, 1]
-            reconstructed_template[rc, ac] = vertices.T @ weights
-    return reconstructed_template
-
-
-def find_largest_one_hop_dist(object_mesh):
-    """Finds the largest Euclidean distance from center vertex to a one-hop neighbor in a triangle mesh
-
-    Returns
-    -------
-    float:
-        The largest initialization distance from a center-vertex to a one-hop neighbor in the triangle mesh
-    """
-    all_edges = object_mesh.vertices[object_mesh.edges]
-    return np.linalg.norm(all_edges[:, 0, :] - all_edges[:, 1, :], axis=-1).max()
 
 
 def compute_distance_matrix(vertices):

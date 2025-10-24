@@ -5,6 +5,7 @@ import zipfile
 import os
 import trimesh
 import io
+import shutil
 
 
 def preprocess_modelnet(zip_path,
@@ -30,7 +31,7 @@ def preprocess_modelnet(zip_path,
         zip_content = [f for f in zip_file.namelist() if f.endswith(".off")]
         zip_content.sort()
 
-        for mesh_filepath in zip_content[:3]:
+        for mesh_filepath in zip_content:
             mesh_save_path = f"{output_path}/{mesh_filepath.split('.')[0]}.hdf5"
             if not os.path.isfile(mesh_save_path):
                 # Load the mesh
@@ -63,3 +64,10 @@ def preprocess_modelnet(zip_path,
                 atlas.save(mesh_save_path)
             else:
                 print(f"Preprocessed dataset already exists at {mesh_save_path}.")
+
+    # 4.) Zip dataset
+    print("Zipping..")
+    output_path = f"{output_path}/ModelNet40"
+    shutil.make_archive(base_name=output_path, format="zip", root_dir=output_path)
+    shutil.rmtree(output_path)
+    print("Done.")
