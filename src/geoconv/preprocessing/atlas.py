@@ -13,6 +13,27 @@ import trimesh
 import h5py
 
 
+def longest_axis_normalization(triangle_mesh):
+    """Normalizes mesh by scaling its longest axis to one and moving its point of mass to zero.
+
+    Parameters
+    ----------
+    triangle_mesh: trimesh.Trimesh
+        The mesh to normalize.
+
+    Returns
+    -------
+    trimesh.Trimesh:
+        The normalized triangle mesh.
+    """
+    x_length = triangle_mesh.vertices[:, 0].max() - triangle_mesh.vertices[:, 0].min()
+    y_length = triangle_mesh.vertices[:, 1].max() - triangle_mesh.vertices[:, 1].min()
+    z_length = triangle_mesh.vertices[:, 2].max() - triangle_mesh.vertices[:, 2].min()
+    normalized_vertices = triangle_mesh.vertices / np.max([x_length, y_length, z_length])
+    normalized_vertices = normalized_vertices - np.mean(normalized_vertices, axis=0)
+    return trimesh.Trimesh(vertices=normalized_vertices, faces=triangle_mesh.faces)
+
+
 def determine_faces_for_charts(triangle_mesh, local_charts):
     """For each local chart, this function extracts those faces for which local coordinates exist.
 
@@ -160,11 +181,19 @@ class Atlas:
         self.processes = processes
 
         # Normalize mesh
-        self.triangle_mesh, geodesic_diameter = normalize_shape(
-            triangle_mesh,
-            method=normalization_method,
-            processes=processes
-        )
+        if normalization_method == "longest_axis":
+            self.triangle_mesh = longest_axis_normalization(triangle_mesh)
+            geodesic_diameter = -1.
+        elif normalization_method is None:
+            print("No shape normalization conducted since 'normalization_method = None'.")
+            self.triangle_mesh = triangle_mesh
+            geodesic_diameter = -1.
+        else:
+            self.triangle_mesh, geodesic_diameter = normalize_shape(
+                triangle_mesh,
+                method=normalization_method,
+                processes=processes
+            )
         self.original_geodesic_diameter = geodesic_diameter
 
         # Local charts

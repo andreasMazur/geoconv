@@ -99,7 +99,7 @@ def calculate_local_charts(triangle_mesh,
 
 
 def normalize_shape(triangle_mesh, method="hdm", processes=1):
-    """Normalizes mesh according to geodesic diameter and point of mass to zero.
+    """Normalizes mesh by scaling its geodesic diameter to one and moving its point of mass to zero.
 
     Parameters
     ----------

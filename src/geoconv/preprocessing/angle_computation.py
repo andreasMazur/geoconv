@@ -24,6 +24,10 @@ def get_2d_projections(neighborhood_3d, rotation_axis=None, x_axis=None, y_axis=
     np.ndarray:
         The 2D projections of the neighborhood.
     """
+    # If neighborhood contains only one element return the origin
+    if neighborhood_3d.shape[0] == 1:
+        return np.array([[0., 0.]])
+
     # Determine local reference frame via covariance analysis if not given
     if x_axis is None or y_axis is None or z_axis is None:
         # Determine weights for covariance matrix
