@@ -198,7 +198,7 @@ class Atlas:
 
         # Local charts
         self.charts = calculate_local_charts(
-            triangle_mesh,
+            self.triangle_mesh,
             method=method,  # DGPC does not work well for normalization
             processes=processes,
             max_radius=max_radius,
