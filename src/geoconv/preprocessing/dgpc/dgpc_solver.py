@@ -134,7 +134,7 @@ class DgpcSolver:
                         u_k=radial_coordinates[k],
                         theta_j=angular_coordinates[j],
                         theta_k=angular_coordinates[k],
-                        use_c=True
+                        use_c=False  # Currently, C version is numerically less stable
                     )
                     updates_list.append((u_i, theta_i))
                 if len(updates_list) > 0:

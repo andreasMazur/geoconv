@@ -5,6 +5,7 @@
 #include <math.h>
 #include "numpy/arrayobject.h"
 #include "cblas.h"
+#include <stdlib.h>
 
 
 double compute_angle(double vector_1[], double vector_2[])
@@ -43,6 +44,25 @@ double compute_angle_360(double vector_1[], double vector_2[], double rotation_a
 }
 
 
+int compare_doubles(const void *a, const void *b)
+{
+    double difference = *(const double *)a - *(const double *)b;
+    if (difference > 0) return 1;
+    if (difference < 0) return -1;
+    return 0;
+}
+
+
+double cross_norm(const double e_j[3], const double e_k[3])
+{
+    double cross[3];
+    cross[0] = e_j[1] * e_k[2] - e_j[2] * e_k[1];
+    cross[1] = e_j[2] * e_k[0] - e_j[0] * e_k[2];
+    cross[2] = e_j[0] * e_k[1] - e_j[1] * e_k[0];
+    return cblas_dnrm2(3, cross, 1);
+}
+
+
 void compute_dist_and_dir(double vertex_i[],
                           double vertex_j[],
                           double vertex_k[],
@@ -66,10 +86,22 @@ void compute_dist_and_dir(double vertex_i[],
     double e_kj[3];
     cblas_dcopy(3, vertex_k, 1, e_kj, 1);
     cblas_daxpy(3, -1.0, vertex_j, 1, e_kj, 1);
-    double e_kj_sqnrm = cblas_ddot(3, e_kj, 1, e_kj, 1);
+    double e_kj_norm = cblas_dnrm2(3, e_kj, 1);
+    double e_kj_sqnrm = pow(e_kj_norm, 2);
 
-    double A = e_j_norm * e_k_norm * sin(compute_angle(e_j, e_k));
-    double radicand = (e_kj_sqnrm - pow(u_j - u_k, 2)) * (pow(u_j + u_k, 2) - e_kj_sqnrm);
+    // Compute the cross product
+    // double A = e_j_norm * e_k_norm * sin(compute_angle(e_j, e_k));
+    double A = cross_norm(e_j, e_k);
+
+    // Compute the radicand for H
+    // double radicand = (e_kj_sqnrm - pow(u_j - u_k, 2)) * (pow(u_j + u_k, 2) - e_kj_sqnrm);
+    double arr[3] = {u_j, u_k, e_kj_norm};
+    qsort(arr, 3, sizeof(double), compare_doubles);
+    double a = arr[0];
+    double b = arr[1];
+    double c = arr[2];
+    double radicand = (a + (b + c)) * (c - (a - b)) * (c + (a - b)) * (a + (b - c));
+    radicand = -1e-3 < radicand && radicand < 0.0 ? 0.0 : radicand;
 
     double u_ijk;
     double theta_i;
@@ -83,6 +115,9 @@ void compute_dist_and_dir(double vertex_i[],
         double u_k_sq = pow(u_k, 2);
         double x_j = A * (e_kj_sqnrm + u_k_sq - u_j_sq) + cblas_ddot(3, e_k, 1, e_kj, 1) * H;
         double x_k = A * (e_kj_sqnrm + u_j_sq - u_k_sq) - cblas_ddot(3, e_j, 1, e_kj, 1) * H;
+        x_j = (-1e-3 < x_j) && (x_j < 0.0) ? 0.0 : x_j;
+        x_k = (-1e-3 < x_k) && (x_k < 0.0) ? 0.0 : x_k;
+
         if (x_j < 0 || x_k < 0) {
             u_ijk = INFINITY;
             theta_i = -1;

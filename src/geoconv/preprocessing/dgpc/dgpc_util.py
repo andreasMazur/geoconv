@@ -75,6 +75,9 @@ def dgpc_update_step_python(vertex_i_3d, vertex_j_3d, vertex_k_3d, u_j, u_k, the
             x_j = A * (e_kj_sqnrm + u_k ** 2 - u_j ** 2) + np.einsum("i,i->", e_k, e_kj) * H
             x_k = A * (e_kj_sqnrm + u_j ** 2 - u_k ** 2) - np.einsum("i,i->", e_j, e_kj) * H
             x_j, x_k = np.array([x_j, x_k]) / denominator
+            x_j = 0. if -1e-3 < x_j < 0. else x_j
+            x_k = 0. if -1e-3 < x_k < 0. else x_k
+
             if x_k < 0 or x_j < 0:
                 return np.inf, -1.
             else:
