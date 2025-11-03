@@ -127,7 +127,7 @@ vertices. The result can without further effort directly be fed into the layer.
 
 GeoConv is distributed under the terms of the **GNU General Public License v3.0 (GPL-3.0)**, with the additional 
 restriction that it is intended **solely for academic and non-commercial research purposes, unless prior written 
-permission has been granted by the original inventors of the methods utilized**.
+permission has been granted by the owners of the methods utilized**.
 
 If you use GeoConv, please cite the relevant publications associated with this project.
 
