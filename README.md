@@ -123,7 +123,7 @@ vertices. The result can without further effort directly be fed into the layer.
 
 **For more thorough explanations on how GeoConv operates check out the `geoconv_examples`-package!**
 
-## Intended Use, License and Citations
+## Intended Use, Citations and License
 
 GeoConv provides implementations of- and interfaces to methods from publicly available prior work for computing local
 coordinate systems on triangle mesh- or point cloud data and for performing intrinsic surface convolutions, intended to
