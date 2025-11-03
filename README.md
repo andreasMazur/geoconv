@@ -129,7 +129,7 @@ GeoConv is distributed under the terms of the **GNU General Public License v3.0 
 restriction that it is intended **solely for academic and non-commercial research purposes, unless prior written 
 permission has been granted by the owners of the methods utilized**.
 
-If you use GeoConv, please cite the relevant publications associated with this project.
+By using GeoConv, you are employing methods from prior work. Please cite the corresponding original publications.
 
 ## Referenced Literature
 
