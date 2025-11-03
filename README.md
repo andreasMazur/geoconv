@@ -123,10 +123,13 @@ vertices. The result can without further effort directly be fed into the layer.
 
 **For more thorough explanations on how GeoConv operates check out the `geoconv_examples`-package!**
 
-## Cite
+## License, Intended Use and Citations
 
-Using my work? Please cite this repository by using the **"Cite this repository"-option** of GitHub
-in the right panel.
+GeoConv is distributed under the terms of the **GNU General Public License v3.0 (GPL-3.0)**, with the additional 
+restriction that it is intended **solely for academic and non-commercial research purposes, unless prior written 
+permission has been granted by the original inventors of the methods utilized**.
+
+If you use GeoConv, please cite the relevant publications associated with this project.
 
 ## Referenced Literature
 
@@ -138,7 +141,6 @@ in the right panel.
 
 [3]: Poulenard, Adrien, and Maks Ovsjanikov. "Multi-directional geodesic neural networks via equivariant convolution."
      ACM Transactions on Graphics (TOG) 37.6 (2018): 1-14.
-
 
 [4]: Melvær, Eivind Lyche, and Martin Reimers. "Geodesic polar coordinates on polygonal meshes." Computer Graphics 
      Forum. Vol. 31. No. 8. Oxford, UK: Blackwell Publishing Ltd, 2012.
