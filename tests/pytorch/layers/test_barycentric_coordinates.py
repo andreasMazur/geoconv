@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from geoconv.preprocessing.barycentric_coordinates import create_template_matrix
+from geoconv.preprocessing.bc.bc_utils import create_template_matrix
 
 # TF
 import tensorflow as tf
