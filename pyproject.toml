@@ -10,7 +10,7 @@ name = "geoconv"
 description = "Intrinsic Surface Convolutions for everyone!"
 license = {file = "LICENSE", text = """GeoConv provides implementations of- and interfaces to methods from publicly
 available prior work for computing local coordinate systems on triangle mesh- or point cloud data and for performing
-intrinsic surface convolutions, intended to facilitate education and non-commercial research on neural networks
+intrinsic surface convolutions, intended to facilitate academic purposes and non-commercial research on neural networks
 operating on surface data. GeoConv is licensed under GNU General Public License v3.0, with the additional restriction
 that it may solely be used for academic and non-commercial research purposes, unless prior written permission has been
 granted by the owners of the methods utilized."""}
