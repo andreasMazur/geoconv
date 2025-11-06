@@ -1,6 +1,7 @@
 from geoconv.preprocessing.bc.bc_utils import polar_to_cart
 from geoconv.preprocessing.bc.wrapper import compute_barycentric_coordinates
 from geoconv.preprocessing.distance_computation import normalize_shape, calculate_local_charts
+from geoconv.utils.parallel_transport import compute_parallel_transport
 
 from tqdm import tqdm
 from matplotlib import pyplot as plt
@@ -110,6 +111,9 @@ def load_atlas(filepath):
             template_res_key = tuple([int(x) for x in template_res.split("_")])
             barycentric_coordinates[template_res_key] = np.array(f["barycentric_coordinates"][template_res])
 
+        # Load parallel transport angles
+        parallel_transport = np.array(f["parallel_transport/transport_angles"])
+
     # Instantiate loaded atlas
     atlas = Atlas.__new__(Atlas)
 
@@ -132,7 +136,12 @@ def load_atlas(filepath):
     atlas.charts_radii = chart_radii
     atlas.chart_faces = chart_faces
     atlas.chart_triangles = chart_triangles
+
+    # Set barycentric coordinates
     atlas.barycentric_coordinates = barycentric_coordinates
+
+    # Set parallel transport angles
+    atlas.parallel_transport = parallel_transport
 
     # Return instantiated atlas
     return atlas
@@ -223,6 +232,9 @@ class Atlas:
         # Placeholder attribute for barycentric coordinates
         self.barycentric_coordinates = {}
 
+        # Placeholder attribute for rotation angles computed via parallel transport
+        self.parallel_transport = np.array([-1.])
+
     def save(self, filepath):
         """Saves the entire atlas.
 
@@ -272,6 +284,10 @@ class Atlas:
             h5_bc_information = f.create_group("barycentric_coordinates")
             for (n_radial, n_angular), bc in self.barycentric_coordinates.items():
                 h5_bc_information.create_dataset(f"{n_radial}_{n_angular}", data=bc, compression="gzip")
+
+            # Save computed rotation angles for parallel transport
+            h5_parallel_transport = f.create_group("parallel_transport")
+            h5_parallel_transport.create_dataset("transport_angles", data=self.parallel_transport, compression="gzip")
 
     def visualize_chart(self, chart_idx, visualize_3d=False, show_statistics=True, show_vertex_indices=False):
         """Visualizes one chart of the atlas.
@@ -407,3 +423,6 @@ class Atlas:
             radius=radius,
             processes=self.processes if processes is None else processes
         )
+
+    def determine_parallel_transport(self):
+        self.parallel_transport = compute_parallel_transport(self.triangle_mesh)

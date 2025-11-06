@@ -5,7 +5,7 @@ import numpy as np
 
 
 def compute_parallel_transport(triangle_mesh):
-    """Computes rotation angles via parallel transport between all charts of a surface.
+    """Computes the parallel transport of x-axes between all pairs of charts of a surface.
 
     This function uses the Vector Heat method to compute parallel transports:
     > [The Vector Heat Method](https://dl.acm.org/doi/10.1145/3243651)
@@ -22,12 +22,12 @@ def compute_parallel_transport(triangle_mesh):
     Return
     ------
     np.ndarray:
-        A (N x N) matrix, where N equals the amount of vertices of 'triangle_mesh'. Entry [a, b] contains the rotation
-        angle that a tangent vector in the tangent plane of vertex 'a' has to be rotated with to be represented in
-        the tangent plane at vertex 'b'.
+        A symmetric (N x N) matrix, where N equals the amount of vertices of 'triangle_mesh'. Entry [a, b] contains the
+        rotation angle that the x-axis in the local chart at vertex 'a' has to be rotated with to be represented in the
+        local chart at vertex 'b' (and vice versa because of matrix symmetry).
     """
     solver = pp3d.MeshVectorHeatSolver(V=triangle_mesh.vertices, F=triangle_mesh.faces)
-    transport_vector = np.array([0., 1.])
+    transport_vector = np.array([1., 0.])  # transport x-axis
     angles_n_x_n = []
     for idx in tqdm(range(triangle_mesh.vertices.shape[0]), desc="Computing parallel transport..."):
         result = solver.transport_tangent_vector(v_ind=idx, vector=transport_vector)

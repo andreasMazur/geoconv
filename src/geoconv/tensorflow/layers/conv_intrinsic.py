@@ -228,8 +228,12 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         tensorflow.Tensor:
             Weighted and interpolated mesh signals
         """
+        # mesh_signal: (batch_shapes, vertices, radial, angular, 3, input_dim)
+        # bc_values: (batch_shapes, vertices, radial, angular, 3)
+        mesh_signal, bc_values = self._gather_signals(barycentric_coordinates, mesh_signal)
+
         # interpolations : (batch_shapes, vertices, radial, angular, input_dim)
-        interpolations = self._signal_pullback(mesh_signal, barycentric_coordinates)
+        interpolations = self._signal_pullback(mesh_signal, bc_values)
 
         if self.include_prior:
             # Weight matrix  : (radial, angular, radial, angular)
@@ -240,7 +244,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
             return interpolations
 
     @tf.function
-    def _signal_pullback(self, mesh_signal, barycentric_coordinates):
+    def _signal_pullback(self, mesh_signal, bc_values):
         """Interpolates signals at template vertices
 
         Parameters
@@ -255,6 +259,12 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         tensorflow.Tensor:
             Interpolation values for the template vertices
         """
+
+        # (n_batch, n_vertices, n_radial, n_angular, input_dim)
+        return tf.reduce_sum(tf.expand_dims(bc_values, axis=-1) * mesh_signal, axis=-2)
+
+    @tf.function
+    def _gather_signals(self, barycentric_coordinates, mesh_signal):
         # n_batch, n_vertices, n_radial, n_angular, 3, 2
         bc_shape = tf.shape(barycentric_coordinates)
 
@@ -271,9 +281,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         mesh_signal = tf.reshape(
             mesh_signal, (bc_shape[0], bc_shape[1], bc_shape[2], bc_shape[3], 3, self._feature_dim)
         )
-
-        # (n_batch, n_vertices, n_radial, n_angular, input_dim)
-        return tf.reduce_sum(tf.expand_dims(bc_values, axis=-1) * mesh_signal, axis=-2)
+        return mesh_signal, bc_values
 
     def _configure_kernel(self):
         """Defines all necessary interpolation coefficient matrices for the patch operator."""
