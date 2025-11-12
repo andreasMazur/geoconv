@@ -8,22 +8,10 @@ import numpy as np
 
 class ConvBase(tf.keras.layers.Layer):
     """A metaclass for intrinsic surface convolutions."""
-    def __init__(self, n_radial, n_angular, template_radius, include_kernel, activation, *args, **kwargs,):
+    def __init__(self, template_radius, include_kernel, activation, *args, **kwargs,):
         super().__init__(*args, **kwargs)
         # Configure template
-        self.n_radial = n_radial
-        self.n_angular = n_angular
         self.template_radius = template_radius
-        self.template_vertices = tf.constant(
-            create_template_matrix(
-                self.n_radial,
-                self.n_angular,
-                radius=self.template_radius,
-                in_cart=False,
-                exp_lambda=1.,
-                shift_angular=False
-            )
-        )
 
         # Configure activation function
         self.activation = activation
@@ -38,12 +26,25 @@ class ConvBase(tf.keras.layers.Layer):
 
         # Set in build the moment inputs have been seen
         self.feature_dim = None
+        self.n_radial = None
+        self.n_angular = None
+        self.template_vertices = None
 
     def build(self, inputs):
         signal_shape, barycentric_coordinates_shape = inputs
         self.feature_dim = signal_shape[-1]
         self.n_radial = barycentric_coordinates_shape[-4]
         self.n_angular = barycentric_coordinates_shape[-3]
+        self.template_vertices = tf.constant(
+            create_template_matrix(
+                self.n_radial,
+                self.n_angular,
+                radius=self.template_radius,
+                in_cart=False,
+                exp_lambda=1.,
+                shift_angular=False
+            )
+        )
 
     @tf.function
     def _patch_operator(self, mesh_signal, barycentric_coordinates):

@@ -1,154 +1,58 @@
-from geoconv.preprocessing.bc.bc_utils import create_template_matrix
+from geoconv.tensorflow.layers.conv_base import ConvBase
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 import tensorflow as tf
 import numpy as np
 
 
-class ConvIntrinsic(ABC, tf.keras.layers.Layer):
-    """A metaclass for intrinsic surface convolutions.
-
-    Attributes
-    ----------
-    activation: str
-        The activation function to use.
-    rotation_delta: int
-        The distance between two rotations. If `n` angular coordinates are given in the data, then the default behavior
-        is to rotate the template `n` times, i.e. a shift in every angular coordinate of 1 to the next angular
-        coordinate.
-        If `rotation_delta = 2`, then the shift increases to 2 and the total amount of rotations reduces to
-        ceil(n / rotation_delta). This gives a speed-up and saves memory. However, quality of results might worsen.
-    amt_templates: int
-        The amount of templates to apply during one convolution.
-    template_radius: float
-        The maximal geodesic extension of the template.
-    include_prior: bool
-        Whether to weight the interpolations according to a pre-defined kernel.
-    """
-
+class ConvIntrinsic(ConvBase):
     def __init__(
         self,
-        amt_templates,
         template_radius,
-        include_prior=True,
-        activation="relu",
-        rotation_delta=1,
-        exp_lambda=1.0,
-        shift_angular=False,
+        rotation_delta,
+        output_dim,
+        activation,
         *args,
-        **kwargs,
+        **kwargs
     ):
-        super().__init__(*args, **kwargs)
-
-        self.amt_templates = amt_templates
-        self.template_radius = template_radius
-        self.include_prior = include_prior
-        self.activation = activation
+        super().__init__(
+            template_radius=template_radius,
+            include_kernel=False,
+            activation=activation,
+            *args,
+            **kwargs
+        )
         self.rotation_delta = rotation_delta
-        self.exp_lambda = exp_lambda
-        self.shift_angular = shift_angular
+        self.output_dim = output_dim
 
         # Attributes that depend on the data and are set automatically in build
-        self._activation = tf.keras.layers.Activation(self.activation)
         self._bias = None
-        self._all_rotations = None
-        self._template_size = None  # (#radial, #angular)
-        self._template_vertices = None
         self._template_neighbor_weights = None
         self._template_self_weights = None
-        self._kernel = None
-        self._feature_dim = None
-        self._input_shape = None
 
-    def get_config(self):
-        """Get the configuration dictionary.
+    def build(self, inputs):
+        """Builds the layer by setting template and bias attributes"""
+        super().build(inputs)
 
-        Returns
-        -------
-        dict:
-            The configuration dictionary.
-        """
-        config = super(ConvIntrinsic, self).get_config()
-        config.update(
-            {
-                "amt_templates": self.amt_templates,
-                "template_radius": self.template_radius,
-                "include_prior": self.include_prior,
-                "activation": self.activation,
-                "rotation_delta": self.rotation_delta,
-                "input_shape": self._input_shape,
-            }
-        )
-        return config
-
-    @classmethod
-    def from_config(cls, config):
-        """Re-instantiates the layer from the config dictionary.
-
-        Parameters
-        ----------
-        config: dict
-            The configuration dictionary.
-
-        Returns
-        -------
-        ConvIntrinsic:
-            The layer.
-        """
-        model = cls(**config)
-        model.build(config["input_shape"])
-        return model
-
-    def build(self, input_shape):
-        """Builds the layer by setting template and bias attributes
-
-        Parameters
-        ----------
-        input_shape: (tf.TensorShape, tf.TensorShape)
-            The shape of the signal and the shape of the barycentric coordinates.
-        """
-        # Remember input-shape
-        self._input_shape = input_shape
-        signal_shape, barycentric_shape = self._input_shape
-
-        # Configure layer-attributes that depend on the input shapes
-        self._template_size = (barycentric_shape[-4], barycentric_shape[-3])
-        self._template_vertices = tf.constant(
-            create_template_matrix(
-                self._template_size[0],
-                self._template_size[1],
-                radius=self.template_radius,
-                in_cart=False,
-                exp_lambda=self.exp_lambda,
-                shift_angular=self.shift_angular
-            )
-        )
-        self._all_rotations = self._template_size[1]
-        self._feature_dim = signal_shape[-1]
-
-        # Configure trainable weights
+        # Init neighbor weights
         self._template_neighbor_weights = self.add_weight(
             name="neighbor_weights",
-            shape=(
-                self.amt_templates,
-                self._template_size[0],
-                self._template_size[1],
-                signal_shape[-1],
-            ),
+            shape=(self.output_dim, self.n_radial, self.n_angular, self.feature_dim),
             trainable=True,
-        )
-        self._template_self_weights = self.add_weight(
-            name="center_weights",
-            shape=(self.amt_templates, 1, signal_shape[-1]),
-            trainable=True,
-        )
-        self._bias = self.add_weight(
-            name="bias", shape=(self.amt_templates,), trainable=True
         )
 
-        # Configure kernel
-        self._configure_kernel()
+        # Init self weights
+        self._template_self_weights = self.add_weight(
+            name="center_weights",
+            shape=(self.output_dim, 1, self.feature_dim),
+            trainable=True,
+        )
+
+        # Init bias
+        self._bias = self.add_weight(
+            name="bias", shape=(self.output_dim,), trainable=True
+        )
 
     @tf.function
     def call(self, inputs, orientations=None, **kwargs):
@@ -185,15 +89,18 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
         #####################################################################
         # Fold neighbors - conv_neighbor: (batch_shapes, vertices, n_rotations, templates)
         #####################################################################
+        # Gather signals for patch operator
+        # mesh_signal: (batch_shapes, vertices, radial, angular, 3, input_dim)
+        # bc_values: (batch_shapes, vertices, radial, angular, 3)
+        mesh_signal, bc_values = self._gather_signals(bary_coordinates, mesh_signal)
+
         # Call patch operator
-        interpolations = self._patch_operator(mesh_signal, bary_coordinates)
+        interpolations = self._patch_operator(mesh_signal, bc_values)
 
         # Determine orientations
         if orientations is None:
             # No specific orientations given. Hence, compute for all orientations.
-            orientations = tf.range(
-                start=0, limit=self._all_rotations, delta=self.rotation_delta
-            )
+            orientations = tf.range(start=0, limit=self.n_angular, delta=self.rotation_delta)
 
         def fold_neighbor(o):
             # Weight              : (templates, radial, angular, input_dim)
@@ -210,84 +117,7 @@ class ConvIntrinsic(ABC, tf.keras.layers.Layer):
             tf.map_fn(fold_neighbor, orientations, fn_output_signature=tf.float32),
             perm=[1, 2, 0, 3],
         )
-        return self._activation(conv_center + conv_neighbor + self._bias)
-
-    @tf.function
-    def _patch_operator(self, mesh_signal, barycentric_coordinates):
-        """Interpolates and weights mesh signal
-
-        Parameters
-        ----------
-        mesh_signal: tensorflow.Tensor
-            The signal values at the template vertices
-        barycentric_coordinates: tensorflow.Tensor
-            The barycentric coordinates for the template vertices
-
-        Returns
-        -------
-        tensorflow.Tensor:
-            Weighted and interpolated mesh signals
-        """
-        # mesh_signal: (batch_shapes, vertices, radial, angular, 3, input_dim)
-        # bc_values: (batch_shapes, vertices, radial, angular, 3)
-        mesh_signal, bc_values = self._gather_signals(barycentric_coordinates, mesh_signal)
-
-        # interpolations : (batch_shapes, vertices, radial, angular, input_dim)
-        interpolations = self._signal_pullback(mesh_signal, bc_values)
-
-        if self.include_prior:
-            # Weight matrix  : (radial, angular, radial, angular)
-            # interpolations : (batch_shapes, vertices, radial, angular, input_dim)
-            # Result         : (batch_shapes, vertices, radial, angular, input_dim)
-            return tf.einsum("raxy,skxyf->skraf", self._kernel, interpolations)
-        else:
-            return interpolations
-
-    @tf.function
-    def _signal_pullback(self, mesh_signal, bc_values):
-        """Interpolates signals at template vertices
-
-        Parameters
-        ----------
-        mesh_signal: tensorflow.Tensor
-            The signal values at the template vertices
-        barycentric_coordinates: tensorflow.Tensor
-            The barycentric coordinates for the template vertices
-
-        Returns
-        -------
-        tensorflow.Tensor:
-            Interpolation values for the template vertices
-        """
-
-        # (n_batch, n_vertices, n_radial, n_angular, input_dim)
-        return tf.reduce_sum(tf.expand_dims(bc_values, axis=-1) * mesh_signal, axis=-2)
-
-    @tf.function
-    def _gather_signals(self, barycentric_coordinates, mesh_signal):
-        # n_batch, n_vertices, n_radial, n_angular, 3, 2
-        bc_shape = tf.shape(barycentric_coordinates)
-
-        # (n_batch, n_vertices * n_radial * n_angular * 3)
-        bc_indices, bc_values = tf.unstack(barycentric_coordinates, axis=-1)
-        bc_indices = tf.cast(
-            tf.reshape(bc_indices, (bc_shape[0], -1)), tf.int32
-        )
-
-        # (n_batch, n_vertices * n_radial * n_angular * 3, input_dim)
-        mesh_signal = tf.gather(mesh_signal, bc_indices, batch_dims=1)
-
-        # (n_batch, n_vertices, n_radial, n_angular, 3, input_dim)
-        mesh_signal = tf.reshape(
-            mesh_signal, (bc_shape[0], bc_shape[1], bc_shape[2], bc_shape[3], 3, self._feature_dim)
-        )
-        return mesh_signal, bc_values
-
-    def _configure_kernel(self):
-        """Defines all necessary interpolation coefficient matrices for the patch operator."""
-        self._kernel = tf.cast(
-            self.define_kernel_values(self._template_vertices.numpy()), tf.float32
-        )
+        return self.activation_fn(conv_center + conv_neighbor + self._bias)
 
     @abstractmethod
     def define_kernel_values(self, template_matrix):

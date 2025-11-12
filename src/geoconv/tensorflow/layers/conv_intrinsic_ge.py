@@ -65,10 +65,8 @@ def into_polar_form(A):
 
 
 class ConvHarmonicSurface(ConvBase):
-    def __init__(self, output_dim, activation, n_radial, n_angular, template_radius, *args, **kwargs):
+    def __init__(self, output_dim, activation, template_radius, *args, **kwargs):
         super().__init__(
-            n_radial=n_radial,
-            n_angular=n_angular,
             template_radius=template_radius,
             include_kernel=False,
             activation=activation,
