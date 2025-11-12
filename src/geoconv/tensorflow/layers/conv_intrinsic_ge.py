@@ -1,7 +1,6 @@
 from geoconv.tensorflow.layers.conv_base import ConvBase
 
 import tensorflow as tf
-import numpy as np
 
 
 @tf.function
