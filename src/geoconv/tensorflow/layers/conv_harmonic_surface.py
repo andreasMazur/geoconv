@@ -152,9 +152,10 @@ class ConvHarmonicSurface(ConvBase):
 
         # Return new complex numbers
         bc_shape = tf.shape(bc)
-        return tf.reshape(
+        new_signal = tf.reshape(
             tf.stack([real, imaginary], axis=-1), (bc_shape[0], bc_shape[1], self.output_dim)
         )
+        return new_signal, tf.reshape(self._phase_m, (-1,))
 
     @tf.function
     def _prepare_rotations(self, barycentric_coordinates, angles, input_rotation_orders):
