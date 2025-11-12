@@ -83,7 +83,7 @@ class TestConvGeodesicSameOutput(unittest.TestCase):
 
         self.assertTrue(
             np.allclose(
-                self.tf_layer._kernel.numpy(),
+                self.tf_layer.kernel.numpy(),
                 self.torch_layer._kernel.numpy(),
                 atol=1e-5,
             ),

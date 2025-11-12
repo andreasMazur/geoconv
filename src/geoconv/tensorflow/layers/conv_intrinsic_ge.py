@@ -74,10 +74,10 @@ class ConvHarmonicSurface(ConvBase):
         )
         self.output_dim = output_dim
         self.n_complex_numbers = output_dim // 2
-        self.all_angular_coordinates = tf.cast(self.template_vertices[0, :, 1], tf.float32)[..., None]
 
         # Set in build
         self.feature_dim = None
+        self.all_angular_coordinates = None
         self._amplitude_weights = None
         self._phase_m = None
         self._phase_b = None
@@ -85,6 +85,9 @@ class ConvHarmonicSurface(ConvBase):
     def build(self, inputs):
         signals_shape, bc_shape, angles_shape, _ = inputs
         super().build([signals_shape, bc_shape])
+
+        # Require template vertices from super().build()
+        self.all_angular_coordinates = tf.cast(self.template_vertices[0, :, 1], tf.float32)[..., None]
 
         # Initialize amplitude weights
         self._amplitude_weights = self.add_weight(

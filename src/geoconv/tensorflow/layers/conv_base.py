@@ -19,16 +19,13 @@ class ConvBase(tf.keras.layers.Layer):
 
         # Configure kernel
         self.include_kernel = include_kernel
-        if self.include_kernel:
-            self._kernel = tf.cast(
-                self.define_kernel_values(self.template_vertices.numpy()), tf.float32
-            )
 
         # Set in build the moment inputs have been seen
         self.feature_dim = None
         self.n_radial = None
         self.n_angular = None
         self.template_vertices = None
+        self.kernel = None
 
     def build(self, inputs):
         signal_shape, barycentric_coordinates_shape = inputs
@@ -45,6 +42,10 @@ class ConvBase(tf.keras.layers.Layer):
                 shift_angular=False
             )
         )
+        if self.include_kernel:
+            self.kernel = tf.cast(
+                self.define_kernel_values(self.template_vertices.numpy()), tf.float32
+            )
 
     @tf.function
     def _patch_operator(self, mesh_signal, barycentric_coordinates):
@@ -69,7 +70,7 @@ class ConvBase(tf.keras.layers.Layer):
             # Weight matrix  : (radial, angular, radial, angular)
             # interpolations : (batch_shapes, vertices, radial, angular, input_dim)
             # Result         : (batch_shapes, vertices, radial, angular, input_dim)
-            return tf.einsum("raxy,skxyf->skraf", self._kernel, interpolations)
+            return tf.einsum("raxy,skxyf->skraf", self.kernel, interpolations)
         else:
             return interpolations
 
