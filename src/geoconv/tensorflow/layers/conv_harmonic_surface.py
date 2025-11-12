@@ -72,6 +72,7 @@ class ConvHarmonicSurface(ConvBase):
             *args,
             **kwargs
         )
+        assert output_dim % 2 == 0, "The output dimensionality has to be even!"
         self.output_dim = output_dim
         self.n_complex_numbers = output_dim // 2
 
