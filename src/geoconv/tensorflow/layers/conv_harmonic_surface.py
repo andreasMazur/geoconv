@@ -56,9 +56,7 @@ def into_polar_form(A):
         Two tensors: the first contains the amplitudes and the second the phases.
     """
     A_shape = tf.shape(A)
-    amplitudes = tf.linalg.norm(
-        tf.reshape(A, (A_shape[0], A_shape[1], A_shape[2], A_shape[3], -1, 2)), ord=2, axis=-1
-    )
+    amplitudes = tf.linalg.norm(tf.reshape(A, tf.concat([A_shape[:-1], [-1], [2]], axis=0)), ord=2, axis=-1)
     phases = tf.math.atan2(A[..., 1::2], A[..., ::2])
     return amplitudes, phases
 
