@@ -70,7 +70,7 @@ class ConvHarmonicSurface(ConvBase):
             *args,
             **kwargs
         )
-        assert output_dim % 2 == 0, "The output dimensionality has to be even!"
+        assert output_dim > 0 and output_dim % 2 == 0, "The output dimensionality has to be even!"
         self.output_dim = output_dim
         self.n_complex_numbers = output_dim // 2
 
@@ -82,8 +82,10 @@ class ConvHarmonicSurface(ConvBase):
         self._phase_b = None
 
     def build(self, inputs):
-        signals_shape, bc_shape, angles_shape, _ = inputs
+        signals_shape, bc_shape, _, _ = inputs
         super().build([signals_shape, bc_shape])
+        assert self.feature_dim > 0 and self.feature_dim % 2 == 0, \
+            f"The input dimensionality ({self.feature_dim}) has to be even!"
 
         # Require template vertices from super().build()
         self.all_angular_coordinates = tf.cast(self.template_vertices[0, :, 1], tf.float32)[..., None]
@@ -99,12 +101,12 @@ class ConvHarmonicSurface(ConvBase):
         self._phase_m = self.add_weight(
             name="phase_m",
             shape=(self.n_complex_numbers, 1, 1, 1),
-            trainable=True,
+            trainable=True
         )
         self._phase_b = self.add_weight(
             name="phase_b",
             shape=(self.n_complex_numbers, 1, 1, 1),
-            trainable=True,
+            trainable=True
         )
 
     @tf.function
@@ -155,7 +157,8 @@ class ConvHarmonicSurface(ConvBase):
         new_signal = tf.reshape(
             tf.stack([real, imaginary], axis=-1), (bc_shape[0], bc_shape[1], self.output_dim)
         )
-        return new_signal, tf.reshape(self._phase_m, (-1,))
+
+        return new_signal, tf.tile(tf.reshape(self._phase_m, (1, -1)), multiples=(bc_shape[0], 1))
 
     @tf.function
     def _prepare_rotations(self, barycentric_coordinates, angles, input_rotation_orders):
@@ -166,7 +169,7 @@ class ConvHarmonicSurface(ConvBase):
         angles = tf.gather(angles, tf.cast(barycentric_coordinates[..., 1], dtype=tf.int32), batch_dims=2)
 
         ### Include rotation order ###
-        # input_rotation_orders : (n_batch,          1,        1,         1, 1, input_dim / 2,)
+        # input_rotation_orders : (n_batch,          1,        1,         1, 1, input_dim / 2)
         # angles[..., None]     : (n_batch, n_vertices, n_radial, n_angular, 3, 1)
         # result                : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2)
         angles = input_rotation_orders[:, None, None, None, None, :] * angles[..., None]
@@ -177,10 +180,14 @@ class ConvHarmonicSurface(ConvBase):
 
         # real      : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2)
         # imaginary : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2)
-        # result    : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim)
+        # result    : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2)
+        complex_values = tf.stack([real, imaginary], axis=-1)
+
+        # complex_values : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2)
+        # result         : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim)
         bc_shape = tf.shape(barycentric_coordinates)
         return tf.reshape(
-            tf.stack([real, imaginary], axis=-1),
+            complex_values,
             (bc_shape[0], bc_shape[1], bc_shape[2], bc_shape[3], bc_shape[4], self.feature_dim)
         )
 
