@@ -8,14 +8,23 @@ def dataset(mnist_atlas, set_type, n_radial, n_angular, batch_size):
     # Load barycentric coordinates
     atlas = load_atlas(mnist_atlas)
     bc = atlas.barycentric_coordinates[(n_radial, n_angular)]
+    radius = atlas.barycentric_coordinates_radius[(n_radial, n_angular)][0]
 
     # Load images
     mnist = tfds.load("mnist", split=set_type, shuffle_files=True, as_supervised=True)
 
+    # Set default rotations, rotation order and imaginary values for every image
+    rotations = tf.zeros((784, 784))
+    rotation_orders = tf.ones((1,))
+    imaginary_values = tf.zeros((784, 1), dtype=tf.float32)
+
     # Return image, barycentric coordinates and label
     def transform(image, label):
-        return (tf.reshape(tf.cast(image, tf.float32), (-1, 1)), bc), label
+        # Lift 1-d features into imaginary plane by mapping 'grey_scale_value -> grey_scale_value + 0i'
+        image = tf.reshape(tf.cast(image, tf.float32), (784, 1))
+        image = tf.concat([image, imaginary_values], axis=-1)
+        return (image, bc, rotations, rotation_orders), label
     mnist = mnist.map(transform)
 
     # Return batched MNIST
-    return mnist.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    return mnist.batch(batch_size).prefetch(tf.data.AUTOTUNE), radius
