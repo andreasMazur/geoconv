@@ -100,7 +100,7 @@ class ConvBase(tf.keras.layers.Layer):
         bc_shape = tf.shape(barycentric_coordinates)
 
         # (n_batch, n_vertices * n_radial * n_angular * 3)
-        bc_indices, bc_values = tf.unstack(barycentric_coordinates, axis=-1)
+        bc_values, bc_indices = tf.unstack(barycentric_coordinates, axis=-1)
         bc_indices = tf.cast(
             tf.reshape(bc_indices, (bc_shape[0], -1)), tf.int32
         )
