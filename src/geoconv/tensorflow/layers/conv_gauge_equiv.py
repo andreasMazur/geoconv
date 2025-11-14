@@ -155,7 +155,7 @@ class ConvGaugeEquiv(ConvBase):
         # result                : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2)
         angles = input_rotation_orders[:, None, None, None, None, :] * angles[..., None]
 
-        ### Calculate real parts ###
+        ### Calculate real and imaginary parts ###
         real = tf.math.cos(angles)
         imaginary = tf.math.sin(angles)
 
