@@ -41,27 +41,7 @@ def complex_multiplication(A, B):
     return tf.reshape(tf.stack([C_real, C_complex], axis=-1), A_shape)
 
 
-@tf.function
-def into_polar_form(A):
-    """Translates complex values into their polar form.
-
-    Parameters
-    ----------
-    A: tf:Tensor
-        A tensor that contains stacked complex values in its innermost dimension.
-
-    Returns
-    -------
-    (tf.Tensor, tf.Tensor):
-        Two tensors: the first contains the amplitudes and the second the phases.
-    """
-    A_shape = tf.shape(A)
-    amplitudes = tf.linalg.norm(tf.reshape(A, tf.concat([A_shape[:-1], [-1], [2]], axis=0)), ord=2, axis=-1)
-    phases = tf.math.atan2(A[..., 1::2], A[..., ::2])
-    return amplitudes, phases
-
-
-class ConvHarmonicSurface(ConvBase):
+class ConvGaugeEquiv(ConvBase):
     def __init__(self, output_dim, activation, template_radius, *args, **kwargs):
         super().__init__(
             template_radius=template_radius,
@@ -82,83 +62,84 @@ class ConvHarmonicSurface(ConvBase):
         self._phase_b = None
 
     def build(self, inputs):
-        signals_shape, bc_shape, _, _ = inputs
+        signals_shape, bc_shape, rotations_shape, orders_shape = inputs
         super().build([signals_shape, bc_shape])
         assert self.feature_dim > 0 and self.feature_dim % 2 == 0, \
             f"The input dimensionality ({self.feature_dim}) has to be even!"
 
         # Require template vertices from super().build()
-        self.all_angular_coordinates = tf.cast(self.template_vertices[0, :, 1], tf.float32)[..., None]
+        self.all_angular_coordinates = tf.cast(self.template_vertices[0, :, 1], tf.float32)
 
         # Initialize amplitude weights
         self._amplitude_weights = self.add_weight(
             name="radial_weights",
-            shape=(self.n_complex_numbers, int(self.feature_dim / 2), self.n_radial),
+            shape=(self.n_complex_numbers, self.n_radial, int(self.feature_dim / 2)),
             trainable=True,
         )
 
         # Initialize phase weights
         self._phase_m = self.add_weight(
             name="phase_m",
-            shape=(self.n_complex_numbers, 1, 1, 1),
+            shape=(self.n_complex_numbers,),
             trainable=True
         )
         self._phase_b = self.add_weight(
             name="phase_b",
-            shape=(self.n_complex_numbers, 1, 1, 1),
+            shape=(self.n_complex_numbers, 1),
             trainable=True
         )
 
     @tf.function
     def call(self, inputs):
+        # signals               : (batch, n_vertices, input_dim)
+        # bc                    : (batch, n_vertices, n_radial, n_angular, 3, 2)
+        # angles                : (batch, n_vertices, n_vertices)
+        # input_rotation_orders : (batch, input_dim / 2)
         signals, bc, angles, input_rotation_orders = inputs
 
         # Gather the signals
+        # signals   : (batch, n_vertices, n_radial, n_angular, 3, input_dim)
+        # bc_values : (batch, n_vertices, n_radial, n_angular, 3)
         signals, bc_values = self._gather_signals(bc, signals)
 
         # Gather the rotations
+        # rotations : (batch, n_vertices, n_radial, n_angular, 3, 2)
         rotations = self._prepare_rotations(bc, angles, input_rotation_orders)
 
         # Apply rotations
+        # signals : (batch, n_vertices, n_radial, n_angular, 3, input_dim)
         signals = complex_multiplication(rotations, signals)
 
         # Use patch operator
+        # signals : (batch, n_vertices, n_radial, n_angular, input_dim)
         signals = self._patch_operator(signals, bc_values)
 
-        ### Determine polar form ###
-        # signals    : (batch_shapes, vertices, radial, angular, input_dim)
-        # amplitudes : (batch_shapes, vertices, radial, angular, input_dim / 2)
-        # phases     : (batch_shapes, vertices, radial, angular, input_dim / 2)
-        amplitudes, phases = into_polar_form(signals)
+        # Compute amplitudes
+        # signals          : (batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
+        # signal_amplitudes: (batch, n_vertices, n_radial, n_angular, input_dim / 2)
+        signals = tf.reshape(signals, tf.concat([tf.shape(signals)[:4], [-1], [2]], axis=-1))
+        signal_amplitudes = tf.linalg.norm(signals, ord=2, axis=-1)
+        signals = tf.math.divide_no_nan(signals, signal_amplitudes[..., None])
 
-        ### Compute amplitude products ###
-        # _amplitude_weights : (output_dim, input_dim / 2, radial)
-        # amplitudes         : (batch_shapes, vertices, radial, angular, input_dim / 2)
-        # results            : (batch_shapes, vertices, output_dim, radial, angular, input_dim / 2)
-        amplitudes = tf.einsum("qfr,bkraf->bkqraf", self._amplitude_weights, amplitudes)
+        # Create phase weight tensor
+        P_w = self.create_phase_weight_tensor()
 
-        # Apply activation on amplitudes ("magnitude non-linearity")
-        amplitudes = self.activation_fn(amplitudes)
-
-        ### Compute phase sums ###
-        # _phase_m          : (output_dim, 1, 1, 1)
-        # neighbor_angles   : (angular, 1)
-        # _phase_b          : (output_dim, 1, 1, 1)
-        # phases[..., None] : (batch_shapes, vertices,          1, radial, angular, input_dim / 2)
-        # result            : (batch_shapes, vertices, output_dim, radial, angular, input_dim / 2)
-        phases = self._phase_m * self.all_angular_coordinates + self._phase_b + phases[:, :, None, ...]
-
-        ### Compute real and imaginary parts ###
-        real = tf.reduce_sum(amplitudes * tf.math.cos(phases), axis=[-3, -2, -1])
-        imaginary = tf.reduce_sum(amplitudes * tf.math.sin(phases), axis=[-3, -2, -1])
-
-        # Return new complex numbers
-        bc_shape = tf.shape(bc)
-        new_signal = tf.reshape(
-            tf.stack([real, imaginary], axis=-1), (bc_shape[0], bc_shape[1], self.output_dim)
+        # Compute convolution
+        result = tf.einsum(
+            "qrf,bkraf,qaij,bkrafj->bkqi", self._amplitude_weights, signal_amplitudes, P_w, signals
         )
+        result_shape = tf.shape(result)
+        result = tf.reshape(result, (result_shape[0], result_shape[1], self.output_dim))
+        return result, tf.tile(self._phase_m[None, ...], multiples=[result_shape[0], 1])
 
-        return new_signal, tf.tile(tf.reshape(self._phase_m, (1, -1)), multiples=(bc_shape[0], 1))
+    @tf.function
+    def create_phase_weight_tensor(self):
+        weight_coord_matrix = tf.einsum("i,j->ij", self._phase_m, self.all_angular_coordinates) + self._phase_b
+        cos_matrix = tf.cos(weight_coord_matrix)
+        sin_matrix = tf.sin(weight_coord_matrix)
+        I = tf.constant([[1., 0.], [0., 1.]])
+        K = tf.constant([[0., -1.], [1., 0.]])
+        return I * cos_matrix[..., None, None] + K * sin_matrix[..., None, None]
 
     @tf.function
     def _prepare_rotations(self, barycentric_coordinates, angles, input_rotation_orders):
