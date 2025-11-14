@@ -4,7 +4,7 @@ from geoconv_examples.mnist.dataset import dataset
 import tensorflow as tf
 
 
-def define_model(output_dims, template_radius, n_radial, n_angular):
+def define_model(output_dims, template_radius, n_radial, n_angular, activation):
     image_size = 28 * 28
 
     # Define input layers
@@ -22,7 +22,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular):
         signal, rotation_orders = ConvGaugeEquiv(
             output_dim=od,
             template_radius=template_radius,
-            activation="linear"
+            activation=activation
         )([signal, bc_input, rotations_input, rotation_orders])
     signal = tf.keras.layers.Flatten()(signal)
     output = tf.keras.layers.Dense(10, activation="linear")(signal)
@@ -33,12 +33,12 @@ def define_model(output_dims, template_radius, n_radial, n_angular):
     imcnn.compile(
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         optimizer=tf.keras.optimizers.Adam(),
-        metrics=["accuracy"]
+        metrics=["sparse_categorical_accuracy"]
     )
     return imcnn
 
 
-def training(mnist_atlas, n_radial, n_angular, batch_size, output_dims):
+def training(mnist_atlas, n_radial, n_angular, batch_size, output_dims, save_path, activation, epochs=10):
     # Get data
     train_data, template_radius = dataset(
         mnist_atlas, set_type="train", n_radial=n_radial, n_angular=n_angular, batch_size=batch_size
@@ -49,9 +49,16 @@ def training(mnist_atlas, n_radial, n_angular, batch_size, output_dims):
 
     # Get model
     model = define_model(
-        output_dims=output_dims, template_radius=template_radius, n_radial=n_radial, n_angular=n_angular
+        output_dims=output_dims,
+        template_radius=template_radius,
+        n_radial=n_radial,
+        n_angular=n_angular,
+        activation=activation
     )
     model.summary()
 
     # Train model
-    model.fit(x=train_data, batch_size=batch_size, epochs=10, validation_data=test_data)
+    model.fit(x=train_data, batch_size=batch_size, epochs=epochs, validation_data=test_data)
+
+    # Save model
+    model.save(save_path)
