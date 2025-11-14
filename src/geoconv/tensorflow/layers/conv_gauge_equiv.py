@@ -151,6 +151,14 @@ class ConvGaugeEquiv(ConvBase):
 
         ### Add results ###
         result = center_result + neighbor_result
+
+        ### Apply magnitude activation ###
+        # result : (batch, n_vertices, output_dim)
+        result_amp = tf.linalg.norm(result, axis=-1)
+        result = self.activation_fn(result_amp)[..., None] * tf.math.divide_no_nan(result, result_amp[..., None])
+
+        ### Reshape to original shape ###
+        # result : (batch, n_vertices, output_dim)
         result_shape = tf.shape(result)
         result = tf.reshape(result, (result_shape[0], result_shape[1], self.output_dim))
 
