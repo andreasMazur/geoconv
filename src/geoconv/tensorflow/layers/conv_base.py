@@ -114,6 +114,23 @@ class ConvBase(tf.keras.layers.Layer):
         )
         return mesh_signal, bc_values
 
+    def get_config(self):
+        """Adds class relevant to the config-dictionary of the base 'Layer' class.
+
+        Returns
+        -------
+        dict:
+            The class configuration in the form of a dictionary.
+        """
+        base_config = super().get_config()
+        class_config = {
+            "template_radius": self.template_radius,
+            "include_kernel": self.include_kernel,
+            "activation": self.activation,
+        }
+        base_config.update(class_config)
+        return base_config
+
     @abstractmethod
     def define_kernel_values(self, template_matrix):
         """Defines the kernel values for each template vertex.

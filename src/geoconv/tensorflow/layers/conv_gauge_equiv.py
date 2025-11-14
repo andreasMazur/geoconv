@@ -73,11 +73,9 @@ def complex_multiplication(A, B):
 
 
 class ConvGaugeEquiv(ConvBase):
-    def __init__(self, output_dim, activation, template_radius, *args, **kwargs):
+    def __init__(self, output_dim, *args, **kwargs):
         super().__init__(
-            template_radius=template_radius,
             include_kernel=False,
-            activation=activation,
             *args,
             **kwargs
         )
@@ -256,6 +254,24 @@ class ConvGaugeEquiv(ConvBase):
             complex_values,
             (bc_shape[0], bc_shape[1], bc_shape[2], bc_shape[3], bc_shape[4], self.feature_dim)
         )
+
+    def get_config(self):
+        """Adds class relevant to the config-dictionary of the base 'Layer' class.
+
+        Returns
+        -------
+        dict:
+            The class configuration in the form of a dictionary.
+        """
+        base_config = super().get_config()
+
+        # Update parent class dict
+        class_config = {"output_dim": self.output_dim}
+        base_config.update(class_config)
+
+        # Prevent double keyword argument (init sets 'include_kernel' to false)
+        del base_config["include_kernel"]
+        return base_config
 
     def define_kernel_values(self, template_matrix):
         return None
