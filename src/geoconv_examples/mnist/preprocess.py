@@ -26,8 +26,8 @@ def image_to_grid(image, grid):
 
 def preprocess_mnist(output_path,
                      max_chart_radius,
-                     n_radial,
-                     n_angular,
+                     n_radials,
+                     n_angulars,
                      max_temp_radius=None,
                      method="hdm",
                      normalization_method="hdm",
@@ -42,11 +42,28 @@ def preprocess_mnist(output_path,
             normalization_method=normalization_method,
             processes=processes
         )
-        atlas.determine_barycentric_coordinates(
-            n_radial=n_radial,
-            n_angular=n_angular,
-            radius=atlas.median_chart_radius if max_temp_radius is None else max_temp_radius
-        )
+        chart_radii = [
+            atlas.min_chart_radius,
+            atlas.max_chart_radius,
+            atlas.avg_chart_radius,
+            atlas.median_chart_radius
+        ]
+        for n_radial in n_radials:
+            for n_angular in n_angulars:
+                if max_temp_radius is None:
+                    for chart_radius in chart_radii:
+                        atlas.determine_barycentric_coordinates(
+                            n_radial=n_radial,
+                            n_angular=n_angular,
+                            radius=chart_radius
+                        )
+                else:
+                    atlas.determine_barycentric_coordinates(
+                        n_radial=n_radial,
+                        n_angular=n_angular,
+                        radius=max_temp_radius
+                    )
+
         atlas.save(output_path)
         return atlas
     else:
