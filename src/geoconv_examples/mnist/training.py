@@ -25,7 +25,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, activation):
             template_radius=template_radius,
             activation=activation
         )([signal, bc_input, rotations_input, rotation_orders])
-    signal = tf.keras.layers.Flatten()(signal)
+    signal = tf.keras.layers.GlobalMaxPool1D()(signal)
     output = tf.keras.layers.Dense(10, activation="linear")(signal)
 
     imcnn = tf.keras.Model(
@@ -42,7 +42,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, activation):
 def training(mnist_atlas, n_radial, n_angular, batch_size, output_dims, save_path, activation, epochs=10):
     # Get data
     train_data, template_radius = dataset(
-        mnist_atlas, set_type="test", n_radial=n_radial, n_angular=n_angular, batch_size=batch_size
+        mnist_atlas, set_type="train", n_radial=n_radial, n_angular=n_angular, batch_size=batch_size
     )
     test_data, _ = dataset(
         mnist_atlas, set_type="test", n_radial=n_radial, n_angular=n_angular, batch_size=batch_size
