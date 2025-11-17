@@ -6,6 +6,6 @@ from .normalize_point_cloud import NormalizePointCloud
 
 from .barycentric_coordinates import BarycentricCoordinates
 
-from .pooling import AngularAvgPooling, AngularMaxPooling, AngularMinPooling
+from .pooling import AngularAvgPooling, AngularMaxPooling
 
 from .shot_descriptor import PointCloudShotDescriptor

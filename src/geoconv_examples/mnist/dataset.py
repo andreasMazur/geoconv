@@ -20,6 +20,9 @@ def dataset(mnist_atlas, set_type, n_radial, n_angular, batch_size):
 
     # Return image, barycentric coordinates and label
     def transform(image, label):
+        # Normalize image
+        image = image / 255.
+
         # Lift 1-d features into imaginary plane by mapping 'grey_scale_value -> grey_scale_value + 0i'
         image = tf.reshape(tf.cast(image, tf.float32), (784, 1))
         image = tf.concat([image, imaginary_values], axis=-1)
