@@ -6,7 +6,7 @@ import tensorflow as tf
 import json
 
 
-def define_model(output_dims, template_radius, n_radial, n_angular, activation):
+def define_model(output_dims, template_radius, n_radial, n_angular, activation, learning_rate=0.001):
     image_size = 28 * 28
 
     # Define input layers
@@ -34,7 +34,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, activation):
     )
     imcnn.compile(
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        optimizer=tf.keras.optimizers.Adam(),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         metrics=["sparse_categorical_accuracy"]
     )
     return imcnn
