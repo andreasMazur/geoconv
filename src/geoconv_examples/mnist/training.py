@@ -54,7 +54,7 @@ def hypertuning(mnist_atlas, n_radial, n_angular, batch_size, activation, save_p
     def get_hypermodel(hp):
         model = define_model(
             output_dims=[
-                hp.Int("units", min_value=8, max_value=64) for _ in range(hp.Int("n_layers", min_value=4, max_value=16))
+                hp.Int("units", min_value=8, max_value=64, step=2) for _ in range(hp.Int("n_layers", min_value=4, max_value=16))
             ],
             template_radius=template_radius,
             n_radial=n_radial,
