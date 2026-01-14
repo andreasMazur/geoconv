@@ -54,14 +54,15 @@ class ConvBase(tf.keras.layers.Layer):
         Parameters
         ----------
         mesh_signal: tf.Tensor
-            The signal values at the template vertices.
+            The feature vectors that shall be interpolated at the template vertices.
         barycentric_coordinates: tf.Tensor
             The barycentric coordinates for the template vertices.
 
         Returns
         -------
         tf.Tensor:
-            Weighted and interpolated mesh signals.
+            A tensor containing weighted (in case pre-defined kernels are used) and interpolated mesh signals of shape
+            (batch_shapes, vertices, radial, angular, input_dim).
         """
         # interpolations : (batch_shapes, vertices, radial, angular, input_dim)
         interpolations = self._signal_pullback(mesh_signal, barycentric_coordinates)
@@ -88,7 +89,8 @@ class ConvBase(tf.keras.layers.Layer):
         Returns
         -------
         tf.Tensor:
-            Interpolation values for the template vertices.
+            A tensor containing interpolated feature vectors at the template vertices of shape
+            (n_batch, n_vertices, n_radial, n_angular, input_dim).
         """
 
         # (n_batch, n_vertices, n_radial, n_angular, input_dim)
@@ -96,6 +98,22 @@ class ConvBase(tf.keras.layers.Layer):
 
     @tf.function
     def _gather_signals(self, barycentric_coordinates, mesh_signal):
+        """Gathers required feature vectors and associated those to given barycentric coordinates.
+
+        Parameters
+        ----------
+        barycentric_coordinates: tf.Tensor
+            The barycentric coordinates tensor.
+        mesh_signal: tf.Tensor
+            The feature vectors at the mesh vertices.
+
+        Returns
+        -------
+        (tf.Tensor, tf.Tensor):
+            A tensor of shape (n_batch, n_vertices, n_radial, n_angular, 3, input_dim) that contains the required
+            feature vectors and their according interpolation values in a tensor of shape
+            (n_batch, n_vertices, n_radial, n_angular, 3).
+        """
         # n_batch, n_vertices, n_radial, n_angular, 3, 2
         bc_shape = tf.shape(barycentric_coordinates)
 
