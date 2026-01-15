@@ -179,3 +179,25 @@ class ConvHarmonic(ConvBase):
 
     def define_kernel_values(self, template_matrix):
         return None
+
+    def get_config(self):
+        """Adds class relevant to the config-dictionary of the base 'Layer' class.
+
+        Returns
+        -------
+        dict:
+            The class configuration in the form of a dictionary.
+        """
+        base_config = super().get_config()
+
+        # Update parent class dict
+        class_config = {
+            "output_dim": self.output_dim,
+            "rotation_order": self.rotation_order
+        }
+        base_config.update(class_config)
+
+        # Prevent double keyword argument (init sets 'include_kernel' to false)
+        del base_config["include_kernel"]
+        return base_config
+
