@@ -107,33 +107,14 @@ class ConvHarmonic(ConvBase):
 
     @tf.function
     def call(self, inputs):
-        # signals : (batch, n_vertices, input_dim, 2)
-        # bc      : (batch, n_vertices, n_radial, n_angular, 3, 2)
-        # angles  : (batch, n_vertices, n_vertices)
+        # signals : (n_batch, n_vertices, input_dim, 2)
+        # bc      : (n_batch, n_vertices, n_radial, n_angular, 3, 2)
+        # angles  : (n_batch, n_vertices, n_vertices)
         signals, bc, angles = inputs
 
-        # Prepare rotation matrices for parallel transport
-        # rotation_matrices : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
-        rotation_matrices = self.create_rotation_matrices(angles, bc, self.rotation_order_vector)
-
-        # Get template vertex interpolations
-        # neighbor_signals : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim)
-        # bc_coefficients  : (n_batch, n_vertices, n_radial, n_angular, 3)
-        neighbor_signals, bc_coefficients = self._gather_signals(bc, signals)
-
-        # Reshape gathered signals into their geometric components
-        # neighbor_signals : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2)
-        signals_shape = tf.shape(neighbor_signals)
-        neighbor_signals = tf.reshape(
-            neighbor_signals,
-            (signals_shape[0], signals_shape[1], self.n_radial, self.n_angular, 3, self.n_complex_num_input, 2)
-        )
-
-        # Transport via rotation and interpolate signals at template vertices
-        # neighbor_signals : (n_shapes, n_vertices, n_radial, n_angular, input_dim / 2, 2)
-        neighbor_signals = self._signal_pullback_with_parallel_transport(
-            neighbor_signals, bc_coefficients, rotation_matrices
-        )
+        # Get transported and interpolated feature vectors at each template vertex
+        # neighbor_signals : (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
+        neighbor_signals = self._interpolation_with_parallel_transport(signals, bc, angles)
 
         # Get phase weight tensor
         # phase_weights: (n_angular, output_dim / 2, 2, 2)
@@ -150,6 +131,7 @@ class ConvHarmonic(ConvBase):
 
         # Reshape vertex signals into their geometric components
         # signals : (n_batch, n_vertices, input_dim / 2, 2)
+        signals_shape = tf.shape(signals)
         signals = tf.reshape(signals, (signals_shape[0], signals_shape[1], self.n_complex_num_input, 2))
 
         # Add self connections
@@ -200,4 +182,3 @@ class ConvHarmonic(ConvBase):
         # Prevent double keyword argument (init sets 'include_kernel' to false)
         del base_config["include_kernel"]
         return base_config
-

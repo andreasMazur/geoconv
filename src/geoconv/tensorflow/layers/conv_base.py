@@ -97,6 +97,62 @@ class ConvBase(tf.keras.layers.Layer):
         return tf.reduce_sum(tf.expand_dims(barycentric_coordinates, axis=-1) * mesh_signal, axis=-2)
 
     @tf.function
+    def _interpolation_with_parallel_transport(self, signals, bc, angles):
+        """Wrapper function for feature gathering, parallel transport and interpolation.
+
+        Parameters
+        ----------
+        signals: tf.Tensor
+            The surface signal.
+            Shape: (batch, n_vertices, input_dim, 2)
+        bc: tf.Tensor
+            The barycentric coordinates tensor.
+            Shape: (batch, n_vertices, n_radial, n_angular, 3, 2)
+        angles: tf:Tensor
+            The angle tensor.
+            Shape: (batch, n_vertices, n_vertices)
+
+        Returns
+        -------
+        tf.Tensor:
+            Transported and interpolated feature vectors for each template vertex split into individual geometric
+            components.
+            Shape: (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
+        """
+        # Get template vertex interpolations
+        # neighbor_signals : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim)
+        # bc_coefficients  : (n_batch, n_vertices, n_radial, n_angular, 3)
+        neighbor_signals, bc_coefficients = self._gather_signals(bc, signals)
+
+        # Reshape gathered signals into their geometric components
+        # neighbor_signals : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2)
+        signals_shape = tf.shape(neighbor_signals)
+        neighbor_signals = tf.reshape(
+            neighbor_signals,
+            (
+                signals_shape[0],
+                signals_shape[1],
+                self.n_radial,
+                self.n_angular,
+                3,
+                self.n_complex_num_input,
+                2,
+            ),
+        )
+
+        # Prepare rotation matrices for parallel transport
+        # rotation_matrices : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
+        rotation_matrices = self.create_rotation_matrices(
+            angles, bc, self.rotation_order_vector
+        )
+
+        # Transport via rotation and interpolate signals at template vertices
+        # (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
+        return self._signal_pullback_with_parallel_transport(
+            neighbor_signals, bc_coefficients, rotation_matrices
+        )
+
+    @tf.function
     def _signal_pullback_with_parallel_transport(self, mesh_signal, bc, rotation_matrices):
         """Rotates signals before it interpolates them at template vertices.
 
