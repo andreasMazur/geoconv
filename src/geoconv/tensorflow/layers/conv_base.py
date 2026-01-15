@@ -77,7 +77,7 @@ class ConvBase(tf.keras.layers.Layer):
 
     @tf.function
     def _signal_pullback(self, mesh_signal, barycentric_coordinates):
-        """Interpolates signals at template vertices
+        """Interpolates signals at template vertices.
 
         Parameters
         ----------
@@ -95,6 +95,36 @@ class ConvBase(tf.keras.layers.Layer):
 
         # (n_batch, n_vertices, n_radial, n_angular, input_dim)
         return tf.reduce_sum(tf.expand_dims(barycentric_coordinates, axis=-1) * mesh_signal, axis=-2)
+
+    @tf.function
+    def _signal_pullback_with_parallel_transport(self, mesh_signal, bc, rotation_matrices):
+        """Rotates signals before it interpolates them at template vertices.
+
+        Parameters
+        ----------
+        mesh_signal: tf.Tensor
+            The signal values at the template vertices.
+            Shape: (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2)
+        bc: tf.Tensor
+            The interpolation values of the barycentric coordinates tensor for the template vertices.
+            Shape: (n_batch, n_vertices, n_radial, n_angular, 3)
+        rotation_matrices: tf.Tensor
+            The rotation matrices to be applied to the signals.
+            Shape: (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
+
+        Returns
+        -------
+        tf.Tensor:
+            A tensor containing interpolated feature vectors at the template vertices of shape
+            (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2).
+        """
+        # bc                : (n_batch, n_vertices, n_radial, n_angular, 3)
+        # rotation_matrices : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
+        # mesh_signal       : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2)
+        # result            : (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
+        return tf.einsum(
+            "bkral,bkralnxy,bkralny->bkranx", bc, rotation_matrices, mesh_signal
+        )
 
     @tf.function
     def _gather_signals(self, barycentric_coordinates, mesh_signal):
@@ -131,6 +161,47 @@ class ConvBase(tf.keras.layers.Layer):
             mesh_signal, (bc_shape[0], bc_shape[1], bc_shape[2], bc_shape[3], 3, self.feature_dim)
         )
         return mesh_signal, bc_values
+
+    @tf.function
+    def create_rotation_matrices(self, angles, bc, rotation_order):
+        """Creates rotation matrices from given angles for parallel transport.
+
+        Parameters
+        ----------
+        angles: tf.Tensor
+            A batch of square matrices containing the angles required for parallel transport.
+        bc: tf.Tensor
+            The barycentric coordinates tensor.
+        rotation_order: tf.Tensor
+            The rotation order vector contains coefficients for how fast individual components of a
+            feature vector rotate. It has shape (input_dim / 2).
+
+        Returns
+        -------
+        tf.Tensor:
+            Rotation matrices for the parallel transport.
+            Shape: (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
+        """
+        ### Gather the rotations angles ###
+        # angles     : (n_batch, n_vertices, n_vertices)
+        # bc[..., 1] : (n_batch, n_vertices, n_radial, n_angular, 3)
+        # result     : (n_batch, n_vertices, n_radial, n_angular, 3)
+        angles = tf.gather(angles, tf.cast(bc[..., 1], dtype=tf.int32), batch_dims=2)
+
+        ### Include rotation order ###
+        # rotation_order : (      1,          1,        1,         1, 1, input_dim / 2)
+        # angles         : (n_batch, n_vertices, n_radial, n_angular, 3,             1)
+        # result         : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2)
+        angles = rotation_order[None, None, None, None, None, :] * angles[..., None]
+
+        ### Translate angles to rotation matrices ###
+        # angles : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2)
+        # result : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
+        C = tf.constant([[1.0, 0.0], [0.0, 1.0]])
+        S = tf.constant([[0., -1.], [1., 0.]])
+        rot_matrices = tf.cos(angles)[..., None, None] * C + tf.sin(angles)[..., None, None] * S
+
+        return rot_matrices
 
     def get_config(self):
         """Adds class relevant to the config-dictionary of the base 'Layer' class.
