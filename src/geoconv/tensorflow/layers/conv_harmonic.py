@@ -114,7 +114,7 @@ class ConvHarmonic(ConvBase):
 
         # Get transported and interpolated feature vectors at each template vertex
         # neighbor_signals : (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
-        neighbor_signals = self._interpolation_with_parallel_transport(signals, bc, angles)
+        neighbor_signals = self._interpolation_with_parallel_transport(signals, bc, angles, self.rotation_order_vector)
 
         # Get phase weight tensor
         # phase_weights: (n_angular, output_dim / 2, 2, 2)
@@ -147,6 +147,7 @@ class ConvHarmonic(ConvBase):
         # Add self-connection contributions to neighbor aggregation for complete conv result
         # conv_center : (n_batch, n_vertices, input_dim / 2, 2)
         # conv_neigh  : (n_batch, n_vertices, output_dim / 2, 2)
+        # result      : (n_batch, n_vertices, output_dim / 2, 2)
         result = conv_center + conv_neigh
 
         # Apply magnitude activation

@@ -97,7 +97,7 @@ class ConvBase(tf.keras.layers.Layer):
         return tf.reduce_sum(tf.expand_dims(barycentric_coordinates, axis=-1) * mesh_signal, axis=-2)
 
     @tf.function
-    def _interpolation_with_parallel_transport(self, signals, bc, angles):
+    def _interpolation_with_parallel_transport(self, signals, bc, angles, rotation_order_vector):
         """Wrapper function for feature gathering, parallel transport and interpolation.
 
         Parameters
@@ -111,6 +111,9 @@ class ConvBase(tf.keras.layers.Layer):
         angles: tf:Tensor
             The angle tensor.
             Shape: (batch, n_vertices, n_vertices)
+        rotation_order_vector: tf.Tensor
+            A vector describing the rotation orders of the individual geometric components.
+            Shape: (input_dim / 2)
 
         Returns
         -------
@@ -127,6 +130,7 @@ class ConvBase(tf.keras.layers.Layer):
         # Reshape gathered signals into their geometric components
         # neighbor_signals : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2)
         signals_shape = tf.shape(neighbor_signals)
+        n_geometric_components = tf.shape(rotation_order_vector)[0]
         neighbor_signals = tf.reshape(
             neighbor_signals,
             (
@@ -135,16 +139,14 @@ class ConvBase(tf.keras.layers.Layer):
                 self.n_radial,
                 self.n_angular,
                 3,
-                self.n_complex_num_input,
+                n_geometric_components,
                 2,
             ),
         )
 
         # Prepare rotation matrices for parallel transport
         # rotation_matrices : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
-        rotation_matrices = self.create_rotation_matrices(
-            angles, bc, self.rotation_order_vector
-        )
+        rotation_matrices = self.create_rotation_matrices(angles, bc, rotation_order_vector)
 
         # Transport via rotation and interpolate signals at template vertices
         # (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
@@ -221,6 +223,12 @@ class ConvBase(tf.keras.layers.Layer):
     @tf.function
     def create_rotation_matrices(self, angles, bc, rotation_order):
         """Creates rotation matrices from given angles for parallel transport.
+
+        Rotation matrix used:
+            [cos ng, -sin ng]
+            [sin ng, cos ng],
+        whereby 'n = rotation_order'. If 'n = 0' rotation matrix becomes unit matrix
+        and leaves features invariant.
 
         Parameters
         ----------
