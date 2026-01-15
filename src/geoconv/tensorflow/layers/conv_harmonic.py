@@ -134,7 +134,7 @@ class ConvHarmonic(ConvBase):
         signals_shape = tf.shape(signals)
         signals = tf.reshape(signals, (signals_shape[0], signals_shape[1], self.n_complex_num_input, 2))
 
-        # Add self connections
+        # Compute self connections
         # radial_weights_center : (output_dim / 2, input_dim / 2)
         # phase_weights_center  : (output_dim / 2, 2, 2)
         # signals               : (n_batch, n_vertices, input_dim / 2, 2)
