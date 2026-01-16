@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+
 class BetaRelu(tf.keras.layers.Layer):
     """Beta-Relu magnitude activation
 
