@@ -1,6 +1,12 @@
 import tensorflow as tf
 
 class BetaRelu(tf.keras.layers.Layer):
+    """Beta-Relu magnitude activation
+
+    Implements beta-ReLU magnitude activation as described in:
+    > 3D Steerable CNNs: Learning Rotationally Equivariant Features in Volumetric Data
+    > Maurice Weiler, Mario Geiger, Max Welling, Wouter Boomsma and Taco Cohen.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
