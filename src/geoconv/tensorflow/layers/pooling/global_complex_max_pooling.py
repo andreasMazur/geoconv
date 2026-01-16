@@ -33,8 +33,3 @@ class GlobalComplexPooling(tf.keras.layers.Layer):
         # Reshape to original shape
         # inputs : (batch, input_dim)
         return tf.reshape(inputs, (inputs_shape[0], inputs_shape[-1]))
-
-
-if __name__ == "__main__":
-    input_ = tf.random.uniform([2, 768, 32])
-    GlobalComplexPooling()(input_)
