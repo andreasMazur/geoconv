@@ -4,10 +4,10 @@ import tensorflow as tf
 
 
 class ConvHarmonic(ConvBase):
-    def __init__(self, output_dim, rotation_order, *args, **kwargs):
+    def __init__(self, output_dim, rotation_order, activation="linear", *args, **kwargs):
         super().__init__(
             include_kernel=False,
-            activation="linear",
+            activation=activation,
             *args,
             **kwargs
         )
