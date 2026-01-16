@@ -15,7 +15,6 @@ def dataset(mnist_atlas, set_type, n_radial, n_angular, batch_size):
 
     # Set default rotations, rotation order and imaginary values for every image
     rotations = tf.zeros((784, 784))
-    rotation_orders = tf.ones((1,))
     imaginary_values = tf.zeros((784, 1), dtype=tf.float32)
 
     # Return image, barycentric coordinates and label
@@ -26,7 +25,7 @@ def dataset(mnist_atlas, set_type, n_radial, n_angular, batch_size):
         # Lift 1-d features into imaginary plane by mapping 'grey_scale_value -> grey_scale_value + 0i'
         image = tf.reshape(image, (784, 1))
         image = tf.concat([image, imaginary_values], axis=-1)
-        return (image, bc, rotations, rotation_orders), label
+        return (image, bc, rotations), label
     mnist = mnist.map(transform)
 
     # Return batched MNIST
