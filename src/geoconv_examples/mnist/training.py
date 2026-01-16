@@ -8,7 +8,7 @@ import keras_tuner as kt
 import json
 
 
-def define_model(output_dims, template_radius, n_radial, n_angular, activation, learning_rate=0.001):
+def define_model(output_dims, template_radius, n_radial, n_angular, learning_rate=0.001):
     image_size = 28 * 28
 
     # Define input layers
@@ -24,7 +24,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, activation, 
         signal = ConvHarmonic(
             output_dim=od,
             template_radius=template_radius,
-            activation=activation,
+            activation="linear",
             rotation_order=1
         )([signal, bc_input, rotations_input])
         signal = BetaRelu()(signal)
@@ -42,7 +42,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, activation, 
     return imcnn
 
 
-def hypertuning(mnist_atlas, n_radial, n_angular, batch_size, activation, save_path, epochs=5):
+def hypertuning(mnist_atlas, n_radial, n_angular, batch_size, save_path, epochs=5):
     # Get data
     train_data, template_radius = dataset(
         mnist_atlas, set_type="train", n_radial=n_radial, n_angular=n_angular, batch_size=batch_size
@@ -60,7 +60,6 @@ def hypertuning(mnist_atlas, n_radial, n_angular, batch_size, activation, save_p
             template_radius=template_radius,
             n_radial=n_radial,
             n_angular=n_angular,
-            activation=activation,
             learning_rate=hp.Float("learning_rate", min_value=1e-6, max_value=0.1),
         )
         model.summary()
@@ -83,7 +82,7 @@ def hypertuning(mnist_atlas, n_radial, n_angular, batch_size, activation, save_p
     best_model.save(save_path)
 
 
-def training(mnist_atlas, n_radial, n_angular, batch_size, output_dims, save_path, activation, epochs=10):
+def training(mnist_atlas, n_radial, n_angular, batch_size, output_dims, save_path, epochs=10):
     # Get data
     train_data, template_radius = dataset(
         mnist_atlas, set_type="train", n_radial=n_radial, n_angular=n_angular, batch_size=batch_size
@@ -98,7 +97,6 @@ def training(mnist_atlas, n_radial, n_angular, batch_size, output_dims, save_pat
         template_radius=template_radius,
         n_radial=n_radial,
         n_angular=n_angular,
-        activation=activation
     )
     model.summary()
 
