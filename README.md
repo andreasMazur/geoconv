@@ -126,15 +126,13 @@ vertices. The result can without further effort directly be fed into the layer.
 ## Intended Use, Citations and License
 
 GeoConv provides implementations of- and interfaces to methods from publicly available prior work for computing local
-coordinate systems on triangle mesh- or point cloud data and for performing intrinsic surface convolutions, intended to
+coordinate systems on triangle mesh- or point cloud data and for performing surface convolutions, intended to
 facilitate academic and non-commercial research on neural networks operating on surface data.
 
 Users of GeoConv are, through its use, employing methods from prior published work and are expected to acknowledge the
 original inventors of the used methods by citing the corresponding publications.
 
-GeoConv is distributed under the terms of the **GNU General Public License v3.0 (GPL-3.0)**, with the additional 
-restriction that it may **solely be used for academic and non-commercial research purposes, unless prior written 
-permission has been granted by the owners of the methods utilized**.
+GeoConv is distributed under the terms of the **GNU General Public License v3.0 (GPL-3.0)**.
 
 ## Referenced Literature
 
