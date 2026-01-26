@@ -148,7 +148,7 @@ class ConvHarmonic(ConvBase):
         # conv_center : (n_batch, n_vertices, input_dim / 2, 2)
         # conv_neigh  : (n_batch, n_vertices, output_dim / 2, 2)
         # result      : (n_batch, n_vertices, output_dim / 2, 2)
-        result = conv_center + conv_neigh
+        result = (conv_center + conv_neigh) / tf.cast(1 + self.n_radial + self.n_angular, tf.float32)
 
         # Apply magnitude activation
         # result_amp : (n_batch, n_vertices, output_dim / 2)
