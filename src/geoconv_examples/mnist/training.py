@@ -4,13 +4,23 @@ import tensorflow as tf
 import json
 
 
-def training(mnist_atlas, n_radial, n_angular, batch_size, model, save_path, epochs=10):
+def training(mnist_atlas, n_radial, n_angular, batch_size, model, save_path, epochs=10, return_rotations=True):
     # Get data
     train_data, template_radius = dataset(
-        mnist_atlas, set_type="train", n_radial=n_radial, n_angular=n_angular, batch_size=batch_size
+        mnist_atlas,
+        set_type="train",
+        n_radial=n_radial,
+        n_angular=n_angular,
+        batch_size=batch_size,
+        return_rotations=return_rotations
     )
     test_data, _ = dataset(
-        mnist_atlas, set_type="test", n_radial=n_radial, n_angular=n_angular, batch_size=batch_size
+        mnist_atlas,
+        set_type="test",
+        n_radial=n_radial,
+        n_angular=n_angular,
+        batch_size=batch_size,
+        return_rotations=return_rotations
     )
 
     # Show model summary

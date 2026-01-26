@@ -4,7 +4,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 
-def dataset(mnist_atlas, set_type, n_radial, n_angular, batch_size):
+def dataset(mnist_atlas, set_type, n_radial, n_angular, batch_size, return_rotations=True):
     # Load barycentric coordinates
     atlas = load_atlas(mnist_atlas)
     bc = atlas.barycentric_coordinates[(n_radial, n_angular)]
@@ -25,7 +25,10 @@ def dataset(mnist_atlas, set_type, n_radial, n_angular, batch_size):
         # Lift 1-d features into imaginary plane by mapping 'grey_scale_value -> grey_scale_value + 0i'
         image = tf.reshape(image, (784, 1))
         image = tf.concat([image, imaginary_values], axis=-1)
-        return (image, bc, rotations), label
+        if return_rotations:
+            return (image, bc, rotations), label
+        else:
+            return (image, bc), label
     mnist = mnist.map(transform)
 
     # Return batched MNIST
