@@ -31,7 +31,6 @@ def define_model(output_dims, template_radius, n_radial, n_angular, kernel, lear
             rotation_delta=1
         )([signal, bc_input])
         signal = AngularMaxPooling()(signal)
-        signal = BetaRelu()(signal)
     signal = tf.keras.layers.GlobalMaxPool1D(data_format="channels_last")(signal)
     output = tf.keras.layers.Dense(10, activation="linear")(signal)
 
