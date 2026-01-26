@@ -1,11 +1,11 @@
-from geoconv.tensorflow.layers import AngularMaxPooling
+from geoconv.tensorflow.layers import AngularMaxPooling, ConvDirac
 from geoconv.tensorflow.layers import ConvGeodesic
 from geoconv.tensorflow.layers.activation_beta_relu import BetaRelu
 
 import tensorflow as tf
 
 
-def define_model(output_dims, template_radius, n_radial, n_angular, learning_rate=0.001):
+def define_model(output_dims, template_radius, n_radial, n_angular, kernel, learning_rate=0.001):
     image_size = 28 * 28
 
     # Define input layers
@@ -15,9 +15,16 @@ def define_model(output_dims, template_radius, n_radial, n_angular, learning_rat
     # Initialize variables for forward pass
     signal = image_input
 
+    if kernel == "geodesic":
+        layer_type = ConvGeodesic
+    elif kernel == "dirac":
+        layer_type = ConvDirac
+    else:
+        raise ValueError("The 'kernel' must be either 'geodesic' or 'dirac'.")
+
     # Forward pass
     for od in output_dims:
-        signal = ConvGeodesic(
+        signal = layer_type(
             output_dim=od,
             template_radius=template_radius,
             activation="relu",
