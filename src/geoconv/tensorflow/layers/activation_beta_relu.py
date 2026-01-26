@@ -8,8 +8,9 @@ class BetaRelu(tf.keras.layers.Layer):
     > 3D Steerable CNNs: Learning Rotationally Equivariant Features in Volumetric Data
     > Maurice Weiler, Mario Geiger, Max Welling, Wouter Boomsma and Taco Cohen.
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, min_norm=1e-6, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.min_norm = min_norm
 
     def build(self, input_shape):
         self.beta = self.add_weight(
@@ -22,7 +23,7 @@ class BetaRelu(tf.keras.layers.Layer):
     def call(self, inputs):
         input_shape = tf.shape(inputs)
         inputs = tf.reshape(inputs, (input_shape[0], input_shape[1], input_shape[2] // 2, 2))
-        inputs_norm = tf.linalg.norm(inputs, axis=-1)
+        inputs_norm = tf.maximum(tf.linalg.norm(inputs, axis=-1), self.min_norm)
         inputs = tf.nn.relu(inputs_norm - self.beta)[..., None] * tf.math.divide_no_nan(inputs, inputs_norm[..., None])
         return tf.reshape(inputs, (input_shape[0], input_shape[1], input_shape[2]))
 
