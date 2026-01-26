@@ -13,7 +13,7 @@ class ConvIntrinsic(ConvBase):
         rotation_delta,
         output_dim,
         activation,
-        include_kernel,
+        include_kernel=True,
         *args,
         **kwargs
     ):
