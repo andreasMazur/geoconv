@@ -5,7 +5,7 @@ from geoconv.tensorflow.layers.pooling.global_complex_max_pooling import GlobalC
 import tensorflow as tf
 
 
-def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, kernel):
+def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular):
     model = define_model(
         output_dims=output_dims,
         template_radius=template_radius,
