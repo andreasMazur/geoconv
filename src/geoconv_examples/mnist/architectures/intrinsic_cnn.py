@@ -1,6 +1,5 @@
 from geoconv.tensorflow.layers import AngularMaxPooling, ConvDirac
 from geoconv.tensorflow.layers import ConvGeodesic
-from geoconv.tensorflow.layers.activation_beta_relu import BetaRelu
 
 import tensorflow as tf
 
