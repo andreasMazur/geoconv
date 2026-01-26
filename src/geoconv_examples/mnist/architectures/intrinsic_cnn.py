@@ -4,6 +4,19 @@ from geoconv.tensorflow.layers import ConvGeodesic
 import tensorflow as tf
 
 
+def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, kernel):
+    model = define_model(
+        output_dims=output_dims,
+        template_radius=template_radius,
+        n_radial=n_radial,
+        n_angular=n_angular,
+        kernel=kernel,
+        learning_rate=hp.Float("learning_rate", min_value=1e-8, max_value=0.01),
+    )
+    model.summary()
+    return model
+
+
 def define_model(output_dims, template_radius, n_radial, n_angular, kernel, learning_rate=0.001):
     image_size = 28 * 28
 
