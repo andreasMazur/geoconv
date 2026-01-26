@@ -153,7 +153,7 @@ class ConvHarmonic(ConvBase):
         # Apply magnitude activation
         # result_amp : (n_batch, n_vertices, output_dim / 2)
         # result     : (n_batch, n_vertices, output_dim / 2, 2)
-        result_amp = tf.linalg.norm(result, axis=-1)
+        result_amp = tf.maximum(tf.linalg.norm(result, axis=-1), 1e-6)
         result = self.activation_fn(result_amp)[..., None] * tf.math.divide_no_nan(result, result_amp[..., None])
 
         # Return output in original shape
