@@ -13,12 +13,13 @@ class ConvIntrinsic(ConvBase):
         rotation_delta,
         output_dim,
         activation,
+        include_kernel,
         *args,
         **kwargs
     ):
         super().__init__(
             template_radius=template_radius,
-            include_kernel=False,
+            include_kernel=include_kernel,
             activation=activation,
             *args,
             **kwargs

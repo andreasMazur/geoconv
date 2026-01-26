@@ -7,7 +7,7 @@ class ConvDirac(ConvIntrinsic):
     """No interpolation weighting"""
 
     def __init__(self, *args, **kwargs):
-        kwargs["include_prior"] = (
+        kwargs["include_kernel"] = (
             False  # Interpolation coefficients not required for Dirac prior
         )
         super().__init__(*args, **kwargs)
