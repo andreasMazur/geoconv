@@ -48,7 +48,8 @@ dependencies = [
     "Pillow>=10.0.1",
     "scipy>=1.10.0",
     "pyglet<2",
-    "pillow>=11.1.0"
+    "pillow>=11.1.0",
+    "potpourri3d>=1.3"
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -81,7 +82,8 @@ tensorflow = [
 tensorflow_gpu = [
     "tensorflow[and-cuda]",
     "tensorflow-probability",
-    "tensorflow-datasets"
+    "tensorflow-datasets",
+    "keras_tuner"
 ]
 
 [project.urls]
