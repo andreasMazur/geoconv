@@ -20,10 +20,12 @@ def preprocess_faust(registration_dir,
     os.makedirs(output_path, exist_ok=True)
 
     for max_chart_radius in [0.05, 0.1, 0.15, 0.2]:
+        radius_output_path = f"{output_path}_{max_chart_radius}"
+
         # 3.) Compute local charts
         gpc_system_radii = []
         for ply_filename in registrations:
-            mesh_save_path = f"{output_path}/{ply_filename.split('.')[0]}.hdf5"
+            mesh_save_path = f"{radius_output_path}/{ply_filename.split('.')[0]}.hdf5"
             if not os.path.isfile(mesh_save_path):
                 print(f"Currently computing GPC-systems for: '{ply_filename}'")
                 mesh = trimesh.load(f"{registration_dir}/{ply_filename}")
@@ -49,7 +51,7 @@ def preprocess_faust(registration_dir,
         for template_radius in [np.min(gpc_system_radii), np.median(gpc_system_radii), np.max(gpc_system_radii)]:
             for (n_radial, n_angular) in template_resolutions:
                 for ply_filename in registrations:
-                    mesh_save_path = f"{output_path}/{ply_filename.split('.')[0]}.hdf5"
+                    mesh_save_path = f"{radius_output_path}/{ply_filename.split('.')[0]}.hdf5"
                     print(f"Currently computing barycentric coordinates for: '{ply_filename}'")
                     atlas = load_atlas(mesh_save_path)
                     atlas.determine_barycentric_coordinates(
@@ -61,6 +63,6 @@ def preprocess_faust(registration_dir,
 
         # 5.) Zip dataset
         print("Zipping..")
-        shutil.make_archive(base_name=f"{output_path}_{max_chart_radius}", format="zip", root_dir=output_path)
-        shutil.rmtree(output_path)
+        shutil.make_archive(base_name=radius_output_path, format="zip", root_dir=radius_output_path)
+        shutil.rmtree(radius_output_path)
         print("Done.")
