@@ -16,11 +16,10 @@ def preprocess_faust(registration_dir,
     registrations = [f for f in os.listdir(registration_dir) if f.endswith(".ply")]
     registrations.sort(key=lambda x: int(x.split("_")[-1].split(".")[0]))
 
-    # 2.) Prepare output directory
-    os.makedirs(output_path, exist_ok=True)
-
     for max_chart_radius in [0.05, 0.1, 0.15, 0.2]:
+        # 2.) Prepare output directory
         radius_output_path = f"{output_path}_{max_chart_radius}"
+        os.makedirs(radius_output_path, exist_ok=True)
 
         # 3.) Compute local charts
         gpc_system_radii = []
