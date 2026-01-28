@@ -168,7 +168,7 @@ def load_atlas(filepath):
     # Set triangle mesh and charts
     atlas.triangle_mesh = triangle_mesh
     atlas.charts = charts
-    atlas.charts_radii = chart_radii
+    atlas.chart_radii = chart_radii
     atlas.chart_faces = chart_faces
     atlas.chart_triangles = chart_triangles
 
