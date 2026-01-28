@@ -1,16 +1,14 @@
-from geoconv.preprocessing.atlas import Atlas
+from geoconv.preprocessing.atlas import Atlas, load_atlas
 
 import os
 import trimesh
 import shutil
+import numpy as np
 
 
 def preprocess_faust(registration_dir,
                      output_path,
-                     max_chart_radius,
-                     n_radial,
-                     n_angular,
-                     max_temp_radius=None,
+                     template_resolutions=None,
                      method="hdm",
                      normalization_method="hdm",
                      processes=1):
@@ -21,30 +19,48 @@ def preprocess_faust(registration_dir,
     # 2.) Prepare output directory
     os.makedirs(output_path, exist_ok=True)
 
-    # 3.) Preprocess shapes
-    for ply_filename in registrations:
-        mesh_save_path = f"{output_path}/{ply_filename.split('.')[0]}.hdf5"
-        if not os.path.isfile(mesh_save_path):
-            print(f"Currently preprocessing: '{ply_filename}'")
-            mesh = trimesh.load(f"{registration_dir}/{ply_filename}")
-            atlas = Atlas(
-                triangle_mesh=mesh,
-                max_radius=max_chart_radius,
-                method=method,
-                normalization_method=normalization_method,
-                processes=processes
-            )
-            atlas.determine_barycentric_coordinates(
-                n_radial=n_radial,
-                n_angular=n_angular,
-                radius=atlas.median_chart_radius if max_temp_radius is None else max_temp_radius
-            )
-            atlas.save(mesh_save_path)
-        else:
-            print(f"Preprocessed dataset already exists at {mesh_save_path}.")
+    for max_chart_radius in [0.05, 0.1, 0.15, 0.2]:
+        # 3.) Compute local charts
+        gpc_system_radii = []
+        for ply_filename in registrations:
+            mesh_save_path = f"{output_path}/{ply_filename.split('.')[0]}.hdf5"
+            if not os.path.isfile(mesh_save_path):
+                print(f"Currently computing GPC-systems for: '{ply_filename}'")
+                mesh = trimesh.load(f"{registration_dir}/{ply_filename}")
+                atlas = Atlas(
+                    triangle_mesh=mesh,
+                    max_radius=max_chart_radius,
+                    method=method,
+                    normalization_method=normalization_method,
+                    processes=processes
+                )
+                # Remember chart radii for BC computation
+                gpc_system_radii.extend(atlas.chart_radii.tolist())
+                atlas.save(mesh_save_path)
+            else:
+                print(f"Preprocessed dataset already exists at {mesh_save_path}.")
+                # Remember chart radii for BC computation
+                atlas = load_atlas(mesh_save_path)
+                gpc_system_radii.extend(atlas.chart_radii.tolist())
 
-    # 4.) Zip dataset
-    print("Zipping..")
-    shutil.make_archive(base_name=output_path, format="zip", root_dir=output_path)
-    shutil.rmtree(output_path)
-    print("Done.")
+        # 4.) Compute barycentric coordinates
+        if template_resolutions is None:
+            template_resolutions = [(2, 4), (4, 8)]
+        for template_radius in [np.min(gpc_system_radii), np.median(gpc_system_radii), np.max(gpc_system_radii)]:
+            for (n_radial, n_angular) in template_resolutions:
+                for ply_filename in registrations:
+                    mesh_save_path = f"{output_path}/{ply_filename.split('.')[0]}.hdf5"
+                    print(f"Currently computing barycentric coordinates for: '{ply_filename}'")
+                    atlas = load_atlas(mesh_save_path)
+                    atlas.determine_barycentric_coordinates(
+                        n_radial=n_radial,
+                        n_angular=n_angular,
+                        radius=template_radius
+                    )
+                    atlas.save(mesh_save_path)
+
+        # 5.) Zip dataset
+        print("Zipping..")
+        shutil.make_archive(base_name=f"{output_path}_{max_chart_radius}", format="zip", root_dir=output_path)
+        shutil.rmtree(output_path)
+        print("Done.")
