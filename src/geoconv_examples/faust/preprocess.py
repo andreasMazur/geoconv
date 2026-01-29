@@ -6,14 +6,13 @@ import shutil
 import numpy as np
 
 
-def load_or_repair(mesh_load_path, mesh_save_path, max_chart_radius, method, normalization_method, processes):
+def load_or_repair(mesh, mesh_save_path, max_chart_radius, method, normalization_method, processes):
     try:
         # Remember chart radii for BC computation
         atlas = load_atlas(mesh_save_path)
         print(f"[load or repair] Atlas loaded from: '{mesh_save_path}'.")
     except KeyError:
-        print(f"[load or repair] Repairing atlas for: '{mesh_load_path}'")
-        mesh = trimesh.load(mesh_load_path)
+        print(f"[load or repair] Repairing atlas.")
         atlas = Atlas(
             triangle_mesh=mesh,
             max_radius=max_chart_radius,
@@ -62,8 +61,9 @@ def preprocess_faust(registration_dir,
                 # Remember chart radii for BC computation
                 gpc_system_radii.extend(atlas.chart_radii.tolist())
             else:
+                print(f"[GPC system] '{mesh_save_path}' already exists. Loading to gather chart-radii.")
                 atlas = load_or_repair(
-                    mesh_load_path=f"{registration_dir}/{ply_filename}",
+                    mesh=trimesh.load(f"{registration_dir}/{ply_filename}"),
                     mesh_save_path=mesh_save_path,
                     max_chart_radius=max_chart_radius,
                     method=method,
