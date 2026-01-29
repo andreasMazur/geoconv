@@ -1,4 +1,3 @@
-from geoconv.preprocessing.atlas import Atlas
 from geoconv_examples.faust.preprocess import clr_atlas
 
 import point_cloud_utils as pcu
