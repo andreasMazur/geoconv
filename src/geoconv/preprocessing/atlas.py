@@ -271,6 +271,7 @@ class Atlas:
 
         # Placeholder attribute for rotation angles computed via parallel transport
         self.parallel_transport = np.array([-1.])
+        self.determine_parallel_transport()
 
     def save(self, filepath):
         """Saves the entire atlas.
