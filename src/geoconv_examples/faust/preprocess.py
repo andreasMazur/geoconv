@@ -6,58 +6,6 @@ import shutil
 import numpy as np
 
 
-def clr_atlas(mesh, mesh_save_path, max_chart_radius, method, normalization_method, processes):
-    """Computes, loads or repairs an atlas.
-
-    Parameters
-    ----------
-    mesh: trimesh.Trimesh
-        The mesh for which an Atlas should be computed.
-    mesh_save_path: str
-        The path to where the atlas should be saved.
-    max_chart_radius: float
-        The maximum radius of any chart within the atlas.
-    method: str
-        Method used to compute GPC-systems.
-    normalization_method: str
-        Method used to normalize mesh.
-    processes: int
-        Amount of concurrent processes to use.
-
-    Returns
-    -------
-    Atlas:
-        The computed, loaded or repaired atlas.
-    """
-    try:
-        if not os.path.isfile(mesh_save_path):
-            atlas = Atlas(
-                triangle_mesh=mesh,
-                max_radius=max_chart_radius,
-                method=method,
-                normalization_method=normalization_method,
-                processes=processes
-            )
-            os.makedirs(os.path.dirname(mesh_save_path), exist_ok=True)
-            atlas.save(mesh_save_path)
-            print(f"[compute, load or repair] Computed and stored atlas at: '{mesh_save_path}'")
-        else:
-            atlas = load_atlas(mesh_save_path)
-            print(f"[compute, load or repair] Atlas loaded from: '{mesh_save_path}'.")
-    except KeyError:
-        atlas = Atlas(
-            triangle_mesh=mesh,
-            max_radius=max_chart_radius,
-            method=method,
-            normalization_method=normalization_method,
-            processes=processes
-        )
-        os.makedirs(os.path.dirname(mesh_save_path), exist_ok=True)
-        atlas.save(mesh_save_path)
-        print(f"[compute, load or repair] Atlas saved at: '{mesh_save_path}' has been repaired.")
-    return atlas
-
-
 def preprocess_faust(registration_dir,
                      output_path,
                      template_resolutions=None,
@@ -86,15 +34,25 @@ def preprocess_faust(registration_dir,
             print(f"[GPC system] Loading: '{mesh_filepath}'")
             mesh = trimesh.load(mesh_filepath)
 
+            # Compute mesh permutation
+            permutation = np.arange(mesh.vertices.shape[0]).astype(np.int32)
+            np.random.shuffle(permutation)
+            inverse_permutation = np.zeros(mesh.vertices.shape[0]).astype(np.int32)
+            for idx, perm_idx in enumerate(permutation):
+                inverse_permutation[perm_idx] = int(idx)
+            mesh.vertices = mesh.vertices[permutation]
+            mesh.faces = inverse_permutation[mesh.faces]
+
             # Compute the atlas
-            atlas = clr_atlas(
-                mesh=mesh,
-                mesh_save_path=mesh_save_path,
-                max_chart_radius=max_chart_radius,
+            atlas = Atlas(
+                triangle_mesh=mesh,
+                max_radius=max_chart_radius,
                 method=method,
                 normalization_method=normalization_method,
                 processes=processes
             )
+            atlas.store_array({"ground_truth": inverse_permutation})
+            atlas.save(mesh_save_path)
 
             # Remember chart radii for BC computation
             gpc_system_radii.extend(atlas.chart_radii.tolist())
@@ -106,15 +64,7 @@ def preprocess_faust(registration_dir,
             for (n_radial, n_angular) in template_resolutions:
                 for ply_filename in registrations:
                     mesh_save_path = f"{radius_output_path}/{ply_filename.split('.')[0]}.hdf5"
-                    atlas = clr_atlas(
-                        mesh=mesh,
-                        mesh_save_path=mesh_save_path,
-                        max_chart_radius=max_chart_radius,
-                        method=method,
-                        normalization_method=normalization_method,
-                        processes=processes
-                    )
-
+                    atlas = load_atlas(mesh_save_path)
                     print(
                         f"[BC computation] Calculating BC "
                         f"'{n_radial, n_angular, template_radius}' for '{ply_filename}']"

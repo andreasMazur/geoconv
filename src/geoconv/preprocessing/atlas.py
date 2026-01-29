@@ -149,6 +149,9 @@ def load_atlas(filepath):
         # Load parallel transport angles
         parallel_transport = np.array(f["parallel_transport/transport_angles"])
 
+        # Load custom arrays
+        custom_arrays = {key: np.array(arr) for key, arr in f["custom_arrays"].items()}
+
     # Instantiate loaded atlas
     atlas = Atlas.__new__(Atlas)
 
@@ -178,6 +181,9 @@ def load_atlas(filepath):
 
     # Set parallel transport angles
     atlas.parallel_transport = parallel_transport
+
+    # Set custom arrays
+    atlas.custom_arrays = custom_arrays
 
     # Return instantiated atlas
     return atlas
@@ -273,6 +279,9 @@ class Atlas:
         self.parallel_transport = np.array([-1.])
         self.determine_parallel_transport()
 
+        # Placeholder for custom numpy arrays (e.g., vertex associated ground truth values)
+        self.custom_arrays = {}
+
     def save(self, filepath):
         """Saves the entire atlas.
 
@@ -331,6 +340,11 @@ class Atlas:
             # Save computed rotation angles for parallel transport
             h5_parallel_transport = f.create_group("parallel_transport")
             h5_parallel_transport.create_dataset("transport_angles", data=self.parallel_transport, compression="gzip")
+
+            # Save custom arrays
+            h5_custom_arrays = f.create_group("custom_arrays")
+            for key, arr in self.custom_arrays.items():
+                h5_custom_arrays.create_dataset(key, data=arr, compression="gzip")
 
     def visualize_chart(self, chart_idx, visualize_3d=False, show_statistics=True, show_vertex_indices=False):
         """Visualizes one chart of the atlas.
@@ -470,3 +484,6 @@ class Atlas:
 
     def determine_parallel_transport(self):
         self.parallel_transport = compute_parallel_transport(self.triangle_mesh)
+
+    def store_array(self, dictionary):
+        self.custom_arrays.update(dictionary)
