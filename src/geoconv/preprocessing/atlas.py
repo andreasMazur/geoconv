@@ -91,8 +91,8 @@ def load_atlas(filepath):
 
     Parameters
     ----------
-    filepath: str
-        The filepath to the stored atlas.
+    filepath: str | BytesIO
+        The filepath to- or bytes of the stored atlas.
 
     Returns
     -------
