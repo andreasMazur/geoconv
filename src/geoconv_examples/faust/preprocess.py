@@ -20,6 +20,7 @@ def load_or_repair(mesh, mesh_save_path, max_chart_radius, method, normalization
             normalization_method=normalization_method,
             processes=processes
         )
+        os.makedirs(os.path.dirname(mesh_save_path), exist_ok=True)
         atlas.save(mesh_save_path)
     return atlas
 
@@ -38,7 +39,7 @@ def preprocess_faust(registration_dir,
         # 2.) Prepare output directory
         radius_output_path = f"{output_path}_{max_chart_radius}"
         if os.path.isfile(f"{radius_output_path}.zip"):
-            print(f"[Preprocessing] already processed: '{radius_output_path}']. Skipping.")
+            print(f"[Preprocessing] Already processed: '{radius_output_path}.zip']. Skipping.")
             continue
         os.makedirs(radius_output_path, exist_ok=True)
 
@@ -46,9 +47,14 @@ def preprocess_faust(registration_dir,
         gpc_system_radii = []
         for ply_filename in registrations:
             mesh_save_path = f"{radius_output_path}/{ply_filename.split('.')[0]}.hdf5"
+
+            # Load the mesh
+            mesh_filepath = f"{registration_dir}/{ply_filename}"
+            print(f"[GPC system] Loading: '{mesh_filepath}'")
+            mesh = trimesh.load(mesh_filepath)
+
             if not os.path.isfile(mesh_save_path):
                 print(f"[GPC system] Preprocessing '{ply_filename}']")
-                mesh = trimesh.load(f"{registration_dir}/{ply_filename}")
                 atlas = Atlas(
                     triangle_mesh=mesh,
                     max_radius=max_chart_radius,
@@ -63,7 +69,7 @@ def preprocess_faust(registration_dir,
             else:
                 print(f"[GPC system] '{mesh_save_path}' already exists. Loading to gather chart-radii.")
                 atlas = load_or_repair(
-                    mesh=trimesh.load(f"{registration_dir}/{ply_filename}"),
+                    mesh=mesh,
                     mesh_save_path=mesh_save_path,
                     max_chart_radius=max_chart_radius,
                     method=method,
@@ -82,7 +88,7 @@ def preprocess_faust(registration_dir,
                 for ply_filename in registrations:
                     mesh_save_path = f"{radius_output_path}/{ply_filename.split('.')[0]}.hdf5"
                     atlas = load_or_repair(
-                        mesh_load_path=f"{registration_dir}/{ply_filename}",
+                        mesh=trimesh.load(f"{registration_dir}/{ply_filename}"),
                         mesh_save_path=mesh_save_path,
                         max_chart_radius=max_chart_radius,
                         method=method,
@@ -90,7 +96,10 @@ def preprocess_faust(registration_dir,
                         processes=processes
                     )
 
-                    print(f"[BC computation] Calculating BC for '{ply_filename}']")
+                    print(
+                        f"[BC computation] Calculating BC "
+                        f"'{n_radial, n_angular, template_radius}' for '{ply_filename}']"
+                    )
                     atlas.determine_barycentric_coordinates(
                         n_radial=n_radial,
                         n_angular=n_angular,
