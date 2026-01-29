@@ -1,4 +1,4 @@
-from geoconv_examples.faust.preprocess import clr_atlas
+from geoconv.preprocessing.atlas import Atlas, load_atlas
 
 import point_cloud_utils as pcu
 import zipfile
@@ -7,6 +7,20 @@ import trimesh
 import io
 import shutil
 import numpy as np
+
+
+FOLDER_TO_NUMBER = {
+    "bathtub": 0,
+    "bed": 1,
+    "chair": 2,
+    "desk": 3,
+    "dresser": 4,
+    "monitor": 5,
+    "night_stand": 6,
+    "sofa": 7,
+    "table": 8,
+    "toilet": 9
+}
 
 
 def get_atlas(max_chart_radius,
@@ -22,15 +36,18 @@ def get_atlas(max_chart_radius,
         # Load mesh with given resolution
         mesh = load_modelnet_mesh(zip_file, mesh_filepath, resolution=resolution)
         try:
-            # Get the atlas
-            atlas = clr_atlas(
-                mesh=mesh,
-                mesh_save_path=mesh_save_path,
-                max_chart_radius=max_chart_radius,
+            # Compute the atlas
+            atlas = Atlas(
+                triangle_mesh=mesh,
+                max_radius=max_chart_radius,
                 method=method,
                 normalization_method=normalization_method,
                 processes=processes
             )
+            atlas.store_array({"ground_truth": np.array([FOLDER_TO_NUMBER[mesh_filepath.split("/")[1]]])})
+            os.makedirs(os.path.dirname(mesh_save_path), exist_ok=True)
+            atlas.save(mesh_save_path)
+
             # Indicate that preprocessing was successful
             did_preprocess = True
         except RuntimeError:
@@ -87,7 +104,7 @@ def preprocess_modelnet(zip_path,
 
             # 3.) Compute local charts
             gpc_system_radii = []
-            for mesh_filepath in zip_content:
+            for mesh_filepath in zip_content[:3]:
                 mesh_save_path = f"{radius_output_path}/{mesh_filepath.split('.')[0]}.hdf5"
                 print(f"[GPC-systems] Computing GPC-systems for: '{mesh_filepath}'")
                 atlas = get_atlas(
@@ -99,6 +116,7 @@ def preprocess_modelnet(zip_path,
                     mesh_filepath,
                     mesh_save_path
                 )
+
                 # Remember chart radii for BC computation
                 gpc_system_radii.extend(atlas.chart_radii.tolist())
 
@@ -107,17 +125,9 @@ def preprocess_modelnet(zip_path,
                 template_resolutions = [(2, 4), (4, 8)]
             for template_radius in [np.min(gpc_system_radii), np.median(gpc_system_radii), np.max(gpc_system_radii)]:
                 for (n_radial, n_angular) in template_resolutions:
-                    for mesh_filepath in zip_content:
+                    for mesh_filepath in zip_content[:3]:
                         mesh_save_path = f"{radius_output_path}/{mesh_filepath.split('.')[0]}.hdf5"
-                        atlas = get_atlas(
-                            max_chart_radius,
-                            method,
-                            normalization_method,
-                            processes,
-                            zip_file,
-                            mesh_filepath,
-                            mesh_save_path
-                        )
+                        atlas = load_atlas(mesh_save_path)
                         print(
                             f"[BC computation] Calculating BC "
                             f"'{n_radial, n_angular, template_radius}' for '{mesh_filepath}']"
