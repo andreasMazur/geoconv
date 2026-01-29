@@ -6,13 +6,45 @@ import shutil
 import numpy as np
 
 
-def load_or_repair(mesh, mesh_save_path, max_chart_radius, method, normalization_method, processes):
+def clr_atlas(mesh, mesh_save_path, max_chart_radius, method, normalization_method, processes):
+    """Computes, loads or repairs an atlas.
+
+    Parameters
+    ----------
+    mesh: trimesh.Trimesh
+        The mesh for which an Atlas should be computed.
+    mesh_save_path: str
+        The path to where the atlas should be saved.
+    max_chart_radius: float
+        The maximum radius of any chart within the atlas.
+    method: str
+        Method used to compute GPC-systems.
+    normalization_method: str
+        Method used to normalize mesh.
+    processes: int
+        Amount of concurrent processes to use.
+
+    Returns
+    -------
+    Atlas:
+        The computed, loaded or repaired atlas.
+    """
     try:
-        # Remember chart radii for BC computation
-        atlas = load_atlas(mesh_save_path)
-        print(f"[load or repair] Atlas loaded from: '{mesh_save_path}'.")
+        if not os.path.isfile(mesh_save_path):
+            atlas = Atlas(
+                triangle_mesh=mesh,
+                max_radius=max_chart_radius,
+                method=method,
+                normalization_method=normalization_method,
+                processes=processes
+            )
+            os.makedirs(os.path.dirname(mesh_save_path), exist_ok=True)
+            atlas.save(mesh_save_path)
+            print(f"[compute, load or repair] Computed and stored atlas at: '{mesh_save_path}'")
+        else:
+            atlas = load_atlas(mesh_save_path)
+            print(f"[compute, load or repair] Atlas loaded from: '{mesh_save_path}'.")
     except KeyError:
-        print(f"[load or repair] Repairing atlas.")
         atlas = Atlas(
             triangle_mesh=mesh,
             max_radius=max_chart_radius,
@@ -22,6 +54,7 @@ def load_or_repair(mesh, mesh_save_path, max_chart_radius, method, normalization
         )
         os.makedirs(os.path.dirname(mesh_save_path), exist_ok=True)
         atlas.save(mesh_save_path)
+        print(f"[compute, load or repair] Atlas saved at: '{mesh_save_path}' has been repaired.")
     return atlas
 
 
@@ -45,7 +78,7 @@ def preprocess_faust(registration_dir,
 
         # 3.) Compute local charts
         gpc_system_radii = []
-        for ply_filename in registrations:
+        for ply_filename in registrations[:2]:
             mesh_save_path = f"{radius_output_path}/{ply_filename.split('.')[0]}.hdf5"
 
             # Load the mesh
@@ -53,42 +86,28 @@ def preprocess_faust(registration_dir,
             print(f"[GPC system] Loading: '{mesh_filepath}'")
             mesh = trimesh.load(mesh_filepath)
 
-            if not os.path.isfile(mesh_save_path):
-                print(f"[GPC system] Preprocessing '{ply_filename}']")
-                atlas = Atlas(
-                    triangle_mesh=mesh,
-                    max_radius=max_chart_radius,
-                    method=method,
-                    normalization_method=normalization_method,
-                    processes=processes
-                )
-                atlas.save(mesh_save_path)
+            # Compute the atlas
+            atlas = clr_atlas(
+                mesh=mesh,
+                mesh_save_path=mesh_save_path,
+                max_chart_radius=max_chart_radius,
+                method=method,
+                normalization_method=normalization_method,
+                processes=processes
+            )
 
-                # Remember chart radii for BC computation
-                gpc_system_radii.extend(atlas.chart_radii.tolist())
-            else:
-                print(f"[GPC system] '{mesh_save_path}' already exists. Loading to gather chart-radii.")
-                atlas = load_or_repair(
-                    mesh=mesh,
-                    mesh_save_path=mesh_save_path,
-                    max_chart_radius=max_chart_radius,
-                    method=method,
-                    normalization_method=normalization_method,
-                    processes=processes
-                )
-
-                # Remember chart radii for BC computation
-                gpc_system_radii.extend(atlas.chart_radii.tolist())
+            # Remember chart radii for BC computation
+            gpc_system_radii.extend(atlas.chart_radii.tolist())
 
         # 4.) Compute barycentric coordinates
         if template_resolutions is None:
             template_resolutions = [(2, 4), (4, 8)]
         for template_radius in [np.min(gpc_system_radii), np.median(gpc_system_radii), np.max(gpc_system_radii)]:
             for (n_radial, n_angular) in template_resolutions:
-                for ply_filename in registrations:
+                for ply_filename in registrations[:2]:
                     mesh_save_path = f"{radius_output_path}/{ply_filename.split('.')[0]}.hdf5"
-                    atlas = load_or_repair(
-                        mesh=trimesh.load(f"{registration_dir}/{ply_filename}"),
+                    atlas = clr_atlas(
+                        mesh=mesh,
                         mesh_save_path=mesh_save_path,
                         max_chart_radius=max_chart_radius,
                         method=method,

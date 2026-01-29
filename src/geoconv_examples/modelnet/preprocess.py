@@ -1,5 +1,5 @@
 from geoconv.preprocessing.atlas import Atlas
-from geoconv_examples.faust.preprocess import load_or_repair
+from geoconv_examples.faust.preprocess import clr_atlas
 
 import point_cloud_utils as pcu
 import zipfile
@@ -10,7 +10,42 @@ import shutil
 import numpy as np
 
 
-def load_modelnet_mesh(zip_file, mesh_filepath):
+def get_atlas(max_chart_radius,
+              method,
+              normalization_method,
+              processes,
+              zip_file,
+              mesh_filepath,
+              mesh_save_path):
+    old_resolution, resolution = 1_000, 1_000
+    did_preprocess = False
+    while not did_preprocess:
+        # Load mesh with given resolution
+        mesh = load_modelnet_mesh(zip_file, mesh_filepath, resolution=resolution)
+        try:
+            # Get the atlas
+            atlas = clr_atlas(
+                mesh=mesh,
+                mesh_save_path=mesh_save_path,
+                max_chart_radius=max_chart_radius,
+                method=method,
+                normalization_method=normalization_method,
+                processes=processes
+            )
+            # Indicate that preprocessing was successful
+            did_preprocess = True
+        except RuntimeError:
+            # Reduce the resolution in case the preprocessing was not successful
+            old_resolution = resolution
+            resolution = int(resolution * 9/10)
+            print(
+                f"Failed to compute GPC-systems for: {mesh_filepath}. "
+                f"Reducing mesh resolution: {old_resolution} -> {resolution}."
+            )
+    return atlas
+
+
+def load_modelnet_mesh(zip_file, mesh_filepath, resolution=1_000):
     # Load the mesh
     mesh = trimesh.load_mesh(io.BytesIO(zip_file.read(mesh_filepath)), file_type="off")
 
@@ -19,7 +54,7 @@ def load_modelnet_mesh(zip_file, mesh_filepath):
         mesh = trimesh.util.concatenate([y for y in mesh.geometry.values()])
 
     # Repair mesh
-    new_vertices, new_faces = pcu.make_mesh_watertight(v=mesh.vertices, f=mesh.faces, resolution=1_000)
+    new_vertices, new_faces = pcu.make_mesh_watertight(v=mesh.vertices, f=mesh.faces, resolution=resolution)
     return trimesh.Trimesh(vertices=new_vertices, faces=new_faces)
 
 
@@ -55,38 +90,18 @@ def preprocess_modelnet(zip_path,
             gpc_system_radii = []
             for mesh_filepath in zip_content:
                 mesh_save_path = f"{radius_output_path}/{mesh_filepath.split('.')[0]}.hdf5"
-
-                # Load the mesh
-                print(f"[GPC system] Loading: '{mesh_filepath}'")
-                mesh = load_modelnet_mesh(zip_file, mesh_filepath)
-
-                if not os.path.isfile(mesh_save_path):
-                    print(f"[GPC system] Preprocessing '{mesh_filepath}']")
-                    atlas = Atlas(
-                        triangle_mesh=mesh,
-                        max_radius=max_chart_radius,
-                        method=method,
-                        normalization_method=normalization_method,
-                        processes=processes
-                    )
-                    os.makedirs(os.path.dirname(mesh_save_path), exist_ok=True)
-                    atlas.save(mesh_save_path)
-
-                    # Remember chart radii for BC computation
-                    gpc_system_radii.extend(atlas.chart_radii.tolist())
-                else:
-                    print(f"[GPC system] '{mesh_save_path}' already exists. Loading to gather chart-radii.")
-                    atlas = load_or_repair(
-                        mesh=mesh,
-                        mesh_save_path=mesh_save_path,
-                        max_chart_radius=max_chart_radius,
-                        method=method,
-                        normalization_method=normalization_method,
-                        processes=processes
-                    )
-
-                    # Remember chart radii for BC computation
-                    gpc_system_radii.extend(atlas.chart_radii.tolist())
+                print(f"[GPC-systems] Computing GPC-systems for: '{mesh_filepath}'")
+                atlas = get_atlas(
+                    max_chart_radius,
+                    method,
+                    normalization_method,
+                    processes,
+                    zip_file,
+                    mesh_filepath,
+                    mesh_save_path
+                )
+                # Remember chart radii for BC computation
+                gpc_system_radii.extend(atlas.chart_radii.tolist())
 
             # 4.) Compute barycentric coordinates
             if template_resolutions is None:
@@ -95,15 +110,15 @@ def preprocess_modelnet(zip_path,
                 for (n_radial, n_angular) in template_resolutions:
                     for mesh_filepath in zip_content:
                         mesh_save_path = f"{radius_output_path}/{mesh_filepath.split('.')[0]}.hdf5"
-                        atlas = load_or_repair(
-                            mesh=load_modelnet_mesh(zip_file, mesh_filepath),
-                            mesh_save_path=mesh_save_path,
-                            max_chart_radius=max_chart_radius,
-                            method=method,
-                            normalization_method=normalization_method,
-                            processes=processes
+                        atlas = get_atlas(
+                            max_chart_radius,
+                            method,
+                            normalization_method,
+                            processes,
+                            zip_file,
+                            mesh_filepath,
+                            mesh_save_path
                         )
-
                         print(
                             f"[BC computation] Calculating BC "
                             f"'{n_radial, n_angular, template_radius}' for '{mesh_filepath}']"
