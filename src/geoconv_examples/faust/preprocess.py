@@ -19,6 +19,8 @@ def preprocess_faust(registration_dir,
     for max_chart_radius in [0.05, 0.1, 0.15, 0.2]:
         # 2.) Prepare output directory
         radius_output_path = f"{output_path}_{max_chart_radius}"
+        if os.path.isfile(f"{radius_output_path}.zip"):
+            continue
         os.makedirs(radius_output_path, exist_ok=True)
 
         # 3.) Compute local charts
