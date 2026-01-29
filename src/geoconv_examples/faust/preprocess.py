@@ -39,6 +39,7 @@ def preprocess_faust(registration_dir,
         # 2.) Prepare output directory
         radius_output_path = f"{output_path}_{max_chart_radius}"
         if os.path.isfile(f"{radius_output_path}.zip"):
+            print(f"[Preprocessing] already processed: '{radius_output_path}']. Skipping.")
             continue
         os.makedirs(radius_output_path, exist_ok=True)
 
