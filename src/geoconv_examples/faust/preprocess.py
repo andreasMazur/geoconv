@@ -104,7 +104,7 @@ def preprocess_faust(registration_dir,
             template_resolutions = [(2, 4), (4, 8)]
         for template_radius in [np.min(gpc_system_radii), np.median(gpc_system_radii), np.max(gpc_system_radii)]:
             for (n_radial, n_angular) in template_resolutions:
-                for ply_filename in registrations[:2]:
+                for ply_filename in registrations:
                     mesh_save_path = f"{radius_output_path}/{ply_filename.split('.')[0]}.hdf5"
                     atlas = clr_atlas(
                         mesh=mesh,
