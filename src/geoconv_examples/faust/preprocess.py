@@ -78,7 +78,7 @@ def preprocess_faust(registration_dir,
 
         # 3.) Compute local charts
         gpc_system_radii = []
-        for ply_filename in registrations[:2]:
+        for ply_filename in registrations:
             mesh_save_path = f"{radius_output_path}/{ply_filename.split('.')[0]}.hdf5"
 
             # Load the mesh
