@@ -104,7 +104,7 @@ def preprocess_modelnet(zip_path,
 
             # 3.) Compute local charts
             gpc_system_radii = []
-            for mesh_filepath in zip_content[:3]:
+            for mesh_filepath in zip_content:
                 mesh_save_path = f"{radius_output_path}/{mesh_filepath.split('.')[0]}.hdf5"
                 print(f"[GPC-systems] Computing GPC-systems for: '{mesh_filepath}'")
                 atlas = get_atlas(
@@ -125,7 +125,7 @@ def preprocess_modelnet(zip_path,
                 template_resolutions = [(2, 4), (4, 8)]
             for template_radius in [np.min(gpc_system_radii), np.median(gpc_system_radii), np.max(gpc_system_radii)]:
                 for (n_radial, n_angular) in template_resolutions:
-                    for mesh_filepath in zip_content[:3]:
+                    for mesh_filepath in zip_content:
                         mesh_save_path = f"{radius_output_path}/{mesh_filepath.split('.')[0]}.hdf5"
                         atlas = load_atlas(mesh_save_path)
                         print(
