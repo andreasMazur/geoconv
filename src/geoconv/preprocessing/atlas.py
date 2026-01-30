@@ -359,6 +359,8 @@ class Atlas:
         finally:
             f.close()
         if validate_save:
+            if try_no > 10:
+                raise RuntimeError(f"Could not save {filepath} after {try_no} attempts.")
             try:
                 print(f"Verifying savefile: {filepath}")
                 load_atlas(filepath_tmp)
@@ -367,7 +369,7 @@ class Atlas:
             except KeyError:
                 print(f"Savefile-verification failed. Retrying to save {filepath}..")
                 os.remove(filepath_tmp)
-                self.save(filepath, try_no=try_no + 1)
+                self.save(filepath)
         else:
             os.replace(filepath_tmp, filepath)
 
