@@ -23,6 +23,17 @@ FOLDER_TO_NUMBER = {
 }
 
 
+def save_atlas(atlas, mesh_save_path):
+    is_saved = False
+    tries = 0
+    while not is_saved:
+        try:
+            atlas.save(mesh_save_path)
+        except BlockingIOError:
+            print(f"Trying to save atlas.. {tries}")
+            tries += 1
+
+
 def get_atlas(max_chart_radius,
               method,
               normalization_method,
@@ -46,7 +57,7 @@ def get_atlas(max_chart_radius,
             )
             atlas.store_array({"ground_truth": np.array([FOLDER_TO_NUMBER[mesh_filepath.split("/")[1]]])})
             os.makedirs(os.path.dirname(mesh_save_path), exist_ok=True)
-            atlas.save(mesh_save_path)
+            save_atlas(atlas, mesh_save_path)
 
             # Indicate that preprocessing was successful
             did_preprocess = True
@@ -137,7 +148,7 @@ def preprocess_modelnet(zip_path,
                             n_angular=n_angular,
                             radius=template_radius
                         )
-                        atlas.save(mesh_save_path)
+                        save_atlas(atlas, mesh_save_path)
 
             # 4.) Zip dataset
             print("Zipping..")

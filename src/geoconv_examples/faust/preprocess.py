@@ -1,4 +1,5 @@
 from geoconv.preprocessing.atlas import Atlas, load_atlas
+from geoconv_examples.modelnet.preprocess import save_atlas
 
 import os
 import trimesh
@@ -52,7 +53,7 @@ def preprocess_faust(registration_dir,
                 processes=processes
             )
             atlas.store_array({"ground_truth": inverse_permutation})
-            atlas.save(mesh_save_path)
+            save_atlas(atlas, mesh_save_path)
 
             # Remember chart radii for BC computation
             gpc_system_radii.extend(atlas.chart_radii.tolist())
@@ -74,7 +75,7 @@ def preprocess_faust(registration_dir,
                         n_angular=n_angular,
                         radius=template_radius
                     )
-                    atlas.save(mesh_save_path)
+                    save_atlas(atlas, mesh_save_path)
 
         # 5.) Zip dataset
         print("Zipping..")
