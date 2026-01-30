@@ -296,7 +296,7 @@ class Atlas:
             The number of times that have been attempted to save the atlas.
         """
         filepath = f"{filepath}.hdf5" if not filepath.endswith(".hdf5") else filepath
-        filepath_tmp = f"./{filepath.split("/")[-1][:-5]}.tmp.hdf5"
+        filepath_tmp = f"./{filepath.split('/')[-1][:-5]}.tmp.hdf5"
         f = h5py.File(filepath_tmp, "w")
         try:
             # Save mesh information
