@@ -68,6 +68,7 @@ def get_atlas(max_chart_radius,
             else:
                 print(f"{mesh_save_path} already exists. Skipping.")
                 atlas = load_atlas(mesh_save_path)
+                did_preprocess = True
         except RuntimeError:
             # Reduce the resolution in case the preprocessing was not successful
             old_resolution = resolution
