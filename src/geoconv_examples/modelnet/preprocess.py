@@ -48,20 +48,24 @@ def get_atlas(max_chart_radius,
         # Load mesh with given resolution
         mesh = load_modelnet_mesh(zip_file, mesh_filepath, resolution=resolution)
         try:
-            # Compute the atlas
-            atlas = Atlas(
-                triangle_mesh=mesh,
-                max_radius=max_chart_radius,
-                method=method,
-                normalization_method=normalization_method,
-                processes=processes
-            )
-            atlas.store_array({"ground_truth": np.array([FOLDER_TO_NUMBER[mesh_filepath.split("/")[1]]])})
-            os.makedirs(os.path.dirname(mesh_save_path), exist_ok=True)
-            save_atlas(atlas, mesh_save_path)
+            if not os.path.isfile(mesh_save_path):
+                # Compute the atlas
+                atlas = Atlas(
+                    triangle_mesh=mesh,
+                    max_radius=max_chart_radius,
+                    method=method,
+                    normalization_method=normalization_method,
+                    processes=processes
+                )
+                atlas.store_array({"ground_truth": np.array([FOLDER_TO_NUMBER[mesh_filepath.split("/")[1]]])})
+                os.makedirs(os.path.dirname(mesh_save_path), exist_ok=True)
+                save_atlas(atlas, mesh_save_path)
 
-            # Indicate that preprocessing was successful
-            did_preprocess = True
+                # Indicate that preprocessing was successful
+                did_preprocess = True
+            else:
+                print(f"{mesh_save_path} already exists. Skipping.")
+                atlas = load_atlas(mesh_save_path)
         except RuntimeError:
             # Reduce the resolution in case the preprocessing was not successful
             old_resolution = resolution
