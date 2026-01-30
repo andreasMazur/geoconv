@@ -7,6 +7,7 @@ import trimesh
 import io
 import shutil
 import numpy as np
+import time
 
 
 FOLDER_TO_NUMBER = {
@@ -33,6 +34,7 @@ def save_atlas(atlas, mesh_save_path):
         except BlockingIOError:
             print(f"Trying to save atlas.. {tries}")
             tries += 1
+            time.sleep(1)
 
 
 def get_atlas(max_chart_radius,
