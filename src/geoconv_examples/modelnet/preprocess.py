@@ -29,6 +29,7 @@ def save_atlas(atlas, mesh_save_path):
     while not is_saved:
         try:
             atlas.save(mesh_save_path)
+            is_saved = True
         except BlockingIOError:
             print(f"Trying to save atlas.. {tries}")
             tries += 1
