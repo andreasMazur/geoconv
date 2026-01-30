@@ -5,6 +5,21 @@ import tensorflow as tf
 
 
 def get_content(h5_file, kernel_size):
+    """Given an HDF5 file, return its content required for training.
+
+    Parameters
+    ----------
+    h5_file: h5py.File
+        The HDF5 file that needs to be loaded.
+    kernel_size: tuple
+        The number radial- and angular coordinates of the template that shall be loaded.
+
+    Returns
+    -------
+    (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+        The vertices, barycentric coordinates, angles for the parallel transport and the ground truth label for the
+        associated shape, in that order.
+    """
     # Load mesh
     vertices = np.array(h5_file["triangle_mesh/vertices"])
 
@@ -20,6 +35,26 @@ def get_content(h5_file, kernel_size):
 
 
 def generator(path, set_type, n_radial, n_angular, return_rotations=True):
+    """Returns a 'generator'-object for the ModelNet dataset.
+
+    Parameters
+    ----------
+    path: str
+        The path to the preprocessed zip-file of ModelNet.
+    set_type: str
+        The set type. Either: 'train', 'validation', 'test' or 'all'.
+    n_radial: int
+        The number of radial coordinates of the template.
+    n_angular: int
+        The number of angular coordinates of the template.
+    return_rotations: bool
+        Whether to return the rotation angles for the parallel transport.
+
+    Returns
+    -------
+    generator:
+        A ModelNet generator.
+    """
     if isinstance(path, bytes):
         set_type = set_type.decode("utf-8")
 
@@ -52,6 +87,26 @@ def generator(path, set_type, n_radial, n_angular, return_rotations=True):
 
 
 def dataset(path, set_type, n_radial, n_angular, return_rotations=True):
+    """Returns a 'tensorflow dataset'-object for the ModelNet dataset.
+
+    Parameters
+    ----------
+    path: str
+        The path to the preprocessed zip-file of ModelNet.
+    set_type: str
+        The set type. Either: 'train', 'validation', 'test' or 'all'.
+    n_radial: int
+        The number of radial coordinates of the template.
+    n_angular: int
+        The number of angular coordinates of the template.
+    return_rotations: bool
+        Whether to return the rotation angles for the parallel transport.
+
+    Returns
+    -------
+    tf.data.Dataset:
+        A ModelNet dataset.
+    """
     return tf.data.Dataset.from_generator(
         generator,
         args=(path, set_type, n_radial, n_angular, return_rotations),
