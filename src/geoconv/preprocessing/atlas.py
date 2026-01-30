@@ -360,9 +360,10 @@ class Atlas:
             f.close()
         if validate_save:
             try:
+                print(f"Verifying savefile: {filepath}")
                 load_atlas(filepath_tmp)
                 os.replace(filepath_tmp, filepath)
-                print(f"Verified savefile: {filepath}")
+                print(f"Verified.")
             except KeyError:
                 print(f"Savefile-verification failed. Retrying to save {filepath}..")
                 os.remove(filepath_tmp)
