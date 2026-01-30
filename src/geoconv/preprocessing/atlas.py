@@ -364,6 +364,7 @@ class Atlas:
                 os.replace(filepath_tmp, filepath)
                 print(f"Verified savefile: {filepath}")
             except KeyError:
+                print(f"Savefile-verification failed. Retrying to save {filepath}..")
                 os.remove(filepath_tmp)
                 self.save(filepath, try_no=try_no + 1)
         else:
