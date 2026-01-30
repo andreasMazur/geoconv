@@ -12,6 +12,7 @@ import matplotlib.cm as cm
 import numpy as np
 import trimesh
 import h5py
+import os
 
 
 def suggest_template_radii(atlases):
@@ -282,16 +283,22 @@ class Atlas:
         # Placeholder for custom numpy arrays (e.g., vertex associated ground truth values)
         self.custom_arrays = {}
 
-    def save(self, filepath):
+    def save(self, filepath, validate_save=True, try_no=1):
         """Saves the entire atlas.
 
         Parameters
         ----------
         filepath: str
             The location at which to store the atlas.
+        validate_save: bool
+            Whether to load the atlas once to validate the savefile.
+        try_no: int
+            The number of times that have been attempted to save the atlas.
         """
         filepath = f"{filepath}.hdf5" if not filepath.endswith(".hdf5") else filepath
-        with h5py.File(filepath, "w") as f:
+        filepath_tmp = f"./{filepath.split("/")[-1][:-5]}.tmp.hdf5"
+        f = h5py.File(filepath_tmp, "w")
+        try:
             # Save mesh information
             h5_triangle_mesh = f.create_group("triangle_mesh")
             h5_triangle_mesh.create_dataset(
@@ -345,6 +352,22 @@ class Atlas:
             h5_custom_arrays = f.create_group("custom_arrays")
             for key, arr in self.custom_arrays.items():
                 h5_custom_arrays.create_dataset(key, data=arr, compression="gzip")
+
+            # Make sure that everything is safed
+            f.flush()
+            os.fsync(f._id.get_vfd_handle())
+        finally:
+            f.close()
+        if validate_save:
+            try:
+                load_atlas(filepath_tmp)
+                os.replace(filepath_tmp, filepath)
+                print(f"Verified savefile: {filepath}")
+            except KeyError:
+                os.remove(filepath_tmp)
+                self.save(filepath, try_no=try_no + 1)
+        else:
+            os.replace(filepath_tmp, filepath)
 
     def visualize_chart(self, chart_idx, visualize_3d=False, show_statistics=True, show_vertex_indices=False):
         """Visualizes one chart of the atlas.
