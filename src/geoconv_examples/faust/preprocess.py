@@ -23,7 +23,7 @@ def preprocess_faust(registration_dir,
 
     # 3.) Compute local charts
     gpc_system_radii = []
-    for ply_filename in registrations[:3]:
+    for ply_filename in registrations:
         mesh_save_path = f"{output_path}/{ply_filename.split('.')[0]}.hdf5"
 
         # Load the mesh
@@ -55,7 +55,7 @@ def preprocess_faust(registration_dir,
         gpc_system_radii.extend(atlas.chart_radii.tolist())
 
     # 4.) Compute barycentric coordinates
-    for ply_filename in registrations[:3]:
+    for ply_filename in registrations:
         # Load atlas
         mesh_save_path = f"{output_path}/{ply_filename.split('.')[0]}.hdf5"
         atlas = load_atlas(mesh_save_path)
