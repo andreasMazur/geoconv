@@ -74,7 +74,7 @@ def preprocess_faust(registration_dir,
             )
 
         # Save atlas
-        atlas.save_training_data(f"{mesh_save_path[:-5]}")
+        atlas.save_training_data(mesh_save_path[:-5])
 
         # Cleanup old atlas file
         os.remove(mesh_save_path)
