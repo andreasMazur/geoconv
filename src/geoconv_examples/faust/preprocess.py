@@ -9,7 +9,8 @@ import numpy as np
 
 def preprocess_faust(registration_dir,
                      output_path,
-                     template_resolutions=None,
+                     template_resolution,
+                     max_chart_radius,
                      method="hdm",
                      normalization_method="hdm",
                      processes=1):
@@ -17,68 +18,69 @@ def preprocess_faust(registration_dir,
     registrations = [f for f in os.listdir(registration_dir) if f.endswith(".ply")]
     registrations.sort(key=lambda x: int(x.split("_")[-1].split(".")[0]))
 
-    for max_chart_radius in [0.05, 0.1, 0.15, 0.2]:
-        # 2.) Prepare output directory
-        radius_output_path = f"{output_path}_{max_chart_radius}"
-        if os.path.isfile(f"{radius_output_path}.zip"):
-            print(f"[Preprocessing] Already processed: '{radius_output_path}.zip']. Skipping.")
-            continue
-        os.makedirs(radius_output_path, exist_ok=True)
+    # 2.) Prepare output directory
+    os.makedirs(output_path, exist_ok=True)
 
-        # 3.) Compute local charts
-        gpc_system_radii = []
-        for ply_filename in registrations:
-            mesh_save_path = f"{radius_output_path}/{ply_filename.split('.')[0]}.hdf5"
+    # 3.) Compute local charts
+    gpc_system_radii = []
+    for ply_filename in registrations[:3]:
+        mesh_save_path = f"{output_path}/{ply_filename.split('.')[0]}.hdf5"
 
-            # Load the mesh
-            mesh_filepath = f"{registration_dir}/{ply_filename}"
-            print(f"[GPC system] Loading: '{mesh_filepath}'")
-            mesh = trimesh.load(mesh_filepath)
+        # Load the mesh
+        mesh_filepath = f"{registration_dir}/{ply_filename}"
+        print(f"[GPC system] Loading: '{mesh_filepath}'")
+        mesh = trimesh.load(mesh_filepath)
 
-            # Compute mesh permutation
-            permutation = np.arange(mesh.vertices.shape[0]).astype(np.int32)
-            np.random.shuffle(permutation)
-            inverse_permutation = np.zeros(mesh.vertices.shape[0]).astype(np.int32)
-            for idx, perm_idx in enumerate(permutation):
-                inverse_permutation[perm_idx] = int(idx)
-            mesh.vertices = mesh.vertices[permutation]
-            mesh.faces = inverse_permutation[mesh.faces]
+        # Compute mesh permutation
+        permutation = np.arange(mesh.vertices.shape[0]).astype(np.int32)
+        np.random.shuffle(permutation)
+        inverse_permutation = np.zeros(mesh.vertices.shape[0]).astype(np.int32)
+        for idx, perm_idx in enumerate(permutation):
+            inverse_permutation[perm_idx] = int(idx)
+        mesh.vertices = mesh.vertices[permutation]
+        mesh.faces = inverse_permutation[mesh.faces]
 
-            # Compute the atlas
-            atlas = Atlas(
-                triangle_mesh=mesh,
-                max_radius=max_chart_radius,
-                method=method,
-                normalization_method=normalization_method,
-                processes=processes
-            )
-            atlas.store_array({"ground_truth": inverse_permutation})
-            save_atlas(atlas, mesh_save_path)
+        # Compute the atlas
+        atlas = Atlas(
+            triangle_mesh=mesh,
+            max_radius=max_chart_radius,
+            method=method,
+            normalization_method=normalization_method,
+            processes=processes
+        )
+        atlas.store_array({"ground_truth": inverse_permutation})
+        save_atlas(atlas, mesh_save_path)
 
-            # Remember chart radii for BC computation
-            gpc_system_radii.extend(atlas.chart_radii.tolist())
+        # Remember chart radii for BC computation
+        gpc_system_radii.extend(atlas.chart_radii.tolist())
 
-        # 4.) Compute barycentric coordinates
-        if template_resolutions is None:
-            template_resolutions = [(2, 4), (4, 8)]
+    # 4.) Compute barycentric coordinates
+    for ply_filename in registrations[:3]:
+        # Load atlas
+        mesh_save_path = f"{output_path}/{ply_filename.split('.')[0]}.hdf5"
+        atlas = load_atlas(mesh_save_path)
+        n_radial, n_angular = template_resolution
+
+        # Compute BC for all template radii
         for template_radius in [np.min(gpc_system_radii), np.median(gpc_system_radii), np.max(gpc_system_radii)]:
-            for (n_radial, n_angular) in template_resolutions:
-                for ply_filename in registrations:
-                    mesh_save_path = f"{radius_output_path}/{ply_filename.split('.')[0]}.hdf5"
-                    atlas = load_atlas(mesh_save_path)
-                    print(
-                        f"[BC computation] Calculating BC "
-                        f"'{n_radial, n_angular, template_radius}' for '{ply_filename}']"
-                    )
-                    atlas.determine_barycentric_coordinates(
-                        n_radial=n_radial,
-                        n_angular=n_angular,
-                        radius=template_radius
-                    )
-                    save_atlas(atlas, mesh_save_path)
+            print(
+                f"[BC computation] Calculating BC "
+                f"'{n_radial, n_angular, template_radius}' for '{ply_filename}']"
+            )
+            atlas.determine_barycentric_coordinates(
+                n_radial=n_radial,
+                n_angular=n_angular,
+                radius=template_radius
+            )
 
-        # 5.) Zip dataset
-        print("Zipping..")
-        shutil.make_archive(base_name=radius_output_path, format="zip", root_dir=radius_output_path)
-        shutil.rmtree(radius_output_path)
-        print("Done.")
+        # Save atlas
+        atlas.save_training_data(f"{mesh_save_path[:-5]}")
+
+        # Cleanup old atlas file
+        os.remove(mesh_save_path)
+
+    # 5.) Zip dataset
+    print("Zipping..")
+    shutil.make_archive(base_name=output_path, format="zip", root_dir=output_path)
+    shutil.rmtree(output_path)
+    print("Done.")
