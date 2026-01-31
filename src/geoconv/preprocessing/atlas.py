@@ -139,14 +139,6 @@ def load_atlas(filepath):
             template_res_key = tuple([int(x) for x in template_res.split("_")])
             barycentric_coordinates[template_res_key] = np.array(f["barycentric_coordinates"][template_res])
 
-        # Load barycentric coordinates radii
-        barycentric_coordinates_radius = {}
-        for template_res in f["barycentric_coordinates_radius"].keys():
-            template_res_key = tuple([int(x) for x in template_res.split("_")])
-            barycentric_coordinates_radius[template_res_key] = np.array(
-                f["barycentric_coordinates_radius"][template_res]
-            )
-
         # Load parallel transport angles
         parallel_transport = np.array(f["parallel_transport/transport_angles"])
 
@@ -178,7 +170,6 @@ def load_atlas(filepath):
 
     # Set barycentric coordinates
     atlas.barycentric_coordinates = barycentric_coordinates
-    atlas.barycentric_coordinates_radius = barycentric_coordinates_radius
 
     # Set parallel transport angles
     atlas.parallel_transport = parallel_transport
@@ -274,7 +265,6 @@ class Atlas:
 
         # Placeholder attribute for barycentric coordinates
         self.barycentric_coordinates = {}
-        self.barycentric_coordinates_radius = {}
 
         # Placeholder attribute for rotation angles computed via parallel transport
         self.parallel_transport = np.array([-1.])
@@ -299,7 +289,8 @@ class Atlas:
 
         # Save barycentric coordinates
         for template_res, bc in self.barycentric_coordinates.items():
-            np.save(f"{filepath}/barycentric_coordinates_{template_res[0]}_{template_res[1]}.npy", bc)
+            radius = '_'.join(f'{template_res[2]}'.split('.'))
+            np.save(f"{filepath}/barycentric_coordinates_{template_res[0]}_{template_res[1]}_{radius}.npy", bc)
 
         # Save angles for parallel transport
         np.save(f"{filepath}/parallel_transport.npy", self.parallel_transport)
@@ -363,11 +354,6 @@ class Atlas:
             h5_bc_information = f.create_group("barycentric_coordinates")
             for (n_radial, n_angular), bc in self.barycentric_coordinates.items():
                 h5_bc_information.create_dataset(f"{n_radial}_{n_angular}", data=bc, compression="gzip")
-
-            # Save computed barycentric coordinates radii
-            h5_bc_information = f.create_group("barycentric_coordinates_radius")
-            for (n_radial, n_angular), radius in self.barycentric_coordinates_radius.items():
-                h5_bc_information.create_dataset(f"{n_radial}_{n_angular}", data=radius, compression="gzip")
 
             # Save computed rotation angles for parallel transport
             h5_parallel_transport = f.create_group("parallel_transport")
@@ -525,14 +511,13 @@ class Atlas:
         plt.show()
 
     def determine_barycentric_coordinates(self, n_radial, n_angular, radius, processes=None):
-        self.barycentric_coordinates[(n_radial, n_angular)] = compute_barycentric_coordinates(
+        self.barycentric_coordinates[(n_radial, n_angular, radius)] = compute_barycentric_coordinates(
             self,
             n_radial=n_radial,
             n_angular=n_angular,
             radius=radius,
             processes=self.processes if processes is None else processes
         )
-        self.barycentric_coordinates_radius[(n_radial, n_angular)] = [radius]
 
     def determine_parallel_transport(self):
         self.parallel_transport = compute_parallel_transport(self.triangle_mesh)
