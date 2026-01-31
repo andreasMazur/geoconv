@@ -80,7 +80,7 @@ def get_atlas(max_chart_radius,
     return atlas
 
 
-def load_modelnet_mesh(zip_file, mesh_filepath, resolution=2_000):
+def load_modelnet_mesh(zip_file, mesh_filepath, resolution=1_000):
     # Load the mesh
     mesh = trimesh.load_mesh(io.BytesIO(zip_file.read(mesh_filepath)), file_type="off")
 
@@ -88,9 +88,22 @@ def load_modelnet_mesh(zip_file, mesh_filepath, resolution=2_000):
     if type(mesh) == trimesh.scene.Scene:
         mesh = trimesh.util.concatenate([y for y in mesh.geometry.values()])
 
-    # Repair mesh
+    # Reduce resolution of mesh
     new_vertices, new_faces = pcu.make_mesh_watertight(v=mesh.vertices, f=mesh.faces, resolution=resolution)
-    return trimesh.Trimesh(vertices=new_vertices, faces=new_faces)
+    mesh = trimesh.Trimesh(vertices=new_vertices, faces=new_faces)
+
+    # Filter non-manifold vertices and faces of watertight mesh
+    nm_vertices = np.asarray(mesh.as_open3d.get_non_manifold_vertices())
+    faces = np.array(
+        [x not in nm_vertices and y not in nm_vertices and z not in nm_vertices for [x, y, z] in mesh.faces]
+    )
+    mesh = mesh.submesh([faces])[0]
+
+    # Make mesh watertight
+    new_vertices, new_faces = pcu.make_mesh_watertight(v=mesh.vertices, f=mesh.faces, resolution=resolution)
+    mesh = trimesh.Trimesh(vertices=new_vertices, faces=new_faces)
+
+    return mesh
 
 
 def preprocess_modelnet(zip_path,
