@@ -80,7 +80,7 @@ def get_atlas(max_chart_radius,
     return atlas
 
 
-def load_modelnet_mesh(zip_file, mesh_filepath, resolution=1_000):
+def load_modelnet_mesh(zip_file, mesh_filepath, resolution=2_000):
     # Load the mesh
     mesh = trimesh.load_mesh(io.BytesIO(zip_file.read(mesh_filepath)), file_type="off")
 
