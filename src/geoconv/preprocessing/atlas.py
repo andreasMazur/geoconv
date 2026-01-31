@@ -283,6 +283,31 @@ class Atlas:
         # Placeholder for custom numpy arrays (e.g., vertex associated ground truth values)
         self.custom_arrays = {}
 
+    def save_training_data(self, filepath):
+        """Saves only information that is required to train IMCNNs.
+
+        Parameters
+        ----------
+        filepath: str
+            The location at which to store the atlas information.
+        """
+        # Create directory to store information in
+        os.makedirs(filepath, exist_ok=True)
+
+        # Save mesh vertices
+        np.save(f"{filepath}/vertices.npy", self.triangle_mesh.vertices)
+
+        # Save barycentric coordinates
+        for template_res, bc in self.barycentric_coordinates.items():
+            np.save(f"{filepath}/barycentric_coordinates_{template_res[0]}_{template_res[1]}.npy", bc)
+
+        # Save angles for parallel transport
+        np.save(f"{filepath}/parallel_transport.npy", self.parallel_transport)
+
+        # Save custom arrays, such as ground truth values or custom input features
+        for key, value in self.custom_arrays.items():
+            np.save(f"{filepath}/{key}.npy", value)
+
     def save(self, filepath, validate_save=True, try_no=1):
         """Saves the entire atlas.
 
