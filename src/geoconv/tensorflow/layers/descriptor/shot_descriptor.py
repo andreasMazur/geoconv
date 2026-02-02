@@ -29,8 +29,9 @@ class PointCloudShotDescriptor(tf.keras.layers.Layer):
     @tf.function(jit_compile=True)
     def call_helper(self, vertices):
         lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(
-            self.neighbors_for_lrf, vertices
+            self.neighbors_for_lrf, vertices[None, ...]
         )
+        lrfs, neighborhoods, neighborhoods_indices = lrfs[0], neighborhoods[0], neighborhoods_indices[0]
         if self.sphere_radius > 0.0:
             return shot_descr(
                 neighborhoods=neighborhoods,
