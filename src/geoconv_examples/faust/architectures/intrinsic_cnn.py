@@ -1,5 +1,6 @@
 from geoconv.tensorflow.layers import AngularMaxPooling, ConvDirac
 from geoconv.tensorflow.layers import ConvGeodesic
+from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
 
 import tensorflow as tf
 
@@ -22,9 +23,6 @@ def define_model(output_dims, template_radius, n_radial, n_angular, kernel, lear
     vertices_input = tf.keras.Input(shape=(6890, 3), name="vertices_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(6890, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
 
-    # Initialize variables for forward pass
-    signal = vertices_input
-
     if kernel == "geodesic":
         layer_type = ConvGeodesic
     elif kernel == "dirac":
@@ -33,6 +31,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, kernel, lear
         raise ValueError("The 'kernel' must be either 'geodesic' or 'dirac'.")
 
     # Forward pass
+    signal = EuclNeighborsDescriptor(n_radial, n_angular)(vertices_input)
     for od in output_dims:
         signal = layer_type(
             output_dim=od,

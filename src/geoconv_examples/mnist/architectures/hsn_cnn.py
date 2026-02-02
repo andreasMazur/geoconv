@@ -1,5 +1,5 @@
 from geoconv.tensorflow.layers.activation_beta_relu import BetaRelu
-from geoconv.tensorflow.layers.conv_harmonic import ConvHarmonic
+from geoconv.tensorflow.layers.convolutions.conv_harmonic import ConvHarmonic
 from geoconv.tensorflow.layers.pooling.global_complex_max_pooling import GlobalComplexPooling
 
 import tensorflow as tf

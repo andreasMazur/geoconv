@@ -1,4 +1,4 @@
-from geoconv.tensorflow.layers.conv_base import ConvBase
+from geoconv.tensorflow.layers.convolutions.conv_base import ConvBase
 
 from abc import abstractmethod
 
