@@ -104,4 +104,4 @@ def dataset(zip_path, set_type, n_radial, n_angular, radius, return_rotations=Tr
         generator,
         args=(zip_path, set_type, n_radial, n_angular, radius, return_rotations),
         output_signature=output_signature
-    ).prefetch(tf.data.AUTOTUNE)
+    ).prefetch(tf.data.AUTOTUNE).batch(1)

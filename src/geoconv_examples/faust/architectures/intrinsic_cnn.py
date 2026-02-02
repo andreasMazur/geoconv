@@ -4,6 +4,19 @@ from geoconv.tensorflow.layers import ConvGeodesic
 import tensorflow as tf
 
 
+def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, kernel):
+    model = define_model(
+        output_dims=output_dims,
+        template_radius=template_radius,
+        n_radial=n_radial,
+        n_angular=n_angular,
+        kernel=kernel,
+        learning_rate=hp.Float("learning_rate", min_value=1e-8, max_value=0.01),
+    )
+    model.summary()
+    return model
+
+
 def define_model(output_dims, template_radius, n_radial, n_angular, kernel, learning_rate=0.001):
     # Define input layers
     vertices_input = tf.keras.Input(shape=(6890, 3), name="vertices_input", dtype=tf.float32)
@@ -30,7 +43,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, kernel, lear
         signal = AngularMaxPooling()(signal)
     output = tf.keras.layers.Dense(6890, activation="linear")(signal)
 
-    imcnn = tf.keras.Model(inputs=[vertices_input, bc_input], outputs=output, name="mnist_model")
+    imcnn = tf.keras.Model(inputs=[vertices_input, bc_input], outputs=output, name="faust_model")
     imcnn.compile(
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
