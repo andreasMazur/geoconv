@@ -14,4 +14,6 @@ class EuclNeighborsDescriptor(tf.keras.layers.Layer):
         # 'neighborhoods' : (batch, vertices, n_neighbors, 3)
         neighborhoods, _, _ = compute_neighborhood(inputs, self.n_neighbors)
         neighborhoods_shape = tf.shape(neighborhoods)
-        return tf.reshape(neighborhoods, (neighborhoods_shape[0], neighborhoods_shape[1], self.n_neighbors * 3))
+        return tf.reshape(
+            neighborhoods, (neighborhoods_shape[0], neighborhoods_shape[1], self.n_neighbors * 3)
+        )[..., 3:]  # Cut away the origin-zero vectors
