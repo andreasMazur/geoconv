@@ -39,6 +39,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, kernel, lear
             activation="relu",
             rotation_delta=1
         )([signal, bc_input])
+        signal = tf.keras.layers.BatchNormalization(axis=-1)(signal)
         signal = AngularMaxPooling()(signal)
     output = tf.keras.layers.Dense(6890, activation="linear")(signal)
 
