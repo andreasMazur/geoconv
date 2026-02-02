@@ -148,6 +148,9 @@ def preprocess_modelnet(zip_path,
             # Remember chart radii for BC computation
             gpc_system_radii.extend(atlas.chart_radii.tolist())
 
+        # Filter distorted GPC-system radii (zero radii)
+        gpc_system_radii = [r for r in gpc_system_radii if r > 0]
+
         # 4.) Compute barycentric coordinates
         for mesh_filepath in zip_content:
             # Load atlas
