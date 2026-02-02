@@ -11,8 +11,7 @@ class EuclNeighborsDescriptor(tf.keras.layers.Layer):
         self.n_neighbors = int(1 + self.n_radial * self.n_angular)
 
     def call(self, inputs, **kwargs):
-        input_shape = tf.shape(inputs)
-
         # 'neighborhoods' : (batch, vertices, n_neighbors, 3)
         neighborhoods, _, _ = compute_neighborhood(inputs, self.n_neighbors)
-        return tf.reshape(neighborhoods, (input_shape[0], input_shape[1], self.n_neighbors))
+        neighborhoods_shape = tf.shape(neighborhoods)
+        return tf.reshape(neighborhoods, (neighborhoods_shape[0], neighborhoods_shape[1], self.n_neighbors))
