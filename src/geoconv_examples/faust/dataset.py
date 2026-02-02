@@ -86,7 +86,7 @@ def dataset(zip_path, set_type, n_radial, n_angular, radius, return_rotations=Tr
         output_signature = (
             (
                 tf.TensorSpec(shape=(6890, 3), dtype=tf.float32),
-                tf.TensorSpec(shape=(6890) + (n_radial, n_angular) + (3, 2), dtype=tf.float32),
+                tf.TensorSpec(shape=(6890,) + (n_radial, n_angular) + (3, 2), dtype=tf.float32),
                 tf.TensorSpec(shape=(None,), dtype=tf.float32),
             ),
             tf.TensorSpec(shape=(6890,), dtype=tf.float32),
