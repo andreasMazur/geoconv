@@ -37,7 +37,7 @@ def hypertuning(faust_path,
         hypermodel=get_hypermodel,
         objective=kt.Objective("val_sparse_categorical_accuracy", direction="max"),
         max_trials=1_000,
-        num_initial_points=10,
+        num_initial_points=100,
         seed=42,
         project_name=project_name,
     )
