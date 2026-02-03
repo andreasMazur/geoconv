@@ -132,7 +132,7 @@ def preprocess_modelnet(zip_path,
 
         # 3.) Compute local charts
         gpc_system_radii = []
-        for mesh_filepath in zip_content[:1]:
+        for mesh_filepath in zip_content:
             mesh_save_path = f"{output_path}/{mesh_filepath.split('.')[0]}.hdf5"
             print(f"[GPC-systems] Computing GPC-systems for: '{mesh_filepath}'")
             atlas = get_atlas(
@@ -152,7 +152,7 @@ def preprocess_modelnet(zip_path,
         gpc_system_radii = [r for r in gpc_system_radii if r > 0]
 
         # 4.) Compute barycentric coordinates
-        for mesh_filepath in zip_content[:1]:
+        for mesh_filepath in zip_content:
             # Load atlas
             mesh_save_path = f"{output_path}/{mesh_filepath.split('.')[0]}.hdf5"
             atlas = load_atlas(mesh_save_path)
