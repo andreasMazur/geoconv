@@ -48,7 +48,7 @@ def preprocess_faust(registration_dir,
             normalization_method=normalization_method,
             processes=processes
         )
-        atlas.store_array({"ground_truth": inverse_permutation})
+        atlas.store_array({"ground_truth": permutation})
         save_atlas(atlas, mesh_save_path)
 
         # Remember chart radii for BC computation
