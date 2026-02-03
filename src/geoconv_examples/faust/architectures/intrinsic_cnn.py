@@ -31,7 +31,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, kernel, lear
         raise ValueError("The 'kernel' must be either 'geodesic' or 'dirac'.")
 
     # Forward pass
-    signal = EuclNeighborsDescriptor(n_radial, n_angular)(vertices_input)
+    signal = PointCloudShotDescriptor(n_radial, n_angular)(vertices_input)
     signal = tf.keras.layers.Normalization(axis=-1)(signal)
     signal = tf.keras.layers.Dense(64, activation="relu")(signal)
     signal = tf.keras.layers.LayerNormalization(axis=-1)(signal)
