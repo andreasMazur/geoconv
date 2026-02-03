@@ -3,13 +3,12 @@ from geoconv_examples.modelnet.preprocess import save_atlas
 
 import os
 import trimesh
-import shutil
 import numpy as np
 
 
 def preprocess_faust(registration_dir,
                      output_path,
-                     template_resolution,
+                     template_resolutions,
                      max_chart_radius,
                      method="hdm",
                      normalization_method="hdm",
@@ -59,28 +58,24 @@ def preprocess_faust(registration_dir,
         # Load atlas
         mesh_save_path = f"{output_path}/{ply_filename.split('.')[0]}.hdf5"
         atlas = load_atlas(mesh_save_path)
-        n_radial, n_angular = template_resolution
 
-        # Compute BC for all template radii
-        for template_radius in [np.min(gpc_system_radii), np.median(gpc_system_radii), np.max(gpc_system_radii)]:
-            print(
-                f"[BC computation] Calculating BC "
-                f"'{n_radial, n_angular, template_radius}' for '{ply_filename}']"
-            )
-            atlas.determine_barycentric_coordinates(
-                n_radial=n_radial,
-                n_angular=n_angular,
-                radius=template_radius
-            )
+        # Compute BC for all template resolutions
+        for template_resolution in template_resolutions:
+            n_radial, n_angular = template_resolution
+            # Compute BC for all template radii
+            for template_radius in [np.min(gpc_system_radii), np.median(gpc_system_radii), np.max(gpc_system_radii)]:
+                print(
+                    f"[BC computation] Calculating BC "
+                    f"'{n_radial, n_angular, template_radius}' for '{ply_filename}']"
+                )
+                atlas.determine_barycentric_coordinates(
+                    n_radial=n_radial,
+                    n_angular=n_angular,
+                    radius=template_radius
+                )
 
         # Save atlas
         atlas.save_training_data(mesh_save_path[:-5])
 
         # Cleanup old atlas file
         os.remove(mesh_save_path)
-
-    # 5.) Zip dataset
-    print("Zipping..")
-    shutil.make_archive(base_name=output_path, format="zip", root_dir=output_path)
-    shutil.rmtree(output_path)
-    print("Done.")
