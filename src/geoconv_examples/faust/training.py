@@ -1,4 +1,4 @@
-from geoconv_examples.faust.dataset import dataset
+from geoconv_examples.faust.dataset import dataset, adapt_generator
 
 import tensorflow as tf
 import keras_tuner as kt
@@ -71,6 +71,11 @@ def training(faust_path, n_radial, n_angular, radius, batch_size, model, save_pa
 
     # Show model summary
     model.summary()
+
+    # Adapt normalization layer
+    model.layers[2].adapt(
+        adapt_generator(faust_path, "train", n_radial, n_angular, radius, model.layers[1])
+    )
 
     # Train model
     term = tf.keras.callbacks.TerminateOnNaN()

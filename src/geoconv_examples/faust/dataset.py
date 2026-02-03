@@ -2,6 +2,12 @@ import tensorflow as tf
 import numpy as np
 
 
+def adapt_generator(zip_path, set_type, n_radial, n_angular, radius, layer):
+    gen = generator(zip_path, set_type, n_radial, n_angular, radius, return_rotations=False)
+    for (vertices, bc), _ in gen:
+        yield layer(vertices[None, ...])
+
+
 def generator(zip_path, set_type, n_radial, n_angular, radius, return_rotations=True):
     """Returns a 'generator'-object for the ModelNet dataset.
 
@@ -52,11 +58,17 @@ def generator(zip_path, set_type, n_radial, n_angular, radius, return_rotations=
             f"{filepath}/barycentric_coordinates_{n_radial}_{n_angular}_{'_'.join(f'{radius}'.split('.'))}"
         ]
         ground_truth = zip_file[f"{filepath}/ground_truth"]
+
+        # TODO: Remove
+        inverse_permutation = np.zeros(ground_truth.shape[0]).astype(np.int32)
+        for idx, perm_idx in enumerate(ground_truth):
+            inverse_permutation[perm_idx] = int(idx)
+
         if return_rotations:
             parallel_transport = zip_file[f"{filepath}/parallel_transport"]
-            yield (vertices, barycentric_coordinates, parallel_transport), ground_truth
+            yield (vertices, barycentric_coordinates, parallel_transport), inverse_permutation
         else:
-            yield (vertices, barycentric_coordinates), ground_truth
+            yield (vertices, barycentric_coordinates), inverse_permutation
 
 
 def dataset(zip_path, set_type, n_radial, n_angular, radius, return_rotations=True):
