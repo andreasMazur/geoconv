@@ -108,7 +108,7 @@ def load_modelnet_mesh(zip_file, mesh_filepath, resolution=1_000):
 
 def preprocess_modelnet(zip_path,
                         output_path,
-                        template_resolution,
+                        template_resolutions,
                         max_chart_radius,
                         method="hdm",
                         normalization_method="hdm",
@@ -132,7 +132,7 @@ def preprocess_modelnet(zip_path,
 
         # 3.) Compute local charts
         gpc_system_radii = []
-        for mesh_filepath in zip_content:
+        for mesh_filepath in zip_content[:1]:
             mesh_save_path = f"{output_path}/{mesh_filepath.split('.')[0]}.hdf5"
             print(f"[GPC-systems] Computing GPC-systems for: '{mesh_filepath}'")
             atlas = get_atlas(
@@ -152,32 +152,28 @@ def preprocess_modelnet(zip_path,
         gpc_system_radii = [r for r in gpc_system_radii if r > 0]
 
         # 4.) Compute barycentric coordinates
-        for mesh_filepath in zip_content:
+        for mesh_filepath in zip_content[:1]:
             # Load atlas
             mesh_save_path = f"{output_path}/{mesh_filepath.split('.')[0]}.hdf5"
             atlas = load_atlas(mesh_save_path)
-            n_radial, n_angular = template_resolution
 
-            # Compute BC for all template radii
-            for template_radius in [np.min(gpc_system_radii), np.median(gpc_system_radii), np.max(gpc_system_radii)]:
-                print(
-                    f"[BC computation] Calculating BC "
-                    f"'{n_radial, n_angular, template_radius}' for '{mesh_filepath}']"
-                )
-                atlas.determine_barycentric_coordinates(
-                    n_radial=n_radial,
-                    n_angular=n_angular,
-                    radius=template_radius
-                )
+            # Compute BC for all template resolutions
+            for template_resolution in template_resolutions:
+                n_radial, n_angular = template_resolution
+                # Compute BC for all template radii
+                for template_radius in [np.min(gpc_system_radii), np.median(gpc_system_radii), np.max(gpc_system_radii)]:
+                    print(
+                        f"[BC computation] Calculating BC "
+                        f"'{n_radial, n_angular, template_radius}' for '{mesh_filepath}']"
+                    )
+                    atlas.determine_barycentric_coordinates(
+                        n_radial=n_radial,
+                        n_angular=n_angular,
+                        radius=template_radius
+                    )
 
             # Save atlas
             atlas.save_training_data(mesh_save_path[:-5])
 
             # Cleanup old atlas file
             os.remove(mesh_save_path)
-
-    # 4.) Zip dataset
-    print("Zipping..")
-    shutil.make_archive(base_name=output_path, format="zip", root_dir=output_path)
-    shutil.rmtree(output_path)
-    print("Done.")
