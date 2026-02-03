@@ -1,11 +1,12 @@
 from geoconv.tensorflow.layers import AngularMaxPooling, ConvDirac, PointCloudShotDescriptor
 from geoconv.tensorflow.layers import ConvGeodesic
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
+from geoconv_examples.faust.dataset import adapt_generator
 
 import tensorflow as tf
 
 
-def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, kernel):
+def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, kernel, faust_path):
     model = define_model(
         output_dims=output_dims,
         template_radius=template_radius,
@@ -13,6 +14,10 @@ def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, ker
         n_angular=n_angular,
         kernel=kernel,
         learning_rate=hp.Float("learning_rate", min_value=1e-8, max_value=0.1),
+    )
+    # Adapt normalization layer
+    model.layers[2].adapt(
+        adapt_generator(faust_path, "train", n_radial, n_angular, template_radius, model.layers[1])
     )
     model.summary()
     return model
