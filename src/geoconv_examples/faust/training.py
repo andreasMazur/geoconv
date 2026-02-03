@@ -35,8 +35,7 @@ def hypertuning(faust_path,
     # Hyperparameter search
     tuner = kt.BayesianOptimization(
         hypermodel=get_hypermodel,
-        # objective=kt.Objective("val_sparse_categorical_accuracy", direction="max"),
-        objective=kt.Objective("val_loss", direction="min"),
+        objective=kt.Objective("val_sparse_categorical_accuracy", direction="max"),
         max_trials=1_000,
         num_initial_points=10,
         seed=42,
