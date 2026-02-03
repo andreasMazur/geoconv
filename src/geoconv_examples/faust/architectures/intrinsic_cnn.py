@@ -12,7 +12,7 @@ def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, ker
         n_radial=n_radial,
         n_angular=n_angular,
         kernel=kernel,
-        learning_rate=hp.Float("learning_rate", min_value=1e-8, max_value=0.01),
+        learning_rate=hp.Float("learning_rate", min_value=1e-8, max_value=0.1),
     )
     model.summary()
     return model
