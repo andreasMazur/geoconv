@@ -31,7 +31,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, kernel, lear
         raise ValueError("The 'kernel' must be either 'geodesic' or 'dirac'.")
 
     # Forward pass
-    signal = PointCloudShotDescriptor()(vertices_input)
+    signal = EuclNeighborsDescriptor(n_radial, n_angular)(vertices_input)
     for od in output_dims:
         signal = layer_type(
             output_dim=od,
