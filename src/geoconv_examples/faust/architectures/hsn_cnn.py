@@ -6,12 +6,13 @@ from geoconv_examples.faust.dataset import adapt_generator
 import tensorflow as tf
 
 
-def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, faust_path):
+def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular):
     model = define_model(
         output_dims=output_dims,
         template_radius=template_radius,
         n_radial=n_radial,
         n_angular=n_angular,
+        faust_path=faust_path,
         learning_rate=hp.Float("learning_rate", min_value=1e-8, max_value=0.01),
     )
     return model
