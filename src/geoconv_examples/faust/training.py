@@ -73,7 +73,8 @@ def training(faust_path, n_radial, n_angular, radius, batch_size, model, save_pa
     model.summary()
 
     # Adapt normalization layer
-    model.layers[2].adapt(
+    normalization_layer = [l for l in model.layers if "normalization" == l.name][0]
+    normalization_layer.adapt(
         adapt_generator(faust_path, "train", n_radial, n_angular, radius, model.layers[1])
     )
 
