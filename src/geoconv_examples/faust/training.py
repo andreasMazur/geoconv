@@ -14,7 +14,8 @@ def hypertuning(faust_path,
                 project_name,
                 epochs=10,
                 return_rotations=True,
-                num_initial_points=100):
+                num_initial_points=10,
+                max_trials=100):
     # Get data
     train_data = dataset(
         zip_path=faust_path,
@@ -37,7 +38,7 @@ def hypertuning(faust_path,
     tuner = kt.BayesianOptimization(
         hypermodel=get_hypermodel,
         objective=kt.Objective("val_sparse_categorical_accuracy", direction="max"),
-        max_trials=1_000,
+        max_trials=max_trials,
         num_initial_points=num_initial_points,
         seed=42,
         project_name=project_name,
