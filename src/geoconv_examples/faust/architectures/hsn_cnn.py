@@ -1,3 +1,4 @@
+from geoconv.tensorflow.layers import PointCloudShotDescriptor
 from geoconv.tensorflow.layers.activation_beta_relu import BetaRelu
 from geoconv.tensorflow.layers.convolutions.conv_harmonic import ConvHarmonic
 from geoconv_examples.faust.dataset import adapt_generator
@@ -15,8 +16,9 @@ def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, fau
     )
     # Adapt normalization layer
     normalization_layer = [l for l in model.layers if "normalization" == l.name][0]
+    descr_layer = [l for l in model.layers if l.name == "point_cloud_shot_descriptor"][0]
     normalization_layer.adapt(
-        adapt_generator(faust_path, "train", n_radial, n_angular, template_radius, model.layers[1])
+        adapt_generator(faust_path, "train", n_radial, n_angular, template_radius, descr_layer)
     )
     model.summary()
     return model
@@ -29,7 +31,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, learning_rat
     rotations_input = tf.keras.Input(shape=(6890, 6890), name="rotations_input", dtype=tf.float32)
 
     # Forward pass
-    signal = vertices_input  # PointCloudShotDescriptor(n_radial, n_angular)(vertices_input)
+    signal = PointCloudShotDescriptor(n_radial, n_angular)(vertices_input)
     signal = tf.keras.layers.Normalization(axis=-1)(signal)
     signal = tf.keras.layers.Dense(64, activation="relu")(signal)
     signal = tf.keras.layers.LayerNormalization(axis=-1)(signal)
