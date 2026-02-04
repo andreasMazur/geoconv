@@ -13,7 +13,8 @@ def hypertuning(faust_path,
                 save_path,
                 project_name,
                 epochs=10,
-                return_rotations=True):
+                return_rotations=True,
+                num_initial_points=100):
     # Get data
     train_data = dataset(
         zip_path=faust_path,
@@ -37,7 +38,7 @@ def hypertuning(faust_path,
         hypermodel=get_hypermodel,
         objective=kt.Objective("val_sparse_categorical_accuracy", direction="max"),
         max_trials=1_000,
-        num_initial_points=100,
+        num_initial_points=num_initial_points,
         seed=42,
         project_name=project_name,
     )
