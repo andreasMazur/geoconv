@@ -17,7 +17,7 @@ def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, fau
     return model
 
 
-def define_model(output_dims, template_radius, n_radial, n_angular, learning_rate=0.001):
+def define_model(output_dims, template_radius, n_radial, n_angular, faust_path, learning_rate=0.001):
     # Define input layers
     vertices_input = tf.keras.Input(shape=(6890, 3), name="vertices_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(6890, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
