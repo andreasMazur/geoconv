@@ -33,8 +33,6 @@ def define_model(output_dims, template_radius, n_radial, n_angular, learning_rat
     # Forward pass
     signal = PointCloudShotDescriptor(n_radial, n_angular)(vertices_input)
     signal = tf.keras.layers.Normalization(axis=-1)(signal)
-    signal = tf.keras.layers.Dense(64, activation="relu")(signal)
-    signal = tf.keras.layers.LayerNormalization(axis=-1)(signal)
     for od in output_dims:
         signal = ConvHarmonic(
             output_dim=od,

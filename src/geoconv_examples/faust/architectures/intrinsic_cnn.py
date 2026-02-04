@@ -37,8 +37,6 @@ def define_model(output_dims, template_radius, n_radial, n_angular, kernel, lear
     # Forward pass
     signal = PointCloudShotDescriptor(n_radial, n_angular)(vertices_input)
     signal = tf.keras.layers.Normalization(axis=-1)(signal)
-    signal = tf.keras.layers.Dense(64, activation="relu")(signal)
-    signal = tf.keras.layers.LayerNormalization(axis=-1)(signal)
     for od in output_dims:
         signal = layer_type(
             output_dim=od,
@@ -46,7 +44,6 @@ def define_model(output_dims, template_radius, n_radial, n_angular, kernel, lear
             activation="relu",
             rotation_delta=1
         )([signal, bc_input])
-        signal = tf.keras.layers.LayerNormalization(axis=-1)(signal)
         signal = AngularMaxPooling()(signal)
     output = tf.keras.layers.Dense(6890, activation="linear")(signal)
 
