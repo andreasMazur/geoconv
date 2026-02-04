@@ -1,5 +1,6 @@
-from geoconv.tensorflow.layers import AngularMaxPooling, ConvDirac, PointCloudShotDescriptor
+from geoconv.tensorflow.layers import AngularMaxPooling, ConvDirac
 from geoconv.tensorflow.layers import ConvGeodesic
+from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
 from geoconv_examples.faust.dataset import adapt_generator
 
 import tensorflow as tf
@@ -35,7 +36,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, kernel, lear
         raise ValueError("The 'kernel' must be either 'geodesic' or 'dirac'.")
 
     # Forward pass
-    signal = PointCloudShotDescriptor(n_radial, n_angular)(vertices_input)
+    signal = EuclNeighborsDescriptor(n_radial, n_angular)(vertices_input)
     signal = tf.keras.layers.Normalization(axis=-1)(signal)
     for od in output_dims:
         signal = layer_type(

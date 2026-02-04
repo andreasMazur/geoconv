@@ -1,6 +1,6 @@
-from geoconv.tensorflow.layers import PointCloudShotDescriptor
 from geoconv.tensorflow.layers.activation_beta_relu import BetaRelu
 from geoconv.tensorflow.layers.convolutions.conv_harmonic import ConvHarmonic
+from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
 from geoconv_examples.faust.dataset import adapt_generator
 
 import tensorflow as tf
@@ -31,7 +31,7 @@ def define_model(output_dims, template_radius, n_radial, n_angular, learning_rat
     rotations_input = tf.keras.Input(shape=(6890, 6890), name="rotations_input", dtype=tf.float32)
 
     # Forward pass
-    signal = PointCloudShotDescriptor(n_radial, n_angular)(vertices_input)
+    signal = EuclNeighborsDescriptor(n_radial, n_angular)(vertices_input)
     signal = tf.keras.layers.Normalization(axis=-1)(signal)
     for od in output_dims:
         signal = ConvHarmonic(
