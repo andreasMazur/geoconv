@@ -112,7 +112,9 @@ def preprocess_modelnet(zip_path,
                         max_chart_radius,
                         method="hdm",
                         normalization_method="hdm",
-                        processes=1):
+                        processes=1,
+                        save_vertices=True,
+                        save_parallel_transport=True):
     """Preprocess ModelNet40 shapes.
 
     Uses the algorithm of:
@@ -173,7 +175,9 @@ def preprocess_modelnet(zip_path,
                     )
 
             # Save atlas
-            atlas.save_training_data(mesh_save_path[:-5])
+            atlas.save_training_data(
+                mesh_save_path[:-5], save_vertices=save_vertices, save_parallel_transport=save_parallel_transport
+            )
 
             # Cleanup old atlas file
             os.remove(mesh_save_path)
