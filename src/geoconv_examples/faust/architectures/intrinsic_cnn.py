@@ -15,15 +15,10 @@ def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, ker
         kernel=kernel,
         learning_rate=hp.Float("learning_rate", min_value=1e-8, max_value=0.1),
     )
-    # Adapt normalization layer
-    model.layers[2].adapt(
-        adapt_generator(faust_path, "train", n_radial, n_angular, template_radius, model.layers[1])
-    )
-    model.summary()
     return model
 
 
-def define_model(output_dims, template_radius, n_radial, n_angular, kernel, learning_rate=0.001):
+def define_model(output_dims, template_radius, n_radial, n_angular, kernel, faust_path, learning_rate=0.001):
     # Define input layers
     vertices_input = tf.keras.Input(shape=(6890, 3), name="vertices_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(6890, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
@@ -35,9 +30,13 @@ def define_model(output_dims, template_radius, n_radial, n_angular, kernel, lear
     else:
         raise ValueError("The 'kernel' must be either 'geodesic' or 'dirac'.")
 
+    # Remember descriptor- and normalization layer for normalization layer adaption
+    descr_layer = EuclNeighborsDescriptor(n_radial, n_angular)
+    normalization_layer = tf.keras.layers.Normalization(axis=-1)
+
     # Forward pass
-    signal = EuclNeighborsDescriptor(n_radial, n_angular)(vertices_input)
-    signal = tf.keras.layers.Normalization(axis=-1)(signal)
+    signal = descr_layer(vertices_input)
+    signal = normalization_layer(signal)
     for od in output_dims:
         signal = layer_type(
             output_dim=od,
@@ -53,5 +52,10 @@ def define_model(output_dims, template_radius, n_radial, n_angular, kernel, lear
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         metrics=["sparse_categorical_accuracy"]
+    )
+
+    # Adapt normalization
+    normalization_layer.adapt(
+        adapt_generator(faust_path, "train", n_radial, n_angular, template_radius, descr_layer)
     )
     return imcnn

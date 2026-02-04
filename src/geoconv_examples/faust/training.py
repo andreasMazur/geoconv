@@ -74,13 +74,6 @@ def training(faust_path, n_radial, n_angular, radius, batch_size, model, save_pa
     # Show model summary
     model.summary()
 
-    # Adapt normalization layer
-    normalization_layer = [l for l in model.layers if "normalization" == l.name][0]
-    descr_layer = [l for l in model.layers if "descr" in l.name][0]
-    normalization_layer.adapt(
-        adapt_generator(faust_path, "train", n_radial, n_angular, radius, descr_layer)
-    )
-
     # Train model
     term = tf.keras.callbacks.TerminateOnNaN()
     history = model.fit(x=train_data, batch_size=batch_size, epochs=epochs, validation_data=val_data, callbacks=[term])
