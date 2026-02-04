@@ -1,6 +1,5 @@
 from geoconv.tensorflow.layers import AngularMaxPooling, ConvDirac, PointCloudShotDescriptor
 from geoconv.tensorflow.layers import ConvGeodesic
-from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
 from geoconv_examples.faust.dataset import adapt_generator
 
 import tensorflow as tf
