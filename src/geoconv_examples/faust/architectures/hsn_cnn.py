@@ -16,7 +16,7 @@ def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, fau
     )
     # Adapt normalization layer
     normalization_layer = [l for l in model.layers if "normalization" == l.name][0]
-    descr_layer = [l for l in model.layers if l.name == "point_cloud_shot_descriptor"][0]
+    descr_layer = [l for l in model.layers if "descr" in l.name][0]
     normalization_layer.adapt(
         adapt_generator(faust_path, "train", n_radial, n_angular, template_radius, descr_layer)
     )
