@@ -13,14 +13,14 @@ def start_training_run(faust_path, preprocessing, kernel, save_path):
 
     for (n_radial, n_angular) in [(2, 4), (4, 8)]:
         for gpc_system_radius in [0.05, 0.1, 0.15, 0.2]:
-            for template_radius in ["min", "median", "max"]:
+            for template_radius_str in ["min", "median", "max"]:
                 # Define model
-                radius = FAUST[preprocessing][gpc_system_radius][template_radius]
+                template_radius = FAUST[preprocessing][gpc_system_radius][template_radius_str]
                 model = define_model(
                     output_dims=[32, 64, 96, 64],
                     preprocess_method=preprocessing,
                     gpc_radius=gpc_system_radius,
-                    template_radius=radius,
+                    template_radius=template_radius,
                     n_radial=n_radial,
                     n_angular=n_angular,
                     kernel=kernel,
