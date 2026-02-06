@@ -42,5 +42,5 @@ def start_training_run(faust_path, preprocessing, kernel, save_path):
                     model=model,
                     save_path=training_run_save_path,
                     epochs=200,
-                    return_rotations=True
+                    return_rotations=False
                 )
