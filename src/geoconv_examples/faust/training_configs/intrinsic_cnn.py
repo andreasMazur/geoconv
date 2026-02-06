@@ -29,8 +29,7 @@ def start_training_run(faust_path, preprocessing, kernel, save_path):
                 )
 
                 # Start training
-                gpc_system_radius = "_".join(f"{gpc_system_radius}".split("."))
-                training_run_save_path = f"{save_path}/{n_radial}_{n_angular}_{gpc_system_radius}_{template_radius}"
+                training_run_save_path = f"{save_path}/{n_radial}_{n_angular}_{'_'.join(f'{gpc_system_radius}'.split('.'))}_{template_radius}"
                 print(f"Currently running: {training_run_save_path}")
                 training(
                     faust_path=faust_path,

@@ -48,6 +48,8 @@ def generator(zip_path,
     """
     if isinstance(zip_path, bytes):
         set_type = set_type.decode("utf-8")
+    if isinstance(preprocess_method, bytes):
+        preprocess_method = preprocess_method.decode("utf-8")
 
     zip_file = np.load(zip_path, allow_pickle=True)
 
