@@ -12,8 +12,7 @@ def preprocess_faust(registration_dir,
                      max_chart_radius,
                      method="hdm",
                      normalization_method="hdm",
-                     processes=1,
-                     save_parallel_transport=True):
+                     processes=1):
     # 1.) Prepare path to registration directory
     registrations = [f for f in os.listdir(registration_dir) if f.endswith(".ply")]
     registrations.sort(key=lambda x: int(x.split("_")[-1].split(".")[0]))
@@ -76,7 +75,7 @@ def preprocess_faust(registration_dir,
                 )
 
         # Save atlas
-        atlas.save_training_data(mesh_save_path[:-5], save_parallel_transport=save_parallel_transport)
+        atlas.save_training_data(mesh_save_path[:-5])
 
         # Cleanup old atlas file
         os.remove(mesh_save_path)
