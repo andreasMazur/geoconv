@@ -6,9 +6,11 @@ from geoconv_examples.faust.dataset import adapt_generator
 import tensorflow as tf
 
 
-def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, faust_path):
+def define_hypermodel(hp, output_dims, preprocess_method, gpc_radius, template_radius, n_radial, n_angular, faust_path):
     model = define_model(
         output_dims=output_dims,
+        preprocess_method=preprocess_method,
+        gpc_radius=gpc_radius,
         template_radius=template_radius,
         n_radial=n_radial,
         n_angular=n_angular,
@@ -18,7 +20,14 @@ def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, fau
     return model
 
 
-def define_model(output_dims, template_radius, n_radial, n_angular, faust_path, learning_rate=0.001):
+def define_model(output_dims,
+                 preprocess_method,
+                 gpc_radius,
+                 template_radius,
+                 n_radial,
+                 n_angular,
+                 faust_path,
+                 learning_rate=0.001):
     # Define input layers
     vertices_input = tf.keras.Input(shape=(6890, 3), name="vertices_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(6890, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
@@ -52,6 +61,15 @@ def define_model(output_dims, template_radius, n_radial, n_angular, faust_path, 
 
     # Adapt normalization
     normalization_layer.adapt(
-        adapt_generator(faust_path, "train", n_radial, n_angular, template_radius, descr_layer)
+        adapt_generator(
+            faust_path,
+            "train",
+            n_radial,
+            n_angular,
+            preprocess_method,
+            gpc_radius,
+            template_radius,
+            descr_layer
+        )
     )
     return imcnn
