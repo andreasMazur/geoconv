@@ -137,3 +137,19 @@ class ConvIntrinsic(ConvBase):
             the patch operator '[D(x)f](rho_in, theta_in)'
         """
         pass
+
+    def get_config(self):
+        """Adds class relevant information to the config-dictionary of the 'ConvBase' class.
+
+        Returns
+        -------
+        dict:
+            The class configuration in the form of a dictionary.
+        """
+        base_config = super().get_config()
+        class_config = {
+            "rotation_delta": self.rotation_delta,
+            "output_dim": self.output_dim
+        }
+        base_config.update(class_config)
+        return base_config
