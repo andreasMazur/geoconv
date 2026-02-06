@@ -106,9 +106,9 @@ def dataset(zip_path,
         The number of angular coordinates of the template.
     preprocess_method: str
         The used preprocessing method. Either 'fmm', 'dgpc' or 'hdm'.
-    gpc_radius: float
+    gpc_radius: tf.Tensor
         The radius of the GPC system.
-    template_radius: float | tf.Tensor
+    template_radius: tf.Tensor
         The radius of the template.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
