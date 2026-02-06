@@ -9,7 +9,9 @@ import os
 def hypertuning(faust_path,
                 n_radial,
                 n_angular,
-                radius,
+                preprocess_method,
+                gpc_radius,
+                template_radius,
                 get_hypermodel,
                 save_path,
                 project_name,
@@ -23,7 +25,9 @@ def hypertuning(faust_path,
         set_type="train",
         n_radial=n_radial,
         n_angular=n_angular,
-        radius=tf.constant(radius, dtype=tf.float64),
+        preprocess_method=preprocess_method,
+        gpc_radius=gpc_radius,
+        template_radius=tf.constant(template_radius, dtype=tf.float64),
         return_rotations=return_rotations
     )
     val_data = dataset(
@@ -31,7 +35,9 @@ def hypertuning(faust_path,
         set_type="validation",
         n_radial=n_radial,
         n_angular=n_angular,
-        radius=tf.constant(radius, dtype=tf.float64),
+        preprocess_method=preprocess_method,
+        gpc_radius=gpc_radius,
+        template_radius=tf.constant(template_radius, dtype=tf.float64),
         return_rotations=return_rotations
     )
 
@@ -53,14 +59,25 @@ def hypertuning(faust_path,
     best_model.save(save_path)
 
 
-def training(faust_path, n_radial, n_angular, radius, model, save_path, epochs=10, return_rotations=True):
+def training(faust_path,
+             n_radial,
+             n_angular,
+             preprocess_method,
+             gpc_radius,
+             template_radius,
+             model,
+             save_path,
+             epochs=10,
+             return_rotations=True):
     # Get data
     train_data = dataset(
         zip_path=faust_path,
         set_type="train",
         n_radial=n_radial,
         n_angular=n_angular,
-        radius=tf.constant(radius, dtype=tf.float64),
+        preprocess_method=preprocess_method,
+        gpc_radius=gpc_radius,
+        template_radius=tf.constant(template_radius, dtype=tf.float64),
         return_rotations=return_rotations
     )
     val_data = dataset(
@@ -68,7 +85,9 @@ def training(faust_path, n_radial, n_angular, radius, model, save_path, epochs=1
         set_type="validation",
         n_radial=n_radial,
         n_angular=n_angular,
-        radius=tf.constant(radius, dtype=tf.float64),
+        preprocess_method=preprocess_method,
+        gpc_radius=gpc_radius,
+        template_radius=tf.constant(template_radius, dtype=tf.float64),
         return_rotations=return_rotations
     )
 
@@ -85,7 +104,9 @@ def training(faust_path, n_radial, n_angular, radius, model, save_path, epochs=1
         set_type="test",
         n_radial=n_radial,
         n_angular=n_angular,
-        radius=tf.constant(radius, dtype=tf.float64),
+        preprocess_method=preprocess_method,
+        gpc_radius=gpc_radius,
+        template_radius=tf.constant(template_radius, dtype=tf.float64),
         return_rotations=return_rotations
     )
     test_history = model.evaluate(test_data, return_dict=True)

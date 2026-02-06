@@ -2,8 +2,10 @@ import tensorflow as tf
 import numpy as np
 
 
-def adapt_generator(zip_path, set_type, n_radial, n_angular, radius, layer):
-    gen = generator(zip_path, set_type, n_radial, n_angular, radius, return_rotations=False)
+def adapt_generator(zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, layer):
+    gen = generator(
+        zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, return_rotations=False
+    )
     for (vertices, bc), _ in gen:
         yield layer(vertices[None, ...])
 
@@ -32,7 +34,7 @@ def generator(zip_path,
         The used preprocessing method. Either 'fmm', 'dgpc' or 'hdm'.
     gpc_radius: float
         The radius of the GPC system.
-    template_radius: float
+    template_radius: float | tf.Tensor
         The radius of the template.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
@@ -48,7 +50,9 @@ def generator(zip_path,
     zip_file = np.load(zip_path, allow_pickle=True)
 
     # Load zip content
-    zip_content = [f"faust_{preprocess_method}_{'_'.join(f'{gpc_radius}'.split('.'))}/tr_reg_{i:03d}" for i in range(100)]
+    zip_content = [
+        f"faust_{preprocess_method}_{'_'.join(f'{gpc_radius}'.split('.'))}/tr_reg_{i:03d}" for i in range(100)
+    ]
 
     # Get desired set type
     if set_type == "train":
@@ -76,7 +80,14 @@ def generator(zip_path,
             yield (vertices, barycentric_coordinates), ground_truth
 
 
-def dataset(zip_path, set_type, n_radial, n_angular, radius, return_rotations=True):
+def dataset(zip_path,
+            set_type,
+            n_radial,
+            n_angular,
+            preprocess_method,
+            gpc_radius,
+            template_radius,
+            return_rotations=True):
     """Returns a 'tensorflow dataset'-object for the ModelNet dataset.
 
     Parameters
@@ -89,7 +100,11 @@ def dataset(zip_path, set_type, n_radial, n_angular, radius, return_rotations=Tr
         The number of radial coordinates of the template.
     n_angular: int
         The number of angular coordinates of the template.
-    radius: tf.Tensor
+    preprocess_method: str
+        The used preprocessing method. Either 'fmm', 'dgpc' or 'hdm'.
+    gpc_radius: float
+        The radius of the GPC system.
+    template_radius: float | tf.Tensor
         The radius of the template.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
@@ -119,6 +134,8 @@ def dataset(zip_path, set_type, n_radial, n_angular, radius, return_rotations=Tr
 
     return tf.data.Dataset.from_generator(
         generator,
-        args=(zip_path, set_type, n_radial, n_angular, radius, return_rotations),
+        args=(
+            zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, return_rotations
+        ),
         output_signature=output_signature
     ).prefetch(tf.data.AUTOTUNE).batch(1)
