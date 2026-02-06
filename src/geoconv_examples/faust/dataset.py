@@ -8,7 +8,14 @@ def adapt_generator(zip_path, set_type, n_radial, n_angular, radius, layer):
         yield layer(vertices[None, ...])
 
 
-def generator(zip_path, set_type, n_radial, n_angular, radius, return_rotations=True):
+def generator(zip_path,
+              set_type,
+              n_radial,
+              n_angular,
+              preprocess_method,
+              gpc_radius,
+              template_radius,
+              return_rotations=True):
     """Returns a 'generator'-object for the ModelNet dataset.
 
     Parameters
@@ -21,7 +28,11 @@ def generator(zip_path, set_type, n_radial, n_angular, radius, return_rotations=
         The number of radial coordinates of the template.
     n_angular: int
         The number of angular coordinates of the template.
-    radius: float
+    preprocess_method: str
+        The used preprocessing method. Either 'fmm', 'dgpc' or 'hdm'.
+    gpc_radius: float
+        The radius of the GPC system.
+    template_radius: float
         The radius of the template.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
@@ -37,7 +48,7 @@ def generator(zip_path, set_type, n_radial, n_angular, radius, return_rotations=
     zip_file = np.load(zip_path, allow_pickle=True)
 
     # Load zip content
-    zip_content = [f"tr_reg_{i:03d}" for i in range(100)]
+    zip_content = [f"faust_{preprocess_method}_{'_'.join(f'{gpc_radius}'.split('.'))}/tr_reg_{i:03d}" for i in range(100)]
 
     # Get desired set type
     if set_type == "train":
@@ -55,20 +66,14 @@ def generator(zip_path, set_type, n_radial, n_angular, radius, return_rotations=
     for filepath in zip_content:
         vertices = zip_file[f"{filepath}/vertices"]
         barycentric_coordinates = zip_file[
-            f"{filepath}/barycentric_coordinates_{n_radial}_{n_angular}_{'_'.join(f'{radius}'.split('.'))}"
+            f"{filepath}/barycentric_coordinates_{n_radial}_{n_angular}_{'_'.join(f'{template_radius}'.split('.'))}"
         ]
         ground_truth = zip_file[f"{filepath}/ground_truth"]
-
-        # TODO: Remove
-        inverse_permutation = np.zeros(ground_truth.shape[0]).astype(np.int32)
-        for idx, perm_idx in enumerate(ground_truth):
-            inverse_permutation[perm_idx] = int(idx)
-
         if return_rotations:
             parallel_transport = zip_file[f"{filepath}/parallel_transport"]
-            yield (vertices, barycentric_coordinates, parallel_transport), inverse_permutation
+            yield (vertices, barycentric_coordinates, parallel_transport), ground_truth
         else:
-            yield (vertices, barycentric_coordinates), inverse_permutation
+            yield (vertices, barycentric_coordinates), ground_truth
 
 
 def dataset(zip_path, set_type, n_radial, n_angular, radius, return_rotations=True):
