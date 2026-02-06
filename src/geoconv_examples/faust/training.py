@@ -5,7 +5,9 @@ from geoconv_examples.faust.dataset import dataset
 import tensorflow as tf
 import keras_tuner as kt
 import json
+import numpy as np
 import os
+import random
 
 
 def hypertuning(faust_path,
@@ -70,7 +72,13 @@ def training(faust_path,
              model,
              save_path,
              epochs=10,
-             return_rotations=True):
+             return_rotations=True,
+             random_seed=42):
+    # Set seeds
+    tf.random.set_seed(random_seed)
+    np.random.seed(random_seed)
+    random.seed(random_seed)
+
     # Get data
     train_data = dataset(
         zip_path=faust_path,
