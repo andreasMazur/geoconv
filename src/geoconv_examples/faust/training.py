@@ -52,7 +52,7 @@ def hypertuning(faust_path,
     best_model.save(save_path)
 
 
-def training(faust_path, n_radial, n_angular, radius, batch_size, model, save_path, epochs=10, return_rotations=True):
+def training(faust_path, n_radial, n_angular, radius, model, save_path, epochs=10, return_rotations=True):
     # Get data
     train_data = dataset(
         zip_path=faust_path,
@@ -76,7 +76,7 @@ def training(faust_path, n_radial, n_angular, radius, batch_size, model, save_pa
 
     # Train model
     term = tf.keras.callbacks.TerminateOnNaN()
-    history = model.fit(x=train_data, batch_size=batch_size, epochs=epochs, validation_data=val_data, callbacks=[term])
+    history = model.fit(x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=[term])
 
     # Save model
     if save_path[-6:] != ".keras":
