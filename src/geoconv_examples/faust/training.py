@@ -96,7 +96,20 @@ def training(faust_path,
 
     # Train model
     term = tf.keras.callbacks.TerminateOnNaN()
-    train_history = model.fit(x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=[term])
+    if save_path[-6:] != ".keras":
+        save_path += ".keras"
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=save_path,
+        monitor="val_loss",
+        mode="min",
+        save_best_only=True,
+        save_weights_only=False,
+        verbose=True
+    )
+    train_history = model.fit(
+        x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=[term, cp_callback]
+    )
 
     # Test model
     test_data = dataset(
@@ -110,12 +123,6 @@ def training(faust_path,
         return_rotations=return_rotations
     )
     test_history = model.evaluate(test_data, return_dict=True)
-
-    # Save model
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    if save_path[-6:] != ".keras":
-        save_path += ".keras"
-    model.save(save_path)
 
     # Save history
     with open(f"{save_path[:-6]}_train_history.json", "w") as f:
