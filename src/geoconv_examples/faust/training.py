@@ -1,8 +1,9 @@
-from geoconv_examples.faust.dataset import dataset, adapt_generator
+from geoconv_examples.faust.dataset import dataset
 
 import tensorflow as tf
 import keras_tuner as kt
 import json
+import os
 
 
 def hypertuning(faust_path,
@@ -76,13 +77,27 @@ def training(faust_path, n_radial, n_angular, radius, model, save_path, epochs=1
 
     # Train model
     term = tf.keras.callbacks.TerminateOnNaN()
-    history = model.fit(x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=[term])
+    train_history = model.fit(x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=[term])
+
+    # Test model
+    test_data = dataset(
+        zip_path=faust_path,
+        set_type="test",
+        n_radial=n_radial,
+        n_angular=n_angular,
+        radius=tf.constant(radius, dtype=tf.float64),
+        return_rotations=return_rotations
+    )
+    test_history = model.evaluate(test_data, return_dict=True)
 
     # Save model
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
     if save_path[-6:] != ".keras":
         save_path += ".keras"
     model.save(save_path)
 
     # Save history
-    with open(f"{save_path[:-6]}_history.json", "w") as f:
-        json.dump(history.history, f, indent=4)
+    with open(f"{save_path[:-6]}_train_history.json", "w") as f:
+        json.dump(train_history.history, f, indent=4)
+    with open(f"{save_path[:-6]}_test_history.json", "w") as f:
+        json.dump(test_history, f, indent=4)
