@@ -18,6 +18,8 @@ def start_training_run(faust_path, preprocessing, kernel, save_path):
                 radius = FAUST[preprocessing][gpc_system_radius][template_radius]
                 model = define_model(
                     output_dims=[32, 64, 96, 64],
+                    preprocess_method=preprocessing,
+                    gpc_radius=gpc_system_radius,
                     template_radius=radius,
                     n_radial=n_radial,
                     n_angular=n_angular,

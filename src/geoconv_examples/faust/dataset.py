@@ -1,3 +1,5 @@
+from tqdm import tqdm
+
 import tensorflow as tf
 import numpy as np
 
@@ -6,7 +8,7 @@ def adapt_generator(zip_path, set_type, n_radial, n_angular, preprocess_method, 
     gen = generator(
         zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, return_rotations=False
     )
-    for (vertices, bc), _ in gen:
+    for (vertices, bc), _ in tqdm(gen, postfix="Adapting normalization layer..."):
         yield layer(vertices[None, ...])
 
 
