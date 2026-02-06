@@ -6,9 +6,19 @@ from geoconv_examples.faust.dataset import adapt_generator
 import tensorflow as tf
 
 
-def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, kernel, faust_path):
+def define_hypermodel(hp,
+                      output_dims,
+                      preprocess_method,
+                      gpc_radius,
+                      template_radius,
+                      n_radial,
+                      n_angular,
+                      kernel,
+                      faust_path):
     model = define_model(
         output_dims=output_dims,
+        preprocess_method=preprocess_method,
+        gpc_radius=gpc_radius,
         template_radius=template_radius,
         n_radial=n_radial,
         n_angular=n_angular,
