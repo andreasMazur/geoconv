@@ -30,7 +30,7 @@ def hypertuning(faust_path,
         n_radial=n_radial,
         n_angular=n_angular,
         preprocess_method=preprocess_method,
-        gpc_radius=gpc_radius,
+        gpc_radius=tf.constant(gpc_radius, dtype=tf.float64),
         template_radius=tf.constant(template_radius, dtype=tf.float64),
         return_rotations=return_rotations
     )
@@ -40,7 +40,7 @@ def hypertuning(faust_path,
         n_radial=n_radial,
         n_angular=n_angular,
         preprocess_method=preprocess_method,
-        gpc_radius=gpc_radius,
+        gpc_radius=tf.constant(gpc_radius, dtype=tf.float64),
         template_radius=tf.constant(template_radius, dtype=tf.float64),
         return_rotations=return_rotations
     )
