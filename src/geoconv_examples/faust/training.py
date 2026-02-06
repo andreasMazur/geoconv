@@ -1,3 +1,5 @@
+from geoconv.tensorflow.layers import ConvDirac, ConvGeodesic, AngularMaxPooling
+from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
 from geoconv_examples.faust.dataset import dataset
 
 import tensorflow as tf
@@ -111,7 +113,16 @@ def training(faust_path,
         x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=[term, cp_callback]
     )
 
-    # Test model
+    # Test best performing model
+    model = tf.keras.models.load_model(
+        save_path,
+        custom_objects={
+            "EuclNeighborsDescriptor": EuclNeighborsDescriptor,
+            "ConvDirac": ConvDirac,
+            "ConvGeodesic": ConvGeodesic,
+            "AngularMaxPooling": AngularMaxPooling
+        }
+    )
     test_data = dataset(
         zip_path=faust_path,
         set_type="test",
