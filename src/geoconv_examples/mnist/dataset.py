@@ -8,7 +8,6 @@ def dataset(mnist_atlas, set_type, n_radial, n_angular, radius, batch_size, retu
     # Load barycentric coordinates
     atlas = load_atlas(mnist_atlas)
     bc = atlas.barycentric_coordinates[(n_radial, n_angular, radius)]
-    radius = atlas.barycentric_coordinates_radius[(n_radial, n_angular)][0]
 
     # Load images
     mnist = tfds.load("mnist", split=set_type, shuffle_files=True, as_supervised=True)
@@ -32,4 +31,4 @@ def dataset(mnist_atlas, set_type, n_radial, n_angular, radius, batch_size, retu
     mnist = mnist.map(transform)
 
     # Return batched MNIST
-    return mnist.batch(batch_size).prefetch(tf.data.AUTOTUNE), radius
+    return mnist.batch(batch_size).prefetch(tf.data.AUTOTUNE)

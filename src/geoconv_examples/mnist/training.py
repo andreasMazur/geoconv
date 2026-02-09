@@ -8,6 +8,7 @@ import json
 def hypertuning(mnist_atlas,
                 n_radial,
                 n_angular,
+                template_radius,
                 batch_size,
                 get_hypermodel,
                 save_path,
@@ -15,19 +16,21 @@ def hypertuning(mnist_atlas,
                 epochs=10,
                 return_rotations=True):
     # Get data
-    train_data, template_radius = dataset(
+    train_data = dataset(
         mnist_atlas,
         set_type="train",
         n_radial=n_radial,
         n_angular=n_angular,
+        radius=template_radius,
         batch_size=batch_size,
         return_rotations=return_rotations
     )
-    test_data, _ = dataset(
+    test_data = dataset(
         mnist_atlas,
         set_type="test",
         n_radial=n_radial,
         n_angular=n_angular,
+        radius=template_radius,
         batch_size=batch_size,
         return_rotations=return_rotations
     )
@@ -50,13 +53,22 @@ def hypertuning(mnist_atlas,
     best_model.save(save_path)
 
 
-def training(mnist_atlas, n_radial, n_angular, batch_size, model, save_path, epochs=10, return_rotations=True):
+def training(mnist_atlas,
+             n_radial,
+             n_angular,
+             template_radius,
+             batch_size,
+             model,
+             save_path,
+             epochs=10,
+             return_rotations=True):
     # Get data
-    train_data, template_radius = dataset(
+    train_data = dataset(
         mnist_atlas,
         set_type="train",
         n_radial=n_radial,
         n_angular=n_angular,
+        radius=template_radius,
         batch_size=batch_size,
         return_rotations=return_rotations
     )
@@ -65,6 +77,7 @@ def training(mnist_atlas, n_radial, n_angular, batch_size, model, save_path, epo
         set_type="test",
         n_radial=n_radial,
         n_angular=n_angular,
+        radius=template_radius,
         batch_size=batch_size,
         return_rotations=return_rotations
     )
