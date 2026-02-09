@@ -358,8 +358,10 @@ class Atlas:
 
             # Save computed barycentric coordinates
             h5_bc_information = f.create_group("barycentric_coordinates")
-            for (n_radial, n_angular), bc in self.barycentric_coordinates.items():
-                h5_bc_information.create_dataset(f"{n_radial}_{n_angular}", data=bc, compression="gzip")
+            for (n_radial, n_angular, radius), bc in self.barycentric_coordinates.items():
+                h5_bc_information.create_dataset(
+                    f"{n_radial}_{n_angular}_{'_'.join(f'{radius}'.split('.'))}", data=bc, compression="gzip"
+                )
 
             # Save computed rotation angles for parallel transport
             h5_parallel_transport = f.create_group("parallel_transport")
