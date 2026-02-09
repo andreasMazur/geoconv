@@ -87,6 +87,35 @@ def determine_faces_for_charts(triangle_mesh, local_charts):
     return available_faces
 
 
+def load_available_template_configs(filepath):
+    """Loads the template configurations stored by an atlas.
+
+    Parameters
+    ----------
+    filepath: str | BytesIO
+        The filepath to- or bytes of the stored atlas.
+
+    Returns
+    -------
+    list:
+        The template configurations stored in the atlas loaded at 'filepath'.
+    """
+    template_configs = []
+    with h5py.File(filepath, "r") as f:
+        # Load barycentric coordinates
+        for template_res in f["barycentric_coordinates"].keys():
+            template_res_key = tuple([int(x) for x in template_res.split("_")])
+            n_radial, n_angular = template_res_key[0], template_res_key[1]
+            radius = float(".".join([f"{int(x)}" for x in template_res.split("_")][2:]))
+            template_configs.append({
+                "n_radial": n_radial,
+                "n_angular": n_angular,
+                "template_radius": radius
+            })
+    return template_configs
+
+
+
 def load_atlas(filepath):
     """Loads an atlas.
 
