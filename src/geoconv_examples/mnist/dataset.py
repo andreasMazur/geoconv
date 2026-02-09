@@ -4,10 +4,10 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 
-def dataset(mnist_atlas, set_type, n_radial, n_angular, batch_size, return_rotations=True):
+def dataset(mnist_atlas, set_type, n_radial, n_angular, radius, batch_size, return_rotations=True):
     # Load barycentric coordinates
     atlas = load_atlas(mnist_atlas)
-    bc = atlas.barycentric_coordinates[(n_radial, n_angular)]
+    bc = atlas.barycentric_coordinates[(n_radial, n_angular, radius)]
     radius = atlas.barycentric_coordinates_radius[(n_radial, n_angular)][0]
 
     # Load images
