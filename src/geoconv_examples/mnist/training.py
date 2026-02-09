@@ -72,7 +72,7 @@ def training(mnist_atlas,
         batch_size=batch_size,
         return_rotations=return_rotations
     )
-    test_data, _ = dataset(
+    test_data = dataset(
         mnist_atlas,
         set_type="test",
         n_radial=n_radial,
