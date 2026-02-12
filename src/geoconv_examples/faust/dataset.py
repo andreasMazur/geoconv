@@ -47,6 +47,8 @@ def generator(zip_path,
         A ModelNet generator.
     """
     if isinstance(zip_path, bytes):
+        zip_path = zip_path.decode("utf-8")
+    if isinstance(set_type, bytes):
         set_type = set_type.decode("utf-8")
     if isinstance(preprocess_method, bytes):
         preprocess_method = preprocess_method.decode("utf-8")
