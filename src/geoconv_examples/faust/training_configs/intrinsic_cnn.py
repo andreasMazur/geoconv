@@ -4,13 +4,7 @@ from geoconv_examples.faust.training_configs.dictionaries import FAUST
 
 
 def start_training_run(faust_path, preprocessing, kernel, save_path):
-    if kernel == "dirac":
-        learning_rate = 0.009
-    elif kernel == "geodesic":
-        learning_rate = 0.007
-    else:
-        raise ValueError("kernel must be either 'dirac' or 'geodesic'.")
-
+    learning_rate = 0.001
     for (n_radial, n_angular) in [(2, 4), (4, 8)]:
         for gpc_system_radius in [0.05, 0.1, 0.15, 0.2]:
             for template_radius_str in ["min", "median", "max"]:
