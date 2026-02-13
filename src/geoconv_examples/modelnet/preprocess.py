@@ -163,7 +163,7 @@ def preprocess_modelnet(zip_path,
             for template_resolution in template_resolutions:
                 n_radial, n_angular = template_resolution
                 # Compute BC for all template radii
-                for template_radius in [np.min(gpc_system_radii), np.median(gpc_system_radii), np.max(gpc_system_radii)]:
+                for template_radius in [np.median(gpc_system_radii)]:
                     print(
                         f"[BC computation] Calculating BC "
                         f"'{n_radial, n_angular, template_radius}' for '{mesh_filepath}']"
