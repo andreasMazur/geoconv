@@ -15,6 +15,10 @@ def generator(path, set_type, n_radial, n_angular, template_radius, method, retu
         The number of radial coordinates of the template.
     n_angular: int
         The number of angular coordinates of the template.
+    template_radius: float
+        The radius of the template.
+    method: str
+        The used preprocessing method.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
 
