@@ -2,7 +2,14 @@ import numpy as np
 import tensorflow as tf
 
 
-def generator(path, set_type, n_radial, n_angular, template_radius, method, return_rotations=True):
+def generator(path,
+              set_type,
+              n_radial,
+              n_angular,
+              template_radius,
+              method,
+              smallest_gpc_radius=0.01,
+              return_rotations=True):
     """Returns a 'generator'-object for the ModelNet dataset.
 
     Parameters
@@ -19,6 +26,9 @@ def generator(path, set_type, n_radial, n_angular, template_radius, method, retu
         The radius of the template.
     method: str
         The used preprocessing method.
+    smallest_gpc_radius: float
+        The smallest maximum radius for GPC-systems. Only this one stores vertices, gt and parallel transports, to save
+        memory usage.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
 
@@ -51,12 +61,13 @@ def generator(path, set_type, n_radial, n_angular, template_radius, method, retu
     else:
         raise RuntimeError(f"Invalid set_type: '{set_type}'. Select either 'train', 'validation', 'test' or 'all'.")
 
+    smallest_gpc_radius = "_".join(f"{smallest_gpc_radius}".split('.'))
     for filepath in zip_content:
         # Load barycentric coordinates
         barycentric_coordinates = zip_file[filepath]
 
         # Load related shape info
-        file_dir = "/".join([f"mn10_{method}_0_01"] + filepath.split("/")[1:-1])
+        file_dir = "/".join([f"mn10_{method}_{smallest_gpc_radius}"] + filepath.split("/")[1:-1])
         vertices = zip_file[f"{file_dir}/vertices"]
         gt = zip_file[f"{file_dir}/ground_truth"]
 
