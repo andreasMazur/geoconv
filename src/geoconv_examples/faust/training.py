@@ -58,7 +58,9 @@ def hypertuning(faust_path,
         seed=42,
         project_name=project_name,
     )
-    tuner.search(train_data, epochs=epochs, validation_data=val_data)
+    term = tf.keras.callbacks.TerminateOnNaN()
+    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=10, min_delta=0.001)
+    tuner.search(train_data, epochs=epochs, validation_data=val_data, callbacks=[term, stop])
 
     # Save best model
     best_model = tuner.get_best_models()[0]
@@ -121,8 +123,9 @@ def training(faust_path,
         save_weights_only=False,
         verbose=True
     )
+    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=10, min_delta=0.001)
     train_history = model.fit(
-        x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=[term, cp_callback]
+        x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=[term, cp_callback, stop]
     )
 
     # Test best performing model
