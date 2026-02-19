@@ -10,7 +10,7 @@ def start_training_run(faust_path, preprocessing, save_path, template_resolution
     for (n_radial, n_angular) in template_resolutions:
         for gpc_system_radius in [0.01, 0.02, 0.03, 0.04, 0.05]:
             # Define model
-            template_radius = FAUST[preprocessing][gpc_system_radius]
+            template_radius = FAUST[(n_radial, n_angular)][preprocessing][gpc_system_radius]
             model = define_model(
                 output_dims=[32, 64, 96, 64],
                 preprocess_method=preprocessing,
