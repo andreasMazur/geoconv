@@ -3,9 +3,11 @@ from geoconv_examples.faust.training import training
 from geoconv_examples.faust.training_configs.dictionaries import FAUST
 
 
-def start_training_run(faust_path, preprocessing, kernel, save_path):
+def start_training_run(faust_path, preprocessing, kernel, save_path, template_resolutions=None):
     learning_rate = 0.001
-    for (n_radial, n_angular) in [(4, 8)]:
+    if template_resolutions is None:
+        template_resolutions = [(4, 8)]
+    for (n_radial, n_angular) in template_resolutions:
         for gpc_system_radius in [0.01, 0.02, 0.03, 0.04, 0.05]:
             # Define model
             template_radius = FAUST[preprocessing][gpc_system_radius]
