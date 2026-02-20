@@ -3,8 +3,7 @@ from geoconv_examples.faust.training import training
 from geoconv_examples.faust.training_configs.dictionaries import FAUST
 
 
-def start_training_run(faust_path, preprocessing, save_path, template_resolutions=None):
-    learning_rate = 0.01
+def start_training_run(faust_path, preprocessing, save_path, template_resolutions=None, learning_rate=0.01):
     if template_resolutions is None:
         template_resolutions = [(4, 8)]
     for (n_radial, n_angular) in template_resolutions:
