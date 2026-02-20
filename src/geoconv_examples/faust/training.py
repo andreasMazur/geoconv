@@ -81,7 +81,7 @@ def training(faust_path,
              return_rotations=True,
              random_seed=42):
     # Check if model already exists
-    test_saving_path = f"{save_path[:-6]}_test_history.json"
+    test_saving_path = f"{save_path}_test_history.json"
     if os.path.isfile(test_saving_path):
         print(f"{test_saving_path} already exists! Skipping training...")
         return
