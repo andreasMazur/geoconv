@@ -80,6 +80,12 @@ def training(faust_path,
              epochs=10,
              return_rotations=True,
              random_seed=42):
+    # Check if model already exists
+    test_saving_path = f"{save_path[:-6]}_test_history.json"
+    if os.path.isfile(test_saving_path):
+        print(f"{test_saving_path} already exists! Skipping training...")
+        return
+
     # Set seeds
     tf.random.set_seed(random_seed)
     np.random.seed(random_seed)
@@ -157,5 +163,5 @@ def training(faust_path,
     # Save history
     with open(f"{save_path[:-6]}_train_history.json", "w") as f:
         json.dump(train_history.history, f, indent=4)
-    with open(f"{save_path[:-6]}_test_history.json", "w") as f:
+    with open(test_saving_path, "w") as f:
         json.dump(test_history, f, indent=4)
