@@ -66,7 +66,7 @@ def generator(zip_path,
     elif set_type == "validation":
         zip_content = zip_content[70:80]
     elif set_type == "test":
-        zip_content = zip_content[80:99]
+        zip_content = zip_content[80:100]
     elif set_type == "all":
         pass
     else:
