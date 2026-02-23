@@ -1,4 +1,4 @@
-from geoconv.preprocessing.angle_computation import compute_angles
+from geoconv.preprocessing.tangent_proj.angles import compute_angles_for_distances
 from geoconv.preprocessing.dgpc.wrapper import pickable_dgpc
 from geoconv.preprocessing.fmm.wrapper import pickable_fmm
 from geoconv.preprocessing.hdm.wrapper import pickable_hdm
@@ -90,7 +90,7 @@ def calculate_local_charts(triangle_mesh,
 
     if calculate_angle:
         # Compute angles using tangent plane projections
-        angles = compute_angles(triangle_mesh, distances)
+        angles = compute_angles_for_distances(triangle_mesh, distances)
 
         # Combine distances and angles to local charts
         return np.stack([distances, angles], axis=-1)
