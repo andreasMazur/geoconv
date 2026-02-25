@@ -1,7 +1,8 @@
-from geoconv.preprocessing.tangent_proj.angles import compute_angles_for_distances
 from geoconv.preprocessing.dgpc.wrapper import pickable_dgpc
 from geoconv.preprocessing.fmm.wrapper import pickable_fmm
 from geoconv.preprocessing.hdm.wrapper import pickable_hdm
+from geoconv.preprocessing.tp.wrapper import pickable_tp
+from geoconv.preprocessing.tp.angles import compute_angles_for_distances
 
 from multiprocessing import Pool
 from tqdm import tqdm
@@ -40,7 +41,9 @@ def calculate_local_charts(triangle_mesh,
         The computed local charts.
     """
     assert processes > 0, "Number of processes must be greater than 0."
-    assert method in ["hdm", "fmm", "dgpc"], "Choose either 'hdm', 'fmm' pr 'dgpc' as distance calculation method."
+    assert method in ["hdm", "fmm", "dgpc", "tp"], (
+        "Choose either 'hdm', 'fmm', 'dgpc' or 'tp' as distance calculation method."
+    )
 
     mesh_vertices = np.array(triangle_mesh.vertices)
     mesh_faces = np.array(triangle_mesh.faces)
@@ -66,6 +69,9 @@ def calculate_local_charts(triangle_mesh,
         elif method == "dgpc":
             method_fn = pickable_dgpc
             arg_list = [(idx_subset, mesh_vertices, mesh_faces, max_radius) for idx_subset in index_subsets]
+        elif method == "tp":
+            method_fn = pickable_tp
+            arg_list = [(idx_subset, mesh_vertices, max_radius) for idx_subset in index_subsets]
         else:
             raise RuntimeError("Unknown method for calculating geodesic distances.")
 
@@ -78,8 +84,8 @@ def calculate_local_charts(triangle_mesh,
         )
     distances = np.concatenate(distances, axis=0)
 
-    if method == "dgpc":
-        # The DGPC-algorithm returns both radial- and angular coordinates.
+    if method in ["dgpc", "tp"]:
+        # The DGPC/TP-algorithm returns both radial- and angular coordinates.
         # Thus, if user expects only distances, we extract them here.
         if not calculate_angle:
             distances = distances[..., 0]
@@ -130,3 +136,4 @@ def normalize_shape(triangle_mesh, method="hdm", processes=1):
     normalized_vertices = normalized_vertices - np.mean(normalized_vertices, axis=0)
 
     return trimesh.Trimesh(vertices=normalized_vertices, faces=np.array(triangle_mesh.faces)), geodesic_diameter
+

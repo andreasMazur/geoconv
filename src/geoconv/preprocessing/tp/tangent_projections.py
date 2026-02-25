@@ -1,6 +1,6 @@
-import numpy as np
-
 from geoconv.utils.misc import compute_distance_matrix
+
+import numpy as np
 
 
 def disambiguate_axis(axis, neighborhood):
@@ -90,21 +90,25 @@ def get_2d_projections(neighborhood_3d, rotation_axis=None, x_axis=None, y_axis=
     # Rescale projections to Euclidean length
     if rescale:
         projections = np.concatenate(
-            [np.zeros((1, 2)), projections[1:] / np.linalg.norm(projections[1:], axis=-1, keepdims=True)], axis=0
+            [np.zeros((1, 2)), projections[1:] / (np.linalg.norm(projections[1:] + np.finfo(np.float32).eps, axis=-1, keepdims=True))], axis=0
         )
         projections = projections * np.linalg.norm(neighborhood_3d, axis=-1, keepdims=True)
     return projections
 
 
-def get_3d_neighborhood(vertices, max_neighbors):
+def get_3d_neighborhood(vertices, max_radius, return_as_array=False, required_origins=None):
     """Determines the 3D neighborhood of the closest 'max_neighbors' vertices for all given 3D vertices.
 
     Parameters
     ----------
     vertices: np.ndarray
         The vertices of the shape.
-    max_neighbors: int
+    max_radius: float
         The maximum number of neighbors per neighborhood.
+    return_as_array: bool
+        Whether to return the neighborhoods in a padded array.
+    required_origins: np.ndarray
+        A list of indices for neighborhood-origins to keep.
 
     Returns
     -------
@@ -115,14 +119,47 @@ def get_3d_neighborhood(vertices, max_neighbors):
     # 'distance_matrix': (vertices, vertices)
     distance_matrix = compute_distance_matrix(vertices)
 
-    # 2.) Find 'max_neighbors'-closest vertices
-    # 'neighbor_indices': (vertices, max_neighbors)
-    neighbor_indices = distance_matrix.argsort(axis=-1)[:, :max_neighbors + 1]
+    # 2.) Define a (vertices, vertices, 3) 3D coordinates array
+    neighborhoods = np.tile(vertices[None], (vertices.shape[0], 1, 1))
 
-    # 3.) Select 3D coordinates of 'max_neighbors'-large neighborhoods
-    # (vertices, max_neighbors, 3)
-    neighborhoods = vertices[neighbor_indices]
+    # 3.) Shift neighborhoods into (0, 0, 0)
+    neighborhoods = neighborhoods - neighborhoods[np.arange(vertices.shape[0]), np.arange(vertices.shape[0])][:, None]
 
-    # 4.) Shift neighborhoods into (0, 0, 0) and remove origin
-    return neighborhoods - neighborhoods[:, [0], :], neighbor_indices
+    if return_as_array:
+        # 4.) Set all 3D coordinates farther than 'max_radius' to 'np.inf'
+        neighbor_indices = np.where(distance_matrix > max_radius)
 
+        # 5.) Return neighborhoods as array
+        neighborhoods[neighbor_indices] = [np.inf, np.inf, np.inf]
+        if required_origins is not None:
+            return np.array(neighborhoods)[required_origins]
+        else:
+            return np.array(neighborhoods)
+    else:
+        # 4.) Select all 3D coordinates closer than 'max_radius'
+        neighbor_indices = np.where(distance_matrix <= max_radius)
+
+        # 5.) Return neighborhoods as list
+        hood_list, current_hood_idx = [], -1
+        for hood_idx, neigh_id in np.stack(neighbor_indices, axis=-1):
+            # 5.1) Case: only a subset of neighborhoods is wished for
+            if required_origins is not None and hood_idx in required_origins:
+                if hood_idx != current_hood_idx:
+                    hood_list.append([])
+                    current_hood_idx += 1
+                hood_list[-1].append(np.array(neighborhoods[hood_idx, neigh_id]))
+
+            # 5.1) Case: All neighborhoods are wished for
+            elif required_origins is None:
+                if hood_idx != current_hood_idx:
+                    hood_list.append([])
+                    current_hood_idx += 1
+                hood_list[-1].append(np.array(neighborhoods[hood_idx, neigh_id]))
+
+        # 6.) Filter neighborhood indices down to required indices
+        if required_origins is not None:
+            neighbor_indices = np.array(
+                [(h, n) for (h, n) in np.stack(neighbor_indices, axis=-1) if h in required_origins]
+            )
+            neighbor_indices = (neighbor_indices[:, 0] - neighbor_indices[0, 0], neighbor_indices[:, 1])
+        return hood_list, neighbor_indices

@@ -1,4 +1,6 @@
-from geoconv.preprocessing.tangent_proj.project import get_2d_projections, get_3d_neighborhood
+from geoconv.preprocessing.tp.tangent_projections import get_2d_projections
+
+from tqdm import tqdm
 
 import numpy as np
 
@@ -58,9 +60,7 @@ def compute_angles_for_projections(projections):
     np.ndarray:
         The angles for all tangent plane projections.
     """
-    return np.arctan2(projections[..., 1], projections[..., 0]) + np.pi
-
-
-if __name__ == "__main__":
-
-    pass
+    angles = np.arctan2(projections[..., 1], projections[..., 0])
+    not_origin = (projections != [0., 0.]).all(axis=-1)
+    angles[not_origin] = angles[not_origin] + np.pi
+    return angles
