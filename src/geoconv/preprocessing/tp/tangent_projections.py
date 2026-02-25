@@ -89,9 +89,7 @@ def get_2d_projections(neighborhood_3d, rotation_axis=None, x_axis=None, y_axis=
 
     # Rescale projections to Euclidean length
     if rescale:
-        projections = np.concatenate(
-            [np.zeros((1, 2)), projections[1:] / (np.linalg.norm(projections[1:] + np.finfo(np.float32).eps, axis=-1, keepdims=True))], axis=0
-        )
+        projections = projections / (np.linalg.norm(projections + np.finfo(np.float32).eps, axis=-1, keepdims=True))
         projections = projections * np.linalg.norm(neighborhood_3d, axis=-1, keepdims=True)
     return projections
 

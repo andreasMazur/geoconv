@@ -27,7 +27,7 @@ def pickable_tp(idx_subset, vertices, eucl_max_radius):
     )
 
     # Get 2D projections
-    all_projections = [get_2d_projections(np.array(hood)) for hood in neighborhoods]
+    all_projections = [get_2d_projections(np.array(hood), rescale=True) for hood in neighborhoods]
 
     # Compute charts
     angles = [compute_angles_for_projections(p) for p in all_projections]
