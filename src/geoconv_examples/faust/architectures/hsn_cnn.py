@@ -40,12 +40,12 @@ def define_model(output_dims,
     # Forward pass
     signal = descr_layer(vertices_input)
     signal = normalization_layer(signal)
-    for od in output_dims:
+    for idx, od in enumerate(output_dims):
         signal = ConvHarmonic(
             output_dim=od,
             template_radius=template_radius,
             activation="linear",
-            rotation_order=1
+            rotation_order=idx+1
         )([signal, bc_input, rotations_input])
         signal = BetaRelu()(signal)
     output = tf.keras.layers.Dense(6890, activation="linear")(signal)
