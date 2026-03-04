@@ -34,3 +34,32 @@ def compute_parallel_transport(triangle_mesh):
         angles = np.arccos(np.einsum("i,ni->n", transport_vector, result))
         angles_n_x_n.append(angles)
     return np.array(angles_n_x_n)
+
+
+def concat_bc_and_angles(bc, angles):
+    """Retrieves the required angles for given barycentric coordinates and concatenates angles onto last dim. of 'bc'.
+
+    Parameters
+    ----------
+    bc: np.ndarray
+        The barycentric coordinates,
+    angles: np.ndarray
+        The (n_vertices x n_vertices) matrix containing the angles required for parallel transport.
+
+    Returns
+    -------
+    np.ndarray:
+        An array 'bc' that contains both the barycentric coordinates and their required angles for the parallel
+        transport. It has shape: (batch, n_vertices, n_radial, n_angular, 3, 3). Thereby, bc[..., 2] contains the
+        angles for vertex index bc[..., 1].
+    """
+    # Get indices of barycentric coordinates
+    # 'bc_indices': (batch, n_vertices, n_radial, n_angular, 3)
+    # _, bc_indices = tf.unstack(bc, axis=-1)
+    bc_indices = bc[..., 1].astype(np.int32)
+
+    # Gather angles
+    angles = angles[np.arange(bc.shape[0])[:, None, None, None], bc_indices]
+
+    # Concat bc and angles
+    return np.concatenate([bc, angles[..., None]], axis=-1)

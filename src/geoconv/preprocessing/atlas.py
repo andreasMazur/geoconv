@@ -1,7 +1,7 @@
 from geoconv.preprocessing.bc.bc_utils import polar_to_cart
 from geoconv.preprocessing.bc.wrapper import compute_barycentric_coordinates
 from geoconv.preprocessing.distance_computation import normalize_shape, calculate_local_charts
-from geoconv.utils.parallel_transport import compute_parallel_transport
+from geoconv.utils.parallel_transport import compute_parallel_transport, concat_bc_and_angles
 
 from tqdm import tqdm
 from matplotlib import pyplot as plt
@@ -306,7 +306,7 @@ class Atlas:
         # Placeholder for custom numpy arrays (e.g., vertex associated ground truth values)
         self.custom_arrays = {}
 
-    def save_training_data(self, filepath, save_vertices=True, save_parallel_transport=True):
+    def save_training_data(self, filepath, save_vertices=True, save_parallel_transport=False):
         """Saves only information that is required to train IMCNNs.
 
         Parameters
@@ -316,7 +316,8 @@ class Atlas:
         save_vertices: bool
             Whether to save the vertices of the atlas information.
         save_parallel_transport: bool
-            Whether to save the angles for the parallel transport of the atlas information.
+            Whether to save the entire angle matrix for the parallel transport of the atlas information.
+            If 'False', only the required angles are saved.
         """
         # Create directory to store information in
         os.makedirs(filepath, exist_ok=True)
@@ -327,8 +328,14 @@ class Atlas:
 
         # Save barycentric coordinates
         for template_res, bc in self.barycentric_coordinates.items():
+            # Concatenate mesh vertices and barycentric coordinates
+            bc_and_angles = concat_bc_and_angles(bc, self.parallel_transport)
+
             radius = '_'.join(f'{template_res[2]}'.split('.'))
-            np.save(f"{filepath}/barycentric_coordinates_{template_res[0]}_{template_res[1]}_{radius}.npy", bc)
+            np.save(
+                f"{filepath}/barycentric_coordinates_{template_res[0]}_{template_res[1]}_{radius}.npy",
+                bc_and_angles
+            )
 
         # Save angles for parallel transport
         if save_parallel_transport:
