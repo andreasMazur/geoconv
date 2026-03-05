@@ -2,8 +2,10 @@ from geoconv.tensorflow.layers import ConvDirac, ConvGeodesic, AngularMaxPooling
 from geoconv.tensorflow.layers.activation_beta_relu import BetaRelu
 from geoconv.tensorflow.layers.convolutions.conv_harmonic import ConvHarmonic
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
+from geoconv.tensorflow.layers.lift_features import LiftFeatures2D
 from geoconv_gem.tensorflow.layers.convolutions.conv_gem import ConvGEM
 from geoconv_gem.tensorflow.layers.convolutions.conv_eman import ConvEMAN
+
 from geoconv_examples.faust.dataset import dataset
 
 import tensorflow as tf
@@ -145,7 +147,8 @@ def training(faust_path,
             "ConvHarmonic": ConvHarmonic,
             "BetaRelu": BetaRelu,
             "ConvGEM": ConvGEM,
-            "ConvEMAN": ConvEMAN
+            "ConvEMAN": ConvEMAN,
+            "LiftFeatures2D": LiftFeatures2D
         }
     )
     test_data = dataset(
