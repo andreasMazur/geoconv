@@ -24,7 +24,7 @@ class ConvHarmonic(ConvBase):
         self.rotation_order_vector = None
 
     def build(self, inputs):
-        signal_shape, bc_shape, rotations_shape = inputs
+        signal_shape, bc_shape = inputs
 
         # Call build of parent class
         super().build([signal_shape, bc_shape])
@@ -109,12 +109,11 @@ class ConvHarmonic(ConvBase):
     def call(self, inputs):
         # signals : (n_batch, n_vertices, input_dim, 2)
         # bc      : (n_batch, n_vertices, n_radial, n_angular, 3, 2)
-        # angles  : (n_batch, n_vertices, n_vertices)
-        signals, bc, angles = inputs
+        signals, bc = inputs
 
         # Get transported and interpolated feature vectors at each template vertex
         # neighbor_signals : (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
-        neighbor_signals = self._interpolation_with_parallel_transport(signals, bc, angles, self.rotation_order_vector)
+        neighbor_signals = self._interpolation_with_parallel_transport(signals, bc, self.rotation_order_vector)
 
         # Get phase weight tensor
         # phase_weights: (n_angular, output_dim / 2, 2, 2)

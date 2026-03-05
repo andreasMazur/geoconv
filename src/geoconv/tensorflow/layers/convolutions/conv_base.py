@@ -97,7 +97,7 @@ class ConvBase(tf.keras.layers.Layer):
         return tf.reduce_sum(tf.expand_dims(barycentric_coordinates, axis=-1) * mesh_signal, axis=-2)
 
     @tf.function
-    def _interpolation_with_parallel_transport(self, signals, bc, angles, rotation_order_vector):
+    def _interpolation_with_parallel_transport(self, signals, bc, rotation_order_vector):
         """Wrapper function for feature gathering, parallel transport and interpolation.
 
         Parameters
@@ -108,9 +108,6 @@ class ConvBase(tf.keras.layers.Layer):
         bc: tf.Tensor
             The barycentric coordinates tensor.
             Shape: (batch, n_vertices, n_radial, n_angular, 3, 2)
-        angles: tf:Tensor
-            The angle tensor.
-            Shape: (batch, n_vertices, n_vertices)
         rotation_order_vector: tf.Tensor
             A vector describing the rotation orders of the individual geometric components.
             Shape: (input_dim / 2)
@@ -125,7 +122,7 @@ class ConvBase(tf.keras.layers.Layer):
         # Get template vertex interpolations
         # neighbor_signals : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim)
         # bc_coefficients  : (n_batch, n_vertices, n_radial, n_angular, 3)
-        neighbor_signals, bc_coefficients = self._gather_signals(bc, signals)
+        neighbor_signals, bc_coefficients = self._gather_signals(bc, signals, bc_with_angles=True)
 
         # Reshape gathered signals into their geometric components
         # neighbor_signals : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2)
@@ -146,7 +143,7 @@ class ConvBase(tf.keras.layers.Layer):
 
         # Prepare rotation matrices for parallel transport
         # rotation_matrices : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
-        rotation_matrices = self.create_rotation_matrices(angles, bc, rotation_order_vector)
+        rotation_matrices = self.create_rotation_matrices(bc, rotation_order_vector)
 
         # Transport via rotation and interpolate signals at template vertices
         # (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
@@ -185,7 +182,7 @@ class ConvBase(tf.keras.layers.Layer):
         )
 
     @tf.function
-    def _gather_signals(self, barycentric_coordinates, mesh_signal):
+    def _gather_signals(self, barycentric_coordinates, mesh_signal, bc_with_angles=False):
         """Gathers required feature vectors and associated those to given barycentric coordinates.
 
         Parameters
@@ -194,6 +191,8 @@ class ConvBase(tf.keras.layers.Layer):
             The barycentric coordinates tensor.
         mesh_signal: tf.Tensor
             The feature vectors at the mesh vertices.
+        bc_with_angles: bool
+            Whether the barycentric coordinates have angles concatenated to them.
 
         Returns
         -------
@@ -206,7 +205,10 @@ class ConvBase(tf.keras.layers.Layer):
         bc_shape = tf.shape(barycentric_coordinates)
 
         # (n_batch, n_vertices * n_radial * n_angular * 3)
-        bc_values, bc_indices = tf.unstack(barycentric_coordinates, axis=-1)
+        if bc_with_angles:
+            bc_values, bc_indices, _ = tf.unstack(barycentric_coordinates, axis=-1)
+        else:
+            bc_values, bc_indices = tf.unstack(barycentric_coordinates, axis=-1)
         bc_indices = tf.cast(
             tf.reshape(bc_indices, (bc_shape[0], -1)), tf.int32
         )
@@ -221,7 +223,7 @@ class ConvBase(tf.keras.layers.Layer):
         return mesh_signal, bc_values
 
     @tf.function
-    def create_rotation_matrices(self, angles, bc, rotation_order):
+    def create_rotation_matrices(self, bc, rotation_order):
         """Creates rotation matrices from given angles for parallel transport.
 
         Rotation matrix used:
@@ -232,8 +234,6 @@ class ConvBase(tf.keras.layers.Layer):
 
         Parameters
         ----------
-        angles: tf.Tensor
-            A batch of square matrices containing the angles required for parallel transport.
         bc: tf.Tensor
             The barycentric coordinates tensor.
         rotation_order: tf.Tensor
@@ -247,10 +247,8 @@ class ConvBase(tf.keras.layers.Layer):
             Shape: (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
         """
         ### Gather the rotations angles ###
-        # angles     : (n_batch, n_vertices, n_vertices)
-        # bc[..., 1] : (n_batch, n_vertices, n_radial, n_angular, 3)
         # result     : (n_batch, n_vertices, n_radial, n_angular, 3)
-        angles = tf.gather(angles, tf.cast(bc[..., 1], dtype=tf.int32), batch_dims=2)
+        angles = bc[..., -1]
 
         ### Include rotation order ###
         # rotation_order : (      1,          1,        1,         1, 1, input_dim / 2)
@@ -265,6 +263,7 @@ class ConvBase(tf.keras.layers.Layer):
         S = tf.constant([[0., -1.], [1., 0.]])
         rot_matrices = tf.cos(angles)[..., None, None] * C + tf.sin(angles)[..., None, None] * S
 
+        # 'rot_matrices': (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
         return rot_matrices
 
     def get_config(self):
