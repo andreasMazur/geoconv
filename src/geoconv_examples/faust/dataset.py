@@ -121,22 +121,16 @@ def dataset(zip_path,
         A ModelNet dataset.
     """
     if return_rotations:
-        output_signature = (
-            (
-                tf.TensorSpec(shape=(6890, 3), dtype=tf.float32),
-                tf.TensorSpec(shape=(6890,) + (n_radial, n_angular) + (3, 2), dtype=tf.float32),
-                tf.TensorSpec(shape=(6890, 6890), dtype=tf.float32),
-            ),
-            tf.TensorSpec(shape=(6890,), dtype=tf.float32),
-        )
+        bc_shape = (3, 3)
     else:
-        output_signature = (
-            (
-                tf.TensorSpec(shape=(6890, 3), dtype=tf.float32),
-                tf.TensorSpec(shape=(6890,) + (n_radial, n_angular) + (3, 2), dtype=tf.float32)
-            ),
-            tf.TensorSpec(shape=(6890,), dtype=tf.float32),
-        )
+        bc_shape = (3, 2)
+    output_signature = (
+        (
+            tf.TensorSpec(shape=(6890, 3), dtype=tf.float32),
+            tf.TensorSpec(shape=(6890,) + (n_radial, n_angular) + bc_shape, dtype=tf.float32)
+        ),
+        tf.TensorSpec(shape=(6890,), dtype=tf.float32),
+    )
 
     return tf.data.Dataset.from_generator(
         generator,
