@@ -20,3 +20,6 @@ class EuclNeighborsDescriptor(tf.keras.layers.Layer):
         return tf.reshape(
             neighborhoods, (neighborhoods_shape[0], neighborhoods_shape[1], self.n_neighbors * 3)
         )[..., 3:]  # Cut away the origin-zero vectors
+
+    def get_feature_vector_dim(self):
+        return (3 / 2) * self.n_radial * self.n_angular
