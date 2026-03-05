@@ -106,7 +106,7 @@ class ConvBase(tf.keras.layers.Layer):
             The surface signal.
             Shape: (batch, n_vertices, input_dim, 2)
         bc: tf.Tensor
-            The barycentric coordinates tensor.
+            The barycentric coordinates tensor with angles.
             Shape: (batch, n_vertices, n_radial, n_angular, 3, 3)
         rotation_order_vector: tf.Tensor
             A vector describing the rotation orders of the individual geometric components.
