@@ -30,8 +30,7 @@ def define_model(output_dims,
                  learning_rate=0.001):
     # Define input layers
     vertices_input = tf.keras.Input(shape=(6890, 3), name="vertices_input", dtype=tf.float32)
-    bc_input = tf.keras.Input(shape=(6890, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
-    rotations_input = tf.keras.Input(shape=(6890, 6890), name="rotations_input", dtype=tf.float32)
+    bc_input = tf.keras.Input(shape=(6890, n_radial, n_angular, 3, 3), name="bc_input", dtype=tf.float32)
 
     # Remember descriptor- and normalization layer for normalization layer adaption
     descr_layer = EuclNeighborsDescriptor(n_radial, n_angular)
@@ -46,12 +45,12 @@ def define_model(output_dims,
             template_radius=template_radius,
             activation="linear",
             rotation_order=idx+1
-        )([signal, bc_input, rotations_input])
+        )([signal, bc_input])
         signal = BetaRelu()(signal)
     output = tf.keras.layers.Dense(6890, activation="linear")(signal)
 
     imcnn = tf.keras.Model(
-        inputs=[vertices_input, bc_input, rotations_input], outputs=output, name="faust_model"
+        inputs=[vertices_input, bc_input], outputs=output, name="faust_model"
     )
     imcnn.compile(
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
