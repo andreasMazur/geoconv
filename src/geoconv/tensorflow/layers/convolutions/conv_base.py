@@ -107,7 +107,7 @@ class ConvBase(tf.keras.layers.Layer):
             Shape: (batch, n_vertices, input_dim, 2)
         bc: tf.Tensor
             The barycentric coordinates tensor.
-            Shape: (batch, n_vertices, n_radial, n_angular, 3, 2)
+            Shape: (batch, n_vertices, n_radial, n_angular, 3, 3)
         rotation_order_vector: tf.Tensor
             A vector describing the rotation orders of the individual geometric components.
             Shape: (input_dim / 2)
