@@ -57,7 +57,8 @@ def generator(zip_path,
 
     # Load zip content
     zip_content = [
-        f"faust_{preprocess_method}_{'_'.join(f'{gpc_radius}'.split('.'))}/tr_reg_{i:03d}" for i in range(100)
+        f"faust_{preprocess_method}_{n_radial}_{n_angular}_{'_'.join(f'{gpc_radius}'.split('.'))}/tr_reg_{i:03d}"
+        for i in range(100)
     ]
 
     # Get desired set type
@@ -76,14 +77,13 @@ def generator(zip_path,
     for filepath in zip_content:
         vertices = zip_file[f"{filepath}/vertices"]
         barycentric_coordinates = zip_file[
-            f"{filepath}/barycentric_coordinates_{n_radial}_{n_angular}_{'_'.join(f'{template_radius}'.split('.'))}"
+            f"{filepath}/barycentric_coordinates_{n_radial}_{n_angular}_{template_radius}"
         ]
         ground_truth = zip_file[f"{filepath}/ground_truth"]
         if return_rotations:
-            parallel_transport = zip_file[f"{filepath}/parallel_transport"]
-            yield (vertices, barycentric_coordinates, parallel_transport), ground_truth
-        else:
             yield (vertices, barycentric_coordinates), ground_truth
+        else:
+            yield (vertices, barycentric_coordinates[..., :2]), ground_truth
 
 
 def dataset(zip_path,
