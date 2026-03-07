@@ -5,6 +5,8 @@ from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclN
 from geoconv.tensorflow.layers.lift_features import LiftFeatures2D
 from geoconv_gem.tensorflow.layers.convolutions.conv_gem import ConvGEM
 from geoconv_gem.tensorflow.layers.convolutions.conv_eman import ConvEMAN
+from geoconv_gem.tensorflow.layers.convolutions.conv_gem_p import ConvGEMP
+from geoconv_gem.tensorflow.layers.convolutions.conv_eman_p import ConvEMANP
 
 from geoconv_examples.faust.dataset import dataset
 
@@ -148,7 +150,9 @@ def training(faust_path,
             "BetaRelu": BetaRelu,
             "ConvGEM": ConvGEM,
             "ConvEMAN": ConvEMAN,
-            "LiftFeatures2D": LiftFeatures2D
+            "LiftFeatures2D": LiftFeatures2D,
+            "ConvGEMP": ConvGEMP,
+            "ConvEMANP": ConvEMANP,
         }
     )
     test_data = dataset(
