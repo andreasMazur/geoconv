@@ -107,8 +107,8 @@ class ConvHarmonic(ConvBase):
 
     @tf.function
     def call(self, inputs):
-        # signals : (n_batch, n_vertices, input_dim, 2)
-        # bc      : (n_batch, n_vertices, n_radial, n_angular, 3, 2)
+        # signals : (n_batch, n_vertices, input_dim)
+        # bc      : (n_batch, n_vertices, n_radial, n_angular, 3, 3)
         signals, bc = inputs
 
         # Get transported and interpolated feature vectors at each template vertex

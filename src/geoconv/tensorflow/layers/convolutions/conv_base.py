@@ -104,7 +104,7 @@ class ConvBase(tf.keras.layers.Layer):
         ----------
         signals: tf.Tensor
             The surface signal.
-            Shape: (batch, n_vertices, input_dim, 2)
+            Shape: (batch, n_vertices, input_dim)
         bc: tf.Tensor
             The barycentric coordinates tensor with angles.
             Shape: (batch, n_vertices, n_radial, n_angular, 3, 3)
