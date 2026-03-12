@@ -69,9 +69,7 @@ class ConvHarmonic(ConvBase):
         # _all_angular_coordinates : (n_angular,)
         # _phase_offset            : (output_dim / 2,)
         # angles                   : (n_angular, output_dim / 2)
-        angles = tf.einsum(
-            "i,j->ij", self.rotation_order * self._all_angular_coordinates, self._phase_offset
-        )
+        angles = (self.rotation_order * self._all_angular_coordinates)[:, None] + self._phase_offset[None, :]
 
         # Apply trigonometric functions
         # cos_matrix: (n_angular, output_dim / 2)
