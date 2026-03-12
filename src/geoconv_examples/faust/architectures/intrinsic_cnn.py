@@ -25,6 +25,7 @@ def define_hypermodel(hp,
         kernel=kernel,
         faust_path=faust_path,
         learning_rate=hp.Float("learning_rate", min_value=1e-8, max_value=0.1),
+        lr_decay_rate=hp.Float("learning_rate_decay", min_value=0.5, max_value=0.999999)
     )
     return model
 
@@ -37,7 +38,8 @@ def define_model(output_dims,
                  n_angular,
                  kernel,
                  faust_path,
-                 learning_rate=0.001):
+                 learning_rate=0.001,
+                 lr_decay_rate=1.0):
     # Define input layers
     vertices_input = tf.keras.Input(shape=(6890, 3), name="vertices_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(6890, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
@@ -69,7 +71,13 @@ def define_model(output_dims,
     imcnn = tf.keras.Model(inputs=[vertices_input, bc_input], outputs=output, name="faust_model")
     imcnn.compile(
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+        optimizer=tf.keras.optimizers.Adam(
+            learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
+                initial_learning_rate=learning_rate,
+                decay_steps=7000,
+                decay_rate=lr_decay_rate
+            )
+        ),
         metrics=["sparse_categorical_accuracy"]
     )
 
