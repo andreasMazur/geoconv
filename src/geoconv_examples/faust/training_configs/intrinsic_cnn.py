@@ -3,7 +3,13 @@ from geoconv_examples.faust.training import training
 from geoconv_examples.faust.training_configs.dictionaries import FAUST
 
 
-def start_training_run(faust_path, preprocessing, kernel, save_path, template_resolutions=None, learning_rate=0.001):
+def start_training_run(faust_path,
+                       preprocessing,
+                       kernel,
+                       save_path,
+                       template_resolutions=None,
+                       learning_rate=0.001,
+                       lr_decay_rate=1.0):
     if template_resolutions is None:
         template_resolutions = [(4, 8)]
     for (n_radial, n_angular) in template_resolutions:
@@ -19,6 +25,7 @@ def start_training_run(faust_path, preprocessing, kernel, save_path, template_re
                 n_angular=n_angular,
                 kernel=kernel,
                 learning_rate=learning_rate,
+                lr_decay_rate=lr_decay_rate,
                 faust_path=faust_path,
             )
 
