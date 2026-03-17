@@ -42,7 +42,6 @@ def generator(path,
         f for f in zip_file.files
         if f"mn10_{method}_{'_'.join(f'{chart_max_radius}'.split('.'))}" in f and "barycentric_coordinates" in f
     ]
-    print(f"mn10_{method}_{'_'.join(f'{chart_max_radius}'.split('.'))}")
 
     # Get desired set type
     if set_type == "train":
