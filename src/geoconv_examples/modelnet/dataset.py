@@ -1,6 +1,14 @@
+from tqdm import tqdm
+
 import numpy as np
 import tensorflow as tf
 import os
+
+
+def adapt_generator(layer, path, set_type, chart_max_radius, method):
+    gen = generator(path, set_type, chart_max_radius, method, return_rotations=False)
+    for (vertices, bc), _ in tqdm(gen, postfix="Adapting normalization layer..."):
+        yield layer(vertices[None, ...])
 
 
 def generator(path,
