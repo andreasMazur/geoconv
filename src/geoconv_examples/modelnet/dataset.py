@@ -6,8 +6,8 @@ import os
 import math
 
 
-def adapt_generator(layer, path, set_type, chart_max_radius, method):
-    gen = generator(path, set_type, chart_max_radius, method, return_rotations=False)
+def adapt_generator(layer, path, set_type, chart_max_radius, method, do_zero_pad):
+    gen = generator(path, set_type, chart_max_radius, method, return_rotations=False, do_zero_pad=do_zero_pad)
     for (vertices, bc), _ in tqdm(gen, postfix="Adapting normalization layer..."):
         yield layer(vertices[None, ...])
 
