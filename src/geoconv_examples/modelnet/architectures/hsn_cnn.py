@@ -9,8 +9,6 @@ import tensorflow as tf
 
 def define_hypermodel(hp,
                       output_dims,
-                      ds_local,
-                      ds_global,
                       preprocess_method,
                       gpc_radius,
                       template_radius,
@@ -19,8 +17,6 @@ def define_hypermodel(hp,
                       faust_path):
     model = define_model(
         output_dims=output_dims,
-        ds_local=ds_local,
-        ds_global=ds_global,
         preprocess_method=preprocess_method,
         gpc_radius=gpc_radius,
         template_radius=template_radius,
