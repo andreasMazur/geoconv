@@ -133,9 +133,9 @@ def generator(path,
 
         # Yield dataset elements
         if return_rotations:
-            yield (vertices, barycentric_coordinates), gt[0]
+            yield (vertices, barycentric_coordinates), gt
         else:
-            yield (vertices, barycentric_coordinates[..., :2]), gt[0]
+            yield (vertices, barycentric_coordinates[..., :2]), gt
 
 
 def dataset(path, set_type, n_radial, n_angular, chart_max_radius, method, return_rotations=True):
@@ -172,7 +172,7 @@ def dataset(path, set_type, n_radial, n_angular, chart_max_radius, method, retur
             tf.TensorSpec(shape=(6042, 3), dtype=tf.float32),
             tf.TensorSpec(shape=(6042,) + (n_radial, n_angular) + bc_shape, dtype=tf.float32)
         ),
-        tf.TensorSpec(shape=(), dtype=tf.float32),
+        tf.TensorSpec(shape=(None,), dtype=tf.float32),
     )
 
     return tf.data.Dataset.from_generator(
