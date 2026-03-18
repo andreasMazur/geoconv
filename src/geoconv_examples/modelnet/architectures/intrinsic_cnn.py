@@ -69,7 +69,12 @@ def define_model(output_dims,
         signal = AngularMaxPooling()(signal)
 
     # Aggregation and classification
-    output = DeepSet(local_network_dims=[], global_network_dims=[10])(signal)
+    output = DeepSet(
+        local_network_dims=[],
+        global_network_dims=[10],
+        local_activation="linear",
+        global_activation="linear"
+    )(signal)
 
     imcnn = tf.keras.Model(inputs=[vertices_input, bc_input], outputs=output, name="mn10_model")
     imcnn.compile(
