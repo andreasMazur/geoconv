@@ -43,7 +43,8 @@ def generator(path,
               chart_max_radius,
               method,
               return_rotations=True,
-              random_seed=42):
+              random_seed=42,
+              do_zero_pad=True):
     """Returns a 'generator'-object for the ModelNet dataset.
 
     Parameters
@@ -60,6 +61,9 @@ def generator(path,
         Whether to return the rotation angles for the parallel transport.
     random_seed: int
         The random seed used to shuffle the data.
+    do_zero_pad: bool
+        Whether to zero pad all arrays expect the ground truth label to the same size in the first axis as the
+        largest array in the dataset.
 
     Returns
     -------
@@ -128,8 +132,9 @@ def generator(path,
         gt = zip_file[f"{file_dir}/ground_truth"]
 
         # Zero pad vertices and bc to a common shape
-        vertices = zero_pad(vertices)
-        barycentric_coordinates = zero_pad(barycentric_coordinates)
+        if do_zero_pad:
+            vertices = zero_pad(vertices)
+            barycentric_coordinates = zero_pad(barycentric_coordinates)
 
         # Yield dataset elements
         if return_rotations:
@@ -138,7 +143,7 @@ def generator(path,
             yield (vertices, barycentric_coordinates[..., :2]), gt
 
 
-def dataset(path, set_type, n_radial, n_angular, chart_max_radius, method, return_rotations=True):
+def dataset(path, set_type, n_radial, n_angular, chart_max_radius, method, return_rotations=True, do_zero_pad=True):
     """Returns a 'tensorflow dataset'-object for the ModelNet dataset.
 
     Parameters
@@ -157,6 +162,9 @@ def dataset(path, set_type, n_radial, n_angular, chart_max_radius, method, retur
         The used preprocessing method.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
+    do_zero_pad: bool
+        Whether to zero pad all arrays expect the ground truth label to the same size in the first axis as the
+        largest array in the dataset.
 
     Returns
     -------
@@ -177,6 +185,6 @@ def dataset(path, set_type, n_radial, n_angular, chart_max_radius, method, retur
 
     return tf.data.Dataset.from_generator(
         generator,
-        args=(path, set_type, chart_max_radius, method, return_rotations),
+        args=(path, set_type, chart_max_radius, method, return_rotations, do_zero_pad),
         output_signature=output_signature
     ).prefetch(tf.data.AUTOTUNE).batch(1)
