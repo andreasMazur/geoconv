@@ -34,8 +34,6 @@ def define_hypermodel(hp,
 
 
 def define_model(output_dims,
-                 ds_local,
-                 ds_global,
                  preprocess_method,
                  gpc_radius,
                  template_radius,
@@ -65,10 +63,7 @@ def define_model(output_dims,
         signal = BetaRelu()(signal)
 
     # Global pooling
-    signal = DeepSet(local_network_dims=ds_local, global_network_dims=ds_global)(signal)
-
-    # Classification
-    output = tf.keras.layers.Dense(10, activation="linear")(signal)
+    output = DeepSet(local_network_dims=[], global_network_dims=[10])(signal)
 
     imcnn = tf.keras.Model(
         inputs=[vertices_input, bc_input], outputs=output, name="faust_model"
