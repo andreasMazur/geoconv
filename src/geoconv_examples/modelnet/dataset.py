@@ -3,6 +3,7 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 import os
+import math
 
 
 def adapt_generator(layer, path, set_type, chart_max_radius, method):
@@ -11,11 +12,33 @@ def adapt_generator(layer, path, set_type, chart_max_radius, method):
         yield layer(vertices[None, ...])
 
 
+def get_class_name_and_number(filepath):
+    filepath = filepath.split("/")[-2]
+    if filepath.count("_") == 2:
+        cls_1, cls_2, number = filepath.split("_")
+        cls = f"{cls_1}_{cls_2}"
+    else:
+        cls, number = filepath.split("_")
+    return cls, int(number)
+
+
+def get_class_counts(zip_content):
+    class_counts = {}
+    for filepath in zip_content:
+        cls, _ = get_class_name_and_number(filepath)
+        if cls not in class_counts.keys():
+            class_counts[cls] = 1
+        else:
+            class_counts[cls] += 1
+    return class_counts
+
+
 def generator(path,
               set_type,
               chart_max_radius,
               method,
-              return_rotations=True):
+              return_rotations=True,
+              random_seed=42):
     """Returns a 'generator'-object for the ModelNet dataset.
 
     Parameters
@@ -23,13 +46,15 @@ def generator(path,
     path: str
         The path to the preprocessed zip-file of ModelNet.
     set_type: str
-        The set type. Either: 'train', 'test' or 'all'.
+        The set type. Either: 'train', 'val', 'test' or 'all'.
     chart_max_radius: float
         The upper bound radius for the local charts.
     method: str
         The used preprocessing method.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
+    random_seed: int
+        The random seed used to shuffle the data.
 
     Returns
     -------
@@ -50,16 +75,43 @@ def generator(path,
         f for f in zip_file.files
         if f"mn10_{method}_{'_'.join(f'{chart_max_radius}'.split('.'))}" in f and "barycentric_coordinates" in f
     ]
+    zip_content.sort(key=get_class_name_and_number)
 
     # Get desired set type
     if set_type == "train":
-        zip_content = [f for f in zip_content if "train" in f]
+        # Filter down to training data
+        zip_content_temp = [f for f in zip_content if "train" in f]
+
+        # Get the class counts
+        class_counts = get_class_counts(zip_content_temp)
+
+        # Filter down to first 90% of training data per class
+        zip_content = []
+        for cls, count in class_counts.items():
+            cls_zip_content = [f for f in zip_content_temp if cls in f][:math.floor(count * 0.9)]
+            zip_content.extend(cls_zip_content)
+    elif set_type == "val":
+        # Filter down to training data
+        zip_content_temp = [f for f in zip_content if "train" in f]
+
+        # Get the class counts
+        class_counts = get_class_counts(zip_content_temp)
+
+        # Filter down to last 10% of training data per class
+        zip_content = []
+        for cls, count in class_counts.items():
+            cls_zip_content = [f for f in zip_content_temp if cls in f][math.floor(count * 0.9):]
+            zip_content.extend(cls_zip_content)
     elif set_type == "test":
         zip_content = [f for f in zip_content if "test" in f]
     elif set_type == "all":
         pass
     else:
         raise RuntimeError(f"Invalid set_type: '{set_type}'. Select either 'train', 'validation', 'test' or 'all'.")
+
+    # Shuffle the data
+    np.random.seed(random_seed)
+    np.random.shuffle(zip_content)
 
     for filepath in zip_content:
         # Load barycentric coordinates
