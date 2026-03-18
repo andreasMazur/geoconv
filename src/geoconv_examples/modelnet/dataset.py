@@ -186,10 +186,12 @@ def dataset(path,
         bc_shape = (3, 3)
     else:
         bc_shape = (3, 2)
+    n_vertices = 6042 if do_zero_pad else None
+
     output_signature = (
         (
-            tf.TensorSpec(shape=(6042, 3), dtype=tf.float32),
-            tf.TensorSpec(shape=(6042,) + (n_radial, n_angular) + bc_shape, dtype=tf.float32)
+            tf.TensorSpec(shape=(n_vertices, 3), dtype=tf.float32),
+            tf.TensorSpec(shape=(n_vertices,) + (n_radial, n_angular) + bc_shape, dtype=tf.float32)
         ),
         tf.TensorSpec(shape=(None,), dtype=tf.float32),
     )
