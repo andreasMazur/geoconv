@@ -58,7 +58,7 @@ def define_model(output_dims,
         )([signal, bc_input])
         signal = BetaRelu()(signal)
 
-    # Global pooling
+    # Aggregation and classification
     output = DeepSet(local_network_dims=[], global_network_dims=[10])(signal)
 
     imcnn = tf.keras.Model(
