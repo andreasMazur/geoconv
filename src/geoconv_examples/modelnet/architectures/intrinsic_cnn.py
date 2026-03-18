@@ -71,7 +71,7 @@ def define_model(output_dims,
     # Aggregation and classification
     output = DeepSet(local_network_dims=[], global_network_dims=[10])(signal)
 
-    imcnn = tf.keras.Model(inputs=[vertices_input, bc_input], outputs=output, name="faust_model")
+    imcnn = tf.keras.Model(inputs=[vertices_input, bc_input], outputs=output, name="mn10_model")
     imcnn.compile(
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         optimizer=tf.keras.optimizers.Adam(
