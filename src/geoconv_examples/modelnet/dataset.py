@@ -133,6 +133,7 @@ def generator(path,
 
         # Zero pad vertices and bc to a common shape
         if do_zero_pad:
+            print(do_zero_pad, do_zero_pad, do_zero_pad, do_zero_pad, do_zero_pad, do_zero_pad)
             vertices = zero_pad(vertices)
             barycentric_coordinates = zero_pad(barycentric_coordinates)
 
@@ -143,7 +144,15 @@ def generator(path,
             yield (vertices, barycentric_coordinates[..., :2]), gt
 
 
-def dataset(path, set_type, n_radial, n_angular, chart_max_radius, method, return_rotations=True, do_zero_pad=True):
+def dataset(path,
+            set_type,
+            n_radial,
+            n_angular,
+            chart_max_radius,
+            method,
+            return_rotations=True,
+            random_seed=42,
+            do_zero_pad=True):
     """Returns a 'tensorflow dataset'-object for the ModelNet dataset.
 
     Parameters
@@ -162,6 +171,8 @@ def dataset(path, set_type, n_radial, n_angular, chart_max_radius, method, retur
         The used preprocessing method.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
+    random_seed: int
+        The random seed used to shuffle the data.
     do_zero_pad: bool
         Whether to zero pad all arrays expect the ground truth label to the same size in the first axis as the
         largest array in the dataset.
@@ -185,6 +196,6 @@ def dataset(path, set_type, n_radial, n_angular, chart_max_radius, method, retur
 
     return tf.data.Dataset.from_generator(
         generator,
-        args=(path, set_type, chart_max_radius, method, return_rotations, do_zero_pad),
+        args=(path, set_type, chart_max_radius, method, return_rotations, random_seed, do_zero_pad),
         output_signature=output_signature
     ).prefetch(tf.data.AUTOTUNE).batch(1)
