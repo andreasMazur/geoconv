@@ -25,7 +25,7 @@ def define_hypermodel(hp,
         n_angular=n_angular,
         kernel=kernel,
         faust_path=faust_path,
-        learning_rate=hp.Float("learning_rate", min_value=1e-8, max_value=0.1),
+        learning_rate=hp.Float("learning_rate", min_value=1e-8, max_value=1e-2),
         lr_decay_rate=hp.Float("learning_rate_decay", min_value=0.5, max_value=0.999999)
     )
     return model
