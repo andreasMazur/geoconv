@@ -52,13 +52,14 @@ def define_model(output_dims,
     else:
         raise ValueError("The 'kernel' must be either 'geodesic' or 'dirac'.")
 
-    # Remember descriptor- and normalization layer for normalization layer adaption
-    descr_layer = EuclNeighborsDescriptor(n_radial, n_angular)
-    normalization_layer = tf.keras.layers.Normalization(axis=-1)
+    # # Remember descriptor- and normalization layer for normalization layer adaption
+    # descr_layer = EuclNeighborsDescriptor(n_radial, n_angular)
+    # normalization_layer = tf.keras.layers.Normalization(axis=-1)
 
     # Forward pass
-    signal = descr_layer(vertices_input)
-    signal = normalization_layer(signal)
+    # signal = descr_layer(vertices_input)
+    # signal = normalization_layer(signal)
+    signal = vertices_input
     for od in output_dims:
         signal = layer_type(
             output_dim=od,
