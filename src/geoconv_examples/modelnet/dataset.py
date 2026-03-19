@@ -126,6 +126,10 @@ def generator(path,
         # Load barycentric coordinates
         barycentric_coordinates = zip_file[filepath]
 
+        # TODO: Find what's causing the NaN-angles.
+        if np.isnan(barycentric_coordinates).any():
+            continue
+
         # Load related shape info
         file_dir = os.path.dirname(filepath)
         vertices = zip_file[f"{file_dir}/vertices"]
