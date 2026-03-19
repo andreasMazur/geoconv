@@ -33,8 +33,8 @@ def define_model(output_dims,
                  learning_rate=0.001,
                  lr_decay_rate=1.0):
     # Define input layers
-    vertices_input = tf.keras.Input(shape=(6042, 3), name="vertices_input", dtype=tf.float32)
-    bc_input = tf.keras.Input(shape=(6042, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
+    vertices_input = tf.keras.Input(shape=(None, 3), name="vertices_input", dtype=tf.float32)
+    bc_input = tf.keras.Input(shape=(None, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
 
     if kernel == "geodesic":
         layer_type = ConvGeodesic
