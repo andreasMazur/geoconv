@@ -44,7 +44,7 @@ def generator(path,
               method,
               return_rotations=True,
               random_seed=42,
-              do_zero_pad=True):
+              do_zero_pad=False):
     """Returns a 'generator'-object for the ModelNet dataset.
 
     Parameters
@@ -151,7 +151,7 @@ def dataset(path,
             method,
             return_rotations=True,
             random_seed=42,
-            do_zero_pad=True):
+            do_zero_pad=False):
     """Returns a 'tensorflow dataset'-object for the ModelNet dataset.
 
     Parameters

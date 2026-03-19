@@ -38,7 +38,8 @@ def hypertuning(mn10_path,
         n_angular=n_angular,
         chart_max_radius=tf.constant(gpc_radius, dtype=tf.float64),
         method=preprocess_method,
-        return_rotations=return_rotations
+        return_rotations=return_rotations,
+        do_zero_pad=False
     )
     val_data = dataset(
         path=mn10_path,
@@ -47,7 +48,8 @@ def hypertuning(mn10_path,
         n_angular=n_angular,
         chart_max_radius=tf.constant(gpc_radius, dtype=tf.float64),
         method=preprocess_method,
-        return_rotations=return_rotations
+        return_rotations=return_rotations,
+        do_zero_pad=False
     )
 
     # Hyperparameter search
@@ -99,7 +101,8 @@ def training(mn10_path,
         n_angular=n_angular,
         chart_max_radius=tf.constant(gpc_radius, dtype=tf.float64),
         method=preprocess_method,
-        return_rotations=return_rotations
+        return_rotations=return_rotations,
+        do_zero_pad=False
     )
     val_data = dataset(
         path=mn10_path,
@@ -108,7 +111,8 @@ def training(mn10_path,
         n_angular=n_angular,
         chart_max_radius=tf.constant(gpc_radius, dtype=tf.float64),
         method=preprocess_method,
-        return_rotations=return_rotations
+        return_rotations=return_rotations,
+        do_zero_pad=False
     )
 
     # Show model summary
@@ -156,7 +160,8 @@ def training(mn10_path,
         n_angular=n_angular,
         chart_max_radius=tf.constant(gpc_radius, dtype=tf.float64),
         method=preprocess_method,
-        return_rotations=return_rotations
+        return_rotations=return_rotations,
+        do_zero_pad=False
     )
     test_history = model.evaluate(test_data, return_dict=True)
 
