@@ -133,7 +133,6 @@ def generator(path,
 
         # Zero pad vertices and bc to a common shape
         if do_zero_pad:
-            print(do_zero_pad, do_zero_pad, do_zero_pad, do_zero_pad, do_zero_pad, do_zero_pad)
             vertices = zero_pad(vertices)
             barycentric_coordinates = zero_pad(barycentric_coordinates)
 

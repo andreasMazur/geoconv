@@ -2,27 +2,21 @@ from geoconv.tensorflow.layers.activation_beta_relu import BetaRelu
 from geoconv.tensorflow.layers.convolutions.conv_harmonic import ConvHarmonic
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
 from geoconv.tensorflow.layers.pooling.deep_sets import DeepSet
-from geoconv_examples.modelnet.dataset import adapt_generator
+from geoconv_examples.modelnet.training_configs.dictionaries import NORM_FACTORS_EUCL_DESCR_MN10
 
 import tensorflow as tf
 
 
 def define_hypermodel(hp,
                       output_dims,
-                      preprocess_method,
-                      gpc_radius,
                       template_radius,
                       n_radial,
-                      n_angular,
-                      faust_path):
+                      n_angular):
     model = define_model(
         output_dims=output_dims,
-        preprocess_method=preprocess_method,
-        gpc_radius=gpc_radius,
         template_radius=template_radius,
         n_radial=n_radial,
         n_angular=n_angular,
-        faust_path=faust_path,
         learning_rate=hp.Float("learning_rate", min_value=1e-8, max_value=0.1),
         lr_decay_rate=hp.Float("learning_rate_decay", min_value=0.5, max_value=0.999999)
     )
@@ -30,25 +24,22 @@ def define_hypermodel(hp,
 
 
 def define_model(output_dims,
-                 preprocess_method,
-                 gpc_radius,
                  template_radius,
                  n_radial,
                  n_angular,
-                 faust_path,
                  learning_rate=0.001,
                  lr_decay_rate=1.0):
     # Define input layers
     vertices_input = tf.keras.Input(shape=(None, 3), name="vertices_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(None, n_radial, n_angular, 3, 3), name="bc_input", dtype=tf.float32)
 
-    # Remember descriptor- and normalization layer for normalization layer adaption
-    descr_layer = EuclNeighborsDescriptor(n_radial, n_angular)
-    normalization_layer = tf.keras.layers.Normalization(axis=-1)
-
     # Forward pass
-    signal = descr_layer(vertices_input)
-    signal = normalization_layer(signal)
+    signal = EuclNeighborsDescriptor(n_radial, n_angular)(vertices_input)
+    signal = tf.keras.layers.Normalization(
+        axis=-1,
+        mean=NORM_FACTORS_EUCL_DESCR_MN10[(n_radial, n_angular)]["mean"],
+        variance=NORM_FACTORS_EUCL_DESCR_MN10[(n_radial, n_angular)]["variance"]
+    )(signal)
     for idx, od in enumerate(output_dims):
         signal = ConvHarmonic(
             output_dim=od,
@@ -81,15 +72,5 @@ def define_model(output_dims,
         metrics=["sparse_categorical_accuracy"]
     )
 
-    # Adapt normalization
-    normalization_layer.adapt(
-        adapt_generator(
-            layer=descr_layer,
-            path=faust_path,
-            set_type="train",
-            chart_max_radius=gpc_radius,
-            method=preprocess_method
-        )
-    )
     imcnn.summary()
     return imcnn
