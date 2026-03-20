@@ -12,5 +12,6 @@ class CustomHyperModel(kt.HyperModel):
 
     def fit(self, hp, model, *args, **kwargs):
         training_history = model.fit(*args, **kwargs)
+        del model
         tf.keras.backend.clear_session(free_memory=True)
         return training_history
