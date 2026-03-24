@@ -5,7 +5,6 @@ import zipfile
 import os
 import trimesh
 import io
-import shutil
 import numpy as np
 import time
 
