@@ -6,6 +6,9 @@ import os
 import math
 
 
+MAX_N_VERTICES = 6042
+
+
 def adapt_generator(layer, path, set_type, chart_max_radius, method, do_zero_pad):
     gen = generator(path, set_type, chart_max_radius, method, return_rotations=False, do_zero_pad=do_zero_pad)
     for (vertices, bc), _ in tqdm(gen, postfix="Adapting normalization layer..."):
@@ -33,7 +36,7 @@ def get_class_counts(zip_content):
     return class_counts
 
 
-def zero_pad(array, max_nodes=6042):
+def zero_pad(array, max_nodes=MAX_N_VERTICES):
     zeros = np.zeros((max_nodes - array.shape[0], *array.shape[1:]))
     return np.concatenate([array, zeros], axis=0)
 
@@ -44,7 +47,7 @@ def generator(path,
               method,
               return_rotations=True,
               random_seed=42,
-              do_zero_pad=False):
+              do_zero_pad=True):
     """Returns a 'generator'-object for the ModelNet dataset.
 
     Parameters
@@ -136,15 +139,17 @@ def generator(path,
         gt = zip_file[f"{file_dir}/ground_truth"]
 
         # Zero pad vertices and bc to a common shape
+        mask = np.zeros((MAX_N_VERTICES,)).astype(np.bool_)
+        mask[range(vertices.shape[0])] = True
         if do_zero_pad:
             vertices = zero_pad(vertices)
             barycentric_coordinates = zero_pad(barycentric_coordinates)
 
         # Yield dataset elements
         if return_rotations:
-            yield (vertices, barycentric_coordinates), gt
+            yield (vertices, barycentric_coordinates, mask), gt
         else:
-            yield (vertices, barycentric_coordinates[..., :2]), gt
+            yield (vertices, barycentric_coordinates[..., :2], mask), gt
 
 
 def dataset(path,
@@ -155,7 +160,7 @@ def dataset(path,
             method,
             return_rotations=True,
             random_seed=42,
-            do_zero_pad=False):
+            do_zero_pad=True):
     """Returns a 'tensorflow dataset'-object for the ModelNet dataset.
 
     Parameters
@@ -194,7 +199,8 @@ def dataset(path,
     output_signature = (
         (
             tf.TensorSpec(shape=(n_vertices, 3), dtype=tf.float32),
-            tf.TensorSpec(shape=(n_vertices,) + (n_radial, n_angular) + bc_shape, dtype=tf.float32)
+            tf.TensorSpec(shape=(n_vertices,) + (n_radial, n_angular) + bc_shape, dtype=tf.float32),
+            tf.TensorSpec(shape=(n_vertices,), dtype=tf.bool),
         ),
         tf.TensorSpec(shape=(None,), dtype=tf.float32),
     )
