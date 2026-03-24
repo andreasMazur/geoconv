@@ -3,6 +3,7 @@ from geoconv.tensorflow.layers import ConvGeodesic
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
 from geoconv.tensorflow.layers.pooling.deep_sets import DeepSet
 from geoconv_examples.modelnet.architectures.masking_layer import MaskingLayer
+from geoconv_examples.modelnet.dataset import MAX_N_VERTICES
 from geoconv_examples.modelnet.training_configs.dictionaries import NORM_FACTORS_EUCL_DESCR_MN10
 
 import tensorflow as tf
@@ -34,9 +35,9 @@ def define_model(output_dims,
                  learning_rate=0.001,
                  lr_decay_rate=1.0):
     # Define input layers
-    vertices_input = tf.keras.Input(shape=(None, 3), name="vertices_input", dtype=tf.float32)
-    bc_input = tf.keras.Input(shape=(None, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
-    mask_input = tf.keras.Input(shape=(None,), name="mask_input", dtype=tf.bool)
+    vertices_input = tf.keras.Input(shape=(MAX_N_VERTICES, 3), name="vertices_input", dtype=tf.float32)
+    bc_input = tf.keras.Input(shape=(MAX_N_VERTICES, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
+    mask_input = tf.keras.Input(shape=(MAX_N_VERTICES,), name="mask_input", dtype=tf.bool)
 
     if kernel == "geodesic":
         layer_type = ConvGeodesic
