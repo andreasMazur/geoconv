@@ -102,7 +102,12 @@ def load_modelnet_mesh(zip_file, mesh_filepath, resolution=1_000):
     new_vertices, new_faces = pcu.make_mesh_watertight(v=mesh.vertices, f=mesh.faces, resolution=resolution)
     mesh = trimesh.Trimesh(vertices=new_vertices, faces=new_faces)
 
-    return mesh
+    splitted_mesh = mesh.split()
+    if len(splitted_mesh) > 1:
+        n_vertices = np.array([m.vertices.shape[0] for m in splitted_mesh])
+        return splitted_mesh[n_vertices.argmax()]
+    else:
+        return mesh
 
 
 def preprocess_modelnet(zip_path,
