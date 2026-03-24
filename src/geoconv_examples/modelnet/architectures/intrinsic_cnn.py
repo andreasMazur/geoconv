@@ -2,6 +2,7 @@ from geoconv.tensorflow.layers import AngularMaxPooling, ConvDirac
 from geoconv.tensorflow.layers import ConvGeodesic
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
 from geoconv.tensorflow.layers.pooling.deep_sets import DeepSet
+from geoconv_examples.modelnet.architectures.masking_layer import MaskingLayer
 from geoconv_examples.modelnet.training_configs.dictionaries import NORM_FACTORS_EUCL_DESCR_MN10
 
 import tensorflow as tf
@@ -35,6 +36,7 @@ def define_model(output_dims,
     # Define input layers
     vertices_input = tf.keras.Input(shape=(None, 3), name="vertices_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(None, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
+    mask_input = tf.keras.Input(shape=(None,), name="mask_input", dtype=tf.bool)
 
     if kernel == "geodesic":
         layer_type = ConvGeodesic
@@ -60,6 +62,7 @@ def define_model(output_dims,
         signal = AngularMaxPooling()(signal)
 
     # Aggregation and classification
+    signal = MaskingLayer()([signal, mask_input])
     output = DeepSet(
         local_network_dims=[],
         global_network_dims=[10],
@@ -67,7 +70,7 @@ def define_model(output_dims,
         global_activation="linear"
     )(signal)
 
-    imcnn = tf.keras.Model(inputs=[vertices_input, bc_input], outputs=output, name="mn10_model")
+    imcnn = tf.keras.Model(inputs=[vertices_input, bc_input, mask_input], outputs=output, name="mn10_model")
     imcnn.compile(
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         optimizer=tf.keras.optimizers.Adam(
