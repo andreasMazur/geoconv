@@ -4,11 +4,9 @@ import tensorflow as tf
 
 
 class EuclNeighborsDescriptor(tf.keras.layers.Layer):
-    def __init__(self, n_radial, n_angular):
+    def __init__(self, n_neighbors):
         super().__init__()
-        self.n_radial = n_radial
-        self.n_angular = n_angular
-        self.n_neighbors = int(1 + self.n_radial * self.n_angular)
+        self.n_neighbors = n_neighbors
 
     def call(self, inputs, **kwargs):
         # 'neighborhoods' : (batch, vertices, n_neighbors, 3)

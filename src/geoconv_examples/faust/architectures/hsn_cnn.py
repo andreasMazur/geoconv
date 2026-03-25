@@ -35,7 +35,7 @@ def define_model(output_dims,
     bc_input = tf.keras.Input(shape=(6890, n_radial, n_angular, 3, 3), name="bc_input", dtype=tf.float32)
 
     # Remember descriptor- and normalization layer for normalization layer adaption
-    descr_layer = EuclNeighborsDescriptor(n_radial, n_angular)
+    descr_layer = EuclNeighborsDescriptor(n_neighbors=int(1 + n_radial * n_angular))
     normalization_layer = tf.keras.layers.Normalization(axis=-1)
 
     # Forward pass

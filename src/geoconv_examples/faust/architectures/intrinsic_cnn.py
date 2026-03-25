@@ -52,7 +52,7 @@ def define_model(output_dims,
         raise ValueError("The 'kernel' must be either 'geodesic' or 'dirac'.")
 
     # Remember descriptor- and normalization layer for normalization layer adaption
-    descr_layer = EuclNeighborsDescriptor(n_radial, n_angular)
+    descr_layer = EuclNeighborsDescriptor(n_neighbors=int(1 + n_radial * n_angular))
     normalization_layer = tf.keras.layers.Normalization(axis=-1)
 
     # Forward pass
