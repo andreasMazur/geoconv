@@ -52,19 +52,18 @@ def define_model(output_dims,
         signal = BetaRelu()(signal)
 
     # Aggregation and classification
-    signal = MaskingLayer()([signal, mask_input])
     output = DeepSet(
         local_network_dims=[],
         global_network_dims=[10],
         local_activation="linear",
-        global_activation="linear"
-    )(signal)
+        global_activation="softmax"
+    )([signal, mask_input])
 
     imcnn = tf.keras.Model(
         inputs=[vertices_input, bc_input, mask_input], outputs=output, name="mn10_model"
     )
     imcnn.compile(
-        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
         optimizer=tf.keras.optimizers.Adam(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=learning_rate,
