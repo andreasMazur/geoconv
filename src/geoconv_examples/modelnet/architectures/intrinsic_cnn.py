@@ -47,12 +47,13 @@ def define_model(output_dims,
         raise ValueError("The 'kernel' must be either 'geodesic' or 'dirac'.")
 
     # Forward pass
-    signal = EuclNeighborsDescriptor(n_radial, n_angular)(vertices_input)
-    signal = tf.keras.layers.Normalization(
-        axis=-1,
-        mean=NORM_FACTORS_EUCL_DESCR_MN10[(n_radial, n_angular)]["mean"],
-        variance=NORM_FACTORS_EUCL_DESCR_MN10[(n_radial, n_angular)]["variance"]
-    )(signal)
+    # signal = EuclNeighborsDescriptor(n_radial, n_angular)(vertices_input)
+    # signal = tf.keras.layers.Normalization(
+    #     axis=-1,
+    #     mean=NORM_FACTORS_EUCL_DESCR_MN10[(n_radial, n_angular)]["mean"],
+    #     variance=NORM_FACTORS_EUCL_DESCR_MN10[(n_radial, n_angular)]["variance"]
+    # )(signal)
+    signal = vertices_input
     for od in output_dims:
         signal = layer_type(
             output_dim=od,
@@ -67,12 +68,12 @@ def define_model(output_dims,
         local_network_dims=[],
         global_network_dims=[10],
         local_activation="linear",
-        global_activation="linear"
+        global_activation="softmax"
     )([signal, mask_input])
 
     imcnn = tf.keras.Model(inputs=[vertices_input, bc_input, mask_input], outputs=output, name="mn10_model")
     imcnn.compile(
-        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
         optimizer=tf.keras.optimizers.Adam(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=learning_rate,
