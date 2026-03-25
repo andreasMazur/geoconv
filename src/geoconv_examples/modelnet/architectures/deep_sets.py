@@ -26,6 +26,7 @@ class DeepSet(tf.keras.layers.Layer):
         self.global_network = None
 
     def build(self, input_shape):
+        super().build(input_shape)
         self.local_network = tf.keras.Sequential(
             [tf.keras.layers.Dense(x, activation=self.local_activation) for x in self.local_network_dims],
             name="local_network"
