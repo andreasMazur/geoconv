@@ -1,8 +1,7 @@
 from geoconv.tensorflow.layers import AngularMaxPooling, ConvDirac
 from geoconv.tensorflow.layers import ConvGeodesic
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
-from geoconv.tensorflow.layers.pooling.deep_sets import DeepSet
-from geoconv_examples.modelnet.architectures.masking_layer import MaskingLayer
+from geoconv_examples.modelnet.architectures.deep_sets import DeepSet
 from geoconv_examples.modelnet.dataset import MAX_N_VERTICES
 from geoconv_examples.modelnet.training_configs.dictionaries import NORM_FACTORS_EUCL_DESCR_MN10
 
@@ -64,13 +63,12 @@ def define_model(output_dims,
         signal = AngularMaxPooling()(signal)
 
     # Aggregation and classification
-    signal = MaskingLayer()([signal, mask_input])
     output = DeepSet(
         local_network_dims=[],
         global_network_dims=[10],
         local_activation="linear",
         global_activation="linear"
-    )(signal)
+    )([signal, mask_input])
 
     imcnn = tf.keras.Model(inputs=[vertices_input, bc_input, mask_input], outputs=output, name="mn10_model")
     imcnn.compile(
