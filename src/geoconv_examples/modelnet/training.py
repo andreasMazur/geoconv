@@ -39,7 +39,7 @@ def hypertuning(mn10_path,
         chart_max_radius=tf.constant(gpc_radius, dtype=tf.float64),
         method=preprocess_method,
         return_rotations=return_rotations,
-        do_zero_pad=False
+        do_zero_pad=True
     )
     val_data = dataset(
         path=mn10_path,
@@ -49,7 +49,7 @@ def hypertuning(mn10_path,
         chart_max_radius=tf.constant(gpc_radius, dtype=tf.float64),
         method=preprocess_method,
         return_rotations=return_rotations,
-        do_zero_pad=False
+        do_zero_pad=True
     )
 
     # Hyperparameter search
