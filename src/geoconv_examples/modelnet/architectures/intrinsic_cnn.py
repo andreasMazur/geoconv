@@ -15,6 +15,7 @@ def define_hypermodel(hp,
                       n_radial,
                       n_angular,
                       kernel):
+    tf.keras.backend.clear_session()
     model = define_model(
         output_dims=output_dims,
         template_radius=template_radius,
