@@ -55,14 +55,14 @@ def define_model(output_dims,
         local_network_dims=[],
         global_network_dims=[10],
         local_activation="linear",
-        global_activation="softmax"
+        global_activation="linear"
     )([signal, mask_input])
 
     imcnn = tf.keras.Model(
         inputs=[vertices_input, bc_input, mask_input], outputs=output, name="mn10_model"
     )
     imcnn.compile(
-        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         optimizer=tf.keras.optimizers.Adam(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=learning_rate,
