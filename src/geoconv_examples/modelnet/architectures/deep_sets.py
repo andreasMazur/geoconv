@@ -37,6 +37,9 @@ class DeepSet(tf.keras.layers.Layer):
 
     @tf.function
     def call(self, inputs):
-        outputs = self.local_network(inputs)
-        outputs = tf.reduce_mean(outputs, axis=-2)
-        return self.global_network(outputs)
+        signal, mask = inputs
+        signal = self.local_network(signal)
+        mask = tf.cast(mask[..., None], tf.float32)
+        signal = signal * mask
+        signal = tf.reduce_sum(signal, axis=-2) / tf.reduce_sum(mask, axis=-2)
+        return self.global_network(signal)
