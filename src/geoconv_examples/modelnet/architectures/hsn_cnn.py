@@ -1,8 +1,7 @@
 from geoconv.tensorflow.layers.activation_beta_relu import BetaRelu
 from geoconv.tensorflow.layers.convolutions.conv_harmonic import ConvHarmonic
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
-from geoconv.tensorflow.layers.pooling.deep_sets import DeepSet
-from geoconv_examples.modelnet.architectures.masking_layer import MaskingLayer
+from geoconv_examples.modelnet.architectures.deep_sets import DeepSet
 from geoconv_examples.modelnet.training_configs.dictionaries import NORM_FACTORS_EUCL_DESCR_MN10
 
 import tensorflow as tf
