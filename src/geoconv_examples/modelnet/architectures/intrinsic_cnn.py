@@ -47,7 +47,7 @@ def define_model(output_dims,
         raise ValueError("The 'kernel' must be either 'geodesic' or 'dirac'.")
 
     # Forward pass
-    signal = EuclNeighborsDescriptor(n_neighbors=int(1 + n_radial * n_angular), normalize=False)(vertices_input)
+    signal = EuclNeighborsDescriptor(n_neighbors=int(1 + n_radial * n_angular))(vertices_input)
     signal = tf.keras.layers.Normalization(
         axis=-1,
         mean=NORM_FACTORS_EUCL_DESCR_MN10[(n_radial, n_angular)]["mean"],
