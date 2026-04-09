@@ -432,7 +432,18 @@ class Atlas:
         else:
             os.replace(filepath_tmp, filepath)
 
-    def visualize_chart(self, chart_idx, visualize_3d=False, show_statistics=True, show_vertex_indices=False):
+    def visualize_chart(self,
+                        chart_idx,
+                        visualize_3d=False,
+                        show_statistics=True,
+                        show_vertex_indices=False,
+                        save_path="",
+                        x_lims=None,
+                        y_lims=None,
+                        plot_title=True,
+                        show_figure=True,
+                        x_tick_labels=None,
+                        y_tick_labels=None):
         """Visualizes one chart of the atlas.
 
         Parameters
@@ -445,6 +456,20 @@ class Atlas:
             Whether to include statistics in the plot.
         show_vertex_indices: bool
             Whether to include vertex indices at their corresponding positions in the plot.
+        save_path: str
+            The path where to save the plot.
+        x_lims: tuple
+            The min- and max values for the x-axis.
+        y_lims: tuple
+            The min- and max values for the y-axis.
+        plot_title: bool
+            Whether to show the title of the plot.
+        show_figure: bool
+            whether to show the figure.
+        x_tick_labels: list
+            A list of labels for the x-ticks.
+        y_tick_labels: list
+            A list of labels for the y-ticks.
         """
         if visualize_3d:
             # Cartesian to polar conversion for visualization
@@ -543,20 +568,55 @@ class Atlas:
             ax.add_patch(circle_median)
 
             eps = 0.01 * self.max_chart_radius
-            ax.set_xlim([-self.max_chart_radius - eps, self.max_chart_radius + eps])
-            ax.set_ylim([-self.max_chart_radius - eps, self.max_chart_radius + eps])
+
+            # Set plot limits
+            if x_lims is None:
+                ax.set_xlim(-self.max_chart_radius - eps, self.max_chart_radius + eps)
+            else:
+                ax.set_xlim(*x_lims)
+            if y_lims is None:
+                ax.set_ylim(-self.max_chart_radius - eps, self.max_chart_radius + eps)
+            else:
+                ax.set_ylim(*y_lims)
 
             fig.subplots_adjust(right=0.79)
             fig.legend(loc="lower right", bbox_to_anchor=(1.0, 0.5), fontsize="small")
         else:
             eps = 0.01 * chart[:, 0].max()
-            ax.set_xlim([chart[:, 0].min() - eps, chart[:, 0].max() + eps])
-            ax.set_ylim([chart[:, 1].min() - eps, chart[:, 1].max() + eps])
 
-        # Misc
-        ax.set_title(f"Config: origin idx {chart_idx} - max-radius {self.max_radius} - method {self.method}")
+            # Set plot limits
+            if x_lims is None:
+                ax.set_xlim(chart[:, 0].min() - eps, chart[:, 0].max() + eps)
+            else:
+                ax.set_xlim(*x_lims)
+            if y_lims is None:
+                ax.set_ylim(chart[:, 1].min() - eps, chart[:, 1].max() + eps)
+            else:
+                ax.set_ylim(*y_lims)
+
+        # Whether to plot the title
+        if plot_title:
+            ax.set_title(f"Config: origin idx {chart_idx} - max-radius {self.max_radius} - method {self.method}")
+
+        # Whether to save the plot
+        if len(save_path) > 0:
+            plt.savefig(save_path)
+
+        # Set x-tick labels
+        if x_tick_labels is not None:
+            ax.set_xticklabels(x_tick_labels)
+
+        # Set y-tick labels
+        if y_tick_labels is not None:
+            ax.set_yticklabels(y_tick_labels)
+
         plt.grid()
-        plt.show()
+        plt.tight_layout()
+        if show_figure:
+            plt.show()
+            return ax
+        else:
+            return ax
 
     def determine_barycentric_coordinates(self, n_radial, n_angular, radius, processes=None):
         self.barycentric_coordinates[(n_radial, n_angular, radius)] = compute_barycentric_coordinates(
