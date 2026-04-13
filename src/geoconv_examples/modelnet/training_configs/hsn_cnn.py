@@ -5,7 +5,6 @@ from geoconv_examples.modelnet.training_configs.dictionaries import MN10
 
 def start_training_run(mn10_path,
                        preprocessing,
-                       kernel,
                        save_path,
                        n_radial,
                        n_angular,
