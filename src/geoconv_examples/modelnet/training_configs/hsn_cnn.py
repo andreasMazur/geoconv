@@ -35,5 +35,5 @@ def start_training_run(mn10_path,
             save_path=training_run_save_path,
             epochs=200,
             random_seed=42,
-            return_rotations=False
+            return_rotations=True
         )
