@@ -116,7 +116,8 @@ def preprocess_modelnet(zip_path,
                         max_chart_radius,
                         method="hdm",
                         normalization_method="hdm",
-                        processes=1):
+                        processes=1,
+                        template_radius_aggregation_method="mean"):
     """Preprocess ModelNet40 shapes.
 
     Uses the algorithm of:
@@ -164,17 +165,28 @@ def preprocess_modelnet(zip_path,
             # Compute BC for all template resolutions
             for template_resolution in template_resolutions:
                 n_radial, n_angular = template_resolution
+
+                # Determine what template radius to use depending on all chart extensions from whole dataset
+                if template_radius_aggregation_method == "mean":
+                    template_radius = np.mean(gpc_system_radii)
+                elif template_radius_aggregation_method == "median":
+                    template_radius = np.median(gpc_system_radii)
+                else:
+                    raise ValueError(
+                        f"Unknown aggregation method: {template_radius_aggregation_method}. "
+                        f"Select from: ['mean', 'median']."
+                    )
+
                 # Compute BC for all template radii
-                for template_radius in [np.median(gpc_system_radii)]:
-                    print(
-                        f"[BC computation] Calculating BC "
-                        f"'{n_radial, n_angular, template_radius}' for '{mesh_filepath}']"
-                    )
-                    atlas.determine_barycentric_coordinates(
-                        n_radial=n_radial,
-                        n_angular=n_angular,
-                        radius=template_radius
-                    )
+                print(
+                    f"[BC computation] Calculating BC "
+                    f"'{n_radial, n_angular, template_radius}' for '{mesh_filepath}']"
+                )
+                atlas.determine_barycentric_coordinates(
+                    n_radial=n_radial,
+                    n_angular=n_angular,
+                    radius=template_radius
+                )
 
             # Save atlas
             atlas.save_training_data(mesh_save_path[:-5])
