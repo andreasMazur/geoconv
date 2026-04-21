@@ -8,6 +8,7 @@ from geoconv_gem.tensorflow.layers.convolutions.conv_eman import ConvEMAN
 from geoconv_gem.tensorflow.layers.convolutions.conv_gem_p import ConvGEMP
 from geoconv_gem.tensorflow.layers.convolutions.conv_eman_p import ConvEMANP
 
+from geoconv.tensorflow.layers.unlift_features import UnLiftFeatures2D
 from geoconv_examples.modelnet.architectures.deep_sets import DeepSet
 from geoconv_examples.modelnet.dataset import dataset
 
@@ -153,6 +154,7 @@ def training(mn10_path,
             "ConvGEMP": ConvGEMP,
             "ConvEMANP": ConvEMANP,
             "DeepSet": DeepSet,
+            "UnLiftFeatures2D": UnLiftFeatures2D,
         }
     )
     test_data = dataset(
