@@ -85,6 +85,10 @@ def calculate_local_charts(triangle_mesh,
     distances = np.concatenate(distances, axis=0)
 
     if method in ["dgpc", "tp"]:
+        # Set distances > max_radius to np.inf and their angles to -1.
+        distances[distances[..., 0] > max_radius, 0] = np.inf
+        distances[distances[..., 0] > max_radius, 1] = -1
+
         # The DGPC/TP-algorithm returns both radial- and angular coordinates.
         # Thus, if user expects only distances, we extract them here.
         if not calculate_angle:
