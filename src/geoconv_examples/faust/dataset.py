@@ -81,9 +81,9 @@ def generator(zip_path,
         ]
         ground_truth = zip_file[f"{filepath}/ground_truth"]
         if return_rotations:
-            yield (vertices[0], barycentric_coordinates[0]), ground_truth[0]
+            yield (vertices, barycentric_coordinates), ground_truth
         else:
-            yield (vertices[0], barycentric_coordinates[0, ..., :2]), ground_truth[0]
+            yield (vertices, barycentric_coordinates[..., :2]), ground_truth
 
 
 def dataset(zip_path,
