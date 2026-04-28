@@ -77,7 +77,7 @@ def generator(zip_path,
     for filepath in zip_content:
         vertices = zip_file[f"{filepath}/vertices"]
         barycentric_coordinates = zip_file[
-            f"{filepath}/barycentric_coordinates_{n_radial}_{n_angular}_{template_radius}"
+            f"{filepath}/barycentric_coordinates_{n_radial}_{n_angular}_{f'{template_radius}'.replace('.', '_')}"
         ]
         ground_truth = zip_file[f"{filepath}/ground_truth"]
         if return_rotations:
