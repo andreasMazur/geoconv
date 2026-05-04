@@ -11,7 +11,7 @@ def start_training_run(mn10_path,
                        n_angular,
                        learning_rate=0.001,
                        lr_decay_rate=1.0):
-    for gpc_system_radius in [0.03, 0.04, 0.05, 0.06, 0.07]:
+    for gpc_system_radius in [0.01, 0.02, 0.03, 0.04, 0.05]:
         # Define model
         template_radius = MN10[(n_radial, n_angular)][preprocessing][gpc_system_radius]
         model = define_model(
