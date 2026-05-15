@@ -64,7 +64,7 @@ def hypertuning(mn10_path,
         project_name=project_name,
     )
     term = tf.keras.callbacks.TerminateOnNaN()
-    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=10, min_delta=0.001)
+    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=5, min_delta=0.001)
     tuner.search(train_data, epochs=epochs, validation_data=val_data, callbacks=[term, stop])
 
     # Save best model
