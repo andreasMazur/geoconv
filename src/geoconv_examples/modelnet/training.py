@@ -83,7 +83,8 @@ def training(mn10_path,
              save_path,
              epochs=10,
              random_seed=42,
-             return_rotations=True):
+             return_rotations=True,
+             tensorboard_cb=False):
     # Check if model already exists
     test_saving_path = f"{save_path}_test_history.json"
     if os.path.isfile(test_saving_path):
@@ -134,9 +135,20 @@ def training(mn10_path,
         verbose=True
     )
     stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=10, min_delta=0.001)
-    train_history = model.fit(
-        x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=[term, cp_callback, stop]
-    )
+    callbacks = [term, cp_callback, stop]
+
+    if tensorboard_cb:
+        tb_cb = tf.keras.callbacks.TensorBoard(
+            log_dir=f"{os.path.dirname(save_path)}/tensorboard",
+            histogram_freq=1,
+            write_graph=False,
+            write_steps_per_second=True,
+            update_freq="epoch",
+            profile_batch=(1, 70)
+        )
+        callbacks.append(tb_cb)
+
+    train_history = model.fit(x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=callbacks)
 
     # Test best performing model
     model = tf.keras.models.load_model(
