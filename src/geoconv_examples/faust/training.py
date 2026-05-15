@@ -144,7 +144,7 @@ def training(faust_path,
             write_graph=False,
             write_steps_per_second=True,
             update_freq="epoch",
-            profile_batch=(1, 70)
+            profile_batch=(1, 700)
         )
         callbacks.append(tb_cb)
 
