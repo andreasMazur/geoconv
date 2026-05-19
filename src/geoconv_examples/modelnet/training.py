@@ -148,7 +148,7 @@ def training(mn10_path,
 
     if tensorboard_cb:
         tb_cb = tf.keras.callbacks.TensorBoard(
-            log_dir=f"{os.path.dirname(save_path)}/tensorboard",
+            log_dir=f"{os.path.dirname(save_path[:-6])}/tensorboard",
             histogram_freq=1,
             write_graph=False,
             write_steps_per_second=True,
