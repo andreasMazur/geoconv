@@ -126,7 +126,7 @@ def training(mn10_path,
     if save_path[-6:] != ".keras":
         save_path += ".keras"
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(
+    cp_callback_loss = tf.keras.callbacks.ModelCheckpoint(
         filepath=save_path,
         monitor="val_loss",
         mode="min",
@@ -134,8 +134,17 @@ def training(mn10_path,
         save_weights_only=False,
         verbose=True
     )
+    save_path_acc = f"{save_path[:-6]}_accuracy.keras"
+    cp_callback_acc = tf.keras.callbacks.ModelCheckpoint(
+        filepath=save_path_acc,
+        monitor="val_sparse_categorical_accuracy",
+        mode="max",
+        save_best_only=True,
+        save_weights_only=False,
+        verbose=True
+    )
     stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=10, min_delta=0.001)
-    callbacks = [term, cp_callback, stop]
+    callbacks = [term, cp_callback_loss, cp_callback_acc, stop]
 
     if tensorboard_cb:
         tb_cb = tf.keras.callbacks.TensorBoard(
@@ -150,40 +159,45 @@ def training(mn10_path,
 
     train_history = model.fit(x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=callbacks)
 
-    # Test best performing model
-    model = tf.keras.models.load_model(
-        save_path,
-        custom_objects={
-            "EuclNeighborsDescriptor": EuclNeighborsDescriptor,
-            "ConvDirac": ConvDirac,
-            "ConvGeodesic": ConvGeodesic,
-            "AngularMaxPooling": AngularMaxPooling,
-            "ConvHarmonic": ConvHarmonic,
-            "BetaRelu": BetaRelu,
-            "ConvGEM": ConvGEM,
-            "ConvEMAN": ConvEMAN,
-            "LiftFeatures2D": LiftFeatures2D,
-            "ConvGEMP": ConvGEMP,
-            "ConvEMANP": ConvEMANP,
-            "DeepSet": DeepSet,
-            "UnLiftFeatures2D": UnLiftFeatures2D,
-        }
-    )
-    test_data = dataset(
-        path=mn10_path,
-        set_type="test",
-        n_radial=n_radial,
-        n_angular=n_angular,
-        chart_max_radius=tf.constant(gpc_radius, dtype=tf.float64),
-        method=preprocess_method,
-        return_rotations=return_rotations,
-        do_zero_pad=True
-    )
-    test_history = model.evaluate(test_data, return_dict=True)
-
     # Save history
     with open(f"{save_path[:-6]}_train_history.json", "w") as f:
         json.dump(train_history.history, f, indent=4)
-    with open(test_saving_path, "w") as f:
-        json.dump(test_history, f, indent=4)
 
+    # Test best performing model
+    for idx, sp in enumerate([save_path, save_path_acc]):
+        model = tf.keras.models.load_model(
+            sp,
+            custom_objects={
+                "EuclNeighborsDescriptor": EuclNeighborsDescriptor,
+                "ConvDirac": ConvDirac,
+                "ConvGeodesic": ConvGeodesic,
+                "AngularMaxPooling": AngularMaxPooling,
+                "ConvHarmonic": ConvHarmonic,
+                "BetaRelu": BetaRelu,
+                "ConvGEM": ConvGEM,
+                "ConvEMAN": ConvEMAN,
+                "LiftFeatures2D": LiftFeatures2D,
+                "ConvGEMP": ConvGEMP,
+                "ConvEMANP": ConvEMANP,
+                "DeepSet": DeepSet,
+                "UnLiftFeatures2D": UnLiftFeatures2D,
+            }
+        )
+        test_data = dataset(
+            path=mn10_path,
+            set_type="test",
+            n_radial=n_radial,
+            n_angular=n_angular,
+            chart_max_radius=tf.constant(gpc_radius, dtype=tf.float64),
+            method=preprocess_method,
+            return_rotations=return_rotations,
+            do_zero_pad=True
+        )
+        test_history = model.evaluate(test_data, return_dict=True)
+
+        if idx == 0:
+            with open(test_saving_path, "w") as f:
+                json.dump(test_history, f, indent=4)
+        else:
+            with open(f"{save_path}_test_history_accuracy.json", "w") as f:
+                json.dump(test_history, f, indent=4)
