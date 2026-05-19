@@ -199,5 +199,5 @@ def training(mn10_path,
             with open(test_saving_path, "w") as f:
                 json.dump(test_history, f, indent=4)
         else:
-            with open(f"{save_path}_test_history_accuracy.json", "w") as f:
+            with open(f"{save_path[:-6]}_test_history_accuracy.json", "w") as f:
                 json.dump(test_history, f, indent=4)
