@@ -29,6 +29,7 @@ def preprocess(path,
     """Computes barycentric coordinates for the sphere for planetswe."""
     # Create a spherical triangular mesh
     sphere_mesh = create_planetswe_sphere(path)
+    max_chart_radius_str = f"{max_chart_radius}".replace(".", "_")
 
     # Compute the atlas
     chart_indices_chunked = np.split(np.arange(sphere_mesh.vertices.shape[0]), chunks)[:2]
@@ -44,16 +45,19 @@ def preprocess(path,
             chart_indices=chart_indices
         )
         chart_radii.extend(atlas.chart_radii.tolist())
-        save_atlas(atlas, atlas_save_path=f"{save_path}_{method}_{chart_indices[0]}_{chart_indices[-1]}")
+        save_atlas(
+            atlas,
+            atlas_save_path=f"{save_path}_{method}_{max_chart_radius_str}_{chart_indices[0]}_{chart_indices[-1]}"
+        )
 
     # Compute barycentric coordinates
     for chart_indices in chart_indices_chunked:
         for (n_radial, n_angular) in template_resolutions:
-            atlas = load_atlas(f"{save_path}_{method}_{chart_indices[0]}_{chart_indices[-1]}")
+            atlas = load_atlas(f"{save_path}_{method}_{max_chart_radius_str}_{chart_indices[0]}_{chart_indices[-1]}")
             atlas.determine_barycentric_coordinates(
                 n_radial=n_radial,
                 n_angular=n_angular,
                 radius=np.median(chart_radii),
                 processes=processes
             )
-            atlas.save_training_data(f"{save_path}_{method}_{chart_indices[0]}_{chart_indices[-1]}")
+            atlas.save_training_data(f"{save_path}_{method}_{max_chart_radius_str}_{chart_indices[0]}_{chart_indices[-1]}")
