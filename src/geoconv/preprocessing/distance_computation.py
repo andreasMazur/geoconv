@@ -17,7 +17,8 @@ def calculate_local_charts(triangle_mesh,
                            processes=1,
                            max_radius=np.inf,
                            calculate_angle=True,
-                           process_description=""):
+                           process_description="",
+                           chart_indices=None):
     """Calculates local charts on triangle meshes.
 
     Parameters
@@ -34,6 +35,8 @@ def calculate_local_charts(triangle_mesh,
         Whether to calculate angles.
     process_description: str
         A description to show in the progress bar.
+    chart_indices: np.ndarray | None
+        The indices of origin vertices around which charts are computed. If 'None', all origin vertices are used.
 
     Returns
     -------
@@ -50,7 +53,7 @@ def calculate_local_charts(triangle_mesh,
     n_vertices = mesh_vertices.shape[0]
 
     # Divide indices into subsets for which the solver should calculate distances in parallel
-    all_vertex_indices = np.arange(n_vertices)
+    all_vertex_indices = np.arange(n_vertices) if chart_indices is None else chart_indices
     if n_vertices % processes != 0:
         chunk_size = math.floor(n_vertices / processes)
         index_subsets = [all_vertex_indices[p * chunk_size:(p + 1) * chunk_size] for p in range(processes+1)]
@@ -100,7 +103,7 @@ def calculate_local_charts(triangle_mesh,
 
     if calculate_angle:
         # Compute angles using tangent plane projections
-        angles = compute_angles_for_distances(triangle_mesh, distances)
+        angles = compute_angles_for_distances(triangle_mesh, distances, chart_indices)
 
         # Combine distances and angles to local charts
         return np.stack([distances, angles], axis=-1)
@@ -128,12 +131,13 @@ def normalize_shape(triangle_mesh, method="hdm", processes=1):
     assert method in ["hdm", "fmm"], "For normalization, choose either 'hdm' or 'fmm' as distance calculation method."
 
     distances = calculate_local_charts(
-        triangle_mesh,
+        triangle_mesh=triangle_mesh,
         method=method,
         processes=processes,
         max_radius=np.inf,
         calculate_angle=False,
-        process_description=f"Normalizing shape using {method}"
+        process_description=f"Normalizing shape using {method}",
+        chart_indices=None
     )
     geodesic_diameter = distances.max()
     normalized_vertices = triangle_mesh.vertices / geodesic_diameter

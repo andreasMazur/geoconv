@@ -5,7 +5,7 @@ from tqdm import tqdm
 import numpy as np
 
 
-def compute_angles_for_distances(triangle_mesh, local_geodesic_dists):
+def compute_angles_for_distances(triangle_mesh, local_geodesic_dists, chart_indices):
     """Computes the angles for given local charts via tangent plane projections.
 
     Computation of reference frames has been described in:
@@ -19,10 +19,13 @@ def compute_angles_for_distances(triangle_mesh, local_geodesic_dists):
         The triangle mesh on which we calculate the angles.
     local_geodesic_dists: np.array
         The geodesic distances calculated for the local chart.
+    chart_indices: np.ndarray | None
+        The indices of origin vertices around which charts are computed. If 'None', all origin vertices are used.
     """
     angle_charts = []
+    charts = enumerate(local_geodesic_dists) if chart_indices is None else zip(chart_indices, local_geodesic_dists)
     for origin_idx, chart in tqdm(
-            enumerate(local_geodesic_dists),
+            charts,
             total=local_geodesic_dists.shape[0],
             desc="Computing angles using tangent plane projections"
     ):

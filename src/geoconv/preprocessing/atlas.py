@@ -138,14 +138,21 @@ def load_atlas(filepath):
         charts = np.array(f[f"charts_information/charts"])
         chart_radii = np.array(f[f"charts_information/chart_radii"])
 
+        # Load custom arrays
+        custom_arrays = {key: np.array(arr) for key, arr in f["custom_arrays"].items()}
+        if "chart_indices" in custom_arrays.keys():
+            amount_charts = custom_arrays["chart_indices"].shape[0]
+        else:
+            amount_charts = vertices.shape[0]
+
         # Load chart face information
         chart_faces = {}
-        for origin_vertex_idx in range(vertices.shape[0]):
+        for origin_vertex_idx in range(amount_charts):
             chart_faces[origin_vertex_idx] = np.array(f[f"charts_faces/{origin_vertex_idx}"])
 
         # Load chart triangle information
         chart_triangles = {}
-        for origin_vertex_idx in range(vertices.shape[0]):
+        for origin_vertex_idx in range(amount_charts):
             chart_triangles[origin_vertex_idx] = np.array(f[f"charts_triangles/{origin_vertex_idx}"])
 
         # Load meta information
@@ -173,9 +180,6 @@ def load_atlas(filepath):
 
         # Load parallel transport angles
         parallel_transport = np.array(f["parallel_transport/transport_angles"])
-
-        # Load custom arrays
-        custom_arrays = {key: np.array(arr) for key, arr in f["custom_arrays"].items()}
 
     # Instantiate loaded atlas
     atlas = Atlas.__new__(Atlas)
@@ -208,6 +212,11 @@ def load_atlas(filepath):
 
     # Set custom arrays
     atlas.custom_arrays = custom_arrays
+
+    if "chart_indices" in atlas.custom_arrays.keys():
+        atlas.chart_indices = atlas.custom_arrays["chart_indices"]
+    else:
+        atlas.chart_indices = None
 
     # Return instantiated atlas
     return atlas
@@ -248,12 +257,21 @@ class Atlas:
         A dictionary that contains the triangles that can be entirely described by local coordinates of charts.
     barycentric_coordinates: dict
         A dictionary that contains barycentric coordinates that are computed with the given charts.
+    chart_indices: np.ndarray
+        The indices of origin vertices around which charts are computed. If 'None', all origin vertices are used.
     """
-    def __init__(self, triangle_mesh, max_radius, method="hdm", normalization_method="hdm", processes=1):
+    def __init__(self,
+                 triangle_mesh,
+                 max_radius,
+                 method="hdm",
+                 normalization_method="hdm",
+                 processes=1,
+                 chart_indices=None):
         # Meta information
         self.max_radius = max_radius
         self.method = method
         self.processes = processes
+        self.chart_indices = chart_indices
 
         # Normalize mesh
         if normalization_method == "longest_axis":
@@ -277,7 +295,8 @@ class Atlas:
             method=method,
             processes=processes,
             max_radius=max_radius,
-            calculate_angle=True
+            calculate_angle=True,
+            chart_indices=self.chart_indices
         )
 
         # Compute statistics about chart radii
@@ -304,6 +323,8 @@ class Atlas:
 
         # Placeholder for custom numpy arrays (e.g., vertex associated ground truth values)
         self.custom_arrays = {}
+        if self.chart_indices is not None:
+            self.custom_arrays["chart_indices"] = self.chart_indices
 
     def save_training_data(self, filepath, save_vertices=True, save_parallel_transport=False):
         """Saves only information that is required to train IMCNNs.
