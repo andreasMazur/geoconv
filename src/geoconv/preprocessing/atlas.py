@@ -128,6 +128,8 @@ def load_atlas(filepath):
     Atlas:
         The loaded atlas.
     """
+    if not filepath.endswith(".hdf5"):
+        filepath = f"{filepath}.hdf5"
     with h5py.File(filepath, "r") as f:
         # Load mesh
         vertices = np.array(f["triangle_mesh/vertices"])
@@ -257,7 +259,7 @@ class Atlas:
         A dictionary that contains the triangles that can be entirely described by local coordinates of charts.
     barycentric_coordinates: dict
         A dictionary that contains barycentric coordinates that are computed with the given charts.
-    chart_indices: np.ndarray
+    chart_indices: np.ndarray | None
         The indices of origin vertices around which charts are computed. If 'None', all origin vertices are used.
     """
     def __init__(self,
@@ -648,7 +650,7 @@ class Atlas:
         )
 
     def determine_parallel_transport(self):
-        self.parallel_transport = compute_parallel_transport(self.triangle_mesh)
+        self.parallel_transport = compute_parallel_transport(self.triangle_mesh, self.chart_indices)
 
     def store_array(self, dictionary):
         self.custom_arrays.update(dictionary)
