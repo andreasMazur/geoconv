@@ -54,8 +54,8 @@ def calculate_local_charts(triangle_mesh,
 
     # Divide indices into subsets for which the solver should calculate distances in parallel
     all_vertex_indices = np.arange(n_vertices) if chart_indices is None else chart_indices
-    if n_vertices % processes != 0:
-        chunk_size = math.floor(n_vertices / processes)
+    if all_vertex_indices.shape[0] % processes != 0:
+        chunk_size = math.floor(all_vertex_indices.shape[0] / processes)
         index_subsets = [all_vertex_indices[p * chunk_size:(p + 1) * chunk_size] for p in range(processes+1)]
     else:
         index_subsets = np.split(all_vertex_indices, processes)
