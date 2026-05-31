@@ -115,7 +115,6 @@ def load_available_template_configs(filepath):
     return template_configs
 
 
-
 def load_atlas(filepath):
     """Loads an atlas.
 
