@@ -10,26 +10,29 @@ def preprocess(path,
                method,
                normalization_method,
                template_resolutions,
-               processes=1):
+               processes=1,
+               chunks=16):
     """Computes barycentric coordinates for the sphere for planetswe."""
     # Create a spherical triangular mesh
     sphere_mesh = create_planetswe_sphere(path)
 
     # Compute the atlas
-    atlas = Atlas(
-        triangle_mesh=sphere_mesh,
-        max_radius=max_chart_radius,
-        method=method,
-        normalization_method=normalization_method,
-        processes=processes
-    )
-
-    # Compute barycentric coordinates
-    for (n_radial, n_angular) in template_resolutions:
-        atlas.determine_barycentric_coordinates(
-            n_radial=n_radial,
-            n_angular=n_angular,
-            radius=np.median(atlas.chart_radii.tolist())
+    for chart_indices in np.split(np.arange(sphere_mesh.vertices.shape[0]), chunks):
+        atlas = Atlas(
+            triangle_mesh=sphere_mesh,
+            max_radius=max_chart_radius,
+            method=method,
+            normalization_method=normalization_method,
+            processes=processes,
+            chart_indices=chart_indices
         )
-        # Save atlas
-        atlas.save_training_data(save_path)
+
+        # Compute barycentric coordinates
+        for (n_radial, n_angular) in template_resolutions:
+            atlas.determine_barycentric_coordinates(
+                n_radial=n_radial,
+                n_angular=n_angular,
+                radius=np.median(atlas.chart_radii.tolist())
+            )
+            # Save atlas
+            atlas.save_training_data(f"{save_path}_{method}_{chart_indices[0]}_{chart_indices[-1]}")
