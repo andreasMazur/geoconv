@@ -33,7 +33,7 @@ def preprocess(path,
     os.makedirs(save_path, exist_ok=True)
 
     # Create a spherical triangular mesh
-    sphere_mesh = create_planetswe_sphere(path)
+    sphere_mesh = create_planetswe_sphere(path, normalization_method=normalization_method, processes=processes)
 
     # Misc
     max_chart_radius_str = f"{max_chart_radius}".replace(".", "_")
@@ -53,7 +53,7 @@ def preprocess(path,
             triangle_mesh=sphere_mesh,
             max_radius=max_chart_radius,
             method=method,
-            normalization_method=normalization_method,
+            normalization_method=None,
             processes=processes,
             chart_indices=chart_indices
         )

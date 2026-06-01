@@ -4,6 +4,8 @@ import os
 import numpy as np
 import trimesh
 
+from geoconv.preprocessing.distance_computation import normalize_shape
+
 
 def create_sphere(colatitude_theta, longitude_phi):
     """Creates Cartesian coordinates for colatitude and longitude spherical coordiantes.
@@ -56,13 +58,17 @@ def create_sphere(colatitude_theta, longitude_phi):
     return trimesh.Trimesh(vertices=spherical_point_cloud, faces=np.array(faces), process=False)
 
 
-def create_planetswe_sphere(path):
+def create_planetswe_sphere(path, normalization_method="hdm", processes=1):
     """Creates a sphere from the longitude and colatitude angles contained in the planetswe dataset.
 
     Parameters
     ----------
     path: str
         The path to the directory "planetswe".
+    normalization_method: str
+        The method used to normalize the shape. Either "fmm" or "hdm".
+    processes: int
+        The number of concurrent processes used to determine the geodesic diameter for shape normalization.
 
     Returns
     -------
@@ -73,7 +79,13 @@ def create_planetswe_sphere(path):
     file_content = h5py.File(file_path, "r")
     longitude_phi = np.array(file_content["dimensions"]["phi"])
     colatitude_theta = np.array(file_content["dimensions"]["theta"])
-    return create_sphere(colatitude_theta, longitude_phi)
+    sphere = create_sphere(colatitude_theta, longitude_phi)
+    sphere, geodesic_diameter = normalize_shape(
+        sphere,
+        method=normalization_method,
+        processes=processes
+    )
+    return sphere
 
 
 def planetswe_raw_data_generator(path, split, normalize_features=True):
