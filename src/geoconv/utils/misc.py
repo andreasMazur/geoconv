@@ -186,3 +186,21 @@ def compute_distance_matrix(vertices):
     norm[np.isnan(np.sqrt(norm))] = 0.0
 
     return np.sqrt(norm)
+
+
+def compute_sub_distance_matrix(vertices, indices):
+    """Computes the distances for each vertex whose index is in 'indices'.
+
+    Parameters
+    ----------
+    vertices: np.ndarray
+        All vertices towards which distances shall be computed.
+    indices: np.ndarray
+        The indices for the vertices from which distances shall be computed.
+
+    Returns
+    -------
+    np.ndarray:
+        A sub-distance matrix for the given vertices.
+    """
+    return np.linalg.norm(vertices[indices][:, None] - vertices[None, ...], axis=-1, ord=2)

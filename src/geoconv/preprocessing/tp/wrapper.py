@@ -22,12 +22,14 @@ def pickable_tp(idx_subset, vertices, eucl_max_radius):
         All local charts for the given shape vertices.
     """
     # Get Euclidean 3D neighborhoods
-    neighborhoods, neighborhood_indices = get_3d_neighborhood(
-        vertices, max_radius=eucl_max_radius, return_as_array=False, required_origins=idx_subset
+    neighborhoods, neighborhood_mask = get_3d_neighborhood(
+        vertices, max_radius=eucl_max_radius, required_origins=idx_subset
     )
 
     # Get 2D projections
-    all_projections = [get_2d_projections(np.array(hood), rescale=True) for hood in neighborhoods]
+    all_projections = [
+        get_2d_projections(hood[mask], rescale=True) for hood, mask in zip(neighborhoods, neighborhood_mask)
+    ]
 
     # Compute charts
     angles = [compute_angles_for_projections(p) for p in all_projections]
@@ -40,5 +42,5 @@ def pickable_tp(idx_subset, vertices, eucl_max_radius):
         [np.full((n_origins, n_vertices), np.inf), np.full((n_origins, n_vertices), -1.)],
         axis=-1
     )
-    padded_charts[neighborhood_indices] = np.array([coord for chart in charts for coord in chart])
+    padded_charts[neighborhood_mask] = np.array([coord for chart in charts for coord in chart])
     return padded_charts
