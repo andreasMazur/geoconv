@@ -1,10 +1,12 @@
+from geoconv.preprocessing.distance_computation import normalize_shape
+
+from tqdm import tqdm
+
 import tensorflow as tf
 import h5py
 import os
 import numpy as np
 import trimesh
-
-from geoconv.preprocessing.distance_computation import normalize_shape
 
 
 def create_sphere(colatitude_theta, longitude_phi):
@@ -88,7 +90,53 @@ def create_planetswe_sphere(path, normalization_method="hdm", processes=1):
     return sphere
 
 
-def planetswe_raw_data_generator(path, split, normalize_features=True):
+def planetswe_hdf5_reader(file_content, normalize=False):
+    """Reads the groups of interest for one HDF5 file in the planetswe dataset.
+
+    Parameters
+    ----------
+    file_content: h5py.File
+        The loaded HDF5 file.
+    normalize: bool
+        Whether to normalize the feature fields to their z-scores.
+
+    Returns
+    -------
+    (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+
+    """
+    ### Other stored stuff ###
+    # bc_phi_periodic_mask = file_content["boundary_conditions"]["phi_periodic"]["mask"]
+    # bc_theta_open_mask = file_content["boundary_conditions"]["theta_open"]["mask"]
+    # dimensions_time = np.array(file_content["dimensions"]["time"])  # shape: [1008]
+
+    ### Stuff of interest ###
+    # shape: [512] (longitude) range(0.0, 6.2709136) [0, 2pi[
+    longitude_phi = np.array(file_content["dimensions"]["phi"])
+    # shape: [256] (colatitude) range(0.009375532, 3.1322172) [0, pi[
+    colatitude_theta = np.array(file_content["dimensions"]["theta"])
+
+    # Load heights and velocities
+    field_height = file_content["t0_fields"]["height"][0]  # shape: [1008, 256, 512]
+    field_velocity = file_content["t1_fields"]["velocity"][0]  # shape: [1008, 256, 512, 2]
+
+    ### Normalize (z-score) ###
+    if normalize:
+        height_mean = field_height.mean()
+        height_std = field_height.std()
+        velocity_mean = field_velocity.mean()
+        velocity_std = field_velocity.std()
+
+        field_height = (field_height - height_mean) / height_std
+        field_velocity = (field_velocity - velocity_mean) / velocity_std
+
+    return longitude_phi, colatitude_theta, field_height, field_velocity
+
+
+def planetswe_raw_data_generator(path,
+                                 split,
+                                 normalize_features=True,
+                                 return_sphere=False):
     """Reads the hdf5-files from the planetswe dataset.
 
     Parameters
@@ -99,50 +147,126 @@ def planetswe_raw_data_generator(path, split, normalize_features=True):
         Either "train", "valid" or "test".
     normalize_features: bool
         Whether to normalize the height and velocity fields.
+    return_sphere: bool
+        Whether to return the point-cloud sphere together with other features.
 
     Returns
     -------
-    (np.ndarray, np.ndarray, np.ndarray):
-        The point-cloud for the sphere, and the feature fields.
+    np.ndarray | (np.ndarray, np.ndarray):
+        The feature fields and the point-cloud for the sphere if wanted.
     """
     split_dir = f"{path}/data/{split}"
     split_content = [f"{path}/data/{split}/{f}" for f in os.listdir(split_dir)]
     split_content.sort(key=lambda x: "_".join(x.replace(".", "_").split("_")[1:-1]))
     spherical_point_cloud = None
 
-    for file_path in split_content:
-        # Read complete file
+    for file_idx, file_path in enumerate(split_content):
+        ### Read complete file ###
         file_content = h5py.File(file_path, "r")
+        longitude_phi, colatitude_theta, field_height, field_velocity = planetswe_hdf5_reader(
+            file_content, normalize=normalize_features
+        )
 
-        ### Other stored stuff ###
-        # bc_phi_periodic_mask = file_content["boundary_conditions"]["phi_periodic"]["mask"]
-        # bc_theta_open_mask = file_content["boundary_conditions"]["theta_open"]["mask"]
-        # dimensions_time = np.array(file_content["dimensions"]["time"])  # shape: [1008]
-
-        ### Stuff of interest ###
-        # shape: [512] (longitude) range(0.0, 6.2709136) [0, 2pi[
-        longitude_phi = np.array(file_content["dimensions"]["phi"])
-        # shape: [256] (colatitude) range(0.009375532, 3.1322172) [0, pi[
-        colatitude_theta = np.array(file_content["dimensions"]["theta"])
-
-        # Create 3D spherical coordinates:
-        if spherical_point_cloud is None:
+        ### Create 3D spherical coordinates in case non has been loaded so far ###
+        if return_sphere and spherical_point_cloud is None:
             sphere = create_sphere(colatitude_theta, longitude_phi)
             spherical_point_cloud = np.array(sphere.vertices)
 
-        # Load heights and velocities
-        t0_field_height = file_content["t0_fields"]["height"][0]  # shape: [1008, 256, 512]
-        t1_field_velocity = file_content["t1_fields"]["velocity"][0]  # shape: [1008, 256, 512, 2]
+        ### Yield features ###
+        yield_values = (
+            np.concatenate([field_height.reshape(1008, -1, 1), field_velocity.reshape(1008, -1, 2)], axis=-1),
+        )
+        if return_sphere:
+            yield_values = (spherical_point_cloud,) + yield_values
+        yield yield_values
 
-        # normalize (z-score)
-        if normalize_features:
-            # Numpy is way to slow, use TF instead
-            height_mean = tf.reduce_mean(tf.constant(t0_field_height)).numpy()
-            height_std = tf.math.reduce_std(tf.constant(t0_field_height)).numpy()
-            velocity_mean = tf.reduce_mean(tf.constant(t1_field_velocity)).numpy()
-            velocity_std = tf.math.reduce_std(tf.constant(t1_field_velocity)).numpy()
 
-            t0_field_height = (t0_field_height - height_mean) / height_std
-            t1_field_velocity = (t1_field_velocity - velocity_mean) / velocity_std
+def generator(bc_path, swe_path, set_type, return_rotations=False):
+    """Returns a 'generator'-object for the planetswe dataset.
 
-        yield spherical_point_cloud, t0_field_height.reshape(1008, -1), t1_field_velocity.reshape(1008, -1, 2)
+    Parameters
+    ----------
+    bc_path: str
+        The path to the zip file that contains all barycentric coordinates chunks.
+    swe_path: str
+        The path to the downloaded planetswe dataset.
+    set_type: str
+        The set type. Either: 'train', 'validation', 'test' or 'all'.
+    return_rotations: bool
+        Whether to return the rotation angles for the parallel transport.
+
+    Returns
+    -------
+    generator:
+        A planetswe generator.
+    """
+    if isinstance(bc_path, bytes):
+        bc_path = bc_path.decode("utf-8")
+    if isinstance(swe_path, bytes):
+        swe_path = swe_path.decode("utf-8")
+    if isinstance(set_type, bytes):
+        set_type = set_type.decode("utf-8")
+
+    # 1.) Load barycentric coordinates for the sphere
+    barycentric_zip = np.load(bc_path)
+    barycentric_coordinate_chunks = [f for f in barycentric_zip.files if "barycentric_coordinates" in f]
+    barycentric_coordinate_chunks.sort(key=lambda x: int(x.split("/")[0].split("_")[-2]))
+
+    cut_idx = 3 if return_rotations else 2
+    barycentric_coordinates = np.concatenate(
+        [barycentric_zip[f] for f in tqdm(barycentric_coordinate_chunks, postfix="Loading barycentric coordinates..")],
+        axis=0
+    )[..., :cut_idx]
+
+    # 2.) Load the feature fields from planetswe
+    swe_raw_generator = planetswe_raw_data_generator(
+        path=swe_path, split=set_type, normalize_features=True, return_sphere=False
+    )
+
+    # 3.) Return feature field and barycentric coordinates for one time step pair (t, t+1) at a time
+    for (year_of_feature_fields,) in swe_raw_generator:
+        for idx in range(year_of_feature_fields.shape[0]):
+            if idx + 1 == year_of_feature_fields.shape[0]:
+                break
+            else:
+                t_feature_field = year_of_feature_fields[idx]
+                t_next_feature_field = year_of_feature_fields[idx + 1]
+                yield barycentric_coordinates, t_feature_field, t_next_feature_field
+
+
+def dataset(bc_path, swe_path, set_type, return_rotations=False):
+    """Returns a 'tensorflow dataset'-object for the planetswe dataset.
+
+    Parameters
+    ----------
+    bc_path: str
+        The path to the zip file that contains all barycentric coordinates chunks.
+    swe_path: str
+        The path to the downloaded planetswe dataset.
+    set_type: str
+        The set type. Either: 'train', 'validation', 'test' or 'all'.
+    return_rotations: bool
+        Whether to return the rotation angles for the parallel transport.
+
+    Returns
+    -------
+    generator:
+        A planetswe dataset.
+    """
+    if return_rotations:
+        bc_shape = (3, 3)
+    else:
+        bc_shape = (3, 2)
+    n_radial, n_angular = os.path.basename(bc_path).split(".")[0].split("_")[-2:]
+
+    output_signature = (
+        tf.TensorSpec(shape=(131072,) + (int(n_radial), int(n_angular)) + bc_shape, dtype=tf.float32),
+        tf.TensorSpec(shape=(131072, 3), dtype=tf.float32),
+        tf.TensorSpec(shape=(131072, 3), dtype=tf.float32)
+    )
+
+    return tf.data.Dataset.from_generator(
+        generator,
+        args=(bc_path, swe_path, set_type, return_rotations),
+        output_signature=output_signature
+    ).prefetch(tf.data.AUTOTUNE).batch(1)
