@@ -20,12 +20,12 @@ def generator(zip_path,
               gpc_radius,
               template_radius,
               return_rotations=True):
-    """Returns a 'generator'-object for the ModelNet dataset.
+    """Returns a 'generator'-object for the FAUST dataset.
 
     Parameters
     ----------
     zip_path: str
-        The path to the preprocessed zip-file of ModelNet.
+        The path to the preprocessed zip-file of FAUST.
     set_type: str
         The set type. Either: 'train', 'validation', 'test' or 'all'.
     n_radial: int
@@ -44,7 +44,7 @@ def generator(zip_path,
     Returns
     -------
     generator:
-        A ModelNet generator.
+        A FAUST generator.
     """
     if isinstance(zip_path, bytes):
         zip_path = zip_path.decode("utf-8")
@@ -94,12 +94,12 @@ def dataset(zip_path,
             gpc_radius,
             template_radius,
             return_rotations=True):
-    """Returns a 'tensorflow dataset'-object for the ModelNet dataset.
+    """Returns a 'tensorflow dataset'-object for the FAUST dataset.
 
     Parameters
     ----------
     zip_path: str
-        The path to the preprocessed zip-file of ModelNet.
+        The path to the preprocessed zip-file of FAUST.
     set_type: str
         The set type. Either: 'train', 'validation', 'test' or 'all'.
     n_radial: int
@@ -118,7 +118,7 @@ def dataset(zip_path,
     Returns
     -------
     tf.data.Dataset:
-        A ModelNet dataset.
+        A FAUST dataset.
     """
     if return_rotations:
         bc_shape = (3, 3)
