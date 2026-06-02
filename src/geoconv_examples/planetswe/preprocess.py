@@ -29,6 +29,11 @@ def preprocess(path,
                processes=1,
                chunks=16):
     """Computes barycentric coordinates for the sphere for planetswe."""
+    # Check whether zip-file already exists
+    if os.path.isfile(f"{path}.zip"):
+        print(f"File already exists: {path}.zip. Skipping...")
+        return
+
     # Make sure saving folder exists
     os.makedirs(save_path, exist_ok=True)
 
