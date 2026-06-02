@@ -191,7 +191,7 @@ def generator(bc_path, swe_path, set_type, return_rotations=False):
     swe_path: str
         The path to the downloaded planetswe dataset.
     set_type: str
-        The set type. Either: 'train', 'validation', 'test' or 'all'.
+        The set type. Either: 'train', 'valid' or 'test'.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
 
@@ -231,7 +231,7 @@ def generator(bc_path, swe_path, set_type, return_rotations=False):
             else:
                 t_feature_field = year_of_feature_fields[idx]
                 t_next_feature_field = year_of_feature_fields[idx + 1]
-                yield barycentric_coordinates, t_feature_field, t_next_feature_field
+                yield (t_feature_field, barycentric_coordinates), t_next_feature_field
 
 
 def dataset(bc_path, swe_path, set_type, return_rotations=False):
@@ -244,7 +244,7 @@ def dataset(bc_path, swe_path, set_type, return_rotations=False):
     swe_path: str
         The path to the downloaded planetswe dataset.
     set_type: str
-        The set type. Either: 'train', 'validation', 'test' or 'all'.
+        The set type. Either: 'train', 'valid' or 'test'.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
 
@@ -260,8 +260,10 @@ def dataset(bc_path, swe_path, set_type, return_rotations=False):
     n_radial, n_angular = os.path.basename(bc_path).split(".")[0].split("_")[-2:]
 
     output_signature = (
-        tf.TensorSpec(shape=(131072,) + (int(n_radial), int(n_angular)) + bc_shape, dtype=tf.float32),
-        tf.TensorSpec(shape=(131072, 3), dtype=tf.float32),
+        (
+            tf.TensorSpec(shape=(131072, 3), dtype=tf.float32),
+            tf.TensorSpec(shape=(131072,) + (int(n_radial), int(n_angular)) + bc_shape, dtype=tf.float32)
+        ),
         tf.TensorSpec(shape=(131072, 3), dtype=tf.float32)
     )
 
