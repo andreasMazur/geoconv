@@ -37,7 +37,7 @@ def define_model(n_radial, n_angular, template_radius, output_dims, learning_rat
     # Compile model
     model = tf.keras.Model(inputs=[features_input, bc_input], outputs=output, name="planetswe_model")
     model.compile(
-        loss=tf.keras.losses.MSE(),
+        loss=tf.keras.losses.MeanSquaredError(),
         optimizer=tf.keras.optimizers.Adam(
             learning_rate=tf.keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=learning_rate,
