@@ -33,6 +33,8 @@ def preprocess(path,
     if os.path.isfile(f"{path}.zip"):
         print(f"File already exists: {path}.zip. Skipping...")
         return
+    else:
+        print(f"Computing dataset: {path}.zip")
 
     # Make sure saving folder exists
     os.makedirs(save_path, exist_ok=True)
