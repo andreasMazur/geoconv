@@ -17,10 +17,10 @@ class VRMSE(tf.keras.metrics.Metric):
         rmse = tf.math.sqrt(tf.math.reduce_mean(squared_difference, axis=self.axis))
 
         # [n_batch,]
-        std = tf.math.reduce_std(y_true, axis=self.axis, keepdims=True)
+        std = tf.math.reduce_std(y_true, axis=self.axis)
 
         # [n_batch,]
-        return rmse / std
+        return tf.math.divide_no_nan(rmse, std)
 
     def result(self):
         return self.total_vrmse / self.count
