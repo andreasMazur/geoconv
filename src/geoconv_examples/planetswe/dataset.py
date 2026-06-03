@@ -137,7 +137,7 @@ def planetswe_raw_data_generator(path,
                                  split,
                                  normalize_features=True,
                                  return_sphere=False,
-                                 add_zero_dim=False):
+                                 add_input_zero_dim=False):
     """Reads the hdf5-files from the planetswe dataset.
 
     Parameters
@@ -150,7 +150,7 @@ def planetswe_raw_data_generator(path,
         Whether to normalize the height and velocity fields.
     return_sphere: bool
         Whether to return the point-cloud sphere together with other features.
-    add_zero_dim: bool
+    add_input_zero_dim: bool
         If 'True', adds a zero to each feature vector to return an even amount of features. This is required for
         architectures that expect complex input features.
 
@@ -180,7 +180,7 @@ def planetswe_raw_data_generator(path,
         feature_vectors = np.concatenate(
             [field_height.reshape(1008, -1, 1), field_velocity.reshape(1008, -1, 2)], axis=-1
         )
-        if add_zero_dim:
+        if add_input_zero_dim:
             feature_vectors = np.concatenate(
                 [feature_vectors, np.zeros(feature_vectors.shape[:-1] + (1,))], axis=-1
             )
@@ -190,7 +190,7 @@ def planetswe_raw_data_generator(path,
         yield yield_values
 
 
-def generator(bc_path, swe_path, set_type, return_rotations=False, add_zero_dim=False):
+def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zero_dim=False):
     """Returns a 'generator'-object for the planetswe dataset.
 
     Parameters
@@ -203,7 +203,7 @@ def generator(bc_path, swe_path, set_type, return_rotations=False, add_zero_dim=
         The set type. Either: 'train', 'valid' or 'test'.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
-    add_zero_dim: bool
+    add_input_zero_dim: bool
         If 'True', adds a zero to each feature vector to return an even amount of features. This is required for
         architectures that expect complex input features.
 
@@ -232,7 +232,7 @@ def generator(bc_path, swe_path, set_type, return_rotations=False, add_zero_dim=
 
     # 2.) Load the feature fields from planetswe
     swe_raw_generator = planetswe_raw_data_generator(
-        path=swe_path, split=set_type, normalize_features=True, return_sphere=False, add_zero_dim=add_zero_dim
+        path=swe_path, split=set_type, normalize_features=True, return_sphere=False, add_input_zero_dim=add_input_zero_dim
     )
 
     # 3.) Return feature field and barycentric coordinates for one time step pair (t, t+1) at a time
@@ -242,11 +242,11 @@ def generator(bc_path, swe_path, set_type, return_rotations=False, add_zero_dim=
                 break
             else:
                 t_feature_field = year_of_feature_fields[idx]
-                t_next_feature_field = year_of_feature_fields[idx + 1]
+                t_next_feature_field = year_of_feature_fields[idx + 1, :, :3]
                 yield (t_feature_field, barycentric_coordinates), t_next_feature_field
 
 
-def dataset(bc_path, swe_path, set_type, batch_size=1, return_rotations=False):
+def dataset(bc_path, swe_path, set_type, batch_size=1, return_rotations=False, add_input_zero_dim=False):
     """Returns a 'tensorflow dataset'-object for the planetswe dataset.
 
     Parameters
@@ -261,6 +261,9 @@ def dataset(bc_path, swe_path, set_type, batch_size=1, return_rotations=False):
         Whether to return the rotation angles for the parallel transport.
     batch_size: int
         The batch size.
+    add_input_zero_dim: bool
+        If 'True', adds a zero to each feature vector to return an even amount of features. This is required for
+        architectures that expect complex input features.
 
     Returns
     -------
@@ -271,11 +274,12 @@ def dataset(bc_path, swe_path, set_type, batch_size=1, return_rotations=False):
         bc_shape = (3, 3)
     else:
         bc_shape = (3, 2)
+    input_feature_dim = 4 if add_input_zero_dim else 3
     n_radial, n_angular = os.path.basename(bc_path).split(".")[0].split("_")[-2:]
 
     output_signature = (
         (
-            tf.TensorSpec(shape=(131072, 3), dtype=tf.float32),
+            tf.TensorSpec(shape=(131072, input_feature_dim), dtype=tf.float32),
             tf.TensorSpec(shape=(131072,) + (int(n_radial), int(n_angular)) + bc_shape, dtype=tf.float32)
         ),
         tf.TensorSpec(shape=(131072, 3), dtype=tf.float32)
@@ -283,6 +287,6 @@ def dataset(bc_path, swe_path, set_type, batch_size=1, return_rotations=False):
 
     return tf.data.Dataset.from_generator(
         generator,
-        args=(bc_path, swe_path, set_type, return_rotations),
+        args=(bc_path, swe_path, set_type, return_rotations, add_input_zero_dim),
         output_signature=output_signature
     ).prefetch(tf.data.AUTOTUNE).batch(batch_size)
