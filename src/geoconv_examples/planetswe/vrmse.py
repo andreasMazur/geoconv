@@ -24,10 +24,10 @@ class VRMSE(tf.keras.metrics.Metric):
         vrmse = tf.math.divide_no_nan(rmse, std)
 
         # Update total vrmse
-        self.total_vrmse.assign_add(vrmse)
+        self.total_vrmse.assign_add(tf.reduce_sum(vrmse))
 
         # Update counter
-        batch_size = tf.shape(y_pred)[self.batch_dim]
+        batch_size = tf.cast(tf.shape(y_pred)[self.batch_dim], tf.float32)
         self.count.assign_add(batch_size)
 
     def result(self):
