@@ -234,7 +234,7 @@ def generator(bc_path, swe_path, set_type, return_rotations=False):
                 yield (t_feature_field, barycentric_coordinates), t_next_feature_field
 
 
-def dataset(bc_path, swe_path, set_type, return_rotations=False):
+def dataset(bc_path, swe_path, set_type, batch_size=1, return_rotations=False):
     """Returns a 'tensorflow dataset'-object for the planetswe dataset.
 
     Parameters
@@ -247,6 +247,8 @@ def dataset(bc_path, swe_path, set_type, return_rotations=False):
         The set type. Either: 'train', 'valid' or 'test'.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
+    batch_size: int
+        The batch size.
 
     Returns
     -------
@@ -271,4 +273,4 @@ def dataset(bc_path, swe_path, set_type, return_rotations=False):
         generator,
         args=(bc_path, swe_path, set_type, return_rotations),
         output_signature=output_signature
-    ).prefetch(tf.data.AUTOTUNE).batch(1)
+    ).prefetch(tf.data.AUTOTUNE).batch(batch_size)

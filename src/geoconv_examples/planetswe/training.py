@@ -22,7 +22,8 @@ def training(model,
              save_path,
              epochs=10,
              random_seed=42,
-             tensorboard_cb=False):
+             tensorboard_cb=False,
+             batch_size=1):
     # Check if model already exists
     test_saving_path = f"{save_path}_test_history.json"
     if os.path.isfile(test_saving_path):
@@ -35,8 +36,12 @@ def training(model,
     random.seed(random_seed)
 
     # Get data
-    train_data = dataset(bc_path=bc_path, swe_path=swe_path, set_type="train", return_rotations=return_rotations)
-    val_data = dataset(bc_path=bc_path, swe_path=swe_path, set_type="valid", return_rotations=return_rotations)
+    train_data = dataset(
+        bc_path=bc_path, swe_path=swe_path, set_type="train", batch_size=batch_size, return_rotations=return_rotations
+    )
+    val_data = dataset(
+        bc_path=bc_path, swe_path=swe_path, set_type="valid", batch_size=batch_size, return_rotations=return_rotations
+    )
 
     # Show model summary
     model.summary()
@@ -88,7 +93,9 @@ def training(model,
             "ConvEMANP": ConvEMANP,
         }
     )
-    test_data = dataset(bc_path=bc_path, swe_path=swe_path, set_type="test", return_rotations=return_rotations)
+    test_data = dataset(
+        bc_path=bc_path, swe_path=swe_path, set_type="test", batch_size=batch_size, return_rotations=return_rotations
+    )
     test_history = model.evaluate(test_data, return_dict=True)
 
     # Save history
