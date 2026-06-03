@@ -28,7 +28,7 @@ def start_training_run(bc_path,
             n_angular=n_angular,
             template_radius=template_radius,
             kernel=kernel,
-            output_dims=[32, 64, 96, 64],
+            output_dims=[32],
             learning_rate=learning_rate,
             lr_decay_rate=lr_decay_rate
         )
