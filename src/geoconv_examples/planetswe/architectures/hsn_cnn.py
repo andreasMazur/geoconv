@@ -1,5 +1,6 @@
 from geoconv.tensorflow.layers.activation_beta_relu import BetaRelu
 from geoconv.tensorflow.layers.convolutions.conv_harmonic import ConvHarmonic
+from geoconv_examples.planetswe.vrmse import VRMSE
 
 import tensorflow as tf
 
@@ -45,6 +46,6 @@ def define_model(n_radial, n_angular, template_radius, output_dims, learning_rat
                 decay_rate=lr_decay_rate
             )
         ),
-        metrics=[tf.keras.metrics.RootMeanSquaredError()]
+        metrics=[VRMSE()]
     )
     return model
