@@ -51,7 +51,7 @@ def training(model,
     if save_path[-6:] != ".keras":
         save_path += ".keras"
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(
+    cp_callback_loss = tf.keras.callbacks.ModelCheckpoint(
         filepath=save_path,
         monitor="val_loss",
         mode="min",
@@ -59,8 +59,17 @@ def training(model,
         save_weights_only=False,
         verbose=True
     )
-    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=10, min_delta=0.001)
-    callbacks = [term, cp_callback, stop]
+    save_path_acc = f"{save_path[:-6]}_accuracy.keras"
+    cp_callback_vrmse = tf.keras.callbacks.ModelCheckpoint(
+        filepath=save_path_acc,
+        monitor="val_vrmse",
+        mode="max",
+        save_best_only=True,
+        save_weights_only=False,
+        verbose=True
+    )
+    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=3, min_delta=0.001)
+    callbacks = [term, cp_callback_loss, cp_callback_vrmse, stop]
 
     if tensorboard_cb:
         tb_cb = tf.keras.callbacks.TensorBoard(
