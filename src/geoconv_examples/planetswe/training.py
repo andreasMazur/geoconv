@@ -23,7 +23,8 @@ def training(model,
              epochs=10,
              random_seed=42,
              tensorboard_cb=False,
-             batch_size=1):
+             batch_size=1,
+             add_input_zero_dim=False):
     # Check if model already exists
     test_saving_path = f"{save_path}_test_history.json"
     if os.path.isfile(test_saving_path):
@@ -37,10 +38,20 @@ def training(model,
 
     # Get data
     train_data = dataset(
-        bc_path=bc_path, swe_path=swe_path, set_type="train", batch_size=batch_size, return_rotations=return_rotations
+        bc_path=bc_path,
+        swe_path=swe_path,
+        set_type="train",
+        batch_size=batch_size,
+        return_rotations=return_rotations,
+        add_input_zero_dim=add_input_zero_dim
     )
     val_data = dataset(
-        bc_path=bc_path, swe_path=swe_path, set_type="valid", batch_size=batch_size, return_rotations=return_rotations
+        bc_path=bc_path,
+        swe_path=swe_path,
+        set_type="valid",
+        batch_size=batch_size,
+        return_rotations=return_rotations,
+        add_input_zero_dim=add_input_zero_dim
     )
 
     # Show model summary
@@ -103,7 +114,12 @@ def training(model,
         }
     )
     test_data = dataset(
-        bc_path=bc_path, swe_path=swe_path, set_type="test", batch_size=batch_size, return_rotations=return_rotations
+        bc_path=bc_path,
+        swe_path=swe_path,
+        set_type="test",
+        batch_size=batch_size,
+        return_rotations=return_rotations,
+        add_input_zero_dim=add_input_zero_dim
     )
     test_history = model.evaluate(test_data, return_dict=True)
 
