@@ -1,5 +1,6 @@
 from geoconv.tensorflow.layers import AngularMaxPooling, ConvDirac
 from geoconv.tensorflow.layers import ConvGeodesic
+from geoconv_examples.planetswe.vrmse import VRMSE
 
 import tensorflow as tf
 
@@ -53,6 +54,6 @@ def define_model(n_radial, n_angular, template_radius, kernel, output_dims, lear
                 decay_rate=lr_decay_rate
             )
         ),
-        metrics=[tf.keras.metrics.RootMeanSquaredError()]
+        metrics=[VRMSE()]
     )
     return model
