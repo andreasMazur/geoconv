@@ -41,7 +41,7 @@ def define_model(n_radial, n_angular, template_radius, kernel, output_dims, lear
     velocity_prediction = AngularMaxPooling()(velocity_prediction)
 
     # Concatenate predictions
-    output = tf.keras.layers.Concatenate(axis=-1)([height_prediction, velocity_prediction])
+    output = tf.keras.layers.Concatenate(axis=-1)([velocity_prediction, height_prediction])
 
     # Compile model
     model = tf.keras.Model(inputs=[features_input, bc_input], outputs=output, name="planetswe_model")
