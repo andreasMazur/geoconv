@@ -69,7 +69,7 @@ def training(model,
             write_graph=False,
             write_steps_per_second=True,
             update_freq="epoch",
-            profile_batch=(1, 1008)
+            profile_batch=(1, 300)
         )
         callbacks.append(tb_cb)
 
