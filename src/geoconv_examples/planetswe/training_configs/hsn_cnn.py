@@ -41,5 +41,6 @@ def start_training_run(bc_path,
             epochs=epochs,
             random_seed=42,
             tensorboard_cb=tensorboard_cb,
-            batch_size=batch_size
+            batch_size=batch_size,
+            add_input_zero_dim=True
         )
