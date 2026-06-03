@@ -178,7 +178,7 @@ def planetswe_raw_data_generator(path,
 
         ### Yield features ###
         feature_vectors = np.concatenate(
-            [field_height.reshape(1008, -1, 1), field_velocity.reshape(1008, -1, 2)], axis=-1
+            [field_velocity.reshape(1008, -1, 2), field_height.reshape(1008, -1, 1)], axis=-1
         )
         if add_input_zero_dim:
             feature_vectors = np.concatenate(
