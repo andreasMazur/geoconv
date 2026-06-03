@@ -7,7 +7,7 @@ import tensorflow as tf
 
 def define_model(n_radial, n_angular, template_radius, output_dims, learning_rate, lr_decay_rate):
     # Define input layers
-    features_input = tf.keras.Input(shape=(131_072, 3), name="features_input", dtype=tf.float32)
+    features_input = tf.keras.Input(shape=(131_072, 4), name="features_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(131_072, n_radial, n_angular, 3, 3), name="bc_input", dtype=tf.float32)
 
     # Forward pass
