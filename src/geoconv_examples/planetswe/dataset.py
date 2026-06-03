@@ -136,7 +136,8 @@ def planetswe_hdf5_reader(file_content, normalize=False):
 def planetswe_raw_data_generator(path,
                                  split,
                                  normalize_features=True,
-                                 return_sphere=False):
+                                 return_sphere=False,
+                                 add_zero_dim=False):
     """Reads the hdf5-files from the planetswe dataset.
 
     Parameters
@@ -149,6 +150,9 @@ def planetswe_raw_data_generator(path,
         Whether to normalize the height and velocity fields.
     return_sphere: bool
         Whether to return the point-cloud sphere together with other features.
+    add_zero_dim: bool
+        If 'True', adds a zero to each feature vector to return an even amount of features. This is required for
+        architectures that expect complex input features.
 
     Returns
     -------
@@ -173,15 +177,20 @@ def planetswe_raw_data_generator(path,
             spherical_point_cloud = np.array(sphere.vertices)
 
         ### Yield features ###
-        yield_values = (
-            np.concatenate([field_height.reshape(1008, -1, 1), field_velocity.reshape(1008, -1, 2)], axis=-1),
+        feature_vectors = np.concatenate(
+            [field_height.reshape(1008, -1, 1), field_velocity.reshape(1008, -1, 2)], axis=-1
         )
+        if add_zero_dim:
+            feature_vectors = np.concatenate(
+                [feature_vectors, np.zeros(feature_vectors.shape[:-1] + (1,))], axis=-1
+            )
+        yield_values = (feature_vectors,)
         if return_sphere:
             yield_values = (spherical_point_cloud,) + yield_values
         yield yield_values
 
 
-def generator(bc_path, swe_path, set_type, return_rotations=False):
+def generator(bc_path, swe_path, set_type, return_rotations=False, add_zero_dim=False):
     """Returns a 'generator'-object for the planetswe dataset.
 
     Parameters
@@ -194,6 +203,9 @@ def generator(bc_path, swe_path, set_type, return_rotations=False):
         The set type. Either: 'train', 'valid' or 'test'.
     return_rotations: bool
         Whether to return the rotation angles for the parallel transport.
+    add_zero_dim: bool
+        If 'True', adds a zero to each feature vector to return an even amount of features. This is required for
+        architectures that expect complex input features.
 
     Returns
     -------
@@ -220,7 +232,7 @@ def generator(bc_path, swe_path, set_type, return_rotations=False):
 
     # 2.) Load the feature fields from planetswe
     swe_raw_generator = planetswe_raw_data_generator(
-        path=swe_path, split=set_type, normalize_features=True, return_sphere=False
+        path=swe_path, split=set_type, normalize_features=True, return_sphere=False, add_zero_dim=add_zero_dim
     )
 
     # 3.) Return feature field and barycentric coordinates for one time step pair (t, t+1) at a time
