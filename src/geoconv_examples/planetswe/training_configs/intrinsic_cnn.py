@@ -13,7 +13,8 @@ def start_training_run(bc_path,
                        learning_rate=0.001,
                        lr_decay_rate=1.0,
                        epochs=10,
-                       tensorboard_cb=False):
+                       tensorboard_cb=False,
+                       batch_size=1):
     if template_resolutions is None:
         template_resolutions = [(4, 8)]
 
@@ -41,5 +42,6 @@ def start_training_run(bc_path,
             save_path=f"{save_path}_{n_radial}_{n_angular}",
             epochs=epochs,
             random_seed=42,
-            tensorboard_cb=tensorboard_cb
+            tensorboard_cb=tensorboard_cb,
+            batch_size=batch_size
         )
