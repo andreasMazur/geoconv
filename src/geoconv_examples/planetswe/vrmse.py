@@ -3,9 +3,10 @@ import tensorflow as tf
 
 class VRMSE(tf.keras.metrics.Metric):
     """Implements the variance-scale root mean squared error."""
-    def __init__(self, axis=(1, 2), name="vrmse"):
+    def __init__(self, aggregation_axes=(1, 2), batch_dim=0, name="vrmse"):
         super(VRMSE, self).__init__(name=name)
-        self.axis = axis
+        self.axis = aggregation_axes
+        self.batch_dim = batch_dim
         self.total_vrmse = self.add_weight(name="total_vrmse", initializer="zeros")
         self.count = self.add_weight(name="count", initializer="zeros")
 
@@ -20,7 +21,14 @@ class VRMSE(tf.keras.metrics.Metric):
         std = tf.math.reduce_std(y_true, axis=self.axis)
 
         # [n_batch,]
-        return tf.math.divide_no_nan(rmse, std)
+        vrmse = tf.math.divide_no_nan(rmse, std)
+
+        # Update total vrmse
+        self.total_vrmse.assign_add(vrmse)
+
+        # Update counter
+        batch_size = tf.shape(y_pred)[self.batch_dim]
+        self.count.assign_add(batch_size)
 
     def result(self):
         return self.total_vrmse / self.count
