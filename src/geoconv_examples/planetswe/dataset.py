@@ -137,7 +137,8 @@ def planetswe_raw_data_generator(path,
                                  split,
                                  normalize_features=True,
                                  return_sphere=False,
-                                 add_input_zero_dim=False):
+                                 add_input_zero_dim=False,
+                                 return_filename=False):
     """Reads the hdf5-files from the planetswe dataset.
 
     Parameters
@@ -153,6 +154,8 @@ def planetswe_raw_data_generator(path,
     add_input_zero_dim: bool
         If 'True', adds a zero to each feature vector to return an even amount of features. This is required for
         architectures that expect complex input features.
+    return_filename: bool
+        Whether to return the filename of the feature fields.
 
     Returns
     -------
@@ -161,7 +164,7 @@ def planetswe_raw_data_generator(path,
     """
     split_dir = f"{path}/data/{split}"
     split_content = [f"{path}/data/{split}/{f}" for f in os.listdir(split_dir)]
-    split_content.sort(key=lambda x: "_".join(x.replace(".", "_").split("_")[1:-1]))
+    split_content.sort(key=lambda x: "_".join(os.path.basename(x).replace(".", "_").split("_")[1:-1]))
     spherical_point_cloud = None
 
     for file_idx, file_path in enumerate(split_content):
@@ -176,17 +179,25 @@ def planetswe_raw_data_generator(path,
             sphere = create_sphere(colatitude_theta, longitude_phi)
             spherical_point_cloud = np.array(sphere.vertices)
 
-        ### Yield features ###
+        ### Concatenate velocities and heights to single feature vectors ###
         feature_vectors = np.concatenate(
             [field_velocity.reshape(1008, -1, 2), field_height.reshape(1008, -1, 1)], axis=-1
         )
+
+        ### Add zero dimension in case even amount of features are wished for ###
         if add_input_zero_dim:
             feature_vectors = np.concatenate(
                 [feature_vectors, np.zeros(feature_vectors.shape[:-1] + (1,))], axis=-1
             )
+
+        ### Gather yield values ###
         yield_values = (feature_vectors,)
+
         if return_sphere:
             yield_values = (spherical_point_cloud,) + yield_values
+
+        if return_filename:
+            yield_values = yield_values + (os.path.basename(file_path),)
         yield yield_values
 
 
@@ -232,17 +243,38 @@ def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zer
 
     # 2.) Load the feature fields from planetswe
     swe_raw_generator = planetswe_raw_data_generator(
-        path=swe_path, split=set_type, normalize_features=True, return_sphere=False, add_input_zero_dim=add_input_zero_dim
+        path=swe_path,
+        split=set_type,
+        normalize_features=True,
+        return_sphere=False,
+        add_input_zero_dim=add_input_zero_dim,
+        return_filename=True
     )
 
     # 3.) Return feature field and barycentric coordinates for one time step pair (t, t+1) at a time
-    for (year_of_feature_fields,) in swe_raw_generator:
-        for idx in range(year_of_feature_fields.shape[0]):
-            if idx + 1 == year_of_feature_fields.shape[0]:
+    last_feature_field = None
+    for (year_of_feature_fields, filename) in swe_raw_generator:
+        # Remember which split pair we have
+        split_number = filename.split(".")[0].split("_")[-1]
+
+        # First splits have no predecessor feature fields
+        last_feature_field = None if split_number == "s1" else last_feature_field
+
+        # Handle cross-split time-steps
+        if last_feature_field is not None:
+            yield (last_feature_field, barycentric_coordinates), year_of_feature_fields[0, :, :3]
+
+        for time_idx in range(year_of_feature_fields.shape[0]):
+            # Last element in time trajectory [s1, s2, s3]
+            if time_idx + 1 == year_of_feature_fields.shape[0] and split_number == "s3":
                 break
+            # Last time step within a split sX of trajectory [s1, s2, s3]
+            elif time_idx + 1 == year_of_feature_fields.shape[0]:
+                last_feature_field = year_of_feature_fields[time_idx]
+            # Regular time step within a split sX of trajectory [s1, s2, s3]
             else:
-                t_feature_field = year_of_feature_fields[idx]
-                t_next_feature_field = year_of_feature_fields[idx + 1, :, :3]
+                t_feature_field = year_of_feature_fields[time_idx]
+                t_next_feature_field = year_of_feature_fields[time_idx + 1, :, :3]
                 yield (t_feature_field, barycentric_coordinates), t_next_feature_field
 
 
