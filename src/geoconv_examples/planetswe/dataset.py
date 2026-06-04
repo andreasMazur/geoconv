@@ -1,4 +1,5 @@
 from geoconv.preprocessing.distance_computation import normalize_shape
+from geoconv_examples.planetswe.training_configs.dictionaries import PLANETSWE_NORM_VALUES
 
 from tqdm import tqdm
 
@@ -7,7 +8,6 @@ import h5py
 import os
 import numpy as np
 import trimesh
-import warnings
 
 
 def create_sphere(colatitude_theta, longitude_phi):
@@ -123,10 +123,10 @@ def planetswe_hdf5_reader(file_content, normalize=False):
 
     ### Normalize (z-score) ###
     if normalize:
-        height_mean = field_height.mean()
-        height_std = field_height.std()
-        velocity_mean = field_velocity.mean()
-        velocity_std = field_velocity.std()
+        height_mean = np.array(PLANETSWE_NORM_VALUES["channel_means"])[-1]
+        height_std = np.array(PLANETSWE_NORM_VALUES["channel_stds"])[-1]
+        velocity_mean = np.array(PLANETSWE_NORM_VALUES["channel_means"])[:2]
+        velocity_std = np.array(PLANETSWE_NORM_VALUES["channel_stds"])[:2]
 
         field_height = (field_height - height_mean) / height_std
         field_velocity = (field_velocity - velocity_mean) / velocity_std
