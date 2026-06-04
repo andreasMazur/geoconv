@@ -6,6 +6,7 @@ from geoconv_gem.tensorflow.layers.convolutions.conv_eman import ConvEMAN
 from geoconv_gem.tensorflow.layers.convolutions.conv_gem_p import ConvGEMP
 from geoconv_gem.tensorflow.layers.convolutions.conv_eman_p import ConvEMANP
 from geoconv_examples.planetswe.dataset import dataset
+from geoconv_examples.planetswe.training_configs.dictionaries import PLANETSWE_NORM_VALUES
 from geoconv_examples.planetswe.vrmse import compute_vrmse
 
 import os
@@ -16,6 +17,8 @@ import json
 
 
 def rollout_benchmark(model, test_data, t_max, save_path, zero_pad=False):
+    normalization_means = np.array(PLANETSWE_NORM_VALUES["channel_means"])
+    normalization_stds = np.array(PLANETSWE_NORM_VALUES["channel_stds"])
     time_step_errors = []
     prediction = None
     for (time_step, t_feature_field, barycentric_coordinates), t_next_feature_field in test_data:
@@ -28,7 +31,11 @@ def rollout_benchmark(model, test_data, t_max, save_path, zero_pad=False):
 
         # Estimate next time step from preceding prediction
         prediction = model([preceding_prediction, barycentric_coordinates], training=False)
-        vrmse_t_next = compute_vrmse(t_next_feature_field, prediction, axis=(1, 2))
+
+        # De-normalize values for VRMSE metric
+        de_normalized_prediction = prediction * normalization_stds + normalization_means
+        t_next_feature_field = t_next_feature_field * normalization_stds + normalization_means
+        vrmse_t_next = compute_vrmse(t_next_feature_field, de_normalized_prediction, axis=(1, 2))
         time_step_errors.append(vrmse_t_next)
         print(f"\rt: {time_step % t_max} -> t+1 {(time_step % t_max) + 1}: VRMSE(t+1) = {vrmse_t_next}")
 
