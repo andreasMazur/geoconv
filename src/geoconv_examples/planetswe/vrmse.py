@@ -1,6 +1,20 @@
 import tensorflow as tf
 
 
+def compute_vrmse(y_true, y_pred, axis=(1, 2)):
+    # [n_batch, n_vertices, n_channels]
+    squared_difference = tf.math.squared_difference(y_pred, y_true)
+
+    # [n_batch,]
+    rmse = tf.math.sqrt(tf.math.reduce_mean(squared_difference, axis=axis))
+
+    # [n_batch,]
+    std = tf.math.reduce_std(y_true, axis=axis)
+
+    # [n_batch,]
+    return tf.math.divide_no_nan(rmse, std)
+
+
 class VRMSE(tf.keras.metrics.Metric):
     """Implements the variance-scale root mean squared error."""
     def __init__(self, aggregation_axes=(1, 2), batch_dim=0, name="vrmse"):
@@ -11,17 +25,8 @@ class VRMSE(tf.keras.metrics.Metric):
         self.count = self.add_weight(name="count", initializer="zeros")
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        # [n_batch, n_vertices, n_channels]
-        squared_difference = tf.math.squared_difference(y_pred, y_true)
-
         # [n_batch,]
-        rmse = tf.math.sqrt(tf.math.reduce_mean(squared_difference, axis=self.axis))
-
-        # [n_batch,]
-        std = tf.math.reduce_std(y_true, axis=self.axis)
-
-        # [n_batch,]
-        vrmse = tf.math.divide_no_nan(rmse, std)
+        vrmse = compute_vrmse(y_true, y_pred, axis=self.axis)
 
         # Update total vrmse
         self.total_vrmse.assign_add(tf.reduce_sum(vrmse))
