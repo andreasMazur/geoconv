@@ -17,8 +17,8 @@ def compute_vrmse(y_true, y_pred, axis=(1, 2)):
 
 class VRMSE(tf.keras.metrics.Metric):
     """Implements the variance-scale root mean squared error."""
-    def __init__(self, aggregation_axes=(1, 2), batch_dim=0, name="vrmse"):
-        super(VRMSE, self).__init__(name=name)
+    def __init__(self, aggregation_axes=(1, 2), batch_dim=0, name="vrmse", dtype=tf.float32):
+        super(VRMSE, self).__init__(name=name, dtype=dtype)
         self.axis = aggregation_axes
         self.batch_dim = batch_dim
         self.total_vrmse = self.add_weight(name="total_vrmse", initializer="zeros")
