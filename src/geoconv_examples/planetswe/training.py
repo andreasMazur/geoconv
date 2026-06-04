@@ -108,7 +108,6 @@ def training(model,
             "BetaRelu": BetaRelu,
             "ConvGEM": ConvGEM,
             "ConvEMAN": ConvEMAN,
-            "LiftFeatures2D": LiftFeatures2D,
             "ConvGEMP": ConvGEMP,
             "ConvEMANP": ConvEMANP,
         }
