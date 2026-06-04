@@ -201,7 +201,7 @@ def planetswe_raw_data_generator(path,
         yield yield_values
 
 
-def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zero_dim=False):
+def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zero_dim=False, max_time_steps=3024):
     """Returns a 'generator'-object for the planetswe dataset.
 
     Parameters
@@ -217,6 +217,8 @@ def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zer
     add_input_zero_dim: bool
         If 'True', adds a zero to each feature vector to return an even amount of features. This is required for
         architectures that expect complex input features.
+    max_time_steps: int
+        The maximum number of time steps to return from a trajectory. Maximum value: 3024.
 
     Returns
     -------
@@ -253,9 +255,14 @@ def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zer
 
     # 3.) Return feature field and barycentric coordinates for one time step pair (t, t+1) at a time
     last_feature_field = None
+    total_time_step = -1
     for (year_of_feature_fields, filename) in swe_raw_generator:
         # Remember which split pair we have
         split_number = filename.split(".")[0].split("_")[-1]
+
+        # Remember the total time step within the trajectory
+        if split_number == "s1":
+            total_time_step = -1
 
         # First splits have no predecessor feature fields
         last_feature_field = None if split_number == "s1" else last_feature_field
@@ -265,6 +272,13 @@ def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zer
             yield (last_feature_field, barycentric_coordinates), year_of_feature_fields[0, :, :3]
 
         for time_idx in range(year_of_feature_fields.shape[0]):
+            # Increment total time step
+            total_time_step += 1
+            if total_time_step >= max_time_steps:
+                print("====")
+                break
+            print(total_time_step)
+
             # Last element in time trajectory [s1, s2, s3]
             if time_idx + 1 == year_of_feature_fields.shape[0] and split_number == "s3":
                 break
@@ -278,7 +292,13 @@ def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zer
                 yield (t_feature_field, barycentric_coordinates), t_next_feature_field
 
 
-def dataset(bc_path, swe_path, set_type, batch_size=1, return_rotations=False, add_input_zero_dim=False):
+def dataset(bc_path,
+            swe_path,
+            set_type,
+            batch_size=1,
+            return_rotations=False,
+            add_input_zero_dim=False,
+            max_time_steps=3024):
     """Returns a 'tensorflow dataset'-object for the planetswe dataset.
 
     Parameters
@@ -296,6 +316,8 @@ def dataset(bc_path, swe_path, set_type, batch_size=1, return_rotations=False, a
     add_input_zero_dim: bool
         If 'True', adds a zero to each feature vector to return an even amount of features. This is required for
         architectures that expect complex input features.
+    max_time_steps: int
+        The maximum number of time steps to return from a trajectory. Maximum value: 3024.
 
     Returns
     -------
@@ -319,6 +341,6 @@ def dataset(bc_path, swe_path, set_type, batch_size=1, return_rotations=False, a
 
     return tf.data.Dataset.from_generator(
         generator,
-        args=(bc_path, swe_path, set_type, return_rotations, add_input_zero_dim),
+        args=(bc_path, swe_path, set_type, return_rotations, add_input_zero_dim, max_time_steps),
         output_signature=output_signature
     ).prefetch(tf.data.AUTOTUNE).batch(batch_size)
