@@ -7,6 +7,7 @@ import h5py
 import os
 import numpy as np
 import trimesh
+import warnings
 
 
 def create_sphere(colatitude_theta, longitude_phi):
@@ -201,7 +202,13 @@ def planetswe_raw_data_generator(path,
         yield yield_values
 
 
-def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zero_dim=False, max_time_steps=3024):
+def generator(bc_path,
+              swe_path,
+              set_type,
+              return_rotations=False,
+              add_input_zero_dim=False,
+              max_time_steps=3024,
+              return_time_steps=False):
     """Returns a 'generator'-object for the planetswe dataset.
 
     Parameters
@@ -219,6 +226,8 @@ def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zer
         architectures that expect complex input features.
     max_time_steps: int
         The maximum number of time steps to return from a trajectory. Maximum value: 3024.
+    return_time_steps: bool
+        Whether to return the time steps (index in time axis) for the returned feature fields.
 
     Returns
     -------
@@ -269,7 +278,10 @@ def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zer
 
         # Handle cross-split time-steps
         if last_feature_field is not None:
-            yield (last_feature_field, barycentric_coordinates), year_of_feature_fields[0, :, :3]
+            if return_time_steps:
+                yield (total_time_step, last_feature_field, barycentric_coordinates), year_of_feature_fields[0, :, :3]
+            else:
+                yield (last_feature_field, barycentric_coordinates), year_of_feature_fields[0, :, :3]
 
         for time_idx in range(year_of_feature_fields.shape[0]):
             # Increment total time step
@@ -287,7 +299,10 @@ def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zer
             else:
                 t_feature_field = year_of_feature_fields[time_idx]
                 t_next_feature_field = year_of_feature_fields[time_idx + 1, :, :3]
-                yield (t_feature_field, barycentric_coordinates), t_next_feature_field
+                if return_time_steps:
+                    yield (total_time_step, t_feature_field, barycentric_coordinates), t_next_feature_field
+                else:
+                    yield (t_feature_field, barycentric_coordinates), t_next_feature_field
 
 
 def dataset(bc_path,
@@ -296,7 +311,8 @@ def dataset(bc_path,
             batch_size=1,
             return_rotations=False,
             add_input_zero_dim=False,
-            max_time_steps=3024):
+            max_time_steps=3024,
+            return_time_steps=False):
     """Returns a 'tensorflow dataset'-object for the planetswe dataset.
 
     Parameters
@@ -316,6 +332,8 @@ def dataset(bc_path,
         architectures that expect complex input features.
     max_time_steps: int
         The maximum number of time steps to return from a trajectory. Maximum value: 3024.
+    return_time_steps: bool
+        Whether to return the time steps (index in time axis) for the returned feature fields.
 
     Returns
     -------
@@ -329,16 +347,16 @@ def dataset(bc_path,
     input_feature_dim = 4 if add_input_zero_dim else 3
     n_radial, n_angular = os.path.basename(bc_path).split(".")[0].split("_")[-2:]
 
-    output_signature = (
-        (
-            tf.TensorSpec(shape=(131072, input_feature_dim), dtype=tf.float32),
-            tf.TensorSpec(shape=(131072,) + (int(n_radial), int(n_angular)) + bc_shape, dtype=tf.float32)
-        ),
-        tf.TensorSpec(shape=(131072, 3), dtype=tf.float32)
+    input_signature = (
+        tf.TensorSpec(shape=(131072, input_feature_dim), dtype=tf.float32),
+        tf.TensorSpec(shape=(131072,) + (int(n_radial), int(n_angular)) + bc_shape, dtype=tf.float32)
     )
+    if return_time_steps:
+        input_signature = (tf.TensorSpec(shape=(), dtype=tf.float32),) + input_signature
+    output_signature = (input_signature, tf.TensorSpec(shape=(131072, 3), dtype=tf.float32))
 
     return tf.data.Dataset.from_generator(
         generator,
-        args=(bc_path, swe_path, set_type, return_rotations, add_input_zero_dim, max_time_steps),
+        args=(bc_path, swe_path, set_type, return_rotations, add_input_zero_dim, max_time_steps, return_time_steps),
         output_signature=output_signature
     ).prefetch(tf.data.AUTOTUNE).batch(batch_size)
