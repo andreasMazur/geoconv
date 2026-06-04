@@ -6,12 +6,37 @@ from geoconv_gem.tensorflow.layers.convolutions.conv_eman import ConvEMAN
 from geoconv_gem.tensorflow.layers.convolutions.conv_gem_p import ConvGEMP
 from geoconv_gem.tensorflow.layers.convolutions.conv_eman_p import ConvEMANP
 from geoconv_examples.planetswe.dataset import dataset
+from geoconv_examples.planetswe.vrmse import compute_vrmse
 
 import os
 import tensorflow as tf
 import numpy as np
 import random
 import json
+
+
+def rollout_benchmark(model, test_data, t_max, save_path, zero_pad=False):
+    time_step_errors = []
+    prediction = None
+    for (time_step, t_feature_field, barycentric_coordinates), t_next_feature_field in test_data:
+        # Set preceding prediction
+        if time_step == 0:
+            preceding_prediction = t_feature_field
+            print("Next trajectory..")
+        else:
+            preceding_prediction = prediction
+
+        # Estimate next time step from preceding prediction
+        prediction = model([preceding_prediction, barycentric_coordinates], training=False)
+        vrmse_t_next = compute_vrmse(t_next_feature_field, prediction, axis=(1, 2))
+        time_step_errors.append(vrmse_t_next)
+        print(f"\rt: {time_step % t_max} -> t+1 {(time_step % t_max) + 1}: VRMSE(t+1) = {vrmse_t_next}")
+
+        # Zero pad prediction if required for architecture
+        if zero_pad:
+            prediction = tf.concat([prediction, tf.zeros(tf.shape(prediction)[:2])[..., None]], axis=-1)
+    time_step_errors = np.array(time_step_errors).reshape(-1, t_max)
+    np.save(save_path, time_step_errors)
 
 
 def training(model,
@@ -23,7 +48,8 @@ def training(model,
              random_seed=42,
              tensorboard_cb=False,
              batch_size=1,
-             add_input_zero_dim=False):
+             add_input_zero_dim=False,
+             rollout_t_max=100):
     # Check if model already exists
     test_saving_path = f"{save_path}_test_history.json"
     if os.path.isfile(test_saving_path):
@@ -120,6 +146,13 @@ def training(model,
         add_input_zero_dim=add_input_zero_dim
     )
     test_history = model.evaluate(test_data, return_dict=True)
+    rollout_benchmark(
+        model,
+        test_data,
+        t_max=rollout_t_max,
+        save_path=f"{save_path[:-6]}_rollout.npy",
+        zero_pad=add_input_zero_dim
+    )
 
     # Save history
     with open(f"{save_path[:-6]}_train_history.json", "w") as f:
