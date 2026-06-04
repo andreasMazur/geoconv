@@ -275,9 +275,7 @@ def generator(bc_path, swe_path, set_type, return_rotations=False, add_input_zer
             # Increment total time step
             total_time_step += 1
             if total_time_step >= max_time_steps:
-                print("====")
                 break
-            print(total_time_step)
 
             # Last element in time trajectory [s1, s2, s3]
             if time_idx + 1 == year_of_feature_fields.shape[0] and split_number == "s3":
