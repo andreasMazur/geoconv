@@ -156,9 +156,11 @@ def training(model,
             bc_path=bc_path,
             swe_path=swe_path,
             set_type="test",
-            batch_size=batch_size,
+            batch_size=1,
             return_rotations=return_rotations,
-            add_input_zero_dim=add_input_zero_dim
+            add_input_zero_dim=add_input_zero_dim,
+            max_time_steps=rollout_t_max,
+            return_time_steps=True
         )
         rollout_benchmark(
             model,
