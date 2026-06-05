@@ -57,10 +57,16 @@ def training(model,
              batch_size=1,
              add_input_zero_dim=False,
              rollout_t_max=100):
+    # Define saving paths
+    os.makedirs(save_path, exist_ok=True)
+    cp_callback_loss_path = f"{save_path}/loss_callback.keras"
+    cp_callback_metric_path = f"{save_path}/metric_callback.keras"
+    tensorboard_callback_path = f"{save_path}/tensorboard"
+    rollout_statistics_path = f"{save_path}/rollout_statistics.npy"
+
     # Check if model already exists
-    test_saving_path = f"{save_path}_test_history.json"
-    if os.path.isfile(test_saving_path):
-        print(f"{test_saving_path} already exists! Skipping training...")
+    if os.path.isfile(rollout_statistics_path):
+        print(f"{rollout_statistics_path} already exists! Skipping training...")
         return
 
     # Set seeds
@@ -91,32 +97,28 @@ def training(model,
 
     # Train model
     term = tf.keras.callbacks.TerminateOnNaN()
-    if save_path[-6:] != ".keras":
-        save_path += ".keras"
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
     cp_callback_loss = tf.keras.callbacks.ModelCheckpoint(
-        filepath=save_path,
+        filepath=cp_callback_loss_path,
         monitor="val_loss",
         mode="min",
         save_best_only=True,
         save_weights_only=False,
         verbose=True
     )
-    save_path_acc = f"{save_path[:-6]}_accuracy.keras"
     cp_callback_vrmse = tf.keras.callbacks.ModelCheckpoint(
-        filepath=save_path_acc,
+        filepath=cp_callback_metric_path,
         monitor="val_vrmse",
         mode="max",
         save_best_only=True,
         save_weights_only=False,
         verbose=True
     )
-    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=3, min_delta=0.001)
+    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=2, min_delta=0.001)
     callbacks = [term, cp_callback_loss, cp_callback_vrmse, stop]
 
     if tensorboard_cb:
         tb_cb = tf.keras.callbacks.TensorBoard(
-            log_dir=f"{os.path.dirname(save_path)}/tensorboard",
+            log_dir=tensorboard_callback_path,
             histogram_freq=1,
             write_graph=False,
             write_steps_per_second=True,
@@ -125,44 +127,43 @@ def training(model,
         )
         callbacks.append(tb_cb)
 
+    # Model training
     train_history = model.fit(
         x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=callbacks
     )
-
-    # Test best performing model
-    model = tf.keras.models.load_model(
-        save_path,
-        custom_objects={
-            "ConvDirac": ConvDirac,
-            "ConvGeodesic": ConvGeodesic,
-            "AngularMaxPooling": AngularMaxPooling,
-            "ConvHarmonic": ConvHarmonic,
-            "BetaRelu": BetaRelu,
-            "ConvGEM": ConvGEM,
-            "ConvEMAN": ConvEMAN,
-            "ConvGEMP": ConvGEMP,
-            "ConvEMANP": ConvEMANP,
-        }
-    )
-    test_data = dataset(
-        bc_path=bc_path,
-        swe_path=swe_path,
-        set_type="test",
-        batch_size=batch_size,
-        return_rotations=return_rotations,
-        add_input_zero_dim=add_input_zero_dim
-    )
-    test_history = model.evaluate(test_data, return_dict=True)
-    rollout_benchmark(
-        model,
-        test_data,
-        t_max=rollout_t_max,
-        save_path=f"{save_path[:-6]}_rollout.npy",
-        zero_pad=add_input_zero_dim
-    )
-
-    # Save history
     with open(f"{save_path[:-6]}_train_history.json", "w") as f:
         json.dump(train_history.history, f, indent=4)
-    with open(test_saving_path, "w") as f:
-        json.dump(test_history, f, indent=4)
+
+    # Test best performing model
+    for callback_path in [cp_callback_loss_path, cp_callback_metric_path]:
+        model = tf.keras.models.load_model(
+            callback_path,
+            custom_objects={
+                "ConvDirac": ConvDirac,
+                "ConvGeodesic": ConvGeodesic,
+                "AngularMaxPooling": AngularMaxPooling,
+                "ConvHarmonic": ConvHarmonic,
+                "BetaRelu": BetaRelu,
+                "ConvGEM": ConvGEM,
+                "ConvEMAN": ConvEMAN,
+                "ConvGEMP": ConvGEMP,
+                "ConvEMANP": ConvEMANP,
+            }
+        )
+
+        # Compute rollout statistics
+        test_data = dataset(
+            bc_path=bc_path,
+            swe_path=swe_path,
+            set_type="test",
+            batch_size=batch_size,
+            return_rotations=return_rotations,
+            add_input_zero_dim=add_input_zero_dim
+        )
+        rollout_benchmark(
+            model,
+            test_data,
+            t_max=rollout_t_max,
+            save_path=rollout_statistics_path,
+            zero_pad=add_input_zero_dim
+        )
