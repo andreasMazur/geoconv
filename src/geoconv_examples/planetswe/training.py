@@ -59,14 +59,17 @@ def training(model,
              rollout_t_max=100):
     # Define saving paths
     os.makedirs(save_path, exist_ok=True)
+    tensorboard_callback_path = f"{save_path}/tensorboard"
     cp_callback_loss_path = f"{save_path}/loss_callback.keras"
     cp_callback_metric_path = f"{save_path}/metric_callback.keras"
-    tensorboard_callback_path = f"{save_path}/tensorboard"
-    rollout_statistics_path = f"{save_path}/rollout_statistics.npy"
+    rollout_statistics_loss_path = f"{save_path}/loss_rollout_statistics.npy"
+    rollout_statistics_metric_path = f"{save_path}/metric_rollout_statistics.npy"
 
     # Check if model already exists
-    if os.path.isfile(rollout_statistics_path):
-        print(f"{rollout_statistics_path} already exists! Skipping training...")
+    if os.path.isfile(rollout_statistics_loss_path) and os.path.isfile(rollout_statistics_metric_path):
+        print(
+            f"{rollout_statistics_loss_path} and {rollout_statistics_metric_path} already exists! Skipping training..."
+        )
         return
 
     # Set seeds
@@ -135,7 +138,9 @@ def training(model,
         json.dump(train_history.history, f, indent=4)
 
     # Test best performing model
-    for callback_path in [cp_callback_loss_path, cp_callback_metric_path]:
+    for callback_path, rollout_statistics_path in [
+        (cp_callback_loss_path, rollout_statistics_loss_path), (cp_callback_metric_path, rollout_statistics_metric_path)
+    ]:
         model = tf.keras.models.load_model(
             callback_path,
             custom_objects={
