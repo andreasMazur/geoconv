@@ -64,6 +64,7 @@ def training(model,
     cp_callback_metric_path = f"{save_path}/metric_callback.keras"
     rollout_statistics_loss_path = f"{save_path}/loss_rollout_statistics.npy"
     rollout_statistics_metric_path = f"{save_path}/metric_rollout_statistics.npy"
+    training_logs_json = f"{save_path}/training_logs.json"
 
     # Check if model already exists
     if os.path.isfile(rollout_statistics_loss_path) and os.path.isfile(rollout_statistics_metric_path):
@@ -134,7 +135,7 @@ def training(model,
     train_history = model.fit(
         x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=callbacks
     )
-    with open(f"{save_path[:-6]}_train_history.json", "w") as f:
+    with open(training_logs_json, "w") as f:
         json.dump(train_history.history, f, indent=4)
 
     # Test best performing model
