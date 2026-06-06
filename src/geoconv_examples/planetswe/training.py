@@ -66,8 +66,8 @@ def training(model,
     rollout_statistics_metric_path = f"{save_path}/metric_rollout_statistics.npy"
     training_logs_json = f"{save_path}/training_logs.json"
 
-    # Check if model already exists
-    if os.path.isfile(rollout_statistics_loss_path) and os.path.isfile(rollout_statistics_metric_path):
+    # Check if metric rollout already has been computed - last benchmark in training function
+    if os.path.isfile(rollout_statistics_metric_path):
         print(
             f"{rollout_statistics_loss_path} and {rollout_statistics_metric_path} already exists! Skipping training..."
         )
