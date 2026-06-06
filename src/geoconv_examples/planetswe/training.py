@@ -69,7 +69,7 @@ def training(model,
     # Check if metric rollout already has been computed - last benchmark in training function
     if os.path.isfile(rollout_statistics_metric_path):
         print(
-            f"{rollout_statistics_loss_path} and {rollout_statistics_metric_path} already exists! Skipping training..."
+            f"{rollout_statistics_metric_path} already exists! Skipping training..."
         )
         return
 
