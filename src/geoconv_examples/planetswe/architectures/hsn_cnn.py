@@ -5,6 +5,22 @@ from geoconv_examples.planetswe.vrmse import VRMSE
 import tensorflow as tf
 
 
+def define_hypermodel(hp,
+                      output_dims,
+                      template_radius,
+                      n_radial,
+                      n_angular):
+    model = define_model(
+        n_radial=n_radial,
+        n_angular=n_angular,
+        template_radius=template_radius,
+        output_dims=output_dims,
+        learning_rate=hp.Float("learning_rate", min_value=0.0007, max_value=0.003),
+        lr_decay_rate=hp.Float("learning_rate_decay", min_value=0.9, max_value=0.999999)
+    )
+    return model
+
+
 def define_model(n_radial, n_angular, template_radius, output_dims, learning_rate, lr_decay_rate):
     # Define input layers
     features_input = tf.keras.Input(shape=(131_072, 4), name="features_input", dtype=tf.float32)

@@ -14,6 +14,54 @@ import tensorflow as tf
 import numpy as np
 import random
 import json
+import keras_tuner as kt
+
+
+def hypertuning(bc_path,
+                swe_path,
+                batch_size,
+                return_rotations,
+                add_input_zero_dim,
+                get_hypermodel,
+                max_trials,
+                num_initial_points,
+                project_name,
+                save_path):
+    # Get data
+    train_data = dataset(
+        bc_path=bc_path,
+        swe_path=swe_path,
+        set_type="train",
+        batch_size=batch_size,
+        return_rotations=return_rotations,
+        add_input_zero_dim=add_input_zero_dim
+    )
+    val_data = dataset(
+        bc_path=bc_path,
+        swe_path=swe_path,
+        set_type="valid",
+        batch_size=batch_size,
+        return_rotations=return_rotations,
+        add_input_zero_dim=add_input_zero_dim
+    )
+
+    # Hyperparameter search
+    tuner = kt.BayesianOptimization(
+        hypermodel=get_hypermodel,
+        objective=kt.Objective("val_vrmse", direction="min"),
+        max_trials=max_trials,
+        num_initial_points=num_initial_points,
+        seed=42,
+        project_name=project_name,
+    )
+    term = tf.keras.callbacks.TerminateOnNaN()
+    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=5, min_delta=0.001)
+    tuner.search(train_data, epochs=1, validation_data=val_data, callbacks=[term, stop])
+
+    # Save best model
+    best_model = tuner.get_best_models()[0]
+    save_path = save_path if save_path.endswith(".keras") else f"{save_path}.keras"
+    best_model.save(save_path)
 
 
 def rollout_benchmark(model, test_data, t_max, save_path, zero_pad=False):
