@@ -34,6 +34,30 @@ def define_model(input_types,
                  n_angular,
                  learning_rate=0.001,
                  lr_decay_rate=1.0):
+    """Builds and compiles an GEM-CNN-model for the ModelNet10 benchmark.
+
+    Parameters
+    ----------
+    input_types: list
+        A list of lists, where each list-element contains the input types for one GEM-CNN layer.
+    output_types: list
+        A list of lists, where each list-element contains the output types for one GEM-CNN layer.
+    template_radius: float
+        The template radius for the GEM-CNN layers.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    learning_rate: float
+        The learning rate for the GEM-CNN model.
+    lr_decay_rate: float
+        The learning rate decay rate for the GEM-CNN model.
+
+    Returns
+    -------
+    tf.keras.Model:
+        The GEM-CNN-model for the ModelNet10 benchmark.
+    """
     # Define input layers
     vertices_input = tf.keras.Input(shape=(None, 3), name="vertices_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(None, n_radial, n_angular, 3, 3), name="bc_input", dtype=tf.float32)

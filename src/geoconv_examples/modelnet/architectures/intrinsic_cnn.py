@@ -34,6 +34,30 @@ def define_model(output_dims,
                  kernel,
                  learning_rate=0.001,
                  lr_decay_rate=1.0):
+    """Builds and compiles a ISC/GCNN-model for the ModelNet10 benchmark.
+
+    Parameters
+    ----------
+    output_dims: list
+        A list of integer, where each element describes the output dimensions for one ISC/GCNN layer.
+    template_radius: float
+        The template radius for the ISC/GCNN layers.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    kernel: str
+        Either 'geodesic' to build GCNNs or 'dirac' to build ISCs.
+    learning_rate: float
+        The learning rate for the ISC/GCNN model.
+    lr_decay_rate: float
+        The learning rate decay rate for the ISC/GCNN model.
+
+    Returns
+    -------
+    tf.keras.Model:
+        The ISC/GCNN-model for the ModelNet10 benchmark.
+    """
     # Define input layers
     vertices_input = tf.keras.Input(shape=(MAX_N_VERTICES, 3), name="vertices_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(MAX_N_VERTICES, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
