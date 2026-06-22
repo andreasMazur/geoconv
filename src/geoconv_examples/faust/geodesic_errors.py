@@ -6,6 +6,26 @@ import numpy as np
 
 
 def get_geodesic_errors(model, ref_shape, dataset, distance_calc_method="hdm", processes=1):
+    """Computes the test geodesic errors of a model trained on the FAUST dataset.
+
+    Parameters
+    ----------
+    model: tf.keras.Model
+        The model to test.
+    ref_shape: trimesh.Trimesh
+        A reference shape from the FAUST dataset to test on.
+    dataset: tf.data.Dataset:
+        The FAUST dataset.
+    distance_calc_method: str
+         The method used to calculate the geodesic distances.
+    processes: int
+        The amount of concurrent processes that prepare the geodesic distances on the reference shape.
+
+    Returns
+    -------
+    np.ndarray:
+        An array of shape [20 * 6890] that contains the geodesic distances on the reference shape.
+    """
     # Prepare geodesic distances
     # 'geo_distances': (n_vertices, n_vertices)
     geo_distances = calculate_local_charts(

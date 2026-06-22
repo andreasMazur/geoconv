@@ -13,6 +13,26 @@ def preprocess_faust(registration_dir,
                      method="hdm",
                      normalization_method="hdm",
                      processes=1):
+    """Preprocesses the FAUST dataset: computes the atlases for all FAUST shapes and barycentric coordinates.
+
+    Parameters
+    ----------
+    registration_dir: str
+        The path to where the raw FAUST registrations are stored.
+    output_path: str
+        The path to where the preprocessed FAUST meshes are stored.
+    template_resolutions: list
+        A list of tuples, each describing a template resolution. Those are the ones for which barycentric coordinates
+        are computed.
+    max_chart_radius: float
+        The maximum allowed chart radius for all surface charts.
+    method: str
+        The used method for computing local charts.
+    normalization_method: str
+        The used method for computing the geodesic diameter for shape normalization.
+    processes: int
+        The amount of concurrent processes to use for computing local charts and barycentric coordinates.
+    """
     # 1.) Prepare path to registration directory
     registrations = [f for f in os.listdir(registration_dir) if f.endswith(".ply")]
     registrations.sort(key=lambda x: int(x.split("_")[-1].split(".")[0]))

@@ -85,6 +85,35 @@ def training(faust_path,
              return_rotations=True,
              random_seed=42,
              tensorboard_cb=False):
+    """Trains- and benchmarks the trained model on the FAUST dataset.
+
+    Parameters
+    ----------
+    faust_path: str
+        The path to the preprocessed FAUST dataset.
+    n_radial: int
+        The amount of radial coordinates considered by the discretized template.
+    n_angular: int
+        The amount of angular coordinates considered by the discretized template.
+    preprocess_method: str
+        The used charting algorithm.
+    gpc_radius: float
+        The maximum allowed chart radius.
+    template_radius: float
+        The used template radius
+    model: tf.keras.Model
+        The neural network to train.
+    save_path: str
+        The path where model and benchmark stats will be saved.
+    epochs: int
+        The amount of training epochs.
+    return_rotations: bool
+        Whether the dataset should return rotations for parallel transport.
+    random_seed: int
+        A seed that initializes randomness.
+    tensorboard_cb: bool
+        Whether to use a tensorboard callback.
+    """
     # Check if model already exists
     test_saving_path = f"{save_path}_test_history.json"
     if os.path.isfile(test_saving_path):
