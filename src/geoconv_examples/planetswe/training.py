@@ -1,10 +1,10 @@
 from geoconv.tensorflow.layers import ConvDirac, ConvGeodesic, AngularMaxPooling
 from geoconv.tensorflow.layers.activation_beta_relu import BetaRelu
 from geoconv.tensorflow.layers.convolutions.conv_harmonic import ConvHarmonic
-from geoconv_gem.tensorflow.layers.convolutions.conv_gem import ConvGEM
-from geoconv_gem.tensorflow.layers.convolutions.conv_eman import ConvEMAN
-from geoconv_gem.tensorflow.layers.convolutions.conv_gem_p import ConvGEMP
-from geoconv_gem.tensorflow.layers.convolutions.conv_eman_p import ConvEMANP
+from geoconv.tensorflow.layers.convolutions.conv_gem import ConvGEM
+from geoconv.tensorflow.layers.convolutions.conv_eman import ConvEMAN
+from geoconv.tensorflow.layers.convolutions.conv_gem_p import ConvGEMP
+from geoconv.tensorflow.layers.convolutions.conv_eman_p import ConvEMANP
 from geoconv_examples.planetswe.dataset import dataset
 from geoconv_examples.planetswe.training_configs.dictionaries import PLANETSWE_NORM_VALUES
 from geoconv_examples.planetswe.vrmse import compute_vrmse

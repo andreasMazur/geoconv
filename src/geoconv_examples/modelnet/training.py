@@ -3,10 +3,10 @@ from geoconv.tensorflow.layers.activation_beta_relu import BetaRelu
 from geoconv.tensorflow.layers.convolutions.conv_harmonic import ConvHarmonic
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
 from geoconv.tensorflow.layers.lift_features import LiftFeatures2D
-from geoconv_gem.tensorflow.layers.convolutions.conv_gem import ConvGEM
-from geoconv_gem.tensorflow.layers.convolutions.conv_eman import ConvEMAN
-from geoconv_gem.tensorflow.layers.convolutions.conv_gem_p import ConvGEMP
-from geoconv_gem.tensorflow.layers.convolutions.conv_eman_p import ConvEMANP
+from geoconv.tensorflow.layers.convolutions.conv_gem import ConvGEM
+from geoconv.tensorflow.layers.convolutions.conv_eman import ConvEMAN
+from geoconv.tensorflow.layers.convolutions.conv_gem_p import ConvGEMP
+from geoconv.tensorflow.layers.convolutions.conv_eman_p import ConvEMANP
 from geoconv.tensorflow.layers.unlift_features import UnLiftFeatures2D
 from geoconv_examples.modelnet.architectures.deep_sets import DeepSet
 from geoconv_examples.modelnet.dataset import dataset
