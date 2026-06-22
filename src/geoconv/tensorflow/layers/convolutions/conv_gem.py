@@ -117,7 +117,7 @@ def get_kernel_neigh(gamma_in, gamma_out, sine_and_cosine_locs, angles, phase_we
 
 @tf.function
 def get_kernel_self(gamma_in, gamma_out, sine_and_cosine_locs, phase_weights):
-    """
+    """Constructs a tensor that contains all self-connection basis kernels for GEM-CNNs.
 
     Parameters
     ----------
@@ -161,6 +161,13 @@ def get_kernel_self(gamma_in, gamma_out, sine_and_cosine_locs, phase_weights):
 
 
 class ConvGEM(ConvBase):
+    """This class implements the Gauge-equivariant Mesh convolution.
+
+    Original paper:
+    > Gauge Equivariant Mesh CNNs: Anisotropic convolutions on geometric graphs
+    > Pim De Haan and Maurice Weiler and Taco Cohen and Max Welling
+    > URL: https://openreview.net/forum?id=Jnspzp-oIZE
+    """
     def __init__(self, input_types, output_types, activation="linear", *args, **kwargs):
         super().__init__(
             include_kernel=False,
@@ -320,7 +327,7 @@ class ConvGEM(ConvBase):
 
         # Get transported and interpolated feature vectors at each template vertex
         # template_vertex_interpolations : (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
-        template_vertex_interpolations = self._interpolation_with_parallel_transport(signals, bc, self.input_types)
+        template_vertex_interpolations = self._signal_pullback_with_parallel_transport(signals, bc, self.input_types)
 
         # Reshape vertex signals into their geometric components
         # signals : (n_batch, n_vertices, input_dim / 2, 2)
@@ -330,7 +337,7 @@ class ConvGEM(ConvBase):
 
     @tf.function
     def call_helper(self, signals, template_vertex_interpolations, return_self_and_neighbor_embeddings=False):
-        """
+        """Computes GEM convolution using given signals and template vertex interpolations.
 
         Parameters
         ----------

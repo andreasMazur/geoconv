@@ -1,6 +1,4 @@
-from geoconv.tensorflow.layers.convolutions.conv_gem import (
-    ConvGEM, get_kernel_neigh
-)
+from geoconv.tensorflow.layers.convolutions.conv_gem import ConvGEM, get_kernel_neigh
 from geoconv.utils.sine_cosine_locs import get_sin_and_cosine_locs_neigh, get_sin_and_cosine_locs_self
 
 import tensorflow as tf
@@ -8,6 +6,13 @@ import numpy as np
 
 
 class ConvEMAN(ConvGEM):
+    """This class implements the equivariant mesh attention convolution layer.
+
+    Original paper:
+    > Equivariant Mesh Attention Networks
+    > Sourya Basu and Jose Gallego-Posada and Francesco Vigano and James Rowbottom and Taco Cohen
+    > URL: https://openreview.net/forum?id=3IqqJh2Ycy
+    """
     def __init__(self, attention_types, *args, **kwargs):
         # Values are implemented using the regular GEM-CNN kernels
         super().__init__(*args, **kwargs)
@@ -79,6 +84,21 @@ class ConvEMAN(ConvGEM):
 
     @tf.function
     def call(self, inputs):
+        """Computes the equivariant mesh attention convolution
+
+        Parameters
+        ----------
+        inputs: (tf.Tensor, tf.Tensor)
+            The first tensor has shape [n_batch, n_vertices, input_dim] and contains the signals for each vertex. The
+            second tensor has shape [n_batch, n_vertices, n_radial, n_angular, 3, 2] and contains the barycentric
+            coordinates.
+
+        Returns
+        -------
+        tf:Tensor
+            A tensor of size [n_batch, n_vertices, output_dim], containing the new signal-embeddings for each mesh
+            vertex.
+        """
         # signals : (n_batch, n_vertices, input_dim)
         # bc      : (n_batch, n_vertices, n_radial, n_angular, 3, 2)
         # angles  : (n_batch, n_vertices, n_vertices)
@@ -86,7 +106,7 @@ class ConvEMAN(ConvGEM):
 
         # Get transported and interpolated feature vectors at each template vertex
         # template_vertex_interpolations : (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
-        template_vertex_interpolations = self._interpolation_with_parallel_transport(signals, bc, self.input_types)
+        template_vertex_interpolations = self._signal_pullback_with_parallel_transport(signals, bc, self.input_types)
 
         # Reshape vertex signals into their geometric components
         # signals : (n_batch, n_vertices, input_dim / 2, 2)
@@ -114,7 +134,23 @@ class ConvEMAN(ConvGEM):
 
     @tf.function
     def get_attention_coefficients(self, self_con_signal, template_vertex_interpolations):
-        """Computes the attention coefficients for self-connections and neighbor aggregations."""
+        """Computes the attention coefficients for self-connections and neighbor aggregations.
+
+        Parameters
+        ----------
+        self_con_signal: tf.Tensor
+            A tensor of shape [n_batch, n_vertices, input_dim / 2, 2], containing the signals at the self-connections.
+        template_vertex_interpolations: tf:tensor
+            A tensor of shape [n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2], containing the signals
+            at the template vertices.
+
+        Returns
+        -------
+        (tf.Tensor, tf.Tensor):
+            One tensor of shape [n_batch, n_vertices], containing the attention coefficient for the self-connection, and
+            a second tensor of shape [n_batch, n_vertices, n_radial, n_angular], containing the attention coefficients
+            for the template vertices.
+        """
         ### Compute QUERY SELF tensor in preparation for HELPER SELF/NEIGH tensor ###
         # 'self_con_signal' : (n_batch, n_vertices, input_dim / 2, 2)
         # 'V_self_query'    : (attention_dim / 2, input_dim / 2, 2)

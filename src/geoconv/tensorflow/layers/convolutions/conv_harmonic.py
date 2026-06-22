@@ -4,6 +4,13 @@ import tensorflow as tf
 
 
 class ConvHarmonic(ConvBase):
+    """This class implements the harmonic surface convolution.
+
+    Original paper:
+    > CNNs on surfaces using rotation-equivariant features
+    > Ruben Wiersma and Elmar Eisemann and Klaus Hildebrandt
+    > DOI: 10.1145/3386569.3392437
+    """
     def __init__(self, output_dim, rotation_order, activation="linear", *args, **kwargs):
         super().__init__(
             include_kernel=False,
@@ -105,13 +112,28 @@ class ConvHarmonic(ConvBase):
 
     @tf.function
     def call(self, inputs):
+        """Computes the harmonic surface convolution.
+
+        Parameters
+        ----------
+        inputs: (tf.Tensor, tf.Tensor)
+            The first tensor has shape [n_batch, n_vertices, input_dim] and contains the signals for each vertex. The
+            second tensor has shape [n_batch, n_vertices, n_radial, n_angular, 3, 2] and contains the barycentric
+            coordinates.
+
+        Returns
+        -------
+        tf:Tensor
+            A tensor of size [n_batch, n_vertices, output_dim], containing the new signal-embeddings for each mesh
+            vertex.
+        """
         # signals : (n_batch, n_vertices, input_dim)
         # bc      : (n_batch, n_vertices, n_radial, n_angular, 3, 3)
         signals, bc = inputs
 
         # Get transported and interpolated feature vectors at each template vertex
         # neighbor_signals : (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
-        neighbor_signals = self._interpolation_with_parallel_transport(signals, bc, self.rotation_order_vector)
+        neighbor_signals = self._signal_pullback_with_parallel_transport(signals, bc, self.rotation_order_vector)
 
         # Get phase weight tensor
         # phase_weights: (n_angular, output_dim / 2, 2, 2)

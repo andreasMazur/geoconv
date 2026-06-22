@@ -5,6 +5,7 @@ import tensorflow as tf
 
 
 class ConvGEMP(ConvGEM):
+    """Implements GEM-CNNs with radially dependent weights and learnable phase offsets."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -44,7 +45,7 @@ class ConvGEMP(ConvGEM):
 
     @tf.function
     def call_helper(self, signals, template_vertex_interpolations, return_self_and_neighbor_embeddings=False):
-        """
+        """Computes GEM convolution using given signals and template vertex interpolations.
 
         Parameters
         ----------

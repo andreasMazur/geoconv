@@ -7,7 +7,7 @@ import numpy as np
 
 
 class ConvBase(tf.keras.layers.Layer):
-    """A metaclass for intrinsic surface convolutions."""
+    """The base class for any surface convolution in GeoConv, providing the signal-pullback and parallel transport."""
     def __init__(self, template_radius, include_kernel, activation, *args, **kwargs,):
         super().__init__(*args, **kwargs)
         # Configure template
@@ -48,8 +48,49 @@ class ConvBase(tf.keras.layers.Layer):
             )
 
     @tf.function
+    def _gather_signals(self, barycentric_coordinates, mesh_signal, bc_with_angles=False):
+        """Gathers required feature vectors and associated those to given barycentric coordinates.
+
+        Parameters
+        ----------
+        barycentric_coordinates: tf.Tensor
+            The barycentric coordinates tensor.
+        mesh_signal: tf.Tensor
+            The feature vectors at the mesh vertices.
+        bc_with_angles: bool
+            Whether the barycentric coordinates have angles concatenated to them.
+
+        Returns
+        -------
+        (tf.Tensor, tf.Tensor):
+            A tensor of shape (n_batch, n_vertices, n_radial, n_angular, 3, input_dim) that contains the required
+            feature vectors and their according interpolation values in a tensor of shape
+            (n_batch, n_vertices, n_radial, n_angular, 3).
+        """
+        # n_batch, n_vertices, n_radial, n_angular, 3, 2
+        bc_shape = tf.shape(barycentric_coordinates)
+
+        # (n_batch, n_vertices * n_radial * n_angular * 3)
+        if bc_with_angles:
+            bc_values, bc_indices, _ = tf.unstack(barycentric_coordinates, axis=-1)
+        else:
+            bc_values, bc_indices = tf.unstack(barycentric_coordinates, axis=-1)
+        bc_indices = tf.cast(
+            tf.reshape(bc_indices, (bc_shape[0], -1)), tf.int32
+        )
+
+        # (n_batch, n_vertices * n_radial * n_angular * 3, input_dim)
+        mesh_signal = tf.gather(mesh_signal, bc_indices, batch_dims=1)
+
+        # (n_batch, n_vertices, n_radial, n_angular, 3, input_dim)
+        mesh_signal = tf.reshape(
+            mesh_signal, (bc_shape[0], bc_shape[1], bc_shape[2], bc_shape[3], 3, self.feature_dim)
+        )
+        return mesh_signal, bc_values
+
+    @tf.function
     def _patch_operator(self, mesh_signal, barycentric_coordinates):
-        """Interpolates and weights mesh signal
+        """Implementation of the patch-operator: weighting and signal-pullback.
 
         Parameters
         ----------
@@ -77,7 +118,7 @@ class ConvBase(tf.keras.layers.Layer):
 
     @tf.function
     def _signal_pullback(self, mesh_signal, barycentric_coordinates):
-        """Interpolates signals at template vertices.
+        """Implementation of signal-pullback: Weighting of gathered and interpolated mesh signals.
 
         Parameters
         ----------
@@ -97,7 +138,7 @@ class ConvBase(tf.keras.layers.Layer):
         return tf.reduce_sum(tf.expand_dims(barycentric_coordinates, axis=-1) * mesh_signal, axis=-2)
 
     @tf.function
-    def _interpolation_with_parallel_transport(self, signals, bc, rotation_order_vector):
+    def _signal_pullback_with_parallel_transport(self, signals, bc, rotation_order_vector):
         """Wrapper function for feature gathering, parallel transport and interpolation.
 
         Parameters
@@ -146,81 +187,13 @@ class ConvBase(tf.keras.layers.Layer):
         rotation_matrices = self.create_rotation_matrices(bc, rotation_order_vector)
 
         # Transport via rotation and interpolate signals at template vertices
-        # (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
-        return self._signal_pullback_with_parallel_transport(
-            neighbor_signals, bc_coefficients, rotation_matrices
-        )
-
-    @tf.function
-    def _signal_pullback_with_parallel_transport(self, mesh_signal, bc, rotation_matrices):
-        """Rotates signals before it interpolates them at template vertices.
-
-        Parameters
-        ----------
-        mesh_signal: tf.Tensor
-            The signal values at the template vertices.
-            Shape: (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2)
-        bc: tf.Tensor
-            The interpolation values of the barycentric coordinates tensor for the template vertices.
-            Shape: (n_batch, n_vertices, n_radial, n_angular, 3)
-        rotation_matrices: tf.Tensor
-            The rotation matrices to be applied to the signals.
-            Shape: (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
-
-        Returns
-        -------
-        tf.Tensor:
-            A tensor containing interpolated feature vectors at the template vertices of shape
-            (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2).
-        """
-        # bc                : (n_batch, n_vertices, n_radial, n_angular, 3)
+        # bc_coefficients   : (n_batch, n_vertices, n_radial, n_angular, 3)
         # rotation_matrices : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
-        # mesh_signal       : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2)
+        # neighbor_signals  : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2)
         # result            : (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
         return tf.einsum(
-            "bkral,bkralnxy,bkralny->bkranx", bc, rotation_matrices, mesh_signal
+            "bkral,bkralnxy,bkralny->bkranx", bc_coefficients, rotation_matrices, neighbor_signals
         )
-
-    @tf.function
-    def _gather_signals(self, barycentric_coordinates, mesh_signal, bc_with_angles=False):
-        """Gathers required feature vectors and associated those to given barycentric coordinates.
-
-        Parameters
-        ----------
-        barycentric_coordinates: tf.Tensor
-            The barycentric coordinates tensor.
-        mesh_signal: tf.Tensor
-            The feature vectors at the mesh vertices.
-        bc_with_angles: bool
-            Whether the barycentric coordinates have angles concatenated to them.
-
-        Returns
-        -------
-        (tf.Tensor, tf.Tensor):
-            A tensor of shape (n_batch, n_vertices, n_radial, n_angular, 3, input_dim) that contains the required
-            feature vectors and their according interpolation values in a tensor of shape
-            (n_batch, n_vertices, n_radial, n_angular, 3).
-        """
-        # n_batch, n_vertices, n_radial, n_angular, 3, 2
-        bc_shape = tf.shape(barycentric_coordinates)
-
-        # (n_batch, n_vertices * n_radial * n_angular * 3)
-        if bc_with_angles:
-            bc_values, bc_indices, _ = tf.unstack(barycentric_coordinates, axis=-1)
-        else:
-            bc_values, bc_indices = tf.unstack(barycentric_coordinates, axis=-1)
-        bc_indices = tf.cast(
-            tf.reshape(bc_indices, (bc_shape[0], -1)), tf.int32
-        )
-
-        # (n_batch, n_vertices * n_radial * n_angular * 3, input_dim)
-        mesh_signal = tf.gather(mesh_signal, bc_indices, batch_dims=1)
-
-        # (n_batch, n_vertices, n_radial, n_angular, 3, input_dim)
-        mesh_signal = tf.reshape(
-            mesh_signal, (bc_shape[0], bc_shape[1], bc_shape[2], bc_shape[3], 3, self.feature_dim)
-        )
-        return mesh_signal, bc_values
 
     @tf.function
     def create_rotation_matrices(self, bc, rotation_order):

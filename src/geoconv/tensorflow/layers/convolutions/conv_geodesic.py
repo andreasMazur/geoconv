@@ -39,9 +39,9 @@ def normal_pdf(mean_rho, mean_theta, var_rho, var_theta, rho, theta):
 
 
 class ConvGeodesic(ConvIntrinsic):
-    """The geodesic convolutional layer
+    """The geodesic convolutional layer.
 
-    Paper, that introduced the geodesic convolution:
+    Original paper:
     > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
     > Jonathan Masci and Davide Boscaini et al.
     """

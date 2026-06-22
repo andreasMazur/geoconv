@@ -7,6 +7,7 @@ import numpy as np
 
 
 class ConvIntrinsic(ConvBase):
+    """The base class for any non gauge-equivariant surface convolution in GeoConv."""
     def __init__(
         self,
         template_radius,

@@ -4,8 +4,7 @@ import numpy as np
 
 
 class ConvDirac(ConvIntrinsic):
-    """No interpolation weighting"""
-
+    """A non gauge-equivariant surface convolution that uses no interpolation weighting within the patch-operator."""
     def __init__(self, *args, **kwargs):
         kwargs["include_kernel"] = (
             False  # Interpolation coefficients not required for Dirac prior
@@ -13,8 +12,7 @@ class ConvDirac(ConvIntrinsic):
         super().__init__(*args, **kwargs)
 
     def define_kernel_values(self, template_matrix):
-        """
-        Only take the value at ('rho_in', 'theta_in') into account for the patch operator at ('rho_in', 'theta_in')
+        """Only take the value at ('rho_in', 'theta_in') into account for the patch operator at ('rho_in', 'theta_in').
 
         [DEPRECATED]:
         This function is only implemented for visualization purposes. During the intrinsic surface convolution,
