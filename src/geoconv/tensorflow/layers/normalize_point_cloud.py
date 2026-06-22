@@ -2,6 +2,7 @@ import tensorflow as tf
 
 
 class NormalizePointCloud(tf.keras.layers.Layer):
+    """Normalizes a point cloud such that its largest axis has length 1."""
     def call(self, inputs, *args, **kwargs):
         # Move point-cloud into origin
         inputs = inputs - tf.reduce_mean(inputs, axis=1, keepdims=True)

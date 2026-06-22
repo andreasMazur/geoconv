@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class UnLiftFeatures2D(tf.keras.layers.Layer):
     """Lifts features into 2-dimensional space by concatenating zeros after each given scalar."""
-    # @tf.function
+    @tf.function
     def call(self, inputs):
         input_shape = tf.shape(inputs)
         return tf.reshape(
