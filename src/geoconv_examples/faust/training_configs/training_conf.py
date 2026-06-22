@@ -13,7 +13,7 @@ def start_training_run(faust_path,
                        template_resolutions=None,
                        learning_rate=0.0004,
                        lr_decay_rate=1.0):
-    """Starts the training run for a Harmonic surface network.
+    """Starts the training run for a equivariant mesh convolution architectures.
 
     Parameters
     ----------
