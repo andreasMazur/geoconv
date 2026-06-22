@@ -14,6 +14,25 @@ def start_training_run(mn10_path,
                        learning_rate=0.0004,
                        lr_decay_rate=1.0,
                        gpc_system_radii=None):
+    """Starts the training run for a equivariant mesh convolution architectures.
+
+    Parameters
+    ----------
+    mn10_path: str
+        The path to the preprocessed ModelNet10 dataset.
+    preprocessing: str
+        The used charting algorithm.
+    save_path: str
+        The path which points to where the model and benchmark statistics will be saved.
+    template_resolutions: list
+        A list of tuples, with each one describing the n_radial and n_angular of one discretized template.
+    learning_rate: float
+        The learning rate
+    lr_decay_rate: float
+        The decay rate for the learning rate
+    gpc_system_radii: list
+        A list of maximum chart radii.
+    """
     assert model_type in ["gem_cnn", "eman", "gem_p_cnn", "eman_p"], (
         "Select model type from: ['gem_cnn', 'eman', 'gem_p_cnn', 'eman_p']"
     )

@@ -24,6 +24,20 @@ FOLDER_TO_NUMBER = {
 
 
 def save_atlas(atlas, mesh_save_path):
+    """Convenience function to run Saving on a cluster filesystem that is not always reachable, to save an atlas.
+
+    Parameters
+    ----------
+    atlas: Atlas
+        The atlas to save.
+    mesh_save_path: str
+        The path to where to save the atlas.
+
+    Returns
+    -------
+    bool:
+        Whether the atlas was saved successfully.
+    """
     is_saved = False
     tries = 0
     while not is_saved:
@@ -43,6 +57,30 @@ def get_atlas(max_chart_radius,
               zip_file,
               mesh_filepath,
               mesh_save_path):
+    """Computes an atlas for a given shape.
+
+    Parameters
+    ----------
+    max_chart_radius: float
+        The maximum allowed chart radius for any chart.
+    method: str
+        The charting algorithm to use.
+    normalization_method: str
+        The distance computation method to use during mesh normalization.
+    processes: int
+        The amount of concurrent processes for computing charts.
+    zip_file: zipfile.ZipFile
+        The zip-file object for the ModelNet10 dataset.
+    mesh_filepath: str
+        The path to the shape within the zip-file of the ModelNet10 dataset, whose charts shall be computed.
+    mesh_save_path: str
+        The path to where to store the atlas.
+
+    Returns
+    -------
+    Atlas:
+        The Atlas-object for the watertight ModelNet10 shape stored at 'mesh_filepath'.
+    """
     old_resolution, resolution = 1_000, 1_000
     did_preprocess = False
     while not did_preprocess:
@@ -80,6 +118,30 @@ def get_atlas(max_chart_radius,
 
 
 def load_modelnet_mesh(zip_file, mesh_filepath, resolution=1_000):
+    """Loads one shape from the raw ModelNet10 zip file and makes it a manifold mesh.
+
+    Uses the algorithm of:
+    > [Robust watertight manifold surface generation method for shapenet models](https://arxiv.org/abs/1802.01698)
+    > Jingwei Huang, Hao Su and Leonidas Guibas
+    to make meshes watertight for distance calculations.
+
+    Implementation available at:
+    > https://fwilliams.info/point-cloud-utils/
+
+    Parameters
+    ----------
+    zip_file: zipfile.ZipFile
+        The zip-file object for the ModelNet10 dataset.
+    mesh_filepath: str
+        The path within the zip-file of the shape that shall be loaded
+    resolution: int
+        The number of target number of vertices in the processed manifold mesh. This number is not guaranteed.
+
+    Returns
+    -------
+    trimesh.Trimesh:
+        A manifold mesh.
+    """
     # Load the mesh
     mesh = trimesh.load_mesh(io.BytesIO(zip_file.read(mesh_filepath)), file_type="off")
 
@@ -120,13 +182,25 @@ def preprocess_modelnet(zip_path,
                         template_radius_aggregation_method="mean"):
     """Preprocess ModelNet40 shapes.
 
-    Uses the algorithm of:
-    > [Robust watertight manifold surface generation method for shapenet models](https://arxiv.org/abs/1802.01698)
-    > Jingwei Huang, Hao Su and Leonidas Guibas
-    to make meshes watertight for distance calculations.
-
-    Implementation available at:
-    > https://fwilliams.info/point-cloud-utils/
+    Parameters
+    ----------
+    zip_path: str
+        The path to the raw ModelNet10 zip-file.
+    output_path: str
+        The path that points to where the preprocessed dataset will be stored.
+    template_resolutions: list
+        A list of tuples, each describing the template resolution of a discretized template.
+    max_chart_radius: float
+        The maximum allowed chart radius for any chart.
+    method: str
+        The charting algorithm to use.
+    normalization_method: str
+        The method to use for computing the geodesic diameter during mesh normalization.
+    processes: int
+        The number of concurrent processes for computing charts and barycentric coordinates.
+    template_radius_aggregation_method: str
+        Either "mean" or "median". That's the method used to aggregate over all chart radii to determine a template
+        radius. This template radius is then used to compute barycentric coordinates.
     """
     with zipfile.ZipFile(zip_path, "r") as zip_file:
         zip_content = [f for f in zip_file.namelist() if f.endswith(".off")]

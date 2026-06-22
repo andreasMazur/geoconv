@@ -84,6 +84,33 @@ def training(mn10_path,
              random_seed=42,
              return_rotations=True,
              tensorboard_cb=False):
+    """Starts the training for a given surface CNN on ModelNet10.
+
+    Parameters
+    ----------
+    mn10_path: str
+        The path to the preprocessed ModelNet10 dataset.
+    n_radial: int
+        The amount of radial coordinates considered by the discretized template.
+    n_angular: int
+        The amount of angular coordinates considered by the discretized template.
+    preprocess_method: str
+        The used charting algorithm.
+    gpc_radius: float
+        The maximum allowed chart radius.
+    model: tf.Keras.Model
+        The surface CNN to be trained.
+    save_path: str
+        The path to where the trained surface CNN and benchmark statistics shall be stored.
+    epochs: int
+        The number of training epochs.
+    random_seed: int
+        A seed to initialize randomness.
+    return_rotations: bool
+        Whether the dataset shall return angles for parallel transports.
+    tensorboard_cb: bool
+        Whether to include a tensorboard callback during training.
+    """
     # Check if model already exists
     test_saving_path = f"{save_path}_test_history.json"
     if os.path.isfile(test_saving_path):

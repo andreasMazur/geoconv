@@ -12,6 +12,29 @@ def start_training_run(mn10_path,
                        learning_rate=0.001,
                        lr_decay_rate=1.0,
                        gpc_system_radii=None):
+    """Starts the training run of either an ISC or a GCNN model.
+
+    Parameters
+    ----------
+    mn10_path: str
+        The path to the preprocessed ModelNet10 dataset.
+    preprocessing: str
+        The used charting algorithm.
+    kernel: str
+        Either 'geodesic' to build GCNNs or 'dirac' to build ISCs.
+    save_path: str
+        The path which points to where the model and benchmark statistics will be saved.
+    n_radial: int
+        The amount of radial coordinates considered by the discretized template.
+    n_angular: int
+        The amount of angular coordinates considered by the discretized template.
+    learning_rate: float
+        The learning rate
+    lr_decay_rate: float
+        The decay rate for the learning rate
+    gpc_system_radii: list
+        A list of maximum chart radii.
+    """
     if gpc_system_radii is None:
         gpc_system_radii = [0.01, 0.02, 0.03, 0.04, 0.05]
 
