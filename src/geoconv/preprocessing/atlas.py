@@ -15,33 +15,6 @@ import h5py
 import os
 
 
-def suggest_template_radii(atlases):
-    """Suggests template radii based on the given atlases.
-
-    Parameters
-    ----------
-    atlases: list
-        A list of atlases.
-
-    Returns
-    -------
-    dict:
-        A dictionary containing the mean observed min-, max-, average- and median-radii over all given atlases.
-    """
-    min_radii, max_radii, average_radii, median_radii = [], [], [], []
-    for atlas in atlases:
-        min_radii.append(atlas.min_chart_radius)
-        max_radii.append(atlas.max_chart_radius)
-        average_radii.append(atlas.avg_chart_radius)
-        median_radii.append(atlas.median_chart_radius)
-    return {
-        "mean_min_radius": np.mean(min_radii),
-        "mean_max_radius": np.mean(max_radii),
-        "mean_average_radius": np.mean(average_radii),
-        "mean_median_radius": np.mean(median_radii)
-    }
-
-
 def longest_axis_normalization(triangle_mesh):
     """Normalizes mesh by scaling its longest axis to one and moving its point of mass to zero.
 
