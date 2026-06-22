@@ -21,9 +21,12 @@ def polar_to_cart(angles, scales=1.0):
     return np.stack([scales * np.cos(angles), scales * np.sin(angles)], axis=-1)
 
 
-def create_template_matrix(
-    n_radial, n_angular, radius, in_cart=False, exp_lambda=1.0, shift_angular=True
-):
+def create_template_matrix(n_radial,
+                           n_angular,
+                           radius,
+                           in_cart=False,
+                           exp_lambda=1.0,
+                           shift_angular=True):
     """Creates a template matrix with radius `radius` and `n_radial` radial- and `n_angular` angular coordinates.
 
     Parameters
@@ -47,7 +50,6 @@ def create_template_matrix(
     np.ndarray
         A template matrix K with K[i, j] containing polar coordinates (radial, angular) of point (i. j)
     """
-
     coordinates = np.zeros((n_radial, n_angular, 2))
     for j in range(1, n_radial + 1):
         radial_coordinate = ((j / n_radial) ** exp_lambda) * radius

@@ -7,7 +7,7 @@ import numpy as np
 
 
 def compute_barycentric_coordinates(atlas, n_radial=2, n_angular=4, radius=0.05, processes=1):
-    """Compute the barycentric coordinates for the given GPC-systems
+    """Compute the barycentric coordinates for a given atlas.
 
     Parameters
     ----------
@@ -24,18 +24,17 @@ def compute_barycentric_coordinates(atlas, n_radial=2, n_angular=4, radius=0.05,
 
     Returns
     -------
-    A 5D-array containing the Barycentric coordinates for each template vertex and each GPC-system. It has the following
+    A 5D-array containing the Barycentric coordinates for each template vertex and each chart. It has the following
     structure:
         B[a, b, c, d, e]:
-            - a: References GPC-system centered in vertex `a` of object mesh `object_mesh`
+            - a: References chart centered in vertex `a` of object mesh `object_mesh`
             - b: References the b-th radial coordinate of the template
             - c: References the c-th angular coordinate of the template
             - B[a, b, c, :, 0]: Returns the **indices** of the nodes that construct the triangle containing the template
-                                vertex (b, c) in GPC-system centered in node `a`
+                                vertex (b, c) in chart centered in node `a`
             - B[a, b, c, :, 1]: Returns the **barycentric coordinates** of the nodes that construct the triangle
-                                containing the template vertex (b, c) in GPC-system centered in node `a`
+                                containing the template vertex (b, c) in chart centered in node `a`
     """
-
     # Define template vertices at which interpolation values will be needed
     template_matrix = create_template_matrix(
         n_radial=n_radial, n_angular=n_angular, radius=radius, in_cart=True
