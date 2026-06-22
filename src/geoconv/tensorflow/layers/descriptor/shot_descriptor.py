@@ -5,6 +5,23 @@ import tensorflow as tf
 
 
 class PointCloudShotDescriptor(tf.keras.layers.Layer):
+    """This class implements a layer on top of the computation of SHOT-descriptors.
+
+    Attributes
+    ----------
+    neighbors_for_lrf: int
+        The amount of neighbors to consider while computing the LRFs.
+    azimuth_bins: int
+        The amount of azimuths for the SHOT-descriptors.
+    elevation_bins: int
+        The amount of elevation for the SHOT-descriptors.
+    radial_bins: int
+        The amount of radial bins for the SHOT-descriptors.
+    histogram_bins: int
+        The amount of bins in a histogram for a cell in the SHOT-descriptor.
+    sphere_radius: float
+        The radius of the sphere for the SHOT-descriptor.
+    """
     def __init__(
         self,
         neighbors_for_lrf=16,

@@ -177,6 +177,22 @@ def logarithmic_map(lrfs, neighborhoods):
 
 @tf.function(jit_compile=True)
 def compute_neighborhood(vertices, k_neighbors):
+    """Determines the Euclidean k-neighborhood around all given vertices.
+
+    Parameters
+    ----------
+    vertices: tf:tensor
+        A tensor containing all mesh vertices
+    k_neighbors: int
+        The number of neighbors to consider around each vertex.
+
+    Returns
+    -------
+    (tf.Tensor, tf.Tensor, tf.Tensor):
+        A tensor of shape [batch, vertices, n_neighbors, 3], containing all k neighbors around each vertex. Another
+        tensor of shape [batch, vertices, n_neighbors], containing the original indices of the vertices in the
+        neighborhoods. A tensor of shape [batch, vertices] containing the Euclidean radii of each neighborhood.
+    """
     # 1.) Compute radius for local parameterization spaces.
     # 'distance_matrix': (batch, vertices, vertices)
     distance_matrix = compute_distance_matrix(vertices)
@@ -198,6 +214,29 @@ def compute_neighborhood(vertices, k_neighbors):
 
 @tf.function(jit_compile=True)
 def knn_shot_lrf(k_neighbors, vertices):
+    """Computes the local reference frames of SHOT-descriptors.
+
+    Original paper:
+    > SHOT: Unique signatures of histograms for surface and texture description
+    > Samuele Salti and Federico Tombari and Luigi Di Stefano
+    > DOI: 10.1016/j.cviu.2014.04.011
+
+    Parameters
+    ----------
+    k_neighbors: int
+        The amount of neighbors to consider around each vertex.
+    vertices: tf.Tensor
+        The mesh vertices.
+
+    Returns
+    -------
+    (tf.Tensor, tf.Tensor, tf.Tensor):
+        A tensor of shape [batch, n_vertices, 3, 3], containing all LRFs around each vertex. Another
+        tensor of shape [batch, vertices, n_neighbors, 3], containing all k neighbors around each vertex.
+        A tensor of shape [batch, vertices] containing the Euclidean radii of each neighborhood. A last
+        tensor of shape [batch, vertices, n_neighbors], containing the original indices of the vertices in the
+        neighborhoods.
+    """
     # 1.) Compute neighborhoods
     neighborhoods, neighborhood_indices, radii = compute_neighborhood(
         vertices, k_neighbors

@@ -4,11 +4,30 @@ import tensorflow as tf
 
 
 class EuclNeighborsDescriptor(tf.keras.layers.Layer):
+    """The Euclidean neighborhood descriptor layer.
+
+    Attributes
+    ----------
+    n_neighbors : int
+        The amount of neighbors to consider for computing local neighborhood descriptors.
+    """
     def __init__(self, n_neighbors, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_neighbors = n_neighbors
 
     def call(self, inputs, **kwargs):
+        """Computes local Euclidean neighborhood descriptor.
+
+        Parameters
+        ----------
+        inputs: tf.Tensor
+            The vertices of the input shape.
+
+        Returns
+        -------
+        tf:Tensor:
+            A tensor of shape [batch, vertices, 3 * n_neighbors - 3]
+        """
         # 'neighborhoods' : (batch, vertices, n_neighbors, 3)
         neighborhoods, _, _ = compute_neighborhood(inputs, self.n_neighbors)
 
