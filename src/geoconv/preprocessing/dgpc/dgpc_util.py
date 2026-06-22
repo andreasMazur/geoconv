@@ -1,37 +1,30 @@
 from geoconv.utils.misc import compute_vector_angle
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 import c_extension
 
 
-def visualize(colors, origins, vectors, in_3d=False):
-    mpl.use("Qt5Agg")
-    if in_3d:
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        for color, origin, vector, in zip(colors, origins, vectors):
-            ax.quiver(
-                origin[0], origin[1], origin[2],
-                vector[0], vector[1], vector[2],
-                length=1.0, normalize=False, color=color
-            )
-        plt.show()
-    else:
-        for color, vector, origin in zip(colors, vectors, origins):
-            plt.quiver(
-                origin[0], origin[1],
-                vector[0], vector[1],
-                angles='xy', scale_units='xy', scale=1.0, color=color
-            )
-        plt.grid()
-        plt.xlim(-.025, .025)
-        plt.ylim(-.025, .025)
-        plt.show()
-
-
 def dgpc_angle_update(vector_i, vector_j, vector_k, theta_j, theta_k):
+    """Computes the angular update for the DGPC-algorithm.
+
+    Parameters
+    ----------
+    vector_i: np.ndarray
+        3D-coordinates of vertex i, whose geodesic polar coordinate shall be computed.
+    vector_j: np.ndarray
+        3D-coordinates of vertex j.
+    vector_k: np.ndarray
+        3D-coordinates of vertex k.
+    theta_j: float
+        Angular direction to vertex j.
+    theta_k: float
+        Angular direction to vertex k.
+
+    Returns
+    -------
+    float:
+        The new angular direction to vertex i.
+    """
     # Angles w.r.t. between vector and vector having the largest angle
     phi_kj = compute_vector_angle(vector_k, vector_j, None)
     phi_ij = compute_vector_angle(vector_i, vector_j, None)
@@ -48,13 +41,37 @@ def dgpc_angle_update(vector_i, vector_j, vector_k, theta_j, theta_k):
 
 
 def dgpc_update_step_python(vertex_i_3d, vertex_j_3d, vertex_k_3d, u_j, u_k, theta_j, theta_k):
+    """The DGPC-algorithm update step for one unknown vertex.
+
+    Parameters
+    ----------
+    vertex_i_3d: np.ndarray
+        3D-coordinates of vertex i, whose geodesic polar coordinate shall be computed.
+    vertex_j_3d: np.ndarray
+        3D-coordinates of vertex j.
+    vertex_k_3d: np.ndarray
+        3D-coordinates of vertex k.
+    u_j: float
+        Geodesic distance to vertex j.
+    u_k: float
+        Geodesic distance to vertex k.
+    theta_j: float
+        Angular direction to vertex j.
+    theta_k: float
+        Angular direction to vertex k.
+
+    Returns
+    -------
+    (float, float):
+        The new geodesic distance and angular direction to vertex i.
+    """
     # Compute x_j and x_k
     e_j = vertex_j_3d - vertex_i_3d
     e_k = vertex_k_3d - vertex_i_3d
     e_kj = e_k - e_j
     # e_kj_sqnrm = np.einsum("i,i->", e_kj, e_kj)
     e_kj_norm = np.linalg.norm(e_kj)
-    e_kj_sqnrm = e_kj_norm ** 2
+    e_kj_sqnrm = np.square(e_kj_norm)
     A = np.linalg.norm(np.cross(e_j, e_k))
 
     # Variant 1:
@@ -68,7 +85,7 @@ def dgpc_update_step_python(vertex_i_3d, vertex_j_3d, vertex_k_3d, u_j, u_k, the
 
     if radicand >= 0:
         H = np.sqrt(radicand)
-        denominator = 2 * A * e_kj_sqnrm
+        denominator = 2. * A * e_kj_sqnrm
         if denominator <= 0.:
             return np.inf, -1.
         else:
@@ -98,6 +115,32 @@ def dgpc_update_step_python(vertex_i_3d, vertex_j_3d, vertex_k_3d, u_j, u_k, the
 
 
 def dgpc_update_step(vertex_i_3d, vertex_j_3d, vertex_k_3d, u_j, u_k, theta_j, theta_k, use_c=True):
+    """A wrapper function for the DGPC-algorithm update step for one unknown vertex.
+
+    Parameters
+    ----------
+    vertex_i_3d: np.ndarray
+        3D-coordinates of vertex i, whose geodesic polar coordinate shall be computed.
+    vertex_j_3d: np.ndarray
+        3D-coordinates of vertex j.
+    vertex_k_3d: np.ndarray
+        3D-coordinates of vertex k.
+    u_j: float
+        Geodesic distance to vertex j.
+    u_k: float
+        Geodesic distance to vertex k.
+    theta_j: float
+        Angular direction to vertex j.
+    theta_k: float
+        Angular direction to vertex k.
+    use_c: bool
+        Whether to use the C-extension instead of the Python implementation.
+
+    Returns
+    -------
+    (float, float):
+        The new geodesic distance and angular direction to vertex i.
+    """
     if use_c:
         rotation_axis = np.zeros((3,), dtype=np.float64)  # Deprecated parameter
         result = np.array([0.0, 0.0])

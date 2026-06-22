@@ -8,6 +8,13 @@ import c_extension
 
 
 class DgpcSolver:
+    """This class implements the DGPC-algorithm to compute local geodesic polar coordinates.
+
+    Original paper:
+    > Geodesic Polar Coordinates on Polygonal Meshes
+    > Melvaer, Eivind Lyche and Reimers, Martin
+    > DOI: 10.1111/j.1467-8659.2012.03187.x
+    """
     def __init__(self, V, F, u_max, eps=1e-5):
         self.triangle_mesh = trimesh.Trimesh(vertices=V, faces=F)
         self.u_max = u_max
@@ -16,7 +23,7 @@ class DgpcSolver:
         self.proj_cache = {}
 
     def init_neighborhood(self, source_point):
-        """Initializes radial- and angular coordinates of the one-hop neighborhood of a given source point.
+        """Initializes radial- and angular coordinates of the one-hop neighborhood around a given source point.
 
         Parameters
         ----------
@@ -57,12 +64,7 @@ class DgpcSolver:
         return radial_coordinates, angular_coordinates
 
     def compute_dgpc(self, source_point):
-        """The algorithm for computing Geodesic Polar Coordinate Systems on a triangle mesh.
-
-        The algorithm was published in:
-        > [Geodesic polar coordinates on polygonal meshes]
-          (https://onlinelibrary.wiley.com/doi/full/10.1111/j.1467-8659.2012.03187.x)
-        > Melvær, Eivind Lyche, and Martin Reimers.
+        """The DGPC-algorithm.
 
         Parameters
         ----------
