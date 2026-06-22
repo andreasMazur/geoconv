@@ -9,6 +9,23 @@ def start_training_run(faust_path,
                        template_resolutions=None,
                        learning_rate=0.01,
                        lr_decay_rate=1.0):
+    """Starts the training run for a Harmonic surface network.
+
+    Parameters
+    ----------
+    faust_path: str
+        The path to the preprocessed FAUST dataset.
+    preprocessing: str
+        The used charting algorithm.
+    save_path: str
+        A path for the trained model can be saved.
+    template_resolutions: list
+        A list of tuples, each describing a template resolution.
+    learning_rate: float
+        The learning rate for the HSN model.
+    lr_decay_rate: float
+        The learning rate decay rate for the HSN model.
+    """
     if template_resolutions is None:
         template_resolutions = [(4, 8)]
     for (n_radial, n_angular) in template_resolutions:

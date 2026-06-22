@@ -13,6 +13,26 @@ def start_training_run(faust_path,
                        template_resolutions=None,
                        learning_rate=0.0004,
                        lr_decay_rate=1.0):
+    """Starts the training run for a Harmonic surface network.
+
+    Parameters
+    ----------
+    faust_path: str
+        The path to the preprocessed FAUST dataset.
+    preprocessing: str
+        The used charting algorithm.
+    save_path: str
+        A path for the trained model can be saved.
+    model_type: str
+        A string describing which model shall be trained. Has to be one out of the following:
+        [gem_cnn, eman, gem_p_cnn, eman_p].
+    template_resolutions: list
+        A list of tuples, each describing a template resolution.
+    learning_rate: float
+        The learning rate for the HSN model.
+    lr_decay_rate: float
+        The learning rate decay rate for the HSN model.
+    """
     assert model_type in ["gem_cnn", "eman", "gem_p_cnn", "eman_p"], (
         "Select model type from: ['gem_cnn', 'eman', 'gem_p_cnn', 'eman_p']"
     )
