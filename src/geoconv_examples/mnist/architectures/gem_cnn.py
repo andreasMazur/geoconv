@@ -19,6 +19,28 @@ def define_hypermodel(hp, input_types, output_types, template_radius, n_radial, 
 
 
 def define_model(input_types, output_types, template_radius, n_radial, n_angular, learning_rate=0.001):
+    """Builds and compiles an GEM-CNN-model for the MNIST benchmark.
+
+    Parameters
+    ----------
+    input_types: list
+        A list of lists, where each list-element contains the input types for one GEM-CNN layer.
+    output_types: list
+        A list of lists, where each list-element contains the output types for one GEM-CNN layer.
+    template_radius: float
+        The template radius for the GEM-CNN layers.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    learning_rate: float
+        The learning rate for the GEM-CNN model.
+
+    Returns
+    -------
+    tf.keras.Model:
+        The GEM-CNN-model for the MNIST benchmark.
+    """
     image_size = 28 * 28
 
     # Define input layers

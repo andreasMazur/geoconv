@@ -18,6 +18,28 @@ def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, ker
 
 
 def define_model(output_dims, template_radius, n_radial, n_angular, kernel, learning_rate=0.001):
+    """Builds and compiles a ISC/GCNN-model for the MNIST benchmark.
+
+    Parameters
+    ----------
+    output_dims: list
+        A list of integer, where each element describes the output dimensions for one ISC/GCNN layer.
+    template_radius: float
+        The template radius for the ISC/GCNN layers.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    kernel: str
+        Either 'geodesic' to build GCNNs or 'dirac' to build ISCs.
+    learning_rate: float
+        The learning rate for the ISC/GCNN model.
+
+    Returns
+    -------
+    tf.keras.Model:
+        The ISC/GCNN-model for the MNIST benchmark.
+    """
     image_size = 28 * 28
 
     # Define input layers

@@ -42,7 +42,7 @@ def define_model(input_types,
                  faust_path,
                  learning_rate=0.001,
                  lr_decay_rate=1.0):
-    """Builds and compiles a EMAN-model for the FAUST benchmark.
+    """Builds and compiles an EMAN-model for the FAUST benchmark.
 
     Parameters
     ----------

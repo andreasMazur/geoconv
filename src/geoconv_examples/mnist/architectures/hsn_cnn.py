@@ -18,6 +18,26 @@ def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular):
 
 
 def define_model(output_dims, template_radius, n_radial, n_angular, learning_rate=0.001):
+    """Builds and compiles a HSN-model for the MNIST benchmark.
+
+    Parameters
+    ----------
+    output_dims: list
+        A list of integer, where each element describes the output dimensions for one HSN layer.
+    template_radius: float
+        The template radius for the HSN layers.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    learning_rate: float
+        The learning rate for the HSN model.
+
+    Returns
+    -------
+    tf.keras.Model:
+        The HSN-model for the MNIST benchmark.
+    """
     image_size = 28 * 28
 
     # Define input layers

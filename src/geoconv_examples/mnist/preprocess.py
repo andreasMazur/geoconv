@@ -8,6 +8,18 @@ import os
 
 
 def create_grid(n_vertices):
+    """Creates an n x n grid of grid vertices.
+
+    Parameters
+    ----------
+    n_vertices: int
+        The number of grid vertices along an edge of the grid.
+
+    Returns
+    -------
+    trimesh.Trimesh:
+        A triangle mesh representing a n x n image, without colors.
+    """
     # Get mesh faces
     coordinates = np.linspace(start=0, stop=1, num=n_vertices)
     grid_vertices = np.array([(x, y) for x in coordinates for y in coordinates])

@@ -62,6 +62,29 @@ def training(mnist_atlas,
              save_path,
              epochs=10,
              return_rotations=True):
+    """Training a surface CNN on MNIST.
+
+    Parameters
+    ----------
+    mnist_atlas: Atlas
+        An Atlas for the MNIST images.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    template_radius: float
+        The template radius
+    batch_size: int
+        The batch size
+    model: tf.keras.Model
+        The surface CNN to be trained.
+    save_path: str
+        The path to save the trained model and benchmark stats.
+    epochs: int
+        The number of training epochs.
+    return_rotations: bool
+        Whether the dataset returns rotations for a parallel transport.
+    """
     # Get data
     train_data = dataset(
         mnist_atlas,
