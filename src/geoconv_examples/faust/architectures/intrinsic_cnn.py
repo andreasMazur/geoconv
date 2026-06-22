@@ -40,6 +40,36 @@ def define_model(output_dims,
                  faust_path,
                  learning_rate=0.001,
                  lr_decay_rate=1.0):
+    """Builds and compiles a ISC/GCNN-model for the FAUST benchmark.
+
+    Parameters
+    ----------
+    output_dims: list
+        A list of integer, where each element describes the output dimensions for one ISC/GCNN layer.
+    preprocess_method: str
+        The used charting algorithm.
+    gpc_radius: float
+        The used maximum radius for the charting algorithm.
+    template_radius: float
+        The template radius for the ISC/GCNN layers.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    kernel: str
+        Either 'geodesic' to build GCNNs or 'dirac' to build ISCs.
+    faust_path: str
+        The path to the preprocessed FAUST dataset.
+    learning_rate: float
+        The learning rate for the ISC/GCNN model.
+    lr_decay_rate: float
+        The learning rate decay rate for the ISC/GCNN model.
+
+    Returns
+    -------
+    tf.keras.Model:
+        The ISC/GCNN-model for the FAUST benchmark.
+    """
     # Define input layers
     vertices_input = tf.keras.Input(shape=(6890, 3), name="vertices_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(6890, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
