@@ -55,7 +55,7 @@ SELF_N_TO_M = np.array(  # sin(0) = 0 / cos(0) = 1 but both multiply with 0-matr
 
 
 def get_sin_and_cosine_locs_neigh(gamma_in, gamma_out):
-    """Constructs a tensor that contains 1 and zeros, depending on where sines and cosines shall be.
+    """GEM-CNN kernels: Constructs a tensor that contains 1 and zeros, depending on where sines and cosines shall be.
 
     Parameters
     ----------
@@ -92,7 +92,7 @@ def get_sin_and_cosine_locs_neigh(gamma_in, gamma_out):
 
 
 def get_sin_and_cosine_locs_self(gamma_in, gamma_out, angle_equals_zero=True):
-    """Constructs an array that contains ones and zeros, depending on where sines and cosines shall be.
+    """GEM-CNN kernels: Constructs an array that contains ones and zeros, depending on where sines and cosines shall be.
 
     Parameters
     ----------
