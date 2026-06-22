@@ -51,7 +51,7 @@ def compute_angles_for_distances(triangle_mesh, local_geodesic_dists, chart_indi
 
 
 def compute_angles_for_projections(projections):
-    """
+    """Computes angles from 2D tangent plane projections.
 
     Parameters
     ----------
