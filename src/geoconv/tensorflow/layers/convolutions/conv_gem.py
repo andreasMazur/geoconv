@@ -1,5 +1,5 @@
 from geoconv.tensorflow.layers.convolutions.conv_base import ConvBase
-from geoconv.tensorflow.utils.sine_cosine_locs import get_sin_and_cosine_locs_neigh, get_sin_and_cosine_locs_self
+from geoconv.utils.sine_cosine_locs import get_sin_and_cosine_locs_neigh, get_sin_and_cosine_locs_self
 
 import tensorflow as tf
 import numpy as np
