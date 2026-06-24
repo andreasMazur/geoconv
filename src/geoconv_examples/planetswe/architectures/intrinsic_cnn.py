@@ -10,7 +10,8 @@ def define_hypermodel(hp,
                       template_radius,
                       n_radial,
                       n_angular,
-                      kernel):
+                      kernel,
+                      predict_residual):
     model = define_model(
         n_radial=n_radial,
         n_angular=n_angular,
@@ -18,12 +19,20 @@ def define_hypermodel(hp,
         kernel=kernel,
         output_dims=output_dims,
         learning_rate=hp.Float("learning_rate", min_value=0.0007, max_value=0.003),
-        lr_decay_rate=hp.Float("learning_rate_decay", min_value=0.9, max_value=0.999999)
+        lr_decay_rate=hp.Float("learning_rate_decay", min_value=0.9, max_value=0.999999),
+        predict_residual=predict_residual
     )
     return model
 
 
-def define_model(n_radial, n_angular, template_radius, kernel, output_dims, learning_rate, lr_decay_rate):
+def define_model(n_radial,
+                 n_angular,
+                 template_radius,
+                 kernel,
+                 output_dims,
+                 learning_rate,
+                 lr_decay_rate,
+                 predict_residual):
     # Define input layers
     features_input = tf.keras.Input(shape=(131_072, 3), name="features_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(131_072, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
@@ -60,6 +69,8 @@ def define_model(n_radial, n_angular, template_radius, kernel, output_dims, lear
 
     # Concatenate predictions
     output = tf.keras.layers.Concatenate(axis=-1)([velocity_prediction, height_prediction])
+    if predict_residual:
+        output = tf.keras.layers.Add()([features_input, output])
 
     # Compile model
     model = tf.keras.Model(inputs=[features_input, bc_input], outputs=output, name="planetswe_model")
