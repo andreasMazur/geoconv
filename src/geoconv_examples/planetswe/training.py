@@ -26,7 +26,8 @@ def hypertuning(bc_path,
                 max_trials,
                 num_initial_points,
                 project_name,
-                save_path):
+                save_path,
+                predict_residual):
     # Get data
     train_data = dataset(
         bc_path=bc_path,
@@ -34,7 +35,8 @@ def hypertuning(bc_path,
         set_type="train",
         batch_size=batch_size,
         return_rotations=return_rotations,
-        add_input_zero_dim=add_input_zero_dim
+        add_input_zero_dim=add_input_zero_dim,
+        return_differences=predict_residual
     )
     val_data = dataset(
         bc_path=bc_path,
@@ -42,7 +44,8 @@ def hypertuning(bc_path,
         set_type="valid",
         batch_size=batch_size,
         return_rotations=return_rotations,
-        add_input_zero_dim=add_input_zero_dim
+        add_input_zero_dim=add_input_zero_dim,
+        return_differences=predict_residual
     )
 
     # Hyperparameter search
