@@ -208,7 +208,8 @@ def generator(bc_path,
               return_rotations=False,
               add_input_zero_dim=False,
               max_time_steps=3024,
-              return_time_steps=False):
+              return_time_steps=False,
+              return_differences=True):
     """Returns a 'generator'-object for the planetswe dataset.
 
     Parameters
@@ -228,6 +229,8 @@ def generator(bc_path,
         The maximum number of time steps to return from a trajectory. Maximum value: 3024.
     return_time_steps: bool
         Whether to return the time steps (index in time axis) for the returned feature fields.
+    return_differences: bool
+        Whether to return the difference of the next time step to the current time step as the ground truth.
 
     Returns
     -------
@@ -278,10 +281,15 @@ def generator(bc_path,
 
         # Handle cross-split time-steps
         if last_feature_field is not None:
-            if return_time_steps:
-                yield (total_time_step, last_feature_field, barycentric_coordinates), year_of_feature_fields[0, :, :3]
+            if return_differences:
+                t_next_feature_field = year_of_feature_fields[0, :, :3] - last_feature_field[..., :3]
             else:
-                yield (last_feature_field, barycentric_coordinates), year_of_feature_fields[0, :, :3]
+                t_next_feature_field = year_of_feature_fields[0, :, :3]
+
+            if return_time_steps:
+                yield (total_time_step, last_feature_field, barycentric_coordinates), t_next_feature_field
+            else:
+                yield (last_feature_field, barycentric_coordinates), t_next_feature_field
 
         for time_idx in range(year_of_feature_fields.shape[0]):
             # Increment total time step
@@ -299,6 +307,9 @@ def generator(bc_path,
             else:
                 t_feature_field = year_of_feature_fields[time_idx]
                 t_next_feature_field = year_of_feature_fields[time_idx + 1, :, :3]
+                if return_differences:
+                    t_next_feature_field = t_next_feature_field - t_feature_field[..., :3]
+
                 if return_time_steps:
                     yield (total_time_step, t_feature_field, barycentric_coordinates), t_next_feature_field
                 else:
@@ -312,7 +323,8 @@ def dataset(bc_path,
             return_rotations=False,
             add_input_zero_dim=False,
             max_time_steps=3024,
-            return_time_steps=False):
+            return_time_steps=False,
+            return_differences=True):
     """Returns a 'tensorflow dataset'-object for the planetswe dataset.
 
     Parameters
@@ -334,6 +346,8 @@ def dataset(bc_path,
         The maximum number of time steps to return from a trajectory. Maximum value: 3024.
     return_time_steps: bool
         Whether to return the time steps (index in time axis) for the returned feature fields.
+    return_differences: bool
+        Whether to return the difference of the next time step to the current time step as the ground truth.
 
     Returns
     -------
@@ -357,6 +371,15 @@ def dataset(bc_path,
 
     return tf.data.Dataset.from_generator(
         generator,
-        args=(bc_path, swe_path, set_type, return_rotations, add_input_zero_dim, max_time_steps, return_time_steps),
+        args=(
+            bc_path,
+            swe_path,
+            set_type,
+            return_rotations,
+            add_input_zero_dim,
+            max_time_steps,
+            return_time_steps,
+            return_differences
+        ),
         output_signature=output_signature
     ).prefetch(tf.data.AUTOTUNE).batch(batch_size)
