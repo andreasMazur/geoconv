@@ -14,7 +14,8 @@ def start_training_run(bc_path,
                        epochs=10,
                        tensorboard_cb=False,
                        batch_size=1,
-                       rollout_t_max=100):
+                       rollout_t_max=100,
+                       predict_residual=True):
     if template_resolutions is None:
         template_resolutions = [(4, 8)]
 
@@ -29,7 +30,8 @@ def start_training_run(bc_path,
             template_radius=template_radius,
             output_dims=[32],
             learning_rate=learning_rate,
-            lr_decay_rate=lr_decay_rate
+            lr_decay_rate=lr_decay_rate,
+            predict_residual=predict_residual
         )
 
         # Start training
@@ -44,5 +46,6 @@ def start_training_run(bc_path,
             tensorboard_cb=tensorboard_cb,
             batch_size=batch_size,
             add_input_zero_dim=True,
-            rollout_t_max=rollout_t_max
+            rollout_t_max=rollout_t_max,
+            predict_residual=predict_residual
         )
