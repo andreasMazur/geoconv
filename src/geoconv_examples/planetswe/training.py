@@ -104,7 +104,8 @@ def training(model,
              tensorboard_cb=False,
              batch_size=1,
              add_input_zero_dim=False,
-             rollout_t_max=100):
+             rollout_t_max=100,
+             predict_residual=True):
     # Define saving paths
     os.makedirs(save_path, exist_ok=True)
     tensorboard_callback_path = f"{save_path}/tensorboard"
@@ -131,7 +132,8 @@ def training(model,
         set_type="train",
         batch_size=batch_size,
         return_rotations=return_rotations,
-        add_input_zero_dim=add_input_zero_dim
+        add_input_zero_dim=add_input_zero_dim,
+        return_differences=predict_residual
     )
     val_data = dataset(
         bc_path=bc_path,
@@ -139,7 +141,8 @@ def training(model,
         set_type="valid",
         batch_size=batch_size,
         return_rotations=return_rotations,
-        add_input_zero_dim=add_input_zero_dim
+        add_input_zero_dim=add_input_zero_dim,
+        return_differences=predict_residual
     )
 
     # Show model summary
@@ -212,7 +215,8 @@ def training(model,
             return_rotations=return_rotations,
             add_input_zero_dim=add_input_zero_dim,
             max_time_steps=rollout_t_max,
-            return_time_steps=True
+            return_time_steps=True,
+            return_differences=predict_residual
         )
         rollout_benchmark(
             model,
