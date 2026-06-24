@@ -62,7 +62,7 @@ def define_model(input_types,
     # Concatenate predictions
     output = tf.keras.layers.Concatenate(axis=-1)([velocity_prediction, height_prediction])
     if predict_residual:
-        output = tf.keras.layers.Add()([features_input, output])
+        output = tf.keras.layers.Add()([features_input[..., :3], output])
 
     # Compile model
     model = tf.keras.Model(inputs=[features_input, bc_input], outputs=output, name="planetswe_model")
