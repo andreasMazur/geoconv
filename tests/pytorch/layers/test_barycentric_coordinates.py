@@ -5,14 +5,14 @@ from geoconv.preprocessing.bc.bc_utils import create_template_matrix
 
 # TF
 import tensorflow as tf
-from geoconv.tensorflow.layers.barycentric_coordinates import compute_det as tf_compute_det
-from geoconv.tensorflow.layers.barycentric_coordinates import sort_angles as tf_sort_angles
-from geoconv.tensorflow.layers.barycentric_coordinates import sort_triangles_ccw as tf_sort_triangles_ccw
-from geoconv.tensorflow.layers.barycentric_coordinates import delaunay_condition_check as tf_delaunay_condition_check
-from geoconv.tensorflow.layers.barycentric_coordinates import create_all_triangles as tf_create_all_triangles
-from geoconv.tensorflow.layers.barycentric_coordinates import compute_interpolation_coefficients as tf_compute_interpolation_coefficients
-from geoconv.tensorflow.layers.barycentric_coordinates import compute_interpolation_weights as tf_compute_interpolation_weights
-from geoconv.tensorflow.layers.barycentric_coordinates import compute_bc as tf_compute_bc
+from geoconv.tensorflow.layers.experimental.barycentric_coordinates import compute_det as tf_compute_det
+from geoconv.tensorflow.layers.experimental.barycentric_coordinates import sort_angles as tf_sort_angles
+from geoconv.tensorflow.layers.experimental.barycentric_coordinates import sort_triangles_ccw as tf_sort_triangles_ccw
+from geoconv.tensorflow.layers.experimental.barycentric_coordinates import delaunay_condition_check as tf_delaunay_condition_check
+from geoconv.tensorflow.layers.experimental.barycentric_coordinates import create_all_triangles as tf_create_all_triangles
+from geoconv.tensorflow.layers.experimental.barycentric_coordinates import compute_interpolation_coefficients as tf_compute_interpolation_coefficients
+from geoconv.tensorflow.layers.experimental.barycentric_coordinates import compute_interpolation_weights as tf_compute_interpolation_weights
+from geoconv.tensorflow.layers.experimental.barycentric_coordinates import compute_bc as tf_compute_bc
 
 # PT
 import torch

@@ -1,6 +1,6 @@
-from geoconv.tensorflow.layers.activation_beta_relu import BetaRelu
+from geoconv.tensorflow.layers.activations.activation_beta_relu import BetaRelu
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
-from geoconv.tensorflow.layers.lift_features import LiftFeatures2D
+from geoconv.tensorflow.layers.experimental.lift_features import LiftFeatures2D
 from geoconv_examples.faust.dataset import adapt_generator
 
 from geoconv.tensorflow.layers.convolutions.conv_eman import ConvEMAN
