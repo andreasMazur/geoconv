@@ -19,7 +19,7 @@ def start_training_run(bc_path,
                        tensorboard_cb=False,
                        batch_size=1,
                        rollout_t_max=100,
-                       predict_residual=True):
+                       predict_residual=False):
     assert model_type in ["gem_cnn", "eman", "gem_p_cnn", "eman_p"], (
         "Select model type from: ['gem_cnn', 'eman', 'gem_p_cnn', 'eman_p']"
     )

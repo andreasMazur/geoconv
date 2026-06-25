@@ -108,7 +108,7 @@ def training(model,
              batch_size=1,
              add_input_zero_dim=False,
              rollout_t_max=100,
-             predict_residual=True):
+             predict_residual=False):
     # Define saving paths
     os.makedirs(save_path, exist_ok=True)
     tensorboard_callback_path = f"{save_path}/tensorboard"

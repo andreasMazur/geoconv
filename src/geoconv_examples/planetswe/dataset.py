@@ -324,7 +324,7 @@ def dataset(bc_path,
             add_input_zero_dim=False,
             max_time_steps=3024,
             return_time_steps=False,
-            return_differences=True):
+            return_differences=False):
     """Returns a 'tensorflow dataset'-object for the planetswe dataset.
 
     Parameters

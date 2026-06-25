@@ -16,7 +16,7 @@ def start_training_run(bc_path,
                        tensorboard_cb=False,
                        batch_size=1,
                        rollout_t_max=100,
-                       predict_residual=True):
+                       predict_residual=False):
     if template_resolutions is None:
         template_resolutions = [(4, 8)]
 
