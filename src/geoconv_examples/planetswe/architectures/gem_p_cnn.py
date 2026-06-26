@@ -19,7 +19,7 @@ def define_hypermodel(hp,
         n_radial=n_radial,
         n_angular=n_angular,
         learning_rate=hp.Float("learning_rate", min_value=0.0007, max_value=0.003),
-        lr_decay_rate=hp.Float("learning_rate_decay", min_value=0.9, max_value=0.999999),
+        lr_decay_rate=hp.Float("learning_rate_decay", min_value=0.8, max_value=0.999999),
         predict_residual=predict_residual
     )
     return model
