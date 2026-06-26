@@ -6,35 +6,6 @@ import numpy as np
 
 
 @tf.function
-def get_rotation_order(gamma_out_in):
-    """Returns the correct sum between input- and output type for the angle used by the rotation matrices.
-
-    Parameters
-    ----------
-    gamma_out_in: tf.Tensor
-        A tensor of shape (2, ) which contains the input type in its second entry and the output type in
-        its first entry.
-
-    Returns
-    -------
-    tf.Tensor:
-        A tensor of shape (5, ) which contains the rotation orders for the rotation matrices in GEM-CNNs.
-        The last entry tells whether gamma_in or gamma_out were non-zero.
-    """
-    gamma_out = gamma_out_in[0]
-    gamma_in = gamma_out_in[1]
-    if gamma_out == 0:
-        return tf.stack([gamma_in, gamma_in, 0., 0., tf.cast(gamma_in > 0, tf.float32)])
-    else:
-        if gamma_in == 0:
-            return tf.stack([gamma_out, gamma_out, 0., 0., 1.])
-        else:
-            return tf.stack(
-                [gamma_out - gamma_in, gamma_out - gamma_in, gamma_out + gamma_in, gamma_out + gamma_in, 1.]
-            )
-
-
-@tf.function
 def construct_angle_tensor(gamma_in, gamma_out, angles, phase_weights):
     """Constructs the angle tensors for the basis kernels.
 
@@ -58,21 +29,70 @@ def construct_angle_tensor(gamma_in, gamma_out, angles, phase_weights):
     # 'gamma_out_tiled': (d_out, d_in)
     d_in = tf.shape(gamma_in)[0]
     gamma_out_tiled = tf.tile(gamma_out[:, None], (1, d_in))
+
     # 'gamma_in_tiled': (d_out, d_in)
     d_out = tf.shape(gamma_out)[0]
     gamma_in_tiled = tf.tile(gamma_in[None, :], (d_out, 1))
+
     # 'gamma_out_in': (d_out, d_in, 2)
     gamma_out_in = tf.stack([gamma_out_tiled, gamma_in_tiled], axis=-1)
 
     ### Compute rotation orders (pay attention to +-) ###
     # 'gamma': (d_in * d_out, 5)
-    gamma = tf.vectorized_map(get_rotation_order, tf.reshape(gamma_out_in, (d_out * d_in, 2)))
+    gamma_out_in = tf.reshape(gamma_out_in, (d_out * d_in, 2))
+    gamma_out = gamma_out_in[:, 0]
+    gamma_in = gamma_out_in[:, 1]
+
+    zeros = tf.zeros_like(gamma_in)
+    ones = tf.ones_like(gamma_in)
+
+    mask1 = gamma_out == 0
+    mask2 = (gamma_out != 0) & (gamma_in == 0)
+
+    case1 = tf.stack(
+        [
+            gamma_in,
+            gamma_in,
+            zeros,
+            zeros,
+            tf.cast(gamma_in > 0, tf.float32)  # Use phase weight if gamma > 0
+        ], axis=-1
+    )
+    case2 = tf.stack(
+        [
+            gamma_out,
+            gamma_out,
+            zeros,
+            zeros,
+            ones  # Since gamma' > 0, use phase weight
+        ], axis=-1
+    )
+    case3 = tf.stack(
+        [
+            gamma_out - gamma_in,
+            gamma_out - gamma_in,
+            gamma_out + gamma_in,
+            gamma_out + gamma_in,
+            ones  # Since gamma' > 0, use phase weight
+        ], axis=-1
+    )
+    gamma = tf.where(
+        mask1[:, None],
+        case1,  # \rho_[0|gamma] -> \rho_0
+        tf.where(
+            mask2[:, None],
+            case2,  # \rho_0 -> \rho_gamma'
+            case3   # \rho_gamma -> \rho_gamma'
+        )
+    )
+
     # 'gamma': (d_out, d_in, 5)
     gamma = tf.reshape(gamma, [d_out, d_in, 5])
 
-    ### Only in cases where gamma and gamma' are non-zero use phase weights ###
+    ### Only in cases where gamma or gamma' are non-zero use phase weights ###
     # 'mask': (d_out, d_in, 1)
     mask = gamma[..., -1][..., None]
+
     # 'gamma': (d_out, d_in, 4)
     gamma = gamma[..., :-1]
 
@@ -103,7 +123,7 @@ def get_kernel_neigh(gamma_in, gamma_out, sine_and_cosine_locs, angles, phase_we
         A tensor of shape (d_out, d_in, 4, n_angular, 2, 2) which contains all basis kernels required for the GEM-CNN
         convolution.
     """
-    # 'angle_tensor': (d_out, d_in, n_angular, 4)
+    # 'angle_tensor': (d_out, d_in, 4, n_angular)
     angle_tensor = construct_angle_tensor(gamma_in, gamma_out, angles, phase_weights)
     cosines = tf.cos(angle_tensor)
     sines = tf.sin(angle_tensor)
@@ -155,8 +175,8 @@ def get_kernel_self(gamma_in, gamma_out, sine_and_cosine_locs, phase_weights):
     # 'angles'             : (d_out, d_in)
     # 'return'      : (d_out, d_in, 2, 2, 2)
     return (
-            tf.sin(angles[..., None, None, None]) * sine_and_cosine_locs[0] + \
-            tf.cos(angles[..., None, None, None]) * sine_and_cosine_locs[1]
+        tf.sin(angles[..., None, None, None]) * sine_and_cosine_locs[0] + \
+        tf.cos(angles[..., None, None, None]) * sine_and_cosine_locs[1]
     )
 
 
@@ -201,7 +221,9 @@ class ConvGEM(ConvBase):
         self.K_neigh = get_kernel_neigh(
             gamma_in=self.input_types,
             gamma_out=self.output_types,
-            sine_and_cosine_locs=tf.constant(get_sin_and_cosine_locs_neigh(self.input_types, self.output_types)),
+            sine_and_cosine_locs=tf.constant(
+                get_sin_and_cosine_locs_neigh(self.input_types.numpy(), self.output_types.numpy())
+            ),
             angles=self.all_angular_coordinates,
             phase_weights=tf.fill(dims=self.output_dim_halve, value=0.)
         )
