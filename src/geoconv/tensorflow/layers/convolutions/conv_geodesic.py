@@ -1,41 +1,8 @@
 from geoconv.tensorflow.layers import ConvIntrinsic
-from geoconv.utils.misc import angle_distance
+from geoconv.utils.misc import normal_pdf
 
 import numpy as np
 import scipy as sp
-
-
-def normal_pdf(mean_rho, mean_theta, var_rho, var_theta, rho, theta):
-    """Normal probability distribution for geodesic polar coordinates
-
-    Parameters
-    ----------
-    mean_rho: float
-        Mean radial distance of the normal
-    mean_theta: float
-        Mean angle for the Gaussian
-    var_rho: float
-        Mean radial distance variance of the kernel vertices
-    var_theta: float
-        Mean angle variance of the kernel vertices
-    rho: float
-        Radial coordinate of the interpolation point that shall be weighted
-    theta: float
-        Angular coordinate of the interpolation point that shall be weighted
-
-    Returns
-    -------
-    float:
-        The weight for the interpolation point (rho, theta)
-    """
-    norm_coefficient = 1 / np.sqrt((2 * np.pi) ** 2 * var_rho * var_theta)
-    max_angle = np.maximum(mean_theta, theta)
-    min_angle = np.minimum(mean_theta, theta)
-    delta_angle = angle_distance(max_angle, min_angle)
-    vec = np.array([rho - mean_rho, delta_angle])
-    mat = np.array([[1 / var_rho, 0], [0, 1 / var_theta]])
-    exp = np.exp(-(1 / 2) * vec.T @ mat @ vec)
-    return norm_coefficient * exp
 
 
 class ConvGeodesic(ConvIntrinsic):
