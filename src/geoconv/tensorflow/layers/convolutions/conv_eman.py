@@ -248,7 +248,7 @@ class ConvEMAN(ConvGEM):
         ### Determine weight matrix for neighbor aggregation ###
         # 'V_neigh' : (output_dim / 2, input_dim / 2, 4, n_radial)
         # 'K_neigh' : (output_dim / 2, input_dim / 2, 4, n_angular, 2, 2)
-        # 'W_neigh'  : (output_dim / 2, input_dim / 2   , n_radial, n_angular, 2, 2)
+        # 'W_neigh' : (output_dim / 2, input_dim / 2   , n_radial, n_angular, 2, 2)
         W_neigh = tf.einsum("mnsr,mnsaxy->mnraxy", V_neigh, K_neigh)
 
         ### Compute neighbor embeddings ###
