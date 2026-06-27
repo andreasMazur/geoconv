@@ -173,7 +173,7 @@ def get_kernel_self(gamma_in, gamma_out, sine_and_cosine_locs, phase_weights):
     # Note: sines/cosine > 0 might be set to zero by 'sine_and_cosine_locs' tensor
     # sine_and_cosine_locs : (2, d_out, d_in, 2, 2, 2)
     # 'angles'             : (d_out, d_in)
-    # 'return'      : (d_out, d_in, 2, 2, 2)
+    # 'return'             : (d_out, d_in, 2, 2, 2)
     return (
         tf.sin(angles[..., None, None, None]) * sine_and_cosine_locs[0] + \
         tf.cos(angles[..., None, None, None]) * sine_and_cosine_locs[1]

@@ -62,8 +62,7 @@ class ConvIntrinsic(ConvBase):
 
         Parameters
         ----------
-        **kwargs
-        inputs: (tensorflow.Tensor, tensorflow.Tensor)
+        inputs: (tf.Tensor, tf.Tensor)
             The first tensor represents the signal defined on the manifold. It has size
             (batch_shapes, n_vertices, feature_dim). The second tensor represents the barycentric coordinates. It has
             size (batch_shapes, n_vertices, n_radial, n_angular, 3, 2).
@@ -72,7 +71,7 @@ class ConvIntrinsic(ConvBase):
 
         Returns
         -------
-        tensorflow.Tensor
+        tf.Tensor
             The geodesic convolution of the template with the signal on the object mesh in every given GPC-system.
             It has size (batch_shapes, vertices, n_rotations, templates)
         """
@@ -84,9 +83,7 @@ class ConvIntrinsic(ConvBase):
         # Weight matrix : (templates, 1, input_dim)
         # Mesh signal   : (batch_shapes, vertices, input_dim)
         # Result        : (batch_shapes, vertices, 1, templates)
-        conv_center = tf.einsum(
-            "tef,skf->sket", self._template_self_weights, mesh_signal
-        )
+        conv_center = tf.einsum("tef,skf->sket", self._template_self_weights, mesh_signal)
 
         #####################################################################
         # Fold neighbors - conv_neighbor: (batch_shapes, vertices, n_rotations, templates)

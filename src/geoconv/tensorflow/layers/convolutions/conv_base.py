@@ -49,7 +49,7 @@ class ConvBase(tf.keras.layers.Layer):
 
     @tf.function
     def _gather_signals(self, barycentric_coordinates, mesh_signal, bc_with_angles=False):
-        """Gathers required feature vectors and associated those to given barycentric coordinates.
+        """Gathers required feature vectors and associates those to given barycentric coordinates.
 
         Parameters
         ----------
@@ -75,9 +75,7 @@ class ConvBase(tf.keras.layers.Layer):
             bc_values, bc_indices, _ = tf.unstack(barycentric_coordinates, axis=-1)
         else:
             bc_values, bc_indices = tf.unstack(barycentric_coordinates, axis=-1)
-        bc_indices = tf.cast(
-            tf.reshape(bc_indices, (bc_shape[0], -1)), tf.int32
-        )
+        bc_indices = tf.cast(tf.reshape(bc_indices, (bc_shape[0], -1)), tf.int32)
 
         # (n_batch, n_vertices * n_radial * n_angular * 3, input_dim)
         mesh_signal = tf.gather(mesh_signal, bc_indices, batch_dims=1)

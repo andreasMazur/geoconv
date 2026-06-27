@@ -24,7 +24,5 @@ class ConvDirac(ConvIntrinsic):
         )
         for mean_rho_idx in range(template_matrix.shape[0]):
             for mean_theta_idx in range(template_matrix.shape[1]):
-                interpolation_coefficients[
-                    mean_rho_idx, mean_theta_idx, mean_rho_idx, mean_theta_idx
-                ] = 1.0
+                interpolation_coefficients[mean_rho_idx, mean_theta_idx, mean_rho_idx, mean_theta_idx] = 1.0
         return interpolation_coefficients
