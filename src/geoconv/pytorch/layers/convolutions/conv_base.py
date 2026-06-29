@@ -164,7 +164,7 @@ class ConvBase(nn.Module):
         # Reshape gathered signals into their geometric components
         # neighbor_signals : (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2)
         signals_shape = neighbor_signals.size()
-        n_geometric_components = rotation_order_vector.size()[0]
+        n_geometric_components = rotation_order_vector.size(0)
         neighbor_signals = torch.reshape(
             neighbor_signals,
             (

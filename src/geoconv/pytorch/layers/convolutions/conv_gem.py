@@ -27,11 +27,11 @@ def construct_angle_tensor(gamma_in, gamma_out, angles, phase_weights):
     """
     ### Create all input-output-pairs  ###
     # 'gamma_out_tiled': (d_out, d_in)
-    d_in = gamma_in.size()[0]
+    d_in = gamma_in.size(0)
     gamma_out_tiled = gamma_out[:, None].repeat(1, d_in)
 
     # 'gamma_in_tiled': (d_out, d_in)
-    d_out = gamma_out.size()[0]
+    d_out = gamma_out.size(0)
     gamma_in_tiled = gamma_in[None, :].repeat(d_out, 1)
 
     # 'gamma_out_in': (d_out, d_in, 2)
@@ -153,11 +153,11 @@ def get_kernel_self(gamma_in, gamma_out, sine_and_cosine_locs, phase_weights):
     """
     ### Create all input-output-pairs  ###
     # 'gamma_out_tiled': (d_out, d_in)
-    d_in = gamma_in.size()[0]
+    d_in = gamma_in.size(0)
     gamma_out_tiled = gamma_out[:, None].repeat(1, d_in)
 
     # 'gamma_in_tiled': (d_out, d_in)
-    d_out = gamma_out.size()[0]
+    d_out = gamma_out.size(0)
     gamma_in_tiled = gamma_in[None, :].repeat(d_out, 1)
 
     # 'gamma_out_in': (d_out, d_in, 2)
@@ -195,9 +195,9 @@ class ConvGEM(ConvBase):
 
         # Remember input and output types
         self.input_types = torch.tensor(input_types, dtype=torch.float32)
-        self.input_dim_halve = self.input_types.size()[0]
+        self.input_dim_halve = self.input_types.size(0)
         self.output_types = torch.tensor(output_types, dtype=torch.float32)
-        self.output_dim_halve = self.output_types.size()[0]
+        self.output_dim_halve = self.output_types.size(0)
 
         # Remember all angular coordinates
         self.all_angular_coordinates = self.template_vertices[0, :, 1].to(torch.float32)
