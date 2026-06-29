@@ -35,7 +35,7 @@ def compute_distance_matrix(vertices):
 
 
 @tf.function(jit_compile=True)
-def disambiguate_axes(neighborhood_vertices, eigen_vectors):
+def disambiguate_axes(neighborhoods, eigen_vectors):
     """Disambiguate axes returned by local Eigenvalue analysis.
 
     Disambiguation follows the formal procedure as described in:
@@ -45,7 +45,7 @@ def disambiguate_axes(neighborhood_vertices, eigen_vectors):
 
     Parameters
     ----------
-    neighborhood_vertices: tf.Tensor
+    neighborhoods: tf.Tensor
         The vertices of the neighborhoods.
     eigen_vectors: tf.Tensor
         The Eigenvectors of all neighborhoods for one dimension, i.e. it has size (batch, neighborhoods, 3).
@@ -58,11 +58,12 @@ def disambiguate_axes(neighborhood_vertices, eigen_vectors):
     """
     neg_eigen_vectors = -eigen_vectors
     ev_count = tf.math.count_nonzero(
-        tf.einsum("bnvk,bnk->bnv", neighborhood_vertices, eigen_vectors) >= 0.0, axis=-1
+        tf.einsum("bnvk,bnk->bnv", neighborhoods, eigen_vectors) >= 0.0, axis=-1
     )
     ev_neg_count = tf.math.count_nonzero(
-        tf.einsum("bnvk,bnk->bnv", neighborhood_vertices, -eigen_vectors) > 0.0, axis=-1
+        tf.einsum("bnvk,bnk->bnv", neighborhoods, -eigen_vectors) > 0.0, axis=-1
     )
+
     # return (batch, vertices, 3)
     return tf.gather(
         tf.stack([neg_eigen_vectors, eigen_vectors], axis=2),
@@ -107,9 +108,7 @@ def shot_lrf(neighborhoods, radii):
 
     # Compute weighted covariance matrices
     # 'weighted_cov': (batch, vertices, 3, 3)
-    weighted_cov = tf.einsum(
-        "bnv,bnvi,bnvj->bnij", distance_weights, neighborhoods, neighborhoods
-    )
+    weighted_cov = tf.einsum("bnv,bnvi,bnvj->bnij", distance_weights, neighborhoods, neighborhoods)
 
     # 2.) Disambiguate axes
     # First eigen vector corresponds to smallest eigen value (i.e. plane normal)
@@ -206,7 +205,7 @@ def compute_neighborhood(vertices, k_neighbors):
 
     # 2.) Get vertex-neighborhoods
     # 'neighborhoods': (batch, vertices, n_neighbors, 3)
-    neighborhoods, neighborhood_indices = tf.math.top_k(-distance_matrix, k_neighbors)
+    _, neighborhood_indices = tf.math.top_k(-distance_matrix, k_neighbors)
     neighborhoods = tf.gather(vertices, neighborhood_indices, batch_dims=1) - vertices[..., None, :]
 
     return neighborhoods, neighborhood_indices, radii
