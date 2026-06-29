@@ -9,7 +9,7 @@ class BetaRelu(nn.Module):
         self.min_norm = min_norm
         self.beta = nn.Parameter(torch.empty(feature_input_dim // 2, 1))
 
-    def call(self, inputs):
+    def forward(self, inputs):
         input_shape = inputs.size()
         inputs = torch.reshape(inputs, (input_shape[0], input_shape[1], input_shape[2] // 2, 2))
         inputs_norm = torch.maximum(torch.linalg.norm(inputs, axis=-1), torch.tensor(self.min_norm))
