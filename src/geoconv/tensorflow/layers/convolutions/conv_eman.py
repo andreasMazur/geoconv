@@ -95,7 +95,7 @@ class ConvEMAN(ConvGEM):
 
         Returns
         -------
-        tf:Tensor
+        tf.Tensor
             A tensor of size [n_batch, n_vertices, output_dim], containing the new signal-embeddings for each mesh
             vertex.
         """
