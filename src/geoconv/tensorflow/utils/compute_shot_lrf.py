@@ -48,7 +48,7 @@ def disambiguate_axes(neighborhood_vertices, eigen_vectors):
     neighborhood_vertices: tf.Tensor
         The vertices of the neighborhoods.
     eigen_vectors: tf.Tensor
-        The Eigenvectors of all neighborhoods for one dimension, i.e. it has size (#neighborhoods, 3).
+        The Eigenvectors of all neighborhoods for one dimension, i.e. it has size (batch, neighborhoods, 3).
         E.g. the x-axes.
 
     Returns
@@ -58,7 +58,7 @@ def disambiguate_axes(neighborhood_vertices, eigen_vectors):
     """
     neg_eigen_vectors = -eigen_vectors
     ev_count = tf.math.count_nonzero(
-        tf.einsum("bnvk,bnk->bnv", neighborhood_vertices, eigen_vectors) >= 0, axis=-1
+        tf.einsum("bnvk,bnk->bnv", neighborhood_vertices, eigen_vectors) >= 0.0, axis=-1
     )
     ev_neg_count = tf.math.count_nonzero(
         tf.einsum("bnvk,bnk->bnv", neighborhood_vertices, -eigen_vectors) > 0.0, axis=-1
