@@ -11,6 +11,7 @@ class BetaRelu(tf.keras.layers.Layer):
     def __init__(self, min_norm=1e-6, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.min_norm = min_norm
+        self.beta = None
 
     def build(self, input_shape):
         self.beta = self.add_weight(

@@ -1,4 +1,4 @@
-from geoconv.tensorflow.layers.activations.activation_beta_relu import BetaRelu
+from geoconv.tensorflow.layers.activations.beta_relu import BetaRelu
 from geoconv.tensorflow.layers.convolutions.conv_harmonic import ConvHarmonic
 from geoconv.tensorflow.layers.pooling.global_complex_max_pooling import GlobalComplexPooling
 

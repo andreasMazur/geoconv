@@ -1,5 +1,5 @@
 from geoconv.tensorflow.layers import ConvDirac, ConvGeodesic, AngularMaxPooling
-from geoconv.tensorflow.layers.activations.activation_beta_relu import BetaRelu
+from geoconv.tensorflow.layers.activations.beta_relu import BetaRelu
 from geoconv.tensorflow.layers.convolutions.conv_harmonic import ConvHarmonic
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
 from geoconv.tensorflow.layers.experimental.lift_features import LiftFeatures2D

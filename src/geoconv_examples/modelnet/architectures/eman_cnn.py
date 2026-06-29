@@ -1,4 +1,4 @@
-from geoconv.tensorflow.layers.activations.activation_beta_relu import BetaRelu
+from geoconv.tensorflow.layers.activations.beta_relu import BetaRelu
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
 from geoconv.tensorflow.layers.experimental.lift_features import LiftFeatures2D
 from geoconv.tensorflow.layers.experimental.unlift_features import UnLiftFeatures2D

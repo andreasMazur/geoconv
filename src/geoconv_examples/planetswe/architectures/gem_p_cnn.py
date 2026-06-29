@@ -1,4 +1,4 @@
-from geoconv.tensorflow.layers.activations.activation_beta_relu import BetaRelu
+from geoconv.tensorflow.layers.activations.beta_relu import BetaRelu
 from geoconv_examples.planetswe.vrmse import VRMSE
 from geoconv.tensorflow.layers.convolutions.conv_gem_p import ConvGEMP
 
