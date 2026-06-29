@@ -24,9 +24,9 @@ class ConvBase(nn.Module):
         self.n_angular = n_angular
         self.template_vertices = torch.tensor(
             create_template_matrix(
-                n_radial=self.n_radial,
-                n_angular=self.n_angular,
-                radius=self.template_radius,
+                n_radial=int(self.n_radial),
+                n_angular=int(self.n_angular),
+                radius=float(self.template_radius),
                 in_cart=False,
                 exp_lambda=1.,
                 shift_angular=False
