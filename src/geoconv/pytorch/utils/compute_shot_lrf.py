@@ -29,7 +29,6 @@ def tensor_scatter_nd_add_(dest, indices, updates):
         The updates to insert at the indices.
     """
     # Add accumulated updates
-    # dest[indices.unbind(dim=-1)] += updates
     dest.index_put_(tuple(indices.unbind(dim=-1)), updates, accumulate=True)
 
 
