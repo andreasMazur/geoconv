@@ -16,6 +16,23 @@ def tensor_scatter_nd_update_(dest, indices, updates):
     dest[indices.unbind(dim=-1)] = updates
 
 
+def tensor_scatter_nd_add_(dest, indices, updates):
+    """In-place port of tf.tensor_scatter_nd_update.
+
+    Parameters
+    ----------
+    dest: torch.Tensor
+        The tensor to be updated.
+    indices: torch.tensor
+        The indices of the tensor where updates should be made.
+    updates: torch.Tensor
+        The updates to insert at the indices.
+    """
+    # Add accumulated updates
+    # dest[indices.unbind(dim=-1)] += updates
+    dest.index_put_(tuple(indices.unbind(dim=-1)), updates, accumulate=True)
+
+
 def compute_distance_matrix(vertices):
     """Computes the pair-wise Euclidean distances between all pairs of vertices.
 
