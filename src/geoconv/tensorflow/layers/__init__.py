@@ -6,4 +6,4 @@ from geoconv.tensorflow.layers.experimental.normalize_point_cloud import Normali
 
 from .pooling import AngularMaxPooling
 
-from geoconv.tensorflow.layers.descriptor.shot_descriptor import PointCloudShotDescriptor
+from geoconv.tensorflow.layers.descriptor.shot_descriptor import ShotDescriptor
