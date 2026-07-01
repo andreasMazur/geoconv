@@ -44,7 +44,7 @@ class ShotDescriptor(nn.Module):
         self.sphere_radius = sphere_radius
 
     def forward(self, vertices):
-        return torch.stack([self.forward_helper(shape) for shape in vertices], dim=-1)
+        return torch.stack([self.forward_helper(shape) for shape in vertices], dim=0)
 
     def forward_helper(self, vertices):
         lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(self.neighbors_for_lrf, vertices[None, ...])
