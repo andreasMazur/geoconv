@@ -21,9 +21,12 @@ class GlobalComplexPooling(tf.keras.layers.Layer):
         index_largest_amplitude = tf.argmax(amplitudes, axis=-2)
 
         # Gather complex values with the largest amplitudes
-        # inputs : (batch, input_dim / 2, 2)
         n_complex = tf.math.floordiv(inputs_shape[-1], 2)
+
+        # channel_indices : (batch, input_dim / 2)
         channel_indices = tf.tile(tf.range(n_complex, dtype=tf.int64)[None, :], multiples=[inputs_shape[0], 1])
+
+        # inputs : (batch, input_dim / 2, 2)
         inputs = tf.gather_nd(
             inputs,
             tf.stack([index_largest_amplitude, channel_indices], axis=-1),
