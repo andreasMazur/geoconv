@@ -4,7 +4,7 @@ from geoconv.tensorflow.utils.compute_shot_lrf import knn_shot_lrf
 import tensorflow as tf
 
 
-class PointCloudShotDescriptor(tf.keras.layers.Layer):
+class ShotDescriptor(tf.keras.layers.Layer):
     """This class implements a layer on top of the computation of SHOT-descriptors.
 
     Attributes
