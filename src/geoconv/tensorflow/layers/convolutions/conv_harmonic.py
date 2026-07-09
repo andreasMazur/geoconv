@@ -157,14 +157,15 @@ class ConvHarmonic(ConvBase):
         # radial_weights_center : (output_dim / 2, input_dim / 2)
         # phase_weights_center  : (output_dim / 2, 2, 2)
         # signals               : (n_batch, n_vertices, input_dim / 2, 2)
-        # conv_center           : (n_batch, n_vertices, input_dim / 2, 2)
+        # conv_center           : (n_batch, n_vertices, output_dim / 2, 2)
         phase_weights_center = self.create_phase_weight_tensor_center()
         conv_center = tf.einsum(
             "qf,qxy,bkfy->bkqx", self._radial_weights_center, phase_weights_center, signals
         )
 
         # Add self-connection contributions to neighbor aggregation for complete conv result
-        # conv_center : (n_batch, n_vertices, input_dim / 2, 2)
+        # TODO: Consider removing normalization by amount of template vertices
+        # conv_center : (n_batch, n_vertices, output_dim / 2, 2)
         # conv_neigh  : (n_batch, n_vertices, output_dim / 2, 2)
         # result      : (n_batch, n_vertices, output_dim / 2, 2)
         result = (conv_center + conv_neigh) / tf.cast(1 + self.n_radial + self.n_angular, tf.float32)
