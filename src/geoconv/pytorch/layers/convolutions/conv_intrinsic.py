@@ -7,13 +7,12 @@ import torch
 
 
 class ConvIntrinsic(ConvBase):
-    def __init__(self, output_dim, rotation_delta, include_kernel=True, *args, **kwargs):
-        super().__init__(include_kernel=include_kernel, *args, **kwargs)
+    def __init__(self, output_dim, rotation_delta, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # Remember layer attributes
         self.output_dim = int(output_dim)
         self.rotation_delta = int(rotation_delta)
-        self.include_kernel = include_kernel
 
         # Init neighbor weights
         self._template_neighbor_weights = nn.Parameter(

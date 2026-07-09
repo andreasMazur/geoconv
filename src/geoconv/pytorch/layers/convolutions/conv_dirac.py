@@ -5,10 +5,8 @@ import numpy as np
 
 class ConvDirac(ConvIntrinsic):
     def __init__(self, *args, **kwargs):
-        kwargs["include_kernel"] = (
-            False  # Interpolation coefficients not required for Dirac prior
-        )
-        super().__init__(*args, **kwargs)
+        kwargs.pop("include_kernel", None)
+        super().__init__(include_kernel=False, *args, **kwargs)
 
     def define_kernel_values(self, template_matrix):
         """Only take the value at ('rho_in', 'theta_in') into account for the patch operator at ('rho_in', 'theta_in').

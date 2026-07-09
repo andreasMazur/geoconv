@@ -12,6 +12,9 @@ class ConvGeodesic(ConvIntrinsic):
     > [Geodesic Convolutional Neural Networks on Riemannian Manifolds](https://arxiv.org/abs/1501.06297)
     > Jonathan Masci and Davide Boscaini et al.
     """
+    def __init__(self, *args, **kwargs):
+        kwargs.pop("include_kernel", None)
+        super().__init__(include_kernel=True, *args, **kwargs)
 
     def define_kernel_values(self, template_matrix):
         interpolation_coefficients = np.zeros(
