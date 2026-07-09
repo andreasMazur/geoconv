@@ -164,7 +164,7 @@ def training(model,
     cp_callback_vrmse = tf.keras.callbacks.ModelCheckpoint(
         filepath=cp_callback_metric_path,
         monitor="val_vrmse",
-        mode="max",
+        mode="min",
         save_best_only=True,
         save_weights_only=False,
         verbose=True
