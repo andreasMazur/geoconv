@@ -8,23 +8,8 @@ import numpy as np
 
 class ConvIntrinsic(ConvBase):
     """The base class for any non gauge-equivariant surface convolution in GeoConv."""
-    def __init__(
-        self,
-        template_radius,
-        rotation_delta,
-        output_dim,
-        activation,
-        include_kernel=True,
-        *args,
-        **kwargs
-    ):
-        super().__init__(
-            template_radius=template_radius,
-            include_kernel=include_kernel,
-            activation=activation,
-            *args,
-            **kwargs
-        )
+    def __init__(self, rotation_delta, output_dim, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.rotation_delta = rotation_delta
         self.output_dim = output_dim
 
