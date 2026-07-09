@@ -78,9 +78,9 @@ class ConvGEMP(ConvGEM):
             self.input_types,
             self.output_types,
             self.sine_and_cosine_locs_self,
-            self.phase_weights
+            tf.convert_to_tensor(self.phase_weights)
         )
-        conv_self = self.get_self_connection_embeddings(signals, self.V_self, K_self)
+        conv_self = self.get_self_connection_embeddings(signals, tf.convert_to_tensor(self.V_self), K_self)
 
         ### Compute neighbor embeddings ###
         # 'template_vertex_interpolations' : (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
@@ -91,11 +91,11 @@ class ConvGEMP(ConvGEM):
             # 'conv_neigh': (n_batch, n_vertices, n_radial, n_angular, output_dim / 2, 2)
             conv_neigh = self.get_neigh_embeddings_p(
                 template_vertex_interpolations,
-                self.V_neigh,
+                tf.convert_to_tensor(self.V_neigh),
                 self.input_types,
                 self.output_types,
                 self.sine_and_cosine_locs,
-                self.phase_weights,
+                tf.convert_to_tensor(self.phase_weights),
                 neighbor_aggregation=False
             )
             return conv_self, conv_neigh
@@ -103,11 +103,11 @@ class ConvGEMP(ConvGEM):
             # 'conv_neigh' : (n_batch, n_vertices, output_dim / 2, 2)
             conv_neigh = self.get_neigh_embeddings_p(
                 template_vertex_interpolations,
-                self.V_neigh,
+                tf.convert_to_tensor(self.V_neigh),
                 self.input_types,
                 self.output_types,
                 self.sine_and_cosine_locs,
-                self.phase_weights,
+                tf.convert_to_tensor(self.phase_weights),
                 neighbor_aggregation=True
             )
             return self.prepare_result(conv_self, conv_neigh)

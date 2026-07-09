@@ -394,7 +394,7 @@ class ConvGEM(ConvBase):
         # 'V_self'    : (output_dim / 2, input_dim / 2, 2)
         # 'K_self'    : (output_dim / 2, input_dim / 2, 2, 2, 2)
         # 'conv_self' : (n_batch, n_vertices, output_dim / 2, 2)
-        conv_self = self.get_self_connection_embeddings(signals, self.V_self, self.K_self)
+        conv_self = self.get_self_connection_embeddings(signals, tf.convert_to_tensor(self.V_self), self.K_self)
 
         ### Compute neighbor embeddings ###
         # 'template_vertex_interpolations' : (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
@@ -404,7 +404,7 @@ class ConvGEM(ConvBase):
             # 'conv_neigh': (n_batch, n_vertices, n_radial, n_angular, output_dim / 2, 2)
             conv_neigh = self.get_neigh_embeddings(
                 template_vertex_interpolations,
-                self.V_neigh,
+                tf.convert_to_tensor(self.V_neigh),
                 self.K_neigh,
                 neighbor_aggregation=False
             )
@@ -413,7 +413,7 @@ class ConvGEM(ConvBase):
             # 'conv_neigh' : (n_batch, n_vertices, output_dim / 2, 2)
             conv_neigh = self.get_neigh_embeddings(
                 template_vertex_interpolations,
-                self.V_neigh,
+                tf.convert_to_tensor(self.V_neigh),
                 self.K_neigh,
                 neighbor_aggregation=True
             )
