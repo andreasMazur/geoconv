@@ -6,6 +6,7 @@ training/
 misc/
 test_scripts/
 sutherland_hodgman/
+*.hdf5
 
 # Examples
 src/geoconv_examples/stanford_bunny/data/
