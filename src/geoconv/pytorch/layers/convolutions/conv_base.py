@@ -7,6 +7,27 @@ import torch
 
 
 class ConvBase(nn.Module):
+    """The base layer for any surface convolution layer in GeoConv.
+
+    Attributes
+    ----------
+    template_radius: float
+        The geodesic radius of the discretized template.
+    n_radial: int
+        The amount of radial coordinates for the discretized template.
+    n_angular: int
+        The amount of angular coordinates for the discretized template.
+    template_vertices: torch.Tensor
+        The template vertices of the discretized template.
+    feature_dim: int
+        The input feature dimension.
+    activation_fn: callable
+        The activation function.
+    include_kernel: bool
+        Whether to include a kernel/weighting function that interpolates the signals gathered at the template vertices.
+    kernel: torch.Tensor | None
+        The kernel/weight function that interpolates the signals at the template vertices.
+    """
     def __init__(self,
                  feature_input_dim,
                  n_radial,
@@ -19,14 +40,14 @@ class ConvBase(nn.Module):
         super().__init__(*args, **kwargs)
 
         # Configure template
-        self.template_radius = template_radius
-        self.n_radial = n_radial
-        self.n_angular = n_angular
+        self.template_radius = float(template_radius)
+        self.n_radial = int(n_radial)
+        self.n_angular = int(n_angular)
         self.template_vertices = torch.tensor(
             create_template_matrix(
-                n_radial=int(self.n_radial),
-                n_angular=int(self.n_angular),
-                radius=float(self.template_radius),
+                n_radial=self.n_radial,
+                n_angular=self.n_angular,
+                radius=self.template_radius,
                 in_cart=False,
                 exp_lambda=1.,
                 shift_angular=False
