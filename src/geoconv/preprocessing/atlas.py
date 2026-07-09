@@ -112,6 +112,7 @@ def load_atlas(filepath):
         # Load charts information
         charts = np.array(f[f"charts_information/charts"])
         chart_radii = np.array(f[f"charts_information/chart_radii"])
+        x_axes_indices = np.array(f[f"charts_information/x_axes_indices"])
 
         # Load custom arrays
         custom_arrays = {key: np.array(arr) for key, arr in f["custom_arrays"].items()}
@@ -175,6 +176,7 @@ def load_atlas(filepath):
     # Set triangle mesh and charts
     atlas.triangle_mesh = triangle_mesh
     atlas.charts = charts
+    atlas.x_axes_indices = x_axes_indices
     atlas.chart_radii = chart_radii
     atlas.chart_faces = chart_faces
     atlas.chart_triangles = chart_triangles
@@ -282,6 +284,12 @@ class Atlas:
         self.std_chart_radius = self.chart_radii.std()
         self.median_chart_radius = np.median(self.chart_radii)
 
+        # Remember x-axis indices to compute parallel transport angles
+        n_charts = self.charts.shape[0]
+        self.x_axes_indices = np.abs(
+            self.charts + np.where(np.eye(n_charts, n_charts) == 1., np.inf, 0.)[..., None]
+        )[..., 1].argmin(axis=-1)
+
         # Translate charts into cartesian coordinates (required by BC-computation)
         self.charts = polar_to_cart(self.charts[..., 1], self.charts[..., 0])
 
@@ -367,6 +375,7 @@ class Atlas:
             h5_charts_information = f.create_group("charts_information")
             h5_charts_information.create_dataset("charts", data=self.charts)
             h5_charts_information.create_dataset("chart_radii", data=self.chart_radii)
+            h5_charts_information.create_dataset("x_axes_indices", data=self.x_axes_indices)
 
             # Save chart face information
             h5_charts_faces_information = f.create_group("charts_faces")
@@ -623,7 +632,11 @@ class Atlas:
         )
 
     def determine_parallel_transport(self):
-        self.parallel_transport = compute_parallel_transport(self.triangle_mesh, self.chart_indices)
+        self.parallel_transport = compute_parallel_transport(
+            triangle_mesh=self.triangle_mesh,
+            gc_x_axes=self.triangle_mesh.vertices[self.x_axes_indices] - self.triangle_mesh.vertices,
+            chart_indices=self.chart_indices
+        )
 
     def store_array(self, dictionary):
         self.custom_arrays.update(dictionary)

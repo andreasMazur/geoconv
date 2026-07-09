@@ -4,7 +4,7 @@ import potpourri3d as pp3d
 import numpy as np
 
 
-def compute_parallel_transport(triangle_mesh, chart_indices=None):
+def compute_parallel_transport(triangle_mesh, gc_x_axes, chart_indices=None):
     """Computes the parallel transport of x-axes between all pairs of charts of a surface.
 
     This function uses the Vector Heat method to compute parallel transports:
@@ -18,6 +18,8 @@ def compute_parallel_transport(triangle_mesh, chart_indices=None):
     ----------
     triangle_mesh: trimesh.Trimesh
         The triangle mesh for whose vertex pairs parallel transports shall be computed.
+    gc_x_axes: np.ndarray
+        The x-axes of the computed surface charts in 3D coordinates.
     chart_indices: np.ndarray | None
         The indices of origin vertices for which parallel transports should be calculated.
         If 'None', all origin vertices are used.
@@ -30,14 +32,40 @@ def compute_parallel_transport(triangle_mesh, chart_indices=None):
         local chart at vertex 'b' (and vice versa because of matrix symmetry). If 'chart_indices' are provided, the
         matrix reduces to (len(chart_indices) x N).
     """
+    # Initialize solver
     solver = pp3d.MeshVectorHeatSolver(V=triangle_mesh.vertices, F=triangle_mesh.faces)
-    transport_vector = np.array([1., 0.])  # transport x-axis
+
+    # 3D LRFs from potpourri3d
+    pp_x_axes, pp_y_axes, _ = solver.get_tangent_frames()
+    pp_x_axes = pp_x_axes / np.linalg.norm(pp_x_axes, axis=-1)[:, None]
+    pp_y_axes = pp_y_axes / np.linalg.norm(pp_y_axes, axis=-1)[:, None]
+
+    # 3D x-axes of LRFs from GeoConv, Atlas-class
+    gc_x_axes = gc_x_axes / np.linalg.norm(gc_x_axes, axis=-1)[:, None]
+
+    # Signed angle offsets between GeoConv and potpourri3d frames
+    correction_angles = np.arctan2(
+        # Dot product with basis vector yields coordinate in basis direction
+        np.einsum("vi,vi->v", gc_x_axes, pp_y_axes),
+        np.einsum("vi,vi->v", gc_x_axes, pp_x_axes)
+    )
+
+    # transport x-axis
+    transport_vector = np.array([1., 0.])
     angles_n_x_n = []
     if chart_indices is None:
         chart_indices = range(triangle_mesh.vertices.shape[0])
     for idx in tqdm(chart_indices, desc="Computing parallel transport..."):
         result = solver.transport_tangent_vector(v_ind=idx, vector=transport_vector)
-        angles = np.arccos(np.einsum("i,ni->n", transport_vector, result))
+
+        # Compute transport angles using the Vector Heat Method
+        transport_angles = np.arctan2(result[:, 1], result[:, 0])
+
+        # Angle correction due to change of basis between GeoConv and potpourri3d
+        # Difference angle in origin: GC_1 -> P_1, correction_angles[idx]
+        # Transport angle: P_1 -> P_2, transport_angles
+        # Difference angle in target vertex: P_2 -> GC_2, correction_angles (minus 'cuz array stores GC -> P)
+        angles = np.mod(correction_angles[idx] + transport_angles - correction_angles, 2 * np.pi) - np.pi
         angles_n_x_n.append(angles)
     return np.array(angles_n_x_n)
 
