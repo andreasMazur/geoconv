@@ -193,6 +193,9 @@ class ConvGEM(ConvBase):
         kwargs.pop("include_kernel", None)
         super().__init__(include_kernel=False, *args, **kwargs)
 
+        # Check that input- and output vectors are divisible by 2
+        assert self.feature_dim % 2 == 0, "This layer requires the dimension of input features to be divisible by two."
+
         # Remember input and output types
         self.input_types = torch.tensor(input_types, dtype=torch.float32)
         self.input_dim_halve = self.input_types.size(0)
