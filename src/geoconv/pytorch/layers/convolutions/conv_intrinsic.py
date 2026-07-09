@@ -11,8 +11,8 @@ class ConvIntrinsic(ConvBase):
         super().__init__(include_kernel=include_kernel, *args, **kwargs)
 
         # Remember layer attributes
-        self.output_dim = output_dim
-        self.rotation_delta = rotation_delta
+        self.output_dim = int(output_dim)
+        self.rotation_delta = int(rotation_delta)
         self.include_kernel = include_kernel
 
         # Init neighbor weights
