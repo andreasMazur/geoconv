@@ -156,14 +156,18 @@ class ConvEMAN(ConvGEM):
         # 'V_self_query'    : (attention_dim / 2, input_dim / 2, 2)
         # 'K_self_query'    : (attention_dim / 2, input_dim / 2, 2, 2, 2)
         # 'query_self'      : (n_batch, n_vertices, attention_dim / 2, 2)
-        query_self = self.get_self_connection_embeddings(self_con_signal, self.V_self_query, self.K_self_query)
+        query_self = self.get_self_connection_embeddings(
+            self_con_signal, tf.convert_to_tensor(self.V_self_query), self.K_self_query
+        )
 
         ### Compute KEYS SELF tensor in preparation for HELPER SELF tensor ###
         # 'self_con_signal' : (n_batch, n_vertices, input_dim / 2, 2)
         # 'V_self_keys'     : (attention_dim / 2, input_dim / 2, 2)
         # 'K_self_keys'     : (attention_dim / 2, input_dim / 2, 2, 2, 2)
         # 'keys_self'       : (n_batch, n_vertices, attention_dim / 2, 2)
-        keys_self = self.get_self_connection_embeddings(self_con_signal, self.V_self_keys, self.K_self_keys)
+        keys_self = self.get_self_connection_embeddings(
+            self_con_signal, tf.convert_to_tensor(self.V_self_keys), self.K_self_keys
+        )
 
         ### Compute KEYS NEIGH tensor in preparation for HELPER NEIGH tensor ###
         # 'template_vertex_interpolations' : (n_batch, n_vertices, n_radial, n_angular, input_dim / 2, 2)
@@ -171,7 +175,10 @@ class ConvEMAN(ConvGEM):
         # 'K_neigh_keys'                   : (attention_dim / 2, input_dim / 2, 4, n_angular, 2, 2)
         # 'keys_neigh'                     : (n_batch, n_vertices, n_radial, n_angular, attention_dim / 2, 2)
         keys_neigh = self.get_neigh_embeddings_radially_dependent(
-            template_vertex_interpolations, self.V_neigh_keys, self.K_neigh_keys, neighbor_aggregation=False
+            template_vertex_interpolations,
+            tf.convert_to_tensor(self.V_neigh_keys),
+            self.K_neigh_keys,
+            neighbor_aggregation=False
         )
 
         ### Log-sum-exp trick for numerical stability ###
