@@ -196,9 +196,6 @@ class ConvGEM(ConvBase):
             **kwargs
         )
 
-        # Check that input- and output vectors are divisible by 2
-        assert self.feature_dim % 2 == 0, "This layer requires the dimension of input features to be divisible by two."
-
         self.input_types = tf.constant(input_types, dtype=tf.float32)
         self.input_dim_halve = self.input_types.shape[0]
         self.output_types = tf.constant(output_types, dtype=tf.float32)
@@ -216,6 +213,9 @@ class ConvGEM(ConvBase):
 
         # Call build of parent class
         super().build([signal_shape, bc_shape])
+
+        # Check that input- and output vectors are divisible by 2
+        assert self.feature_dim % 2 == 0, "This layer requires the dimension of input features to be divisible by two."
 
         # Remember all angular coordinates
         self.all_angular_coordinates = tf.cast(self.template_vertices[0, :, 1], tf.float32)
