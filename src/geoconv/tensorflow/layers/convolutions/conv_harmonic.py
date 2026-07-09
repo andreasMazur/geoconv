@@ -18,6 +18,9 @@ class ConvHarmonic(ConvBase):
             *args,
             **kwargs
         )
+        assert self.feature_dim % 2 == 0, "This layer requires the dimension of input features to be divisible by two."
+        assert output_dim % 2 == 0, "This layer requires the dimension of output features to be divisible by two."
+
         self.output_dim = output_dim
         self.n_complex_num_output = output_dim // 2
         self.rotation_order = rotation_order
