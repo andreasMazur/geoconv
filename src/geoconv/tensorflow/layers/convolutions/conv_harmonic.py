@@ -11,15 +11,9 @@ class ConvHarmonic(ConvBase):
     > Ruben Wiersma and Elmar Eisemann and Klaus Hildebrandt
     > DOI: 10.1145/3386569.3392437
     """
-    def __init__(self, output_dim, rotation_order, activation="linear", *args, **kwargs):
-        super().__init__(
-            include_kernel=False,
-            activation=activation,
-            *args,
-            **kwargs
-        )
-        assert self.feature_dim % 2 == 0, "This layer requires the dimension of input features to be divisible by two."
-        assert output_dim % 2 == 0, "This layer requires the dimension of output features to be divisible by two."
+    def __init__(self, output_dim, rotation_order, *args, **kwargs):
+        kwargs.pop("include_kernel", None)
+        super().__init__(include_kernel=False, *args, **kwargs)
 
         self.output_dim = output_dim
         self.n_complex_num_output = output_dim // 2
@@ -38,6 +32,10 @@ class ConvHarmonic(ConvBase):
 
         # Call build of parent class
         super().build([signal_shape, bc_shape])
+
+        # Assertion checks for feature dimensions
+        assert self.feature_dim % 2 == 0, "This layer requires the dimension of input features to be divisible by two."
+        assert self.output_dim % 2 == 0, "This layer requires the dimension of output features to be divisible by two."
 
         # Remember amount of complex input numbers
         self.n_complex_num_input = self.feature_dim // 2
