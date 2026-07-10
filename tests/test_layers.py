@@ -1,9 +1,14 @@
-from geoconv.tensorflow.layers import ConvDirac, ConvGeodesic, AngularMaxPooling
-from geoconv.tensorflow.layers.convolutions.conv_eman import ConvEMAN
-from geoconv.tensorflow.layers.convolutions.conv_eman_p import ConvEMANP
-from geoconv.tensorflow.layers.convolutions.conv_gem import ConvGEM
-from geoconv.tensorflow.layers.convolutions.conv_gem_p import ConvGEMP
-from geoconv.tensorflow.layers.convolutions.conv_harmonic import ConvHarmonic
+from geoconv.tensorflow.layers import (
+    ConvDirac,
+    ConvGeodesic,
+    ConvHarmonic,
+    ConvGEM,
+    ConvGEMP,
+    ConvEMAN,
+    ConvEMANP,
+    AngularMaxPooling
+)
+
 from geoconv.preprocessing.atlas import load_atlas
 from geoconv.utils.parallel_transport import concat_bc_and_angles
 
