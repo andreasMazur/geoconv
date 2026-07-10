@@ -165,11 +165,10 @@ class ConvHarmonic(ConvBase):
         )
 
         # Add self-connection contributions to neighbor aggregation for complete conv result
-        # TODO: Consider removing normalization by amount of template vertices
         # conv_center : (n_batch, n_vertices, output_dim / 2, 2)
         # conv_neigh  : (n_batch, n_vertices, output_dim / 2, 2)
         # result      : (n_batch, n_vertices, output_dim / 2, 2)
-        result = (conv_center + conv_neigh) / tf.cast(1 + self.n_radial + self.n_angular, tf.float32)
+        result = conv_center + conv_neigh
 
         # Apply magnitude activation
         # result_amp : (n_batch, n_vertices, output_dim / 2)
