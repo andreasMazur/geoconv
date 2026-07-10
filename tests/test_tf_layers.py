@@ -1,4 +1,4 @@
-from geoconv.tensorflow.layers import ConvDirac, ConvGeodesic
+from geoconv.tensorflow.layers import ConvDirac, ConvGeodesic, AngularMaxPooling
 from geoconv.tensorflow.layers.convolutions.conv_eman import ConvEMAN
 from geoconv.tensorflow.layers.convolutions.conv_eman_p import ConvEMANP
 from geoconv.tensorflow.layers.convolutions.conv_gem import ConvGEM
@@ -74,11 +74,15 @@ class TestTFLayers(unittest.TestCase):
             rotation_delta=1,
             output_dim=1
         )
+        amp = AngularMaxPooling()
 
         # Propagate input through layer
         image, bc = self._next_image_and_barycentric_coordinates()
         output = layer([image, bc])
-        print(f"Output dimension: {output.numpy().shape}")
+        print(f"ISC | output dimension: {output.numpy().shape}")
+
+        output = amp(output)
+        print(f"ISC + AMP | output dimension: {output.numpy().shape}")
 
     def test_gcnn_forward_pass(self):
         # Define GCNN layer
@@ -88,11 +92,15 @@ class TestTFLayers(unittest.TestCase):
             rotation_delta=1,
             output_dim=1
         )
+        amp = AngularMaxPooling()
 
         # Propagate input through layer
         image, bc = self._next_image_and_barycentric_coordinates()
         output = layer([image, bc])
-        print(f"Output dimension: {output.numpy().shape}")
+        print(f"GCNN | output dimension: {output.numpy().shape}")
+
+        output = amp(output)
+        print(f"GCNN + AMP | output dimension: {output.numpy().shape}")
 
     def test_hsn_forward_pass(self):
         # Define HSN layer
@@ -106,7 +114,7 @@ class TestTFLayers(unittest.TestCase):
         # Propagate input through layer
         image, bc = self._next_image_and_barycentric_coordinates_with_angles()
         output = layer([image, bc])
-        print(f"Output dimension: {output.numpy().shape}")
+        print(f"HSN | output dimension: {output.numpy().shape}")
 
     def test_gem_cnn_forward_pass(self):
         # Define GEM-CNN layer
@@ -120,7 +128,7 @@ class TestTFLayers(unittest.TestCase):
         # Propagate input through layer
         image, bc = self._next_image_and_barycentric_coordinates_with_angles()
         output = layer([image, bc])
-        print(f"Output dimension: {output.numpy().shape}")
+        print(f"GEM-CNN | output dimension: {output.numpy().shape}")
 
     def test_gem_p_cnn_forward_pass(self):
         # Define GEM-CNN+ layer
@@ -134,7 +142,7 @@ class TestTFLayers(unittest.TestCase):
         # Propagate input through layer
         image, bc = self._next_image_and_barycentric_coordinates_with_angles()
         output = layer([image, bc])
-        print(f"Output dimension: {output.numpy().shape}")
+        print(f"GEM-CNN+ | output dimension: {output.numpy().shape}")
 
     def test_eman_forward_pass(self):
         # Define EMAN layer
@@ -149,7 +157,7 @@ class TestTFLayers(unittest.TestCase):
         # Propagate input through layer
         image, bc = self._next_image_and_barycentric_coordinates_with_angles()
         output = layer([image, bc])
-        print(f"Output dimension: {output.numpy().shape}")
+        print(f"EMAN | output dimension: {output.numpy().shape}")
 
     def test_eman_p_forward_pass(self):
         # Define EMAN+ layer
@@ -164,4 +172,4 @@ class TestTFLayers(unittest.TestCase):
         # Propagate input through layer
         image, bc = self._next_image_and_barycentric_coordinates_with_angles()
         output = layer([image, bc])
-        print(f"Output dimension: {output.numpy().shape}")
+        print(f"EMAN+ | output dimension: {output.numpy().shape}")
