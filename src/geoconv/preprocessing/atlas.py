@@ -229,6 +229,8 @@ class Atlas:
         The standard deviation of observed geodesic distances among all charts.
     median_chart_radius: float
         The median observed geodesic distance among all charts.
+    x_axes_indices: np.ndarray
+        An array the contains the index of the vertex closest to the reference direction per local chart.
     chart_faces: dict
         A dictionary that contains the faces that can be entirely described by local coordinates of charts.
     chart_triangles: dict
