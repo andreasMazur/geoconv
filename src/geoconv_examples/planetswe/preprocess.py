@@ -50,7 +50,7 @@ def preprocess(path,
     # Compute the atlas
     chart_indices_chunked = np.split(np.arange(sphere_mesh.vertices.shape[0]), chunks)
     chart_radii = []
-    for chunk_idx, chart_indices in enumerate(chart_indices_chunked[:2]):
+    for chunk_idx, chart_indices in enumerate(chart_indices_chunked):
         print(f"Currently computing the atlas for chunk {chunk_idx}: vertices {chart_indices[0]} - {chart_indices[-1]}")
 
         # Check whether file already exists
@@ -72,7 +72,7 @@ def preprocess(path,
 
     # Merge atlases
     loaded_atlas = None
-    for chart_indices in chart_indices_chunked[:2]:
+    for chart_indices in chart_indices_chunked:
         atlas_save_path = f"{save_path}/{method}_{max_chart_radius_str}_{chart_indices[0]}_{chart_indices[-1]}"
 
         # Load and merge
@@ -95,7 +95,7 @@ def preprocess(path,
         )
 
     # Compute parallel transport angles
-    # loaded_atlas.determine_parallel_transport()
+    loaded_atlas.determine_parallel_transport()
 
     # Save complete atlas
     loaded_atlas.save_training_data(f"{save_path}/{method}_{max_chart_radius_str}")

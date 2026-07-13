@@ -353,12 +353,12 @@ class Atlas:
         # Save barycentric coordinates
         for template_res, bc in self.barycentric_coordinates.items():
             # Concatenate mesh vertices and barycentric coordinates
-            # bc_and_angles = concat_bc_and_angles(bc, self.parallel_transport)
+            bc_and_angles = concat_bc_and_angles(bc, self.parallel_transport)
 
             radius = '_'.join(f'{template_res[2]}'.split('.'))
             np.save(
                 f"{filepath}/barycentric_coordinates_{template_res[0]}_{template_res[1]}_{radius}.npy",
-                bc  # bc_and_angles
+                bc_and_angles
             )
 
         # Save angles for parallel transport
