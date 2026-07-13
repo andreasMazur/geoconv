@@ -101,21 +101,16 @@ def merge_atlases(atlas_1, atlas_2):
     merged_chart_indices = merged_chart_indices[sorting_indices]
 
     # Translate original chart indices into indices for chart- and BC-arrays
-    atlas_1_chart_indices = np.array([np.argmax(idx == merged_chart_indices) for idx in atlas_1.chart_indices])
-    atlas_2_chart_indices = np.array([np.argmax(idx == merged_chart_indices) for idx in atlas_2.chart_indices])
+    index_map = {idx: i for i, idx in enumerate(merged_chart_indices)}
+    atlas_1_chart_rows = np.array([index_map[idx] for idx in atlas_1.chart_indices])
+    atlas_2_chart_rows = np.array([index_map[idx] for idx in atlas_2.chart_indices])
 
     ########################################################
     # Merge local charts (already in cartesian coordinates)
     ########################################################
-    merged_charts = np.stack(
-        [
-            np.full(shape=(merged_chart_indices.shape[0], atlas_1.charts.shape[1]), fill_value=np.inf),
-            np.full(shape=(merged_chart_indices.shape[0], atlas_1.charts.shape[1]), fill_value=-np.inf)
-        ],
-        axis=-1
-    )
-    merged_charts[atlas_1_chart_indices] = atlas_1.charts
-    merged_charts[atlas_2_chart_indices] = atlas_2.charts
+    merged_charts = np.full(shape=(merged_chart_indices.shape[0], atlas_1.charts.shape[1], 2), fill_value=np.inf)
+    merged_charts[atlas_1_chart_rows] = atlas_1.charts
+    merged_charts[atlas_2_chart_rows] = atlas_2.charts
 
     #################################
     # Compute chart radii statistics
