@@ -13,6 +13,7 @@ import numpy as np
 import trimesh
 import h5py
 import os
+import warnings
 
 
 def longest_axis_normalization(triangle_mesh):
@@ -285,10 +286,17 @@ class Atlas:
         self.median_chart_radius = np.median(self.chart_radii)
 
         # Remember x-axis indices to compute parallel transport angles
-        n_charts = self.charts.shape[0]
-        self.x_axes_indices = np.abs(
-            self.charts + np.where(np.eye(n_charts, n_charts) == 1., np.inf, 0.)[..., None]
-        )[..., 1].argmin(axis=-1)
+        n_neighbors = self.charts.shape[1]
+        if self.chart_indices is None:
+            self.x_axes_indices = np.abs(
+                self.charts + np.where(np.eye(n_neighbors, n_neighbors) == 1., np.inf, 0.)[..., None]
+            )[..., 1].argmin(axis=-1)
+        else:
+            self.x_axes_indices = np.abs(
+                self.charts + np.where(
+                    np.eye(n_neighbors, n_neighbors)[self.chart_indices] == 1., np.inf, 0.
+                )[..., None]
+            )[..., 1].argmin(axis=-1)
 
         # Translate charts into cartesian coordinates (required by BC-computation)
         self.charts = polar_to_cart(self.charts[..., 1], self.charts[..., 0])
@@ -302,7 +310,15 @@ class Atlas:
 
         # Placeholder attribute for rotation angles computed via parallel transport
         self.parallel_transport = np.array([-1.])
-        self.determine_parallel_transport()
+        if self.chart_indices is None:
+            self.determine_parallel_transport()
+        else:
+            warnings.warn(
+                "Since you've provided 'chart_indices' to the 'Atlas'-initialization, parallel transport angles are "
+                "not computed automatically. In order to compute all angles, all charts have to be present to account "
+                "for angle corrections between the reference frames used by the Vector Heat Method and the charts "
+                "computed using GeoConv."
+            )
 
         # Placeholder for custom numpy arrays (e.g., vertex associated ground truth values)
         self.custom_arrays = {}
@@ -634,8 +650,7 @@ class Atlas:
     def determine_parallel_transport(self):
         self.parallel_transport = compute_parallel_transport(
             triangle_mesh=self.triangle_mesh,
-            gc_x_axes=self.triangle_mesh.vertices[self.x_axes_indices] - self.triangle_mesh.vertices,
-            chart_indices=self.chart_indices
+            gc_x_axes=self.triangle_mesh.vertices[self.x_axes_indices] - self.triangle_mesh.vertices
         )
 
     def store_array(self, dictionary):
