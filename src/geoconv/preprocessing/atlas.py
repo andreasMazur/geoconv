@@ -291,17 +291,13 @@ class Atlas:
         self.median_chart_radius = np.median(self.chart_radii)
 
         # Remember x-axis indices to compute parallel transport angles
-        n_neighbors = self.charts.shape[1]
+        angles = self.charts[..., 1].copy()
         if self.chart_indices is None:
-            self.x_axes_indices = np.abs(
-                self.charts + np.where(np.eye(n_neighbors, n_neighbors) == 1., np.inf, 0.)[..., None]
-            )[..., 1].argmin(axis=-1)
+            diagonal_entries = np.arange(self.charts.shape[1])
+            angles[diagonal_entries, diagonal_entries] = np.inf
         else:
-            self.x_axes_indices = np.abs(
-                self.charts + np.where(
-                    np.eye(n_neighbors, n_neighbors)[self.chart_indices] == 1., np.inf, 0.
-                )[..., None]
-            )[..., 1].argmin(axis=-1)
+            angles[np.arange(len(self.chart_indices)), self.chart_indices] = np.inf
+        self.x_axes_indices = angles.argmin(axis=-1)
 
         # Translate charts into cartesian coordinates (required by BC-computation)
         self.charts = polar_to_cart(self.charts[..., 1], self.charts[..., 0])
