@@ -107,7 +107,6 @@ def merge_atlases(atlas_1, atlas_2):
     ########################################################
     # Merge local charts (already in cartesian coordinates)
     ########################################################
-    max_chart_idx = merged_chart_indices.max()
     merged_charts = np.stack(
         [
             np.full(shape=(merged_chart_indices.shape[0], atlas_1.charts.shape[1]), fill_value=np.inf),
@@ -137,24 +136,14 @@ def merge_atlases(atlas_1, atlas_2):
     ################################################################
     # Merge x-axis indices / information about reference directions
     ################################################################
-    # (This array is in order with the 'merged_chart_indices' array)
     merged_x_axes_indices = np.concatenate([atlas_1.x_axes_indices, atlas_2.x_axes_indices], axis=0)
     merged_x_axes_indices = merged_x_axes_indices[sorting_indices]
 
     ############################
     # Merge faces and triangles
     ############################
-    merged_chart_faces, merged_chart_triangles = {}, {}
-    for k in merged_chart_indices:
-        # 'merged_chart_indices' only contains indices from either 'atlas_1' or 'atlas_2'.
-        if k in atlas_1.chart_indices:
-            idx = np.argmax(atlas_1.chart_indices == k)
-            merged_chart_faces[k] = atlas_1.chart_faces[idx]
-            merged_chart_triangles[k] = atlas_1.chart_triangles[idx]
-        else:
-            idx = np.argmax(atlas_2.chart_indices == k)
-            merged_chart_faces[k] = atlas_2.chart_faces[idx]
-            merged_chart_triangles[k] = atlas_2.chart_triangles[idx]
+    merged_chart_faces = {**atlas_1.chart_faces, **atlas_2.chart_faces}
+    merged_chart_triangles = {**atlas_1.chart_triangles, **atlas_2.chart_triangles}
 
     ################################
     # Merge barycentric coordinates
