@@ -66,7 +66,7 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes):
         # Angle correction due to change of basis between GeoConv and potpourri3d
         # Difference angle in origin: GC_1 -> P_1, correction_angles[idx]
         # Transport angle: P_1 -> P_2, transport_angles
-        # Difference angle in target vertex: P_2 -> GC_2, correction_angles (minus 'cuz array stores GC -> P)
+        # Difference angle in target vertex: P_2 -> GC_2, correction_angles (minus because array stores GC -> P)
         angles = np.mod(correction_angles[idx] + transport_angles - correction_angles, 2 * np.pi) - np.pi
         angles_n_x_n.append(angles)
 
