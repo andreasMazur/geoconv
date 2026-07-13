@@ -83,11 +83,11 @@ def create_planetswe_sphere(path, normalization_method="hdm", processes=1):
     longitude_phi = np.array(file_content["dimensions"]["phi"])
     colatitude_theta = np.array(file_content["dimensions"]["theta"])
     sphere = create_sphere(colatitude_theta, longitude_phi)
-    sphere, geodesic_diameter = normalize_shape(
-        sphere,
-        method=normalization_method,
-        processes=processes
-    )
+    # sphere, geodesic_diameter = normalize_shape(
+    #     sphere,
+    #     method=normalization_method,
+    #     processes=processes
+    # )
     return sphere
 
 
