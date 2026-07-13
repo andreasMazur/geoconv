@@ -41,13 +41,14 @@ def compute_barycentric_coordinates(atlas, n_radial=2, n_angular=4, radius=0.05,
     )
     n_charts = atlas.charts.shape[0]
 
+    chart_indices = range(n_charts) if atlas.chart_indices is None else atlas.chart_indices
     triples = [
        (
            template_matrix[radial_coordinate, angular_coordinate],
            atlas.chart_triangles[chart_idx],
            atlas.chart_faces[chart_idx]
        )
-        for chart_idx in range(n_charts)
+        for chart_idx in chart_indices
         for angular_coordinate in range(n_angular)
         for radial_coordinate in range(n_radial)
     ]

@@ -54,9 +54,12 @@ def determine_faces_for_charts(triangle_mesh, local_charts):
     """
     available_faces = {}
     for chart_idx, chart in tqdm(enumerate(local_charts), desc="Extracting faces from local charts"):
+        # Find mask that describes which faces consist of vertices whose local coordinates are all available
         faces_in_local_coords = chart[triangle_mesh.faces]
         mask = faces_in_local_coords[..., 0] != np.inf
         all_coords_available = mask.astype(np.int32).prod(axis=-1).astype(np.bool_)
+
+        # Store result in dictionary
         available_faces[chart_idx] = np.array(triangle_mesh.faces[all_coords_available])
     return available_faces
 
@@ -118,18 +121,18 @@ def load_atlas(filepath):
         # Load custom arrays
         custom_arrays = {key: np.array(arr) for key, arr in f["custom_arrays"].items()}
         if "chart_indices" in custom_arrays.keys():
-            amount_charts = custom_arrays["chart_indices"].shape[0]
+            chart_indices = custom_arrays["chart_indices"]
         else:
-            amount_charts = vertices.shape[0]
+            chart_indices = range(vertices.shape[0])
 
         # Load chart face information
         chart_faces = {}
-        for origin_vertex_idx in range(amount_charts):
+        for origin_vertex_idx in chart_indices:
             chart_faces[origin_vertex_idx] = np.array(f[f"charts_faces/{origin_vertex_idx}"])
 
         # Load chart triangle information
         chart_triangles = {}
-        for origin_vertex_idx in range(amount_charts):
+        for origin_vertex_idx in chart_indices:
             chart_triangles[origin_vertex_idx] = np.array(f[f"charts_triangles/{origin_vertex_idx}"])
 
         # Load meta information
@@ -192,7 +195,7 @@ def load_atlas(filepath):
     atlas.custom_arrays = custom_arrays
 
     if "chart_indices" in atlas.custom_arrays.keys():
-        atlas.chart_indices = atlas.custom_arrays["chart_indices"]
+        atlas.chart_indices = chart_indices
     else:
         atlas.chart_indices = None
 
@@ -306,6 +309,10 @@ class Atlas:
         # Store faces and triangles
         self.chart_faces = determine_faces_for_charts(triangle_mesh, self.charts)
         self.chart_triangles = {k: np.array(self.charts[k][v]) for k, v in self.chart_faces.items()}
+
+        if self.chart_indices is not None:
+            self.chart_faces = {self.chart_indices[k]: v for k, v in self.chart_faces.items()}
+            self.chart_triangles = {self.chart_indices[k]: v for k, v in self.chart_triangles.items()}
 
         # Placeholder attribute for barycentric coordinates
         self.barycentric_coordinates = {}
