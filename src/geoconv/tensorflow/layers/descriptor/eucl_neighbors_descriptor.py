@@ -28,12 +28,19 @@ class EuclNeighborsDescriptor(tf.keras.layers.Layer):
         tf:Tensor:
             A tensor of shape [batch, vertices, 3 * n_neighbors - 3]
         """
+        # 'compute_neighborhood' returns neighbors in order to their Euclidean distance to the origin
         # 'neighborhoods' : (batch, vertices, n_neighbors, 3)
         neighborhoods, _, _ = compute_neighborhood(inputs, self.n_neighbors)
 
         # Scale max sphere radius to 1
-        neighborhoods = tf.math.divide_no_nan(neighborhoods, tf.reduce_max(tf.linalg.norm(neighborhoods, axis=-1), axis=-1)[..., None, None])
+        # 'neighborhoods' : (batch, vertices, n_neighbors, 3)
+        neighborhoods = tf.math.divide_no_nan(
+            neighborhoods, tf.reduce_max(tf.linalg.norm(neighborhoods, axis=-1), axis=-1)[..., None, None]
+        )
+
         neighborhoods_shape = tf.shape(neighborhoods)
+
+        # 'return': (batch, vertices, n_neighbors, 3 * neighbors - 3)
         return tf.reshape(
             neighborhoods, (neighborhoods_shape[0], neighborhoods_shape[1], self.n_neighbors * 3)
         )[..., 3:]  # Cut away the origin-zero vectors
