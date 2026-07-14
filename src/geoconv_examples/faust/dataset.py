@@ -57,8 +57,7 @@ def generator(zip_path,
 
     # Load zip content
     zip_content = [
-        f"faust_{preprocess_method}_{n_radial}_{n_angular}_{'_'.join(f'{gpc_radius}'.split('.'))}/tr_reg_{i:03d}"
-        for i in range(100)
+        f"faust_{preprocess_method}_{'_'.join(f'{gpc_radius}'.split('.'))}/tr_reg_{i:03d}" for i in range(100)
     ]
 
     # Get desired set type
