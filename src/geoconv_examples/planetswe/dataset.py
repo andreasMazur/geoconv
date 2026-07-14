@@ -11,7 +11,7 @@ import trimesh
 
 
 def create_sphere(colatitude_theta, longitude_phi):
-    """Creates Cartesian coordinates for colatitude and longitude spherical coordiantes.
+    """Creates Cartesian coordinates for colatitude and longitude spherical coordinates.
 
     Parameters
     ----------
