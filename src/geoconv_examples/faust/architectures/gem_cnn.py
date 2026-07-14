@@ -120,7 +120,7 @@ def define_model(input_types,
             preprocess_method,
             tf.constant(gpc_radius, dtype=tf.float64),
             tf.constant(template_radius, dtype=tf.float64),
-            layer_output_dim=3 * int(1 + n_radial * n_angular) - 3
+            n_neighbors=int(1 + n_radial * n_angular)
         )
     )
 

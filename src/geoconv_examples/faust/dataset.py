@@ -6,8 +6,15 @@ import tensorflow as tf
 import numpy as np
 
 
-def adapt_generator(zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius):
-    descr_layer = EuclNeighborsDescriptor(n_neighbors=int(1 + n_radial * n_angular))
+def adapt_generator(zip_path,
+                    set_type,
+                    n_radial,
+                    n_angular,
+                    preprocess_method,
+                    gpc_radius,
+                    template_radius,
+                    n_neighbors):
+    descr_layer = EuclNeighborsDescriptor(n_neighbors=n_neighbors)
     gen = generator(
         zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, return_rotations=False
     )
@@ -22,11 +29,11 @@ def adapt_dataset(zip_path,
                   preprocess_method,
                   gpc_radius,
                   template_radius,
-                  layer_output_dim):
+                  n_neighbors):
     return tf.data.Dataset.from_generator(
         adapt_generator,
-        args=(zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius),
-        output_signature=(tf.TensorSpec(shape=(6890, layer_output_dim), dtype=tf.float32))
+        args=(zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, n_neighbors),
+        output_signature=(tf.TensorSpec(shape=(6890, 3 * n_neighbors - 3), dtype=tf.float32))
     ).prefetch(tf.data.AUTOTUNE).batch(1)
 
 
