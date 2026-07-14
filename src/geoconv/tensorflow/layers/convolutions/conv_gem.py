@@ -329,7 +329,7 @@ class ConvGEM(ConvBase):
             # return : (n_batch, n_vertices, n_radial, n_angular, output_dim / 2, 2)
             return tf.einsum("mnaxy,bkrany->bkramx", W_neigh, interpolations)
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def call(self, inputs):
         """Prepares format of input signal, computes interpolations and returns GEM-CNN results.
 
@@ -361,7 +361,7 @@ class ConvGEM(ConvBase):
         signals = tf.reshape(signals, (signals_shape[0], signals_shape[1], self.input_dim_halve, 2))
         return self.call_helper(signals, template_vertex_interpolations, return_self_and_neighbor_embeddings=False)
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def call_helper(self, signals, template_vertex_interpolations, return_self_and_neighbor_embeddings=False):
         """Computes GEM convolution using given signals and template vertex interpolations.
 
@@ -419,7 +419,7 @@ class ConvGEM(ConvBase):
             )
             return self.prepare_result(conv_self, conv_neigh)
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def prepare_result(self, conv_self, conv_neigh):
         """Prepares the result of the convolution.
 
