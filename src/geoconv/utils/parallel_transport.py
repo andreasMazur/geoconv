@@ -24,10 +24,9 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes):
     Return
     ------
     np.ndarray:
-        A symmetric (N x N) matrix, where N equals the amount of vertices of 'triangle_mesh'. Entry [a, b] contains the
+        A (N x N) matrix, where N equals the amount of vertices of 'triangle_mesh'. Entry [a, b] contains the
         rotation angle that the x-axis in the local chart at vertex 'a' has to be rotated with to be represented in the
-        local chart at vertex 'b' (and vice versa because of matrix symmetry). If 'chart_indices' are provided, the
-        matrix reduces to (N x N).
+        local chart at vertex 'b'.
     """
     # Initialize solver
     solver = pp3d.MeshVectorHeatSolver(V=triangle_mesh.vertices, F=triangle_mesh.faces)
@@ -41,8 +40,11 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes):
     gc_x_axes = gc_x_axes / np.linalg.norm(gc_x_axes, axis=-1)[:, None]
 
     # Signed angle offsets between GeoConv and potpourri3d frames
+    # 'correction_angles' stores angles theta by which PP-x-axes need to be rotated with to coincide with GC's x-axes.
+    # Thus, 'correction_angles' stores angles that cause a basis change PP -> GC.
     correction_angles = np.arctan2(
-        # Dot product with basis vector yields coordinate in basis direction
+        # Dot product with basis vector yields coordinate in basis direction.
+        # Represents GC x-axes in potpourri3d's coordinate frames.
         np.einsum("vi,vi->v", gc_x_axes, pp_y_axes),
         np.einsum("vi,vi->v", gc_x_axes, pp_x_axes)
     )
@@ -64,10 +66,12 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes):
         transport_angles = np.arctan2(result[:, 1], result[:, 0])
 
         # Angle correction due to change of basis between GeoConv and potpourri3d
-        # Difference angle in origin: GC_1 -> P_1, correction_angles[idx]
+        # Difference angle in origin: GC_1 -> P_1, "-correction_angles[idx]"
         # Transport angle: P_1 -> P_2, transport_angles
-        # Difference angle in target vertex: P_2 -> GC_2, correction_angles (minus because array stores GC -> P)
-        angles = np.mod(correction_angles[idx] + transport_angles - correction_angles, 2 * np.pi)
+        # Difference angle in target vertex: P_2 -> GC_2, "+correction_angles"
+        angles = np.mod(-correction_angles[idx] + transport_angles + correction_angles, 2 * np.pi)
+        angles[np.isclose(angles, 2 * np.pi)] = 0.
+
         angles_n_x_n.append(angles)
 
     # Return the parallel transport angles
