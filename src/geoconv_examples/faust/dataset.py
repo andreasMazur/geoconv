@@ -9,7 +9,25 @@ def adapt_generator(zip_path, set_type, n_radial, n_angular, preprocess_method, 
         zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, return_rotations=False
     )
     for (vertices, bc), _ in tqdm(gen, postfix="Adapting normalization layer..."):
-        yield layer(vertices[None, ...])
+        yield layer(vertices[None, ...])[0]
+
+
+def adapt_dataset(zip_path,
+                  set_type,
+                  n_radial,
+                  n_angular,
+                  preprocess_method,
+                  gpc_radius,
+                  template_radius,
+                  layer,
+                  layer_output_dim):
+    return tf.data.Dataset.from_generator(
+        adapt_generator,
+        args=(
+            zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, layer
+        ),
+        output_signature=(tf.TensorSpec(shape=(6890, layer_output_dim), dtype=tf.float32))
+    ).prefetch(tf.data.AUTOTUNE).batch(1)
 
 
 def generator(zip_path,

@@ -1,7 +1,7 @@
 from geoconv.tensorflow.layers.activations.beta_relu import BetaRelu
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
 from geoconv.tensorflow.layers.experimental.lift_features import LiftFeatures2D
-from geoconv_examples.faust.dataset import adapt_generator
+from geoconv_examples.faust.dataset import adapt_dataset
 
 from geoconv.tensorflow.layers.convolutions.conv_gem import ConvGEM
 
@@ -112,7 +112,7 @@ def define_model(input_types,
 
     # Adapt normalization
     normalization_layer.adapt(
-        adapt_generator(
+        adapt_dataset(
             faust_path,
             "train",
             n_radial,
@@ -120,7 +120,8 @@ def define_model(input_types,
             preprocess_method,
             gpc_radius,
             template_radius,
-            descr_layer
+            descr_layer,
+            layer_output_dim=3 * int(1 + n_radial * n_angular) - 3
         )
     )
 
