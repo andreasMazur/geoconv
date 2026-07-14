@@ -1,15 +1,18 @@
+from geoconv.tensorflow.layers import EuclNeighborsDescriptor
+
 from tqdm import tqdm
 
 import tensorflow as tf
 import numpy as np
 
 
-def adapt_generator(zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, layer):
+def adapt_generator(zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius):
+    descr_layer = EuclNeighborsDescriptor(n_neighbors=int(1 + n_radial * n_angular))
     gen = generator(
         zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, return_rotations=False
     )
     for (vertices, bc), _ in tqdm(gen, postfix="Adapting normalization layer..."):
-        yield layer(vertices[None, ...])[0]
+        yield descr_layer(vertices[None, ...])[0]
 
 
 def adapt_dataset(zip_path,
@@ -19,13 +22,10 @@ def adapt_dataset(zip_path,
                   preprocess_method,
                   gpc_radius,
                   template_radius,
-                  layer,
                   layer_output_dim):
     return tf.data.Dataset.from_generator(
         adapt_generator,
-        args=(
-            zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, layer
-        ),
+        args=(zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius),
         output_signature=(tf.TensorSpec(shape=(6890, layer_output_dim), dtype=tf.float32))
     ).prefetch(tf.data.AUTOTUNE).batch(1)
 

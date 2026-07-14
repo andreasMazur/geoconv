@@ -118,9 +118,8 @@ def define_model(input_types,
             n_radial,
             n_angular,
             preprocess_method,
-            gpc_radius,
-            template_radius,
-            descr_layer,
+            tf.constant(gpc_radius, dtype=tf.float64),
+            tf.constant(template_radius, dtype=tf.float64),
             layer_output_dim=3 * int(1 + n_radial * n_angular) - 3
         )
     )
