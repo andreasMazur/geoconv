@@ -39,9 +39,10 @@ def compute_barycentric_coordinates(atlas, n_radial=2, n_angular=4, radius=0.05,
     template_matrix = create_template_matrix(
         n_radial=n_radial, n_angular=n_angular, radius=radius, in_cart=True
     )
-    n_charts = atlas.charts.shape[0]
 
-    chart_indices = range(n_charts) if atlas.chart_indices is None else atlas.chart_indices
+    chart_indices = range(atlas.triangle_mesh.vertices.shape[0]) if atlas.chart_indices is None else atlas.chart_indices
+    n_charts = len(chart_indices)
+
     triples = [
        (
            template_matrix[radial_coordinate, angular_coordinate],
