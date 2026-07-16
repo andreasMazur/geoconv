@@ -297,6 +297,7 @@ class Atlas:
             angles[diagonal_entries, diagonal_entries] = np.inf
         else:
             angles[np.arange(len(self.chart_indices)), self.chart_indices] = np.inf
+        angles[angles == -1.] = np.inf
         self.x_axes_indices = angles.argmin(axis=-1)
 
         # Translate charts into cartesian coordinates (required by BC-computation)
