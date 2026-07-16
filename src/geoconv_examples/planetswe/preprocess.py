@@ -1,5 +1,4 @@
 from geoconv.preprocessing.atlas import Atlas, load_atlas
-from geoconv.utils.atlas_merging import merge_atlases
 
 from geoconv_examples.planetswe.dataset import create_planetswe_sphere
 
