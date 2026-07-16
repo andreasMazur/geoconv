@@ -4,7 +4,7 @@ import potpourri3d as pp3d
 import numpy as np
 
 
-def compute_parallel_transport(triangle_mesh, gc_x_axes):
+def compute_parallel_transport(triangle_mesh, gc_x_axes, source_vertex_indices=None):
     """Computes the parallel transport of x-axes between all pairs of charts of a surface.
 
     This function uses the Vector Heat method to compute parallel transports:
@@ -20,6 +20,8 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes):
         The triangle mesh for whose vertex pairs parallel transports shall be computed.
     gc_x_axes: np.ndarray
         The x-axes of the computed surface charts in 3D coordinates.
+    source_vertex_indices: np.ndarray | None
+        The indices of the source vertices for which parallel transports are required.
 
     Return
     ------
@@ -56,10 +58,11 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes):
     angles_n_x_n = []
 
     # The indices of the charts, origin of the parallel transports
-    chart_indices = np.arange(triangle_mesh.vertices.shape[0])
+    if source_vertex_indices is None:
+        source_vertex_indices = np.arange(triangle_mesh.vertices.shape[0])
 
     # Compute the parallel transports
-    for idx in tqdm(chart_indices, desc="Computing parallel transport..."):
+    for idx in tqdm(source_vertex_indices, desc="Computing parallel transport..."):
         result = solver.transport_tangent_vector(v_ind=idx, vector=transport_vector)
 
         # Compute transport angles using the Vector Heat Method
