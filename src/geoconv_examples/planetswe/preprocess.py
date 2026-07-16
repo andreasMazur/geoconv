@@ -50,6 +50,7 @@ def preprocess(path,
     # Compute the atlas
     chart_indices_chunked = np.split(np.arange(sphere_mesh.vertices.shape[0]), chunks)
     chart_radii = []
+    x_axis_indices = []
     for chunk_idx, chart_indices in enumerate(chart_indices_chunked):
         print(f"Currently computing the atlas for chunk {chunk_idx}: vertices {chart_indices[0]} - {chart_indices[-1]}")
 
@@ -67,38 +68,37 @@ def preprocess(path,
             chart_indices=chart_indices
         )
         chart_radii.extend(atlas.chart_radii.tolist())
+        x_axis_indices.extend(atlas.x_axes_indices.tolist())
         save_atlas(atlas, atlas_save_path=atlas_save_path)
-    del atlas
-
-    # Merge atlases
-    loaded_atlas = None
-    for chart_indices in chart_indices_chunked:
-        atlas_save_path = f"{save_path}/{method}_{max_chart_radius_str}_{chart_indices[0]}_{chart_indices[-1]}"
-
-        # Load and merge
-        if loaded_atlas is None:
-            loaded_atlas = load_atlas(atlas_save_path)
-        else:
-            new_atlas = load_atlas(atlas_save_path)
-            loaded_atlas = merge_atlases(loaded_atlas, new_atlas)
-
-        # Cleanup old atlas file
-        os.remove(f"{atlas_save_path}.hdf5")
 
     # Compute barycentric coordinates
-    for (n_radial, n_angular) in template_resolutions:
-        loaded_atlas.determine_barycentric_coordinates(
-            n_radial=n_radial,
-            n_angular=n_angular,
-            radius=np.median(chart_radii),
-            processes=processes
-        )
+    x_axis_indices = np.array(x_axis_indices)
+    for chart_indices in chart_indices_chunked:
+        for (n_radial, n_angular) in template_resolutions:
+            # Load atlas
+            atlas_save_path = f"{save_path}/{method}_{max_chart_radius_str}_{chart_indices[0]}_{chart_indices[-1]}"
+            if os.path.isdir(atlas_save_path):
+                continue
+            atlas = load_atlas(atlas_save_path)
 
-    # Compute parallel transport angles
-    loaded_atlas.determine_parallel_transport()
+            # Compute barycentric coordinates
+            atlas.determine_barycentric_coordinates(
+                n_radial=n_radial,
+                n_angular=n_angular,
+                radius=np.median(chart_radii),
+                processes=processes
+            )
 
-    # Save complete atlas
-    loaded_atlas.save_training_data(f"{save_path}/{method}_{max_chart_radius_str}")
+            # Compute parallel transport angles
+            atlas.determine_parallel_transport_angles(
+                x_axes_indices=x_axis_indices, source_vertex_indices=atlas.chart_indices
+            )
+
+            # Save training data
+            atlas.save_training_data(atlas_save_path)
+
+            # Cleanup old atlas file
+            os.remove(f"{atlas_save_path}.hdf5")
 
     # Zip everything
     print("Zipping...")
