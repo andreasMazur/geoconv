@@ -82,7 +82,7 @@ class ConvEMAN(ConvGEM):
 
         self.attention_dim_halve = tf.cast(self.attention_dim_halve, tf.float32)
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def call(self, inputs):
         """Computes the equivariant mesh attention convolution
 
@@ -132,7 +132,7 @@ class ConvEMAN(ConvGEM):
         conv_neigh = tf.einsum("bkra,bkramx->bkmx", A_neigh, conv_neigh)
         return self.prepare_result(conv_self, conv_neigh)
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def get_attention_coefficients(self, self_con_signal, template_vertex_interpolations):
         """Computes the attention coefficients for self-connections and neighbor aggregations.
 
