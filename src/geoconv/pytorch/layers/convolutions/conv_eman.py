@@ -91,7 +91,7 @@ class ConvEMAN(ConvGEM):
         # Calculate self- and neighbor embeddings
         # conv_self  : (n_batch, n_vertices, output_dim / 2, 2)
         # conv_neigh : (n_batch, n_vertices, n_radial, n_angular, output_dim / 2, 2)
-        conv_self, conv_neigh = super().forward_helper(
+        conv_self, conv_neigh = self.forward_helper(
             signals, template_vertex_interpolations, return_self_and_neighbor_embeddings=True
         )
 
