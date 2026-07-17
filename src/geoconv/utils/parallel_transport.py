@@ -39,7 +39,14 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes, source_vertex_indices=N
     pp_y_axes = pp_y_axes / np.linalg.norm(pp_y_axes, axis=-1)[:, None]
 
     # 3D x-axes of LRFs from GeoConv, Atlas-class
-    gc_x_axes = gc_x_axes / np.linalg.norm(gc_x_axes, axis=-1)[:, None]
+    x_axes_norm = np.linalg.norm(gc_x_axes, axis=-1)
+    no_neighbors_mask = x_axes_norm == 0.
+    gc_x_axes[np.logical_not(no_neighbors_mask)] = (
+            gc_x_axes[np.logical_not(no_neighbors_mask)] / x_axes_norm[np.logical_not(no_neighbors_mask), None]
+    )
+
+    # Replace non-existent x-axis with those of potpourri3d
+    gc_x_axes[no_neighbors_mask] = pp_x_axes[no_neighbors_mask]
 
     # Signed angle offsets between GeoConv and potpourri3d frames
     # 'correction_angles' stores angles theta by which PP-x-axes need to be rotated with to coincide with GC's x-axes.
@@ -50,6 +57,9 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes, source_vertex_indices=N
         np.einsum("vi,vi->v", gc_x_axes, pp_y_axes),
         np.einsum("vi,vi->v", gc_x_axes, pp_x_axes)
     )
+
+    # Correction angle of PP -> PP is zero (machine accuracy sometimes comes to its limits here)
+    correction_angles[no_neighbors_mask] = 0.
 
     # Transport x-axis
     transport_vector = np.array([1., 0.])

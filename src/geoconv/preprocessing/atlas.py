@@ -294,11 +294,14 @@ class Atlas:
         angles = self.charts[..., 1].copy()
         if self.chart_indices is None:
             diagonal_entries = np.arange(self.charts.shape[1])
+            self.x_axes_indices = np.array(diagonal_entries)
             angles[diagonal_entries, diagonal_entries] = np.inf
         else:
+            self.x_axes_indices = np.array(self.chart_indices)
             angles[np.arange(len(self.chart_indices)), self.chart_indices] = np.inf
         angles[angles == -1.] = np.inf
-        self.x_axes_indices = angles.argmin(axis=-1)
+        has_neighbors_mask = np.logical_not(np.isinf(angles).all(axis=-1))
+        self.x_axes_indices[has_neighbors_mask] = angles.argmin(axis=-1)[has_neighbors_mask]
 
         # Translate charts into cartesian coordinates (required by BC-computation)
         self.charts = polar_to_cart(self.charts[..., 1], self.charts[..., 0])
