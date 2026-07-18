@@ -219,7 +219,7 @@ class ConvBase(tf.keras.layers.Layer):
         """
         ### Gather the rotations angles ###
         # result     : (n_batch, n_vertices, n_radial, n_angular, 3)
-        angles = bc[..., -1]
+        angles = -bc[..., -1]
 
         ### Include rotation order ###
         # rotation_order : (      1,          1,        1,         1, 1, input_dim / 2)
