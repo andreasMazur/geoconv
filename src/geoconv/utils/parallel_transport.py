@@ -116,11 +116,15 @@ def concat_bc_and_angles(bc, angles):
     # 'bc_indices': (n_vertices, n_radial, n_angular, 3)
     bc_indices = bc[..., 1].astype(np.int32)
 
+    # Invert angle matrix: from neighbor frame to source frame
+    angles = np.mod(-angles, 2 * np.pi)
+    angles[np.isclose(angles, 2 * np.pi)] = 0.
+
     # Gather angles: from neighbor frame to source frame
-    # 'bc_indices'                                  : (n_vertices, n_radial, n_angular, 3)
     # 'np.arange(bc.shape[0])[:, None, None, None]' : (n_vertices,        1,         1, 1)
+    # 'bc_indices'                                  : (n_vertices, n_radial, n_angular, 3)
     # 'angles'                                      : (n_vertices, n_radial, n_angular, 3)
-    angles = angles[bc_indices, np.arange(bc.shape[0])[:, None, None, None]]
+    angles = angles[np.arange(bc.shape[0])[:, None, None, None], bc_indices]
 
     # Concat bc and angles
     # 'return' : (n_vertices, n_radial, n_angular, 3, 3)
