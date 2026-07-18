@@ -109,12 +109,15 @@ def concat_bc_and_angles(bc, angles):
         angles for vertex index bc[..., 1].
     """
     # Get indices of barycentric coordinates
-    # 'bc_indices': (batch, n_vertices, n_radial, n_angular, 3)
-    # _, bc_indices = tf.unstack(bc, axis=-1)
+    # 'bc_indices': (n_vertices, n_radial, n_angular, 3)
     bc_indices = bc[..., 1].astype(np.int32)
 
-    # Gather angles
-    angles = angles[np.arange(bc.shape[0])[:, None, None, None], bc_indices]
+    # Gather angles: from neighbor frame to source frame
+    # 'np.arange(bc.shape[0])[:, None, None, None]' : (n_vertices, 1, 1, 1)
+    # 'bc_indices'                                  : (n_vertices, n_radial, n_angular, 3)
+    # 'angles'                                      : (n_vertices, n_radial, n_angular, 3)
+    angles = angles[bc_indices, np.arange(bc.shape[0])[:, None, None, None]]
 
     # Concat bc and angles
+    # 'return' : (n_vertices, n_radial, n_angular, 3, 3)
     return np.concatenate([bc, angles[..., None]], axis=-1)
