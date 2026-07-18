@@ -30,10 +30,10 @@ def compute_barycentric_coordinates(atlas, n_radial=2, n_angular=4, radius=0.05,
             - a: References chart centered in vertex `a` of object mesh `object_mesh`
             - b: References the b-th radial coordinate of the template
             - c: References the c-th angular coordinate of the template
-            - B[a, b, c, :, 0]: Returns the **indices** of the nodes that construct the triangle containing the template
-                                vertex (b, c) in chart centered in node `a`
-            - B[a, b, c, :, 1]: Returns the **barycentric coordinates** of the nodes that construct the triangle
+            - B[a, b, c, :, 0]: Returns the **barycentric coordinates** of the nodes that construct the triangle
                                 containing the template vertex (b, c) in chart centered in node `a`
+            - B[a, b, c, :, 1]: Returns the **indices** of the nodes that construct the triangle containing the template
+                                vertex (b, c) in chart centered in node `a`
     """
     # Define template vertices at which interpolation values will be needed
     template_matrix = create_template_matrix(
