@@ -92,29 +92,33 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes, source_vertex_indices=N
 
 
 def concat_bc_and_angles(bc, angles):
-    """Retrieves the required angles for given barycentric coordinates and concatenates angles onto last dim. of 'bc'.
+    """Retrieves the required angles for given barycentric coordinates and concatenates bc and angles in the last axis.
 
     Parameters
     ----------
     bc: np.ndarray
-        The barycentric coordinates,
+        The barycentric coordinates of shape (n_vertices, n_radial, n_angular, 3, 2).
     angles: np.ndarray
-        The (n_vertices x n_vertices) matrix containing the angles required for parallel transport.
+        The (n_vertices x n_vertices) matrix containing frame rotation angles. Entry [i, j] describes the rotation of
+        the x-axis of frame i when represented in frame j.
 
     Returns
     -------
     np.ndarray:
-        An array 'bc' that contains both the barycentric coordinates and their required angles for the parallel
-        transport. It has shape: (batch, n_vertices, n_radial, n_angular, 3, 3). Thereby, bc[..., 2] contains the
-        angles for vertex index bc[..., 1].
+        An array containing barycentric coordinates and the corresponding frame rotation angles. For each interpolation
+        neighbor, the method selects the angle from the neighbor frame to the source frame. The surface convolution
+        layer subsequently uses the negative of this angle to transform feature coordinates into the source frame.
+
+        The final array has shape:
+        (n_vertices, n_radial, n_angular, 3, 3).
     """
     # Get indices of barycentric coordinates
     # 'bc_indices': (n_vertices, n_radial, n_angular, 3)
     bc_indices = bc[..., 1].astype(np.int32)
 
     # Gather angles: from neighbor frame to source frame
-    # 'np.arange(bc.shape[0])[:, None, None, None]' : (n_vertices, 1, 1, 1)
     # 'bc_indices'                                  : (n_vertices, n_radial, n_angular, 3)
+    # 'np.arange(bc.shape[0])[:, None, None, None]' : (n_vertices,        1,         1, 1)
     # 'angles'                                      : (n_vertices, n_radial, n_angular, 3)
     angles = angles[bc_indices, np.arange(bc.shape[0])[:, None, None, None]]
 
