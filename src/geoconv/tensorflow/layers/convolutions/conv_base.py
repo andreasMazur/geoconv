@@ -218,6 +218,8 @@ class ConvBase(tf.keras.layers.Layer):
             Shape: (n_batch, n_vertices, n_radial, n_angular, 3, input_dim / 2, 2, 2)
         """
         ### Gather the rotations angles ###
+        # The parallel transport of a feature vector corresponds to a rotation of -\theta, when \theta
+        # is the rotation of the x-axis in coordinate frame 1 to the x-axis of coordinate frame 2.
         # result     : (n_batch, n_vertices, n_radial, n_angular, 3)
         angles = -bc[..., -1]
 
