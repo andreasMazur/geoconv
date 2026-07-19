@@ -34,9 +34,13 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes, source_vertex_indices=N
     solver = pp3d.MeshVectorHeatSolver(V=triangle_mesh.vertices, F=triangle_mesh.faces)
 
     # 3D LRFs from potpourri3d
-    pp_x_axes, pp_y_axes, _ = solver.get_tangent_frames()
+    pp_x_axes, pp_y_axes, pp_normals = solver.get_tangent_frames()
+    pp_normals = pp_normals / np.linalg.norm(pp_normals, axis=-1)[:, None]
     pp_x_axes = pp_x_axes / np.linalg.norm(pp_x_axes, axis=-1)[:, None]
     pp_y_axes = pp_y_axes / np.linalg.norm(pp_y_axes, axis=-1)[:, None]
+
+    # Project GC x-axes into tangent frame of potpourri3d
+    gc_x_axes = gc_x_axes - np.einsum("vi,vi->v", gc_x_axes, pp_normals)[:, None] * pp_normals
 
     # 3D x-axes of LRFs from GeoConv, Atlas-class
     x_axes_norm = np.linalg.norm(gc_x_axes, axis=-1)
