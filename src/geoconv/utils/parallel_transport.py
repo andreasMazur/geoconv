@@ -4,7 +4,7 @@ import potpourri3d as pp3d
 import numpy as np
 
 
-def compute_parallel_transport(triangle_mesh, gc_x_axes, source_vertex_indices=None):
+def compute_parallel_transport(triangle_mesh, source_vertex_indices=None):
     """Computes the parallel transport of x-axes between all pairs of charts of a surface.
 
     This function uses the Vector Heat method to compute parallel transports:
@@ -18,8 +18,6 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes, source_vertex_indices=N
     ----------
     triangle_mesh: trimesh.Trimesh
         The triangle mesh for whose vertex pairs parallel transports shall be computed.
-    gc_x_axes: np.ndarray
-        The x-axes of the computed surface charts in 3D coordinates.
     source_vertex_indices: np.ndarray | None
         The indices of the source vertices for which parallel transports are required.
 
@@ -32,38 +30,6 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes, source_vertex_indices=N
     """
     # Initialize solver
     solver = pp3d.MeshVectorHeatSolver(V=triangle_mesh.vertices, F=triangle_mesh.faces)
-
-    # 3D LRFs from potpourri3d
-    pp_x_axes, pp_y_axes, pp_normals = solver.get_tangent_frames()
-    pp_normals = pp_normals / np.linalg.norm(pp_normals, axis=-1)[:, None]
-    pp_x_axes = pp_x_axes / np.linalg.norm(pp_x_axes, axis=-1)[:, None]
-    pp_y_axes = pp_y_axes / np.linalg.norm(pp_y_axes, axis=-1)[:, None]
-
-    # Project GC x-axes into tangent frame of potpourri3d
-    gc_x_axes = gc_x_axes - np.einsum("vi,vi->v", gc_x_axes, pp_normals)[:, None] * pp_normals
-
-    # 3D x-axes of LRFs from GeoConv, Atlas-class
-    x_axes_norm = np.linalg.norm(gc_x_axes, axis=-1)
-    no_neighbors_mask = x_axes_norm == 0.
-    gc_x_axes[np.logical_not(no_neighbors_mask)] = (
-            gc_x_axes[np.logical_not(no_neighbors_mask)] / x_axes_norm[np.logical_not(no_neighbors_mask), None]
-    )
-
-    # Replace non-existent x-axis with those of potpourri3d
-    gc_x_axes[no_neighbors_mask] = pp_x_axes[no_neighbors_mask]
-
-    # Signed angle offsets between GeoConv and potpourri3d frames
-    # 'correction_angles' stores angles theta by which PP-x-axes need to be rotated with to coincide with GC's x-axes.
-    # Thus, 'correction_angles' stores angles that cause a basis change PP -> GC.
-    correction_angles = np.arctan2(
-        # Dot product with basis vector yields coordinate in basis direction.
-        # Represents GC x-axes in potpourri3d's coordinate frames.
-        np.einsum("vi,vi->v", gc_x_axes, pp_y_axes),
-        np.einsum("vi,vi->v", gc_x_axes, pp_x_axes)
-    )
-
-    # Correction angle of PP -> PP is zero (machine accuracy sometimes comes to its limits here)
-    correction_angles[no_neighbors_mask] = 0.
 
     # Transport x-axis
     transport_vector = np.array([1., 0.])
@@ -81,12 +47,7 @@ def compute_parallel_transport(triangle_mesh, gc_x_axes, source_vertex_indices=N
 
         # Compute transport angles using the Vector Heat Method
         transport_angles = np.arctan2(result[:, 1], result[:, 0])
-
-        # Angle correction due to change of basis between GeoConv and potpourri3d
-        # Difference angle in origin: GC_1 -> P_1, "-correction_angles[idx]"
-        # Transport angle: P_1 -> P_2, transport_angles
-        # Difference angle in target vertex: P_2 -> GC_2, "+correction_angles"
-        angles = np.mod(-correction_angles[idx] + transport_angles + correction_angles, 2 * np.pi)
+        angles = np.mod(transport_angles, 2 * np.pi)
         angles[np.isclose(angles, 2 * np.pi)] = 0.
 
         angles_n_x_n.append(angles)

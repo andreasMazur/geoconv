@@ -656,19 +656,9 @@ class Atlas:
             processes=self.processes if processes is None else processes
         )
 
-    def determine_parallel_transport_angles(self, x_axes_indices=None, source_vertex_indices=None):
-        if x_axes_indices is None:
-            x_axes_indices = self.x_axes_indices
-        assert x_axes_indices.shape[0] == self.triangle_mesh.vertices.shape[0], (
-            f"You need to provide an x-axis index for each vertex of the triangle mesh. Otherwise, parallel transport "
-            f"angles cannot be corrected by the angular offset between GeoConv charts and potpourri3d reference frames."
-            f" Number of provided x-axes: {x_axes_indices.shape[0]} |"
-            f" Number of required x-axes: {self.triangle_mesh.vertices.shape[0]}"
-        )
-
+    def determine_parallel_transport_angles(self, source_vertex_indices=None):
         self.parallel_transport = compute_parallel_transport(
             triangle_mesh=self.triangle_mesh,
-            gc_x_axes=self.triangle_mesh.vertices[x_axes_indices] - self.triangle_mesh.vertices,
             source_vertex_indices=source_vertex_indices
         )
 
