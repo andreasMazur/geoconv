@@ -43,7 +43,7 @@ class ConvGEMP(ConvGEM):
             trainable=True
         )
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def call_helper(self, signals, template_vertex_interpolations, return_self_and_neighbor_embeddings=False):
         """Computes GEM convolution using given signals and template vertex interpolations.
 
@@ -112,7 +112,7 @@ class ConvGEMP(ConvGEM):
             )
             return self.prepare_result(conv_self, conv_neigh)
 
-    @tf.function(jit_compile=True)
+    @tf.function
     def get_neigh_embeddings_p(self,
                                interpolations,
                                V_neigh,
