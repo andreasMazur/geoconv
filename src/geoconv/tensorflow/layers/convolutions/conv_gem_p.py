@@ -18,6 +18,7 @@ class ConvGEMP(ConvGEM):
         super().build(inputs)
 
         ### GEM-CNN+ makes linear coefficients radial-coordinate dependent ###
+        del self.V_neigh
         self.V_neigh = self.add_weight(
             name="V_neigh",
             shape=(self.output_dim_halve, self.input_dim_halve, 4, self.n_radial),
