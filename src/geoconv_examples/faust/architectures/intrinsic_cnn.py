@@ -1,7 +1,7 @@
 from geoconv.tensorflow.layers import AngularMaxPooling, ConvDirac
 from geoconv.tensorflow.layers import ConvGeodesic
 from geoconv.tensorflow.layers.descriptor.eucl_neighbors_descriptor import EuclNeighborsDescriptor
-from geoconv_examples.faust.dataset import adapt_generator
+from geoconv_examples.faust.dataset import adapt_dataset
 
 import tensorflow as tf
 
@@ -113,15 +113,16 @@ def define_model(output_dims,
 
     # Adapt normalization
     normalization_layer.adapt(
-        adapt_generator(
+        adapt_dataset(
             faust_path,
             "train",
             n_radial,
             n_angular,
             preprocess_method,
-            gpc_radius,
-            template_radius,
-            descr_layer
+            tf.constant(gpc_radius, dtype=tf.float64),
+            tf.constant(template_radius, dtype=tf.float64),
+            n_neighbors=int(1 + n_radial * n_angular)
         )
     )
+
     return imcnn
