@@ -89,9 +89,7 @@ def preprocess(path,
             )
 
             # Compute parallel transport angles
-            atlas.determine_parallel_transport_angles(
-                x_axes_indices=x_axis_indices, source_vertex_indices=atlas.chart_indices
-            )
+            atlas.determine_parallel_transport_angles(source_vertex_indices=atlas.chart_indices)
 
             # Save training data
             atlas.save_training_data(atlas_save_path)

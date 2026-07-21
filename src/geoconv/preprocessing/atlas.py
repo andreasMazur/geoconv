@@ -324,9 +324,7 @@ class Atlas:
         else:
             warnings.warn(
                 "Since you've provided 'chart_indices' to the 'Atlas'-initialization, parallel transport angles are "
-                "not computed automatically. In order to compute all angles, all charts have to be present to account "
-                "for angle corrections between the reference frames used by the Vector Heat Method and the charts "
-                "computed using GeoConv."
+                "not computed automatically."
             )
 
         # Placeholder for custom numpy arrays (e.g., vertex associated ground truth values)
