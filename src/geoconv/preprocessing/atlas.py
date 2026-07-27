@@ -151,9 +151,9 @@ def load_atlas(filepath):
         # Load barycentric coordinates
         barycentric_coordinates = {}
         for template_res in f["barycentric_coordinates"].keys():
-            template_res_key = tuple([int(x) for x in template_res.split("_")])
-            n_radial, n_angular = template_res_key[0], template_res_key[1]
-            radius = float(".".join([f"{int(x)}" for x in template_res.split("_")][2:]))
+            template_res_key = tuple([x for x in template_res.split("_")])
+            n_radial, n_angular = int(template_res_key[0]), int(template_res_key[1])
+            radius = float(".".join(template_res_key[2:]))
             barycentric_coordinates[(n_radial, n_angular, radius)] = np.array(
                 f["barycentric_coordinates"][template_res]
             )
