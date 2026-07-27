@@ -479,7 +479,8 @@ class Atlas:
                         plot_title=True,
                         show_figure=True,
                         x_tick_labels=None,
-                        y_tick_labels=None):
+                        y_tick_labels=None,
+                        additional_scatter_dots=None):
         """Visualizes one chart of the atlas.
 
         Parameters
@@ -506,6 +507,8 @@ class Atlas:
             A list of labels for the x-ticks.
         y_tick_labels: list
             A list of labels for the y-ticks.
+        additional_scatter_dots: np.ndarray | None
+            An array of shape (n, 2) that scatters the given 2D points into the plot.
         """
         if visualize_3d:
             # Cartesian to polar conversion for visualization
@@ -629,6 +632,10 @@ class Atlas:
                 ax.set_ylim(chart[:, 1].min() - eps, chart[:, 1].max() + eps)
             else:
                 ax.set_ylim(*y_lims)
+
+        # Scatter additional 2D points if given
+        if additional_scatter_dots is not None:
+            ax.scatter(additional_scatter_dots[:, 0], additional_scatter_dots[:, 1])
 
         # Whether to plot the title
         if plot_title:
