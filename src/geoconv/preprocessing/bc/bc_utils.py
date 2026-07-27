@@ -26,7 +26,7 @@ def create_template_matrix(n_radial,
                            radius,
                            in_cart=False,
                            exp_lambda=1.0,
-                           shift_angular=True):
+                           shift_angular=False):
     """Creates a template matrix with radius `radius` and `n_radial` radial- and `n_angular` angular coordinates.
 
     Parameters
