@@ -35,6 +35,7 @@ class ConvBase(nn.Module):
                  template_radius,
                  include_kernel,
                  activation_fn,
+                 shift_angular=False,
                  *args,
                  **kwargs):
         super().__init__(*args, **kwargs)
@@ -50,7 +51,7 @@ class ConvBase(nn.Module):
                 radius=self.template_radius,
                 in_cart=False,
                 exp_lambda=1.,
-                shift_angular=False
+                shift_angular=shift_angular
             )
         )
 
