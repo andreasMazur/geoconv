@@ -49,9 +49,7 @@ class ConvBase(nn.Module):
                 n_radial=self.n_radial,
                 n_angular=self.n_angular,
                 radius=self.template_radius,
-                in_cart=False,
-                exp_lambda=1.,
-                shift_angular=shift_angular
+                in_cart=False
             )
         )
 

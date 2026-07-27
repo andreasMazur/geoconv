@@ -8,11 +8,10 @@ import numpy as np
 
 class ConvBase(tf.keras.layers.Layer):
     """The base class for any surface convolution in GeoConv, providing the signal-pullback and parallel transport."""
-    def __init__(self, template_radius, include_kernel, activation, shift_angular=False, *args, **kwargs,):
+    def __init__(self, template_radius, include_kernel, activation, *args, **kwargs,):
         super().__init__(*args, **kwargs)
         # Configure template
         self.template_radius = template_radius
-        self.shift_angular = shift_angular
 
         # Configure activation function
         self.activation = activation
@@ -38,9 +37,7 @@ class ConvBase(tf.keras.layers.Layer):
                 self.n_radial,
                 self.n_angular,
                 radius=self.template_radius,
-                in_cart=False,
-                exp_lambda=1.,
-                shift_angular=self.shift_angular
+                in_cart=False
             )
         )
         if self.include_kernel:
@@ -251,7 +248,6 @@ class ConvBase(tf.keras.layers.Layer):
         base_config = super().get_config()
         class_config = {
             "template_radius": self.template_radius,
-            "shift_angular": self.shift_angular,
             "include_kernel": self.include_kernel,
             "activation": self.activation,
         }

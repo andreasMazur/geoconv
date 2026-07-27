@@ -320,9 +320,7 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
                 n_radial=self.n_radial,
                 n_angular=self.n_angular,
                 radius=template_radius,
-                in_cart=True,
-                exp_lambda=self.exp_lambda,
-                shift_angular=self.shift_angular
+                in_cart=True
             ),
             dtype=tf.float32,
         )
