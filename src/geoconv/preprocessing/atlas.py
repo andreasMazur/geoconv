@@ -249,7 +249,8 @@ class Atlas:
                  method="hdm",
                  normalization_method="hdm",
                  processes=1,
-                 chart_indices=None):
+                 chart_indices=None,
+                 charts=charts):
         # Meta information
         self.max_radius = max_radius
         self.method = method
@@ -273,14 +274,22 @@ class Atlas:
         self.original_geodesic_diameter = geodesic_diameter
 
         # Local charts
-        self.charts = calculate_local_charts(
-            self.triangle_mesh,
-            method=method,
-            processes=processes,
-            max_radius=max_radius,
-            calculate_angle=True,
-            chart_indices=self.chart_indices
-        )
+        if charts is None:
+            self.charts = calculate_local_charts(
+                self.triangle_mesh,
+                method=method,
+                processes=processes,
+                max_radius=max_radius,
+                calculate_angle=True,
+                chart_indices=self.chart_indices
+            )
+        else:
+            warnings.warn(
+                f"You've provided charts to instantiate the Atlas-class. This class assumes local coordinates to be "
+                f"given in geodesic polar coordinates. If you provided Cartesian coordinates, this class will return "
+                f"wrong information on your local charts."
+            )
+            self.charts = charts
 
         # Compute statistics about chart radii
         self.chart_radii = np.array([distances[distances != np.inf].max() for distances in self.charts[..., 0]])
@@ -662,3 +671,27 @@ class Atlas:
 
     def store_array(self, dictionary):
         self.custom_arrays.update(dictionary)
+
+
+    def charts_linear_transform(self, linear_transformation):
+        assert linear_transformation.shape == (2, 2), "The linear transformation must be a single 2 by 2 matrix."
+
+        # 1.) Transform charts
+        charts = np.einsum("ij,xyj->xyi", linear_transformation, self.charts)
+
+        # 2.) Translate Cartesian to polar coordinates
+        radii = np.linalg.norm(charts, axis=-1)
+        radii[np.isnan(radii)] = np.inf
+
+        angles = np.arctan2(charts[..., 1], charts[..., 0])
+        angles[np.isnan(angles)] = -1.
+        charts = np.stack([radii, angles], axis=-1)
+        return Atlas(
+            triangle_mesh=self.triangle_mesh,
+            max_radius=self.max_radius,
+            method=self.method,
+            normalization_method=None,
+            processes=self.processes,
+            chart_indices=self.chart_indices,
+            charts=charts
+        )
