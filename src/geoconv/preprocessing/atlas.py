@@ -250,7 +250,7 @@ class Atlas:
                  normalization_method="hdm",
                  processes=1,
                  chart_indices=None,
-                 charts=charts):
+                 charts=None):
         # Meta information
         self.max_radius = max_radius
         self.method = method
