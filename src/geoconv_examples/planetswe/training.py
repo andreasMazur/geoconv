@@ -68,8 +68,25 @@ def hypertuning(bc_path,
 
 
 def rollout_benchmark(model, test_data, t_max, save_path, zero_pad=False):
+    """Computes the rollout error for a trajectory up to time-step 't_max'.
+
+    Parameters
+    ----------
+    model: tf.keras.Model
+        The model to benchmark.
+    test_data: tf.data.Dataset
+        The test dataset.
+    t_max: int
+        The maximum time-step to test for.
+    save_path: str
+        The path pointing to where to save the rollout errors.
+    zero_pad: bool
+        Whether to zero-pad the output of the model such that it can be used as an input during the next step.
+    """
+    # Load normalization values
     normalization_means = np.array(PLANETSWE_NORM_VALUES["channel_means"])
     normalization_stds = np.array(PLANETSWE_NORM_VALUES["channel_stds"])
+
     time_step_errors = []
     prediction = None
     for (time_step, t_feature_field, barycentric_coordinates), t_next_feature_field in test_data:
@@ -87,13 +104,62 @@ def rollout_benchmark(model, test_data, t_max, save_path, zero_pad=False):
         de_normalized_prediction = prediction * normalization_stds + normalization_means
         t_next_feature_field = t_next_feature_field * normalization_stds + normalization_means
         vrmse_t_next = compute_vrmse(t_next_feature_field, de_normalized_prediction, axis=(1, 2))
+
+        # Remember VRMSE
         time_step_errors.append(vrmse_t_next)
+
+        # Console logging
         print(f"\rt: {time_step % t_max} -> t+1 {(time_step % t_max) + 1}: VRMSE(t+1) = {vrmse_t_next}")
 
         # Zero pad prediction if required for architecture
         if zero_pad:
             prediction = tf.concat([prediction, tf.zeros(tf.shape(prediction)[:2])[..., None]], axis=-1)
+
+    # Save time-step errors
     time_step_errors = np.array(time_step_errors).reshape(-1, t_max)
+    np.save(save_path, time_step_errors)
+
+
+def benchmark(model, test_data, save_path, stride=1):
+    """Computes the VRMSE for one-step predictions.
+
+    Parameters
+    ----------
+    model: tf.keras.Model
+        The model to benchmark.
+    test_data: tf.data.Dataset
+        The test dataset.
+    save_path: str
+        The path pointing to where to save the rollout errors.
+    stride: int
+        A stride for the time step. If 'stride=1', then all time steps are predicted. If 'stride=n', then
+        merely every n-th time step will be predicted.
+    """
+    # Load normalization values
+    normalization_means = np.array(PLANETSWE_NORM_VALUES["channel_means"])
+    normalization_stds = np.array(PLANETSWE_NORM_VALUES["channel_stds"])
+
+    time_step_errors = []
+    for (time_step, t_feature_field, barycentric_coordinates), t_next_feature_field in test_data:
+        if int(time_step) % stride != 0:
+            continue
+
+        # Estimate next time step from preceding prediction
+        prediction = model([t_feature_field, barycentric_coordinates], training=False)
+
+        # De-normalize values for VRMSE metric
+        de_normalized_prediction = prediction * normalization_stds + normalization_means
+        t_next_feature_field = t_next_feature_field * normalization_stds + normalization_means
+        vrmse_t_next = compute_vrmse(t_next_feature_field, de_normalized_prediction, axis=(1, 2))
+
+        # Remember VRMSE
+        time_step_errors.append(vrmse_t_next)
+
+        # Console logging
+        print(f"\rt: {time_step} -> t+1 {time_step + 1}: VRMSE(t+1) = {vrmse_t_next}")
+
+    # Save time-step errors
+    time_step_errors = np.array(time_step_errors).reshape(4, -1)
     np.save(save_path, time_step_errors)
 
 
