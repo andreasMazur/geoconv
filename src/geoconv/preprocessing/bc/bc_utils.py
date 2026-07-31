@@ -1,5 +1,4 @@
 import numpy as np
-import sys
 
 
 def polar_to_cart(angles, scales=1.0):
@@ -86,16 +85,17 @@ def compute_barycentric(query_vertex, triangle):
     dot11, dot12 = v1.dot(v1), v1.dot(v2)
 
     denominator = dot00 * dot11 - dot01 * dot01
-    if denominator == 0:
-        denominator += sys.float_info.min
+    eps = 1e-6
+    if denominator < eps:
+        return (1.0, 0.0, 0.0,), False
     point_2_weight = (dot11 * dot02 - dot01 * dot12) / denominator
     point_1_weight = (dot00 * dot12 - dot01 * dot02) / denominator
     point_0_weight = 1 - point_2_weight - point_1_weight
 
     is_inside_triangle = (
-        point_2_weight > 0
-        and point_1_weight > 0
-        and point_2_weight + point_1_weight <= 1
+        point_0_weight >= -eps
+        and point_1_weight >= -eps
+        and point_2_weight >= -eps
     )
 
     return (point_0_weight, point_1_weight, point_2_weight), is_inside_triangle
