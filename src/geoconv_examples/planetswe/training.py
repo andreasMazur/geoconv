@@ -168,14 +168,15 @@ def training(model,
              swe_path,
              return_rotations,
              save_path,
-             epochs=10,
              random_seed=42,
              tensorboard_cb=False,
              batch_size=1,
              add_input_zero_dim=False,
              rollout_t_max=100,
              predict_residual=False):
+    ######################
     # Define saving paths
+    ######################
     os.makedirs(save_path, exist_ok=True)
     tensorboard_callback_path = f"{save_path}/tensorboard"
     cp_callback_loss_path = f"{save_path}/loss_callback.keras"
@@ -184,17 +185,23 @@ def training(model,
     rollout_statistics_metric_path = f"{save_path}/metric_rollout_statistics.npy"
     training_logs_json = f"{save_path}/training_logs.json"
 
+    ##########################################################################################
     # Check if metric rollout already has been computed - last benchmark in training function
+    ##########################################################################################
     if os.path.isfile(rollout_statistics_metric_path):
         print(f"{rollout_statistics_metric_path} already exists! Skipping training...")
         return
 
+    ############
     # Set seeds
+    ############
     tf.random.set_seed(random_seed)
     np.random.seed(random_seed)
     random.seed(random_seed)
 
+    ###########
     # Get data
+    ###########
     train_data = dataset(
         bc_path=bc_path,
         swe_path=swe_path,
@@ -214,10 +221,14 @@ def training(model,
         return_differences=predict_residual
     )
 
+    #####################
     # Show model summary
+    #####################
     model.summary()
 
-    # Train model
+    ###################
+    # Define callbacks
+    ###################
     term = tf.keras.callbacks.TerminateOnNaN()
     cp_callback_loss = tf.keras.callbacks.ModelCheckpoint(
         filepath=cp_callback_loss_path,
@@ -235,9 +246,7 @@ def training(model,
         save_weights_only=False,
         verbose=True
     )
-    stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode="min", patience=2, min_delta=0.001)
-    callbacks = [term, cp_callback_loss, cp_callback_vrmse, stop]
-
+    callbacks = [term, cp_callback_loss, cp_callback_vrmse]
     if tensorboard_cb:
         tb_cb = tf.keras.callbacks.TensorBoard(
             log_dir=tensorboard_callback_path,
@@ -249,18 +258,22 @@ def training(model,
         )
         callbacks.append(tb_cb)
 
-    # Model training
+    ##############
+    # Train model
+    ##############
     train_history = model.fit(
-        x=train_data, batch_size=1, epochs=epochs, validation_data=val_data, callbacks=callbacks
+        x=train_data, batch_size=1, epochs=2, validation_data=val_data, callbacks=callbacks
     )
     with open(training_logs_json, "w") as f:
         json.dump(train_history.history, f, indent=4)
 
-    # Test best performing model
+    ##############
+    # Test models
+    ##############
     for callback_path, rollout_statistics_path in [
         (cp_callback_loss_path, rollout_statistics_loss_path), (cp_callback_metric_path, rollout_statistics_metric_path)
     ]:
-        model = tf.keras.models.load_model(
+        loaded = tf.keras.models.load_model(
             callback_path,
             custom_objects={
                 "ConvDirac": ConvDirac,
@@ -274,8 +287,6 @@ def training(model,
                 "ConvEMANP": ConvEMANP,
             }
         )
-
-        # Compute rollout statistics
         test_data = dataset(
             bc_path=bc_path,
             swe_path=swe_path,
@@ -287,10 +298,6 @@ def training(model,
             return_time_steps=True,
             return_differences=predict_residual
         )
-        rollout_benchmark(
-            model,
-            test_data,
-            t_max=rollout_t_max,
-            save_path=rollout_statistics_path,
-            zero_pad=add_input_zero_dim
-        )
+        test_history = loaded.evaluate(test_data, verbose=1, return_dict=True)
+        with open(rollout_statistics_path, "w") as f:
+            json.dump(test_history, f, indent=4)
