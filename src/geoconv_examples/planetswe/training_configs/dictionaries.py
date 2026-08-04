@@ -1,8 +1,8 @@
 
 # Compute channel-wise for entire training split: [velocity_x, velocity_y, height]
 PLANETSWE_NORM_VALUES = {
-    "channel_means": [0., 0., -56.605416268502616],
-    "channel_stds": [1.0, 1., 296.6626617552545]
+    "channel_means": [0.0, 0.0, -56.605416268502616],
+    "channel_stds": [1.0, 1.0, 296.6626617552545]
 }
 
 PLANETSWE = {
