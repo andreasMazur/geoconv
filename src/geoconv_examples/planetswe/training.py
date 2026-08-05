@@ -172,7 +172,6 @@ def training(model,
              tensorboard_cb=False,
              batch_size=1,
              add_input_zero_dim=False,
-             rollout_t_max=100,
              predict_residual=False):
     ######################
     # Define saving paths
@@ -294,7 +293,6 @@ def training(model,
             batch_size=1,
             return_rotations=return_rotations,
             add_input_zero_dim=add_input_zero_dim,
-            max_time_steps=rollout_t_max,
             return_time_steps=False,
             return_differences=predict_residual
         )

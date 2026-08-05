@@ -17,7 +17,6 @@ def start_training_run(bc_path,
                        lr_decay_rate=1.0,
                        tensorboard_cb=False,
                        batch_size=1,
-                       rollout_t_max=100,
                        predict_residual=False):
     assert model_type in ["gem_cnn", "eman", "gem_p_cnn", "eman_p"], (
         "Select model type from: ['gem_cnn', 'eman', 'gem_p_cnn', 'eman_p']"
@@ -65,6 +64,5 @@ def start_training_run(bc_path,
             tensorboard_cb=tensorboard_cb,
             batch_size=batch_size,
             add_input_zero_dim=True,
-            rollout_t_max=rollout_t_max,
             predict_residual=predict_residual
         )
