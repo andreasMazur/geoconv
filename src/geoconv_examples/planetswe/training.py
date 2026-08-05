@@ -295,7 +295,7 @@ def training(model,
             return_rotations=return_rotations,
             add_input_zero_dim=add_input_zero_dim,
             max_time_steps=rollout_t_max,
-            return_time_steps=True,
+            return_time_steps=False,
             return_differences=predict_residual
         )
         test_history = loaded.evaluate(test_data, verbose=1, return_dict=True)
