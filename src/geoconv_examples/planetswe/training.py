@@ -181,8 +181,8 @@ def training(model,
     tensorboard_callback_path = f"{save_path}/tensorboard"
     cp_callback_loss_path = f"{save_path}/loss_callback.keras"
     cp_callback_metric_path = f"{save_path}/metric_callback.keras"
-    rollout_statistics_loss_path = f"{save_path}/loss_rollout_statistics.npy"
-    rollout_statistics_metric_path = f"{save_path}/metric_rollout_statistics.npy"
+    rollout_statistics_loss_path = f"{save_path}/loss_rollout_statistics.json"
+    rollout_statistics_metric_path = f"{save_path}/metric_rollout_statistics.json"
     training_logs_json = f"{save_path}/training_logs.json"
 
     ##########################################################################################
