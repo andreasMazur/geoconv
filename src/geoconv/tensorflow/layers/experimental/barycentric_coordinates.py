@@ -1,5 +1,5 @@
 from geoconv.preprocessing.bc.bc_utils import create_template_matrix
-from geoconv.tensorflow.layers import NormalizePointCloud
+from geoconv.tensorflow.layers.experimental.normalize_point_cloud import NormalizePointCloud
 from geoconv.tensorflow.utils.compute_shot_lrf import logarithmic_map, knn_shot_lrf
 
 import tensorflow as tf
@@ -10,6 +10,18 @@ import warnings
 
 @tf.function(jit_compile=True)
 def compute_det(batched_matrices):
+    """Computes the determinant of a batch of 3x3 matrices.
+
+    Parameters
+    ----------
+    batched_matrices: tf.Tensor
+        The batched matrices.
+
+    Returns
+    -------
+    tf.Tensor
+        The determinant of each given 3x3 matrix.
+    """
     a = batched_matrices[..., 0, 0]
     b = batched_matrices[..., 0, 1]
     c = batched_matrices[..., 0, 2]
@@ -25,6 +37,18 @@ def compute_det(batched_matrices):
 
 @tf.function(jit_compile=True)
 def sort_angles(angles):
+    """Sorts triangle vertex angles.
+
+    Parameters
+    ----------
+    angles: tf.Tensor
+        The angles that shall be sorted.
+
+    Returns
+    -------
+    tf.Tensor
+        The sorted angles.
+    """
     # Create indices
     indices = tf.broadcast_to(tf.range(3)[None, :], tf.shape(angles))
 
@@ -48,6 +72,18 @@ def sort_angles(angles):
 
 @tf.function(jit_compile=True)
 def sort_triangles_ccw(triangles):
+    """Sorts triangles counterclockwise.
+
+    Parameters
+    ----------
+    triangles: tf.Tensor
+        The triangles.
+
+    Returns
+    -------
+    tf.Tensor
+        The sorted triangles.
+    """
     centroid = tf.reduce_mean(triangles, axis=1, keepdims=True)
     angles = tf.atan2(
         triangles[..., 1] - centroid[..., 1], triangles[..., 0] - centroid[..., 0]
@@ -58,6 +94,20 @@ def sort_triangles_ccw(triangles):
 
 @tf.function(jit_compile=True)
 def delaunay_condition_check(triangles, projections):
+    """Checks the Delaunay condition for projected triangles.
+
+    Parameters
+    ----------
+    triangles: tf.Tensor
+        The triangles.
+    projections: tf.Tensor
+        The projections.
+
+    Returns
+    -------
+    tf.Tensor
+        A mask that tells which triangle fulfill the Delaunay condition.
+    """
     # Delaunay condition-check requires counter-clock-wise (ccw) sorted triangles
     triangles = tf.reshape(
         sort_triangles_ccw(tf.reshape(triangles, (-1, 3, 2))), tf.shape(triangles)
@@ -93,6 +143,19 @@ def delaunay_condition_check(triangles, projections):
 
 @tf.function(jit_compile=True)
 def create_all_triangles(projections):
+    """Creates all valid triangle index triplets.
+
+    Parameters
+    ----------
+    projections: tf.Tensor
+        The projections.
+
+    Returns
+    -------
+    (tf.Tensor, tf.Tensor)
+        A tensor containing all possible triangles among the projections and an accompanying tensor that stores the
+        corresponding vertex indices for the projection in the triangles.
+    """
     p_shape = tf.shape(projections)
 
     # Create all possible (i, j, k) index triplets
@@ -118,6 +181,20 @@ def create_all_triangles(projections):
 
 @tf.function(jit_compile=True)
 def compute_interpolation_coefficients(triangles, template):
+    """Computes barycentric interpolation coefficients.
+
+    Parameters
+    ----------
+    triangles: tf.Tensor
+        The projected triangles.
+    template: tf.Tensor
+        The template vertex coordinates.
+
+    Returns
+    -------
+    tf.Tensor
+        A tensor containing the barycentric coordinates for the template vertices w.r.t. the projection triangles.
+    """
     v0 = triangles[..., 2, :] - triangles[..., 0, :]
     v1 = triangles[..., 1, :] - triangles[..., 0, :]
     v2 = template[None, ..., None, :] - triangles[:, None, None, :, 0, :]
@@ -150,6 +227,20 @@ def compute_interpolation_coefficients(triangles, template):
 
 @tf.function(jit_compile=True)
 def compute_bc(template, projections):
+    """Computes barycentric coordinates for a template and a projection set.
+
+    Parameters
+    ----------
+    template: tf.Tensor
+        The template vertex coordinates.
+    projections: tf.Tensor
+        The projections.
+
+    Returns
+    -------
+    tf.Tensor
+        The barycentric coordinates tensor for the given template and projections.
+    """
     template = tf.cast(template, tf.float64)
     projections = tf.cast(projections, tf.float64)
 
@@ -222,9 +313,20 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
         These are also used to determine the template radius.
     """
 
-    def __init__(
-        self, n_radial, n_angular, projection_neighbors=8, neighbors_for_lrf=16
-    ):
+    def __init__(self, n_radial, n_angular, projection_neighbors=8, neighbors_for_lrf=16):
+        """Initializes the object.
+            
+        Parameters
+        ----------
+        n_radial: int
+            The number of radial coordinates of the template.
+        n_angular: int
+            The number of angular coordinates of the template.
+        projection_neighbors: int
+            The number of projected neighbors within the local charts.
+        neighbors_for_lrf: int
+            The number of neighbors to be considered for constructing local reference frames.
+        """
         super().__init__()
         self.n_radial = n_radial
         self.n_angular = n_angular
@@ -244,15 +346,13 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
                 f"projections. ###"
             )
 
-    def adapt(
-        self,
-        data=None,
-        template_scale=None,
-        template_radius=None,
-        with_normalization=True,
-        exp_lambda=1.0,
-        shift_angular=False
-    ):
+    def adapt(self,
+              data=None,
+              template_scale=None,
+              template_radius=None,
+              with_normalization=True,
+              exp_lambda=1.0,
+              shift_angular=False):
         """Sets the template radius to a given or the average neighborhood radius scaled by used defined coefficient.
 
         Parameters
@@ -371,6 +471,19 @@ class BarycentricCoordinates(tf.keras.layers.Layer):
 
     @tf.function(jit_compile=True)
     def project(self, vertices):
+        """Projects points into local tangent planes.
+            
+        Parameters
+        ----------
+        vertices: tf.Tensor
+            A tensor of shape 'b x n x 3' containing the 3D vertex coordinates, whereby 'b' represents the number of
+            shapes, 'n' the number of vertices per shape.
+
+        Returns
+        -------
+        (tf.Tensor, tf.Tensor)
+            The projections and their corresponding vertex indices.
+        """
         # Get local reference frames
         # 'lrfs': (batch, vertices, 3, 3)
         # 'neighborhoods': (batch, vertices, n_neighbors, 3)

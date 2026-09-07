@@ -32,7 +32,8 @@ class EuclNeighborsDescriptor(tf.keras.layers.Layer):
         Parameters
         ----------
         inputs: tf.Tensor
-            The vertices of the input shape.
+            A tensor of shape 'b x n x 3' containing the 3D vertex coordinates, whereby 'b' represents the number of
+            shapes, 'n' the number of vertices per shape.
 
         Returns
         -------
