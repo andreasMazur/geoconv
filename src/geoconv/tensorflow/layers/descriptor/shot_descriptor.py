@@ -31,6 +31,23 @@ class ShotDescriptor(tf.keras.layers.Layer):
         histogram_bins=11,
         sphere_radius=0.0,
     ):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        neighbors_for_lrf: int
+            The number of neighbors used to construct local reference frames.
+        azimuth_bins: int
+            The number of azimuth bins.
+        elevation_bins: int
+            The number of elevation bins.
+        radial_bins: int
+            The number of radial bins.
+        histogram_bins: int
+            The number of histogram bins.
+        sphere_radius: float
+            The sphere radius.
+        """
         super().__init__()
         self.neighbors_for_lrf = neighbors_for_lrf
         self.azimuth_bins = azimuth_bins
@@ -41,10 +58,35 @@ class ShotDescriptor(tf.keras.layers.Layer):
 
     @tf.function(jit_compile=True)
     def call(self, vertices):
+        """Applies the layer to the inputs.
+
+        Parameters
+        ----------
+        vertices: tf.Tensor
+            A tensor of shape 'b x n x 3' containing the 3D vertex coordinates, whereby 'b' represents the number of
+            shapes, 'n' the number of vertices per shape.
+
+        Returns
+        -------
+        tf.Tensor
+            A tensor of shape 'b x n x d' containing the SHOT descriptors.
+        """
         return tf.map_fn(self.call_helper, vertices)
 
     @tf.function(jit_compile=True)
     def call_helper(self, vertices):
+        """Computes a SHOT descriptor for one point cloud.
+
+        Parameters
+        ----------
+        vertices: tf.Tensor
+            A tensor of shape 'n x 3' containing the 3D vertex coordinates.
+
+        Returns
+        -------
+        tf.Tensor
+            A tensor of shape 'n x d' containing the SHOT descriptors.
+        """
         lrfs, neighborhoods, neighborhoods_indices = knn_shot_lrf(
             self.neighbors_for_lrf, vertices[None, ...]
         )
