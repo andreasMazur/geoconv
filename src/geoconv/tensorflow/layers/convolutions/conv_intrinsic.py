@@ -9,6 +9,19 @@ import numpy as np
 class ConvIntrinsic(ConvBase):
     """The base class for any non gauge-equivariant surface convolution in GeoConv."""
     def __init__(self, rotation_delta, output_dim, *args, **kwargs):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        rotation_delta: int
+            The rotation delta.
+        output_dim: tf.Tensor
+            The output dim.
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         super().__init__(*args, **kwargs)
         self.rotation_delta = rotation_delta
         self.output_dim = output_dim
@@ -19,7 +32,13 @@ class ConvIntrinsic(ConvBase):
         self._template_self_weights = None
 
     def build(self, inputs):
-        """Builds the layer by setting template and bias attributes"""
+        """Builds the layer by setting template and bias attributes.
+
+        Parameters
+        ----------
+        inputs: tuple
+            Two tensor shapes for both the mesh signal and barycentric coordinates.
+        """
         super().build(inputs)
 
         # Init neighbor weights
