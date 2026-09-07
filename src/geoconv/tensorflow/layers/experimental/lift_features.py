@@ -10,8 +10,8 @@ class LiftFeatures2D(tf.keras.layers.Layer):
         Parameters
         ----------
         inputs: tf.Tensor
-            A tensor having a shape 'b x n x i', whereby 'b' refers to the number of shapes, 'n' to the number of
-            vertices per shape and 'i' to the feature dimensionality.
+            The signal tensor which has shape 'b x n x i', whereby 'b' refers to the number of shapes, 'n' to the number
+            of vertices per shape and 'i' to the feature dimensionality.
 
         Returns
         -------
