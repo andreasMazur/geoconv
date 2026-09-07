@@ -213,7 +213,7 @@ class Atlas:
     method: str
         The method to use to compute geodesic distances and angular direction. Select from ['dgpc', 'fmm', 'hdm].
     processes: int
-        The concurrent processes for computed the charts.
+        The number of concurrent processes to compute local charts and barycentric coordinates.
     triangle_mesh: trimesh.Trimesh
         The shape for which charts are calculated.
     original_geodesic_diameter: float
@@ -251,7 +251,25 @@ class Atlas:
                  processes=1,
                  chart_indices=None,
                  charts=None):
-        # Meta information
+        """Initializes the object.
+            
+        Parameters
+        ----------
+        triangle_mesh: trimesh.Trimesh
+            The triangle mesh for which charts shall be computed.
+        max_radius: float
+            The max radius of local charts.
+        method: str
+            The charting algorithm.
+        normalization_method: str | None
+            The charting algorithm used to compute the geodesic diameter for mesh-normalization.
+        processes: int
+            The number of concurrent processes to compute local charts and barycentric coordinates.
+        chart_indices: np.ndarray | None
+            The vertex indices for which charts shall be computed.
+        charts: np.ndarray | None
+            When given, existing charts for the given triangle mesh.
+        """
         self.max_radius = max_radius
         self.method = method
         self.processes = processes
@@ -661,26 +679,59 @@ class Atlas:
         else:
             return ax
 
-    def determine_barycentric_coordinates(self, n_radial, n_angular, radius, processes=None):
-        self.barycentric_coordinates[(n_radial, n_angular, radius)] = compute_barycentric_coordinates(
+    def determine_barycentric_coordinates(self, n_radial, n_angular, template_radius, processes=None):
+        """Computes and stores barycentric coordinates for one template resolution.
+
+        Parameters
+        ----------
+        n_radial: int
+            The number of radial coordinates.
+        n_angular: int
+            The number of angular coordinates.
+        template_radius: float
+            The template radius.
+        processes: int
+            The number of concurrent processes to compute local charts and barycentric coordinates.
+        """
+        self.barycentric_coordinates[(n_radial, n_angular, template_radius)] = compute_barycentric_coordinates(
             self,
             n_radial=n_radial,
             n_angular=n_angular,
-            radius=radius,
+            radius=template_radius,
             processes=self.processes if processes is None else processes
         )
 
     def determine_parallel_transport_angles(self, source_vertex_indices=None):
+        """Computes and stores parallel transport angles.
+
+        Parameters
+        ----------
+        source_vertex_indices: np.ndarray
+            The source vertex indices.
+        """
         self.parallel_transport = compute_parallel_transport(
             triangle_mesh=self.triangle_mesh,
             source_vertex_indices=source_vertex_indices
         )
 
     def store_array(self, dictionary):
+        """Stores custom arrays in the atlas.
+
+        Parameters
+        ----------
+        dictionary: np.ndarray
+            A dictionary of custom arrays the Atlas is supposed to remember.
+        """
         self.custom_arrays.update(dictionary)
 
-
     def charts_linear_transform(self, linear_transformation):
+        """Applies a linear transform to the atlas charts.
+
+        Parameters
+        ----------
+        linear_transformation: np.ndarray
+            The linear transformation.
+        """
         assert linear_transformation.shape == (2, 2), "The linear transformation must be a single 2 by 2 matrix."
 
         # 1.) Transform charts
