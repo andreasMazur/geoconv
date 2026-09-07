@@ -7,6 +7,15 @@ import tensorflow as tf
 class ConvGEMP(ConvGEM):
     """Implements GEM-CNNs with radially dependent weights and learnable phase offsets."""
     def __init__(self, *args, **kwargs):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         super().__init__(*args, **kwargs)
 
         # Set in build
@@ -15,6 +24,13 @@ class ConvGEMP(ConvGEM):
         self.phase_weights = None
 
     def build(self, inputs):
+        """Builds the layer weights.
+
+        Parameters
+        ----------
+        inputs: tuple
+            Two tensor shapes for both the mesh signal and barycentric coordinates.
+        """
         super().build(inputs)
 
         ### GEM-CNN+ makes linear coefficients radial-coordinate dependent ###
