@@ -7,8 +7,44 @@ import numpy as np
 
 
 class ConvBase(tf.keras.layers.Layer):
-    """The base class for any surface convolution in GeoConv, providing the signal-pullback and parallel transport."""
+    """The base layer for any surface convolution layer in GeoConv.
+
+    Attributes
+    ----------
+    template_radius: float
+        The geodesic radius of the discretized template.
+    n_radial: int
+        The amount of radial coordinates for the discretized template.
+    n_angular: int
+        The amount of angular coordinates for the discretized template.
+    template_vertices: torch.Tensor
+        The template vertices of the discretized template.
+    feature_dim: int
+        The input feature dimension.
+    activation_fn: callable
+        The activation function.
+    include_kernel: bool
+        Whether to include a kernel/weighting function that interpolates the signals gathered at the template vertices.
+    kernel: tf.Tensor | None
+        The kernel/weight function that interpolates the signals at the template vertices.
+    """
     def __init__(self, template_radius, include_kernel, activation, *args, **kwargs,):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        template_radius: float
+            The template radius.
+        include_kernel: bool
+             Whether to include a kernel/weighting function that interpolates the signals gathered at the template
+             vertices.
+        activation: str
+            The activation function's name.
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         super().__init__(*args, **kwargs)
         # Configure template
         self.template_radius = template_radius
@@ -28,6 +64,13 @@ class ConvBase(tf.keras.layers.Layer):
         self.kernel = None
 
     def build(self, inputs):
+        """Builds the layer weights.
+            
+        Parameters
+        ----------
+        inputs: tf.Tensor
+            Two tensor shapes for both the mesh signal and barycentric coordinates.
+        """
         signal_shape, barycentric_coordinates_shape = inputs
         self.feature_dim = signal_shape[-1]
         self.n_radial = barycentric_coordinates_shape[-4]
