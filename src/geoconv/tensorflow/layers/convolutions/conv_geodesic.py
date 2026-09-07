@@ -13,10 +13,31 @@ class ConvGeodesic(ConvIntrinsic):
     > Jonathan Masci and Davide Boscaini et al.
     """
     def __init__(self, *args, **kwargs):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         kwargs.pop("include_kernel", None)
         super().__init__(include_kernel=True, *args, **kwargs)
 
     def define_kernel_values(self, template_matrix):
+        """Defines the kernel values for each template vertex.
+
+        Parameters
+        ----------
+        template_matrix: np.ndarray
+            The template coordinates array of size 'n_radial x n_angular x 2'.
+
+        Returns
+        -------
+        tf.Tensor
+            The interpolation values of the Dirac weighting function.
+        """
         interpolation_coefficients = np.zeros(
             template_matrix.shape[:-1] + template_matrix.shape[:-1]
         )
