@@ -6,6 +6,15 @@ import numpy as np
 class ConvDirac(ConvIntrinsic):
     """A non gauge-equivariant surface convolution that uses no interpolation weighting within the patch-operator."""
     def __init__(self, *args, **kwargs):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         kwargs.pop("include_kernel", None)
         super().__init__(include_kernel=False, *args, **kwargs)
 
@@ -16,6 +25,16 @@ class ConvDirac(ConvIntrinsic):
         This function is only implemented for visualization purposes. During the intrinsic surface convolution,
         interpolation coefficients of the Dirac prior do not need to be used as they do not alter the signal at the
         template vertices.
+
+        Parameters
+        ----------
+        template_matrix: np.ndarray
+            The template coordinates array of size 'n_radial x n_angular x 2'.
+
+        Returns
+        -------
+        tf.Tensor
+            The interpolation values of the Dirac weighting function.
         """
         interpolation_coefficients = np.zeros(
             template_matrix.shape[:-1] + template_matrix.shape[:-1]
