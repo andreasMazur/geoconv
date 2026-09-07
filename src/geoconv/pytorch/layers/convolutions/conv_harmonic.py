@@ -173,5 +173,5 @@ class ConvHarmonic(ConvBase):
         return torch.reshape(result, (signals_shape[0], signals_shape[1], self.output_dim))
 
     def define_kernel_values(self, template_matrix):
-        """"HSNs do not use weighting functions to interpolate features among template vertices"""
+        """"HSNs do not use weighting functions to interpolate features among template vertices."""
         return None

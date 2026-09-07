@@ -12,6 +12,19 @@ class ConvHarmonic(ConvBase):
     > DOI: 10.1145/3386569.3392437
     """
     def __init__(self, output_dim, rotation_order, *args, **kwargs):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        output_dim: int
+            The output dim.
+        rotation_order: int
+            The rotation order.
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         kwargs.pop("include_kernel", None)
         super().__init__(include_kernel=False, *args, **kwargs)
 
@@ -28,6 +41,13 @@ class ConvHarmonic(ConvBase):
         self.rotation_order_vector = None
 
     def build(self, inputs):
+        """Builds the layer weights.
+
+        Parameters
+        ----------
+        inputs: tuple
+            Two tensor shapes for both the mesh signal and barycentric coordinates.
+        """
         signal_shape, bc_shape = inputs
 
         # Call build of parent class
@@ -181,6 +201,7 @@ class ConvHarmonic(ConvBase):
         return tf.reshape(result, (signals_shape[0], signals_shape[1], self.output_dim))
 
     def define_kernel_values(self, template_matrix):
+        """"HSNs do not use weighting functions to interpolate features among template vertices."""
         return None
 
     def get_config(self):

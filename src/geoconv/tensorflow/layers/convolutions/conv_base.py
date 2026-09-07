@@ -68,7 +68,7 @@ class ConvBase(tf.keras.layers.Layer):
             
         Parameters
         ----------
-        inputs: tf.Tensor
+        inputs: tuple
             Two tensor shapes for both the mesh signal and barycentric coordinates.
         """
         signal_shape, barycentric_coordinates_shape = inputs
