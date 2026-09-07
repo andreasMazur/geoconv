@@ -12,6 +12,15 @@ import torch
 
 class ConvGEMP(ConvGEM):
     def __init__(self, *args, **kwargs):
+        """Initializes the object.
+            
+        Parameters
+        ----------
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         super().__init__(*args, **kwargs)
 
         ### GEM-CNN+ makes linear coefficients radial-coordinate dependent ###
