@@ -189,6 +189,21 @@ class ConvGEM(ConvBase):
     > URL: https://openreview.net/forum?id=Jnspzp-oIZE
     """
     def __init__(self, input_types, output_types, activation="linear", *args, **kwargs):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        input_types: list
+            The input types.
+        output_types: list
+            The output types.
+        activation: str
+            The activation.
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         super().__init__(
             include_kernel=False,
             activation=activation,
@@ -209,6 +224,13 @@ class ConvGEM(ConvBase):
         self.V_self = None
 
     def build(self, inputs):
+        """Builds the layer weights.
+
+        Parameters
+        ----------
+        inputs: tuple
+            Two tensor shapes for both the mesh signal and barycentric coordinates.
+        """
         signal_shape, bc_shape = inputs
 
         # Call build of parent class
@@ -457,6 +479,7 @@ class ConvGEM(ConvBase):
         return tf.reshape(result, (result_shape[0], result_shape[1], self.output_dim_halve * 2))
 
     def define_kernel_values(self, template_matrix):
+        """GEM convolutions do not use weighting functions to interpolate features among template vertices"""
         return None
 
     def get_config(self):

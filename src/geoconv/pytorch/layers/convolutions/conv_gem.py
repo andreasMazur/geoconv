@@ -443,5 +443,5 @@ class ConvGEM(ConvBase):
         return torch.reshape(result, (result_shape[0], result_shape[1], self.output_dim_halve * 2))
 
     def define_kernel_values(self, template_matrix):
-        """GEM convolutions do not use weighting functions to interpolate features among template vertices"""
+        """GEM convolutions do not use weighting functions to interpolate features among template vertices."""
         return None
