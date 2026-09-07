@@ -35,9 +35,30 @@ class ConvBase(nn.Module):
                  template_radius,
                  include_kernel,
                  activation_fn,
-                 shift_angular=False,
                  *args,
                  **kwargs):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        feature_input_dim: torch.Tensor
+            The feature input dimension.
+        n_radial: int
+            The amount of radial coordinates.
+        n_angular: int
+            The amount of angular coordinates.
+        template_radius: float
+            The template radius.
+        include_kernel: bool
+             Whether to include a kernel/weighting function that interpolates the signals gathered at the template
+             vertices.
+        activation_fn: torch.Tensor
+            The activation function.
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         super().__init__(*args, **kwargs)
 
         # Configure template
@@ -67,6 +88,19 @@ class ConvBase(nn.Module):
             self.kernel = None
 
     def forward(self, inputs):
+        """Conducts a convolution.
+
+        Parameters
+        ----------
+        inputs: torch.Tensor
+            A 'b x n x i' inputs tensor, whereby 'b' represents the number of shapes, 'n' the number of vertices per
+            shape and 'i' the input feature dimension.
+
+        Returns
+        -------
+        torch.Tensor
+            A 'b x n x o' result tensor of the convolution, where 'o' is the output feature dimension.
+        """
         raise NotImplementedError
 
     def _gather_signals(self, barycentric_coordinates, mesh_signal, bc_with_angles=False):
