@@ -12,6 +12,17 @@ class EuclNeighborsDescriptor(tf.keras.layers.Layer):
         The amount of neighbors to consider for computing local neighborhood descriptors.
     """
     def __init__(self, n_neighbors, *args, **kwargs):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        n_neighbors: int
+            The number of neighbors to consider.
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         super().__init__(*args, **kwargs)
         self.n_neighbors = n_neighbors
 
