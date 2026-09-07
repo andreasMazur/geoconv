@@ -7,7 +7,19 @@ import torch
 
 class ConvHarmonic(ConvBase):
     def __init__(self, output_dim, rotation_order, *args, **kwargs):
-        # Init base conv
+        """Initializes the object.
+
+        Parameters
+        ----------
+        output_dim: torch.Tensor
+            The output dim.
+        rotation_order: int
+            The rotation order.
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         kwargs.pop("include_kernel", None)
         super().__init__(include_kernel=False, *args, **kwargs)
 
@@ -161,4 +173,5 @@ class ConvHarmonic(ConvBase):
         return torch.reshape(result, (signals_shape[0], signals_shape[1], self.output_dim))
 
     def define_kernel_values(self, template_matrix):
+        """"HSNs do not use weighting functions to interpolate features among template vertices"""
         return None
