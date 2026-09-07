@@ -5,7 +5,20 @@ import torch
 
 class GlobalComplexPooling(nn.Module):
     def forward(self, inputs):
-        """Takes the maximum value over each channel."""
+        """Takes the maximum value over each channel.
+
+        Parameters
+        ----------
+        inputs: torch.Tensor
+            A 'b x n x i' tensor, whereby 'b' represents the number of shapes, 'n' the number of vertices per
+            shape and 'i' the input feature dimension.
+
+        Returns
+        -------
+        torch.Tensor
+            A 'b x i' tensor, where the i-th channel contains the complex number with the largest norm across all 'n'
+            vertices.
+        """
         # inputs_shape contains the following values: (batch, vertices, input_dim)
         inputs_shape = tuple(inputs.size())
 
