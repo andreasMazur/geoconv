@@ -16,11 +16,25 @@ class DgpcSolver:
     > DOI: 10.1111/j.1467-8659.2012.03187.x
     """
     def __init__(self, V, F, u_max, eps=1e-5):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        V: np.ndarray
+            An n x 3 array of 3D vertex coordinates.
+        F: np.ndarray
+            An m x 3 array of 3D face indices.
+        u_max: np.ndarray
+            The maximum allowed chart radius of any chart.
+        eps: np.ndarray
+            A minimum update rate for the geodesic distance to continue the computation process.
+        """
         self.triangle_mesh = trimesh.Trimesh(vertices=V, faces=F)
         self.u_max = u_max
         self.eps = eps
         self.edge_cache = {}
         self.proj_cache = {}
+        self.one_hop_neighborhood = None
 
     def init_neighborhood(self, source_point):
         """Initializes radial- and angular coordinates of the one-hop neighborhood around a given source point.
