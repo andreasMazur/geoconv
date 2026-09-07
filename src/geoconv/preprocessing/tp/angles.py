@@ -21,6 +21,12 @@ def compute_angles_for_distances(triangle_mesh, local_geodesic_dists, chart_indi
         The geodesic distances calculated for the local chart.
     chart_indices: np.ndarray | None
         The indices of origin vertices around which charts are computed. If 'None', all origin vertices are used.
+
+    Returns
+    -------
+    np.ndarray:
+        An n x n array containing accompanying local angles for the given geodesic distances, completing the distances
+        to full local charts.
     """
     angle_charts = []
     charts = enumerate(local_geodesic_dists) if chart_indices is None else zip(chart_indices, local_geodesic_dists)
