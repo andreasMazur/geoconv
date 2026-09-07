@@ -101,6 +101,11 @@ def get_faces_of_edge(edge, object_mesh):
         The edge for which the faces shall be returned.
     object_mesh: trimesh.Trimesh
         The underlying mesh.
+
+    Returns
+    -------
+    np.ndarray:
+        An array containing both faces for the given edge.
     """
     edge = np.sort(edge)
     # 1.) Get the edge index of `sorted_edge` "in both ways", i.e. two indices for `sorted_edge`
