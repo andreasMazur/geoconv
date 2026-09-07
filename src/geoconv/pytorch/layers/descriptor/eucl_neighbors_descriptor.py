@@ -6,10 +6,34 @@ import torch
 
 class EuclNeighborsDescriptor(nn.Module):
     def __init__(self, n_neighbors, *args, **kwargs):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        n_neighbors: int
+            The number of neighbors to consider.
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         super().__init__(*args, **kwargs)
         self.n_neighbors = n_neighbors
 
     def forward(self, inputs):
+        """Applies the layer to the inputs.
+
+        Parameters
+        ----------
+        inputs: torch.Tensor
+            The inputs tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            A tensor of shape 'b x n x (self.n_neighbors * 3 - 3)' containing the Euclidean neighborhood descriptor
+            sorted by the norm.
+        """
         # 'neighborhoods' : (batch, vertices, n_neighbors, 3)
         neighborhoods, _, _ = compute_neighborhood(inputs, self.n_neighbors)
 
