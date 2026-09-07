@@ -8,6 +8,17 @@ import torch
 
 class ConvEMAN(ConvGEM):
     def __init__(self, attention_types, *args, **kwargs):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        attention_types: list
+            The attention types.
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         super().__init__(*args, **kwargs)
 
         ### Set output types for attention mappings (keys and queries) ###
