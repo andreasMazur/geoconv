@@ -71,7 +71,6 @@ def preprocess(path,
         save_atlas(atlas, atlas_save_path=atlas_save_path)
 
     # Compute barycentric coordinates
-    x_axis_indices = np.array(x_axis_indices)
     for chart_indices in chart_indices_chunked:
         for (n_radial, n_angular) in template_resolutions:
             # Load atlas
