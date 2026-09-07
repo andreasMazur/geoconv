@@ -8,6 +8,19 @@ import torch
 
 class ConvIntrinsic(ConvBase):
     def __init__(self, output_dim, rotation_delta, *args, **kwargs):
+        """Initializes the object.
+
+        Parameters
+        ----------
+        output_dim: torch.Tensor
+            The output dim.
+        rotation_delta: int
+            The rotation delta.
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         super().__init__(*args, **kwargs)
 
         # Remember layer attributes
@@ -35,13 +48,10 @@ class ConvIntrinsic(ConvBase):
 
         Parameters
         ----------
-        **kwargs
         inputs: (torch.Tensor, torch.Tensor)
             The first tensor represents the signal defined on the manifold. It has size
             (batch_shapes, n_vertices, feature_dim). The second tensor represents the barycentric coordinates. It has
             size (batch_shapes, n_vertices, n_radial, n_angular, 3, 2).
-        orientations: torch.Tensor
-            Contains an integer that tells how to rotate the signal-interpolations.
 
         Returns
         -------
