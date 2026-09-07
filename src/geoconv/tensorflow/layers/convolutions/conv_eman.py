@@ -14,7 +14,17 @@ class ConvEMAN(ConvGEM):
     > URL: https://openreview.net/forum?id=3IqqJh2Ycy
     """
     def __init__(self, attention_types, *args, **kwargs):
-        # Values are implemented using the regular GEM-CNN kernels
+        """Initializes the object.
+
+        Parameters
+        ----------
+        attention_types: list
+            The attention types.
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         super().__init__(*args, **kwargs)
 
         # Set output types for attention mappings (keys and queries)
@@ -32,6 +42,13 @@ class ConvEMAN(ConvGEM):
         self.V_self_keys = None
 
     def build(self, inputs):
+        """Builds the layer weights.
+
+        Parameters
+        ----------
+        inputs: tuple
+            Two tensor shapes for both the mesh signal and barycentric coordinates.
+        """
         super().build(inputs)
 
         ##############################################
