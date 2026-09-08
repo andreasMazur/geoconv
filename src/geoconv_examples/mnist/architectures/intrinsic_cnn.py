@@ -5,6 +5,28 @@ import tensorflow as tf
 
 
 def define_hypermodel(hp, output_dims, template_radius, n_radial, n_angular, kernel):
+    """Builds a KerasTuner hypermodel for the architecture.
+
+    Parameters
+    ----------
+    hp: kt.HyperParameters
+        The hyperparameter object.
+    output_dims: list
+        The output dims.
+    template_radius: float
+        The template radius.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    kernel: str
+        The weighting function used to interpolated template vertex features among each other..
+
+    Returns
+    -------
+    tf.keras.Model
+        The constructed model.
+    """
     model = define_model(
         output_dims=output_dims,
         template_radius=template_radius,
