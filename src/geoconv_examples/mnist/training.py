@@ -15,6 +15,31 @@ def hypertuning(mnist_atlas,
                 project_name,
                 epochs=10,
                 return_rotations=True):
+    """Runs hyperparameter tuning for the MNIST surface models.
+
+    Parameters
+    ----------
+    mnist_atlas: Atlas
+        The mnist atlas.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    template_radius: float
+        The template radius.
+    batch_size: int
+        The batch size.
+    get_hypermodel: function
+        A function creating a hypermodel.
+    save_path: str
+        The path that points to the location where the best model shall be saved.
+    project_name: str
+        The project name. It is used for logging purposes.
+    epochs: int
+        The number epochs for a single trial.
+    return_rotations: bool
+        Whether to enable return rotations.
+    """
     # Get data
     train_data = dataset(
         mnist_atlas,
