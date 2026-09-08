@@ -91,7 +91,7 @@ def preprocess_faust(registration_dir,
                 atlas.determine_barycentric_coordinates(
                     n_radial=n_radial,
                     n_angular=n_angular,
-                    radius=template_radius
+                    template_radius=template_radius
                 )
 
         # Save atlas
