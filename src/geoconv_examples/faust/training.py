@@ -31,6 +31,37 @@ def hypertuning(faust_path,
                 return_rotations=True,
                 num_initial_points=10,
                 max_trials=100):
+    """Runs hyperparameter tuning for a FAUST model and saves the best checkpoint.
+        
+    Parameters
+    ----------
+    faust_path: str
+        The path to the preprocessed FAUST dataset.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    preprocess_method: str
+        The charting algorithm.
+    gpc_radius: float
+        The max chart radius.
+    template_radius: float
+        The template radius.
+    get_hypermodel: function
+        The function that returns a hypermodel.
+    save_path: str
+        The path that points to the location where the best model shall be saved.
+    project_name: str
+        The name of the hypertuning run. It is used for logging purposes.
+    epochs: int
+        The amount of epochs per trial.
+    return_rotations: bool
+        Whether to enable return rotations for the network architecture.
+    num_initial_points: int
+        The number of initial configurations to test before starting to sample with acquisition function.
+    max_trials: int
+        The maximum number of trials.
+    """
     # Get data
     train_data = dataset(
         zip_path=faust_path,
