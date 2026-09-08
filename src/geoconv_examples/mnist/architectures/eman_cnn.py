@@ -7,7 +7,7 @@ import tensorflow as tf
 
 def define_hypermodel(hp, input_types, output_types, template_radius, n_radial, n_angular):
     """Builds a KerasTuner hypermodel for the architecture.
-        
+
     Parameters
     ----------
     hp: kt.HyperParameters
