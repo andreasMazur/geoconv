@@ -18,7 +18,7 @@ def define_hypermodel(hp,
                       n_angular,
                       faust_path):
     """Builds a KerasTuner hypermodel for the architecture.
-        
+
     Parameters
     ----------
     hp: kt.HyperParameters
