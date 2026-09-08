@@ -38,7 +38,7 @@ def define_hypermodel(hp,
     n_angular: int
         The number of angular coordinates of the template.
     faust_path: str
-        The path to the FAUST dataset.
+        The path to the preprocessed FAUST dataset.
 
     Returns
     -------

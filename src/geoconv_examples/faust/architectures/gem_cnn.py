@@ -17,6 +17,34 @@ def define_hypermodel(hp,
                       n_radial,
                       n_angular,
                       faust_path):
+    """Builds a KerasTuner hypermodel for the architecture.
+        
+    Parameters
+    ----------
+    hp: kt.HyperParameters
+        The hyperparameter object.
+    input_types: list
+        The input types.
+    output_types: list
+        The output types.
+    preprocess_method: str
+        The preprocess method.
+    gpc_radius: float
+        The gpc radius.
+    template_radius: float
+        The template radius.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    faust_path: str
+        The path to the preprocessed FAUST dataset.
+
+    Returns
+    -------
+    tf.keras.Model
+        The constructed model.
+    """
     model = define_model(
         input_types=input_types,
         output_types=output_types,
@@ -47,9 +75,9 @@ def define_model(input_types,
     Parameters
     ----------
     input_types: list
-        A list of lists, where each list-element contains the input types for one GEM-CNN layer.
+        A list of lists, where each sub-list contains the input types for one GEM-CNN layer.
     output_types: list
-        A list of lists, where each list-element contains the output types for one GEM-CNN layer.
+        A list of lists, where each sub-list contains the output types for one GEM-CNN layer.
     preprocess_method: str
         The used charting algorithm.
     gpc_radius: float
