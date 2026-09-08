@@ -14,6 +14,33 @@ def adapt_generator(zip_path,
                     gpc_radius,
                     template_radius,
                     n_neighbors):
+    """Adapts the FAUST generator to the Euclidean neighborhood descriptor.
+        
+    Parameters
+    ----------
+    zip_path: str
+        The zip path.
+    set_type: str
+        The set type.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    preprocess_method: str
+        The preprocess method.
+    gpc_radius: float
+        The maximum chart radius.
+    template_radius: float
+        The template radius.
+    n_neighbors: int
+        The number of neighbors used to construct the Euclidean neighborhood descriptor.
+
+    Returns
+    -------
+    generator:
+        A generator over the FAUST data, returning Euclidean neighborhood descriptors. It can be used as an adaption
+        dataset for preprocessing layers such as TensorFlow's 'Normalization'-layer.
+    """
     descr_layer = EuclNeighborsDescriptor(n_neighbors=n_neighbors)
     gen = generator(
         zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, return_rotations=False
@@ -30,6 +57,33 @@ def adapt_dataset(zip_path,
                   gpc_radius,
                   template_radius,
                   n_neighbors):
+    """Builds a FAUST dataset adapted to the Euclidean neighborhood descriptor.
+
+    Parameters
+    ----------
+    zip_path: str
+        The zip path.
+    set_type: str
+        The set type.
+    n_radial: int
+        The amount of radial coordinates used by the discretized template.
+    n_angular: int
+        The amount of angular coordinates used by the discretized template.
+    preprocess_method: str
+        The preprocess method.
+    gpc_radius: float
+        The maximum chart radius.
+    template_radius: float
+        The template radius.
+    n_neighbors: int
+        The number of neighbors used to construct the Euclidean neighborhood descriptor.
+
+    Returns
+    -------
+    tf.data.Dataset
+        A dataset returning Euclidean neighborhood descriptors for FAUST meshes. It can be used as an adaption
+        dataset for preprocessing layers such as TensorFlow's 'Normalization'-layer.
+    """
     return tf.data.Dataset.from_generator(
         adapt_generator,
         args=(zip_path, set_type, n_radial, n_angular, preprocess_method, gpc_radius, template_radius, n_neighbors),
