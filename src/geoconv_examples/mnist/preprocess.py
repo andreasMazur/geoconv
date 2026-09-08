@@ -32,6 +32,15 @@ def create_grid(n_vertices):
 
 
 def image_to_grid(image, grid):
+    """Renders an image on top of a triangular grid.
+
+    Parameters
+    ----------
+    image: np.ndarray | list
+        The image.
+    grid: trimesh.Trimesh
+        The grid.
+    """
     grid_image = trimesh.PointCloud(grid.vertices, colors=plt.cm.binary(np.array(image).reshape((-1))))
     trimesh.Scene([grid, grid_image]).show()
 
@@ -44,6 +53,32 @@ def preprocess_mnist(output_path,
                      method="hdm",
                      normalization_method="hdm",
                      processes=1):
+    """Preprocesses the MNIST grid atlas and stores barycentric coordinates.
+
+    Parameters
+    ----------
+    output_path: str
+        The output path.
+    max_chart_radius: float
+        The max chart radius.
+    n_radials: list
+        A list of possible numbers for radial template coordinates.
+    n_angulars: list
+        A list of possible numbers for angular template coordinates.
+    max_temp_radius: float
+        The max temp radius.
+    method: str
+        The charting algorithm.
+    normalization_method: str
+        The charting algorithm used to compute the geodesic diameter for mesh normalization.
+    processes: int
+        The processes.
+
+    Returns
+    -------
+    Atlas
+        The preprocessed atlas.
+    """
     output_path = f"{output_path}.hdf5" if not output_path.endswith(".hdf5") else output_path
     if not os.path.isfile(output_path):
         grid = create_grid(n_vertices=28)  # MNIST-images are 28x28 grids
@@ -67,13 +102,13 @@ def preprocess_mnist(output_path,
                         atlas.determine_barycentric_coordinates(
                             n_radial=n_radial,
                             n_angular=n_angular,
-                            radius=chart_radius
+                            template_radius=chart_radius
                         )
                 else:
                     atlas.determine_barycentric_coordinates(
                         n_radial=n_radial,
                         n_angular=n_angular,
-                        radius=max_temp_radius
+                        template_radius=max_temp_radius
                     )
 
         atlas.save(output_path)
