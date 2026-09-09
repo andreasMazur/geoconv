@@ -3,7 +3,7 @@ requires = ["setuptools>=68.2.2", "numpy>=1.22.0, <=1.26.4"]
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.7"
+version = "1.0.0"
 authors = [{name = "Andreas Mazur"}]
 maintainers = [{name = "Andreas Mazur"}]
 name = "geoconv"
@@ -67,6 +67,7 @@ classifiers = [
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12"
 ]
 
 [project.optional-dependencies]
