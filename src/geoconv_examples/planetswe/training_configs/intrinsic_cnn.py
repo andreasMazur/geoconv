@@ -15,6 +15,36 @@ def start_training_run(bc_path,
                        tensorboard_cb=False,
                        batch_size=1,
                        predict_residual=False):
+    """Starts training runs for the selected architecture.
+
+    Parameters
+    ----------
+    bc_path: str
+        The path that points to the location where the barycentric coordinates for the sphere are saved.
+    swe_path: str
+        The path that points to the downloaded PlanetSWE dataset. Used to retrieve sphere signals.
+    max_chart_radius: float
+        The max chart radius.
+    charting_method: str
+        The charting method.
+    kernel: str
+        Either 'geodesic' to train GCNNs or 'dirac' to train ISCs.
+    save_path: str
+        The path that points to the location where the logging directory should be created, saving model and logs.
+    template_resolutions: list
+        A list of template resolutions, i.e., [(n_radial, n_angular), ...].
+    learning_rate: float
+        The learning rate.
+    lr_decay_rate: float
+        The lr decay rate.
+    tensorboard_cb: bool
+        Whether to enable the tensorboard callback.
+    batch_size: int
+        The batch size.
+    predict_residual: bool
+        Whether the model should predict residuals which are added onto the current state instead of the full state for
+        the next time step.
+    """
     if template_resolutions is None:
         template_resolutions = [(4, 8)]
 
