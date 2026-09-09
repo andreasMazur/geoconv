@@ -15,6 +15,23 @@ class DeepSet(tf.keras.layers.Layer):
                  global_activation="relu",
                  *args,
                  **kwargs):
+        """Initializes the Deep Set aggregation network.
+
+        Parameters
+        ----------
+        local_network_dims: list
+            The local network dims. Applied to individual vertex features.
+        global_network_dims: list
+            The global network dims. Applied to the sum over all vertex features.
+        local_activation: Any
+            The local activation.
+        global_activation: Any
+            The global activation.
+        *args: tuple
+            The args.
+        **kwargs: dict
+            The kwargs.
+        """
         super().__init__(*args, **kwargs)
         self.local_network_dims = local_network_dims
         self.local_activation = local_activation
@@ -26,6 +43,13 @@ class DeepSet(tf.keras.layers.Layer):
         self.global_network = None
 
     def build(self, input_shape):
+        """Builds the local and global feed-forward sub-networks.
+
+        Parameters
+        ----------
+        input_shape: list
+            The input shape.
+        """
         super().build(input_shape)
         self.local_network = tf.keras.Sequential(
             [tf.keras.layers.Dense(x, activation=self.local_activation) for x in self.local_network_dims],
@@ -38,6 +62,18 @@ class DeepSet(tf.keras.layers.Layer):
 
     @tf.function
     def call(self, inputs):
+        """Applies Deep Set aggregation to the input signal and mask.
+
+        Parameters
+        ----------
+        inputs: tf.Tensor
+            The inputs tensor.
+
+        Returns
+        -------
+        tf.Tensor
+            The computed tensor.
+        """
         signal, mask = inputs
         signal = self.local_network(signal)
         mask = tf.cast(mask[..., None], tf.float32)
