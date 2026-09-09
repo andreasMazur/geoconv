@@ -31,6 +31,36 @@ def hypertuning(mn10_path,
                 return_rotations=True,
                 num_initial_points=10,
                 max_trials=100):
+    """Runs hyperparameter tuning for a ModelNet10 surface CNN.
+
+    Parameters
+    ----------
+    mn10_path: str
+        The path that points to the location of the preprocessed ModelNet10 dataset.
+    n_radial: int
+        The number of radial coordinates of the template.
+    n_angular: int
+        The number of angular coordinates of the template.
+    preprocess_method: str
+        The charting method.
+    gpc_radius: float
+        The maximum chart radius.
+    get_hypermodel: function
+        The function that returns hypermodel for hyperparameter tuning.
+    save_path: str
+        The path that points to the location where the best model shall be saved.
+    project_name: str
+        The project name. Used for logging purposes.
+    epochs: int
+        The maximum number of epochs for one trial.
+    return_rotations: bool
+        Whether the dataset should return rotation angles and whether the architecture expects parallel transport
+        angles.
+    num_initial_points: int
+        The number of randomly picked initial trials before starting to use the acquisition function.
+    max_trials: int
+        The maximum number of trials.
+    """
     # Get data
     train_data = dataset(
         path=mn10_path,
