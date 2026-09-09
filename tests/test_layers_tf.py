@@ -66,7 +66,7 @@ class TestTFLayers(unittest.TestCase):
         # Load barycentric coordinates
         bc = self.mnist_atlas.barycentric_coordinates[(2, 4, self.template_radius)]
 
-        # Concat angles
+        # Concat angles (plane has all zero transport angles)
         bc = concat_bc_and_angles(bc, np.zeros((784, 784)))
         bc = tf.convert_to_tensor(bc[None, ...], dtype=tf.float32)
         return image, bc
