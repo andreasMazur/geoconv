@@ -72,8 +72,8 @@ classifiers = [
 
 [project.optional-dependencies]
 pytorch = [
-    "torch<=2.1.0",
-    "torchvision<=0.16.0",
+    "torch",
+    "torchvision",
 ]
 tensorflow = [
     "tensorflow",
