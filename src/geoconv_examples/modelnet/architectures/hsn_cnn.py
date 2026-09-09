@@ -12,6 +12,26 @@ def define_hypermodel(hp,
                       template_radius,
                       n_radial,
                       n_angular):
+    """Builds a KerasTuner hypermodel for the architecture.
+
+    Parameters
+    ----------
+    hp: kt.HyperParameters
+        The hyperparameter object.
+    output_dims: list
+        The output dims.
+    template_radius: float
+        The template radius.
+    n_radial: int
+        The number of radial coordinates of the template.
+    n_angular: int
+        The number of angular coordinates of the template.
+
+    Returns
+    -------
+    tf.keras.Model
+        The constructed model.
+    """
     model = define_model(
         output_dims=output_dims,
         template_radius=template_radius,
