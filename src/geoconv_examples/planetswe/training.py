@@ -28,6 +28,36 @@ def hypertuning(bc_path,
                 project_name,
                 save_path,
                 predict_residual):
+    """Runs hyperparameter tuning for the PlanetSWE models and stores the best model.
+
+    Parameters
+    ----------
+    bc_path: str
+        The path that points to the location where the barycentric coordinates for the sphere are saved.
+    swe_path: str
+        The path that points to the downloaded PlanetSWE dataset. Used to retrieve sphere signals.
+    batch_size: int
+        The batch size.
+    return_rotations: bool
+        Whether the dataset should return rotation angles and whether the architecture expects parallel transport
+        angles.
+    add_input_zero_dim: bool
+        Whether the dataset should concatenate a zero dimension to the height field such that returned signal vectors
+        are 4-dimensional. Gauge-equivariant architecture expect even-dimensional input vectors.
+    get_hypermodel: function
+        The function that returns a hypermodel for hyperparameter tuning.
+    max_trials: int
+        The maximum amount of trials used during Bayesian optimization.
+    num_initial_points: int
+        The number of randomly picked initial trials before starting to use the acquisition function.
+    project_name: str
+        The project name. Used for logging purposes
+    save_path: str
+        The path that points to the location where the best model shall be saved.
+    predict_residual: bool
+        Whether the model should predict residuals which are added onto the current state instead of the full state for
+        the next time step.
+    """
     # Get data
     train_data = dataset(
         bc_path=bc_path,
@@ -81,7 +111,8 @@ def rollout_benchmark(model, test_data, t_max, save_path, zero_pad=False):
     save_path: str
         The path pointing to where to save the rollout errors.
     zero_pad: bool
-        Whether to zero-pad the output of the model such that it can be used as an input during the next step.
+        Whether the dataset should concatenate a zero dimension to the height field such that returned signal vectors
+        are 4-dimensional. Gauge-equivariant architecture expect even-dimensional input vectors.
     """
     # Load normalization values
     normalization_means = np.array(PLANETSWE_NORM_VALUES["channel_means"])
@@ -173,6 +204,36 @@ def training(model,
              batch_size=1,
              add_input_zero_dim=False,
              predict_residual=False):
+    """Trains a PlanetSWE model, checkpoints the best run, and stores training statistics.
+        
+        Parameters
+        ----------
+        model: tf.keras.Model
+            The model to operate on.
+        bc_path: str
+            The bc path.
+        swe_path: str
+            The swe path.
+        return_rotations: bool
+            Whether to enable return rotations.
+        save_path: str
+            The save path.
+        random_seed: Any
+            The random seed.
+        tensorboard_cb: bool
+            Whether to enable tensorboard cb.
+        batch_size: int
+            The batch size.
+        add_input_zero_dim: Any
+            The add input zero dim.
+        predict_residual: bool
+            Whether to enable predict residual.
+        
+        RReturns
+        -------
+        None
+            This function rReturns nothing.
+    """
     ######################
     # Define saving paths
     ######################
