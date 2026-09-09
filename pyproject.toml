@@ -77,13 +77,15 @@ tensorflow = [
     "tensorflow",
     "tensorflow-probability",
     "tensorflow-datasets",
-    "keras_tuner"
+    "keras_tuner",
+    "importlib_resources"
 ]
 tensorflow_gpu = [
     "tensorflow[and-cuda]",
     "tensorflow-probability",
     "tensorflow-datasets",
-    "keras_tuner"
+    "keras_tuner",
+    "importlib_resources"
 ]
 
 [project.urls]
