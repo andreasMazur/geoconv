@@ -18,6 +18,36 @@ def start_training_run(bc_path,
                        tensorboard_cb=False,
                        batch_size=1,
                        predict_residual=False):
+    """Starts training runs for the selected architecture.
+
+    Parameters
+    ----------
+    bc_path: str
+        The path that points to the location where the barycentric coordinates for the sphere are saved.
+    swe_path: str
+        The path that points to the downloaded PlanetSWE dataset. Used to retrieve sphere signals.
+    max_chart_radius: float
+        The max chart radius.
+    charting_method: str
+        The charting method.
+    model_type: str
+        The model type. Has to be selected from: ['gem_cnn', 'gem_p_cnn', 'eman', 'eman_p']. Defaults to 'eman_p'.
+    save_path: str
+        The path that points to the location where the logging directory should be created, saving model and logs.
+    template_resolutions: list
+        A list of template resolutions, i.e., [(n_radial, n_angular), ...].
+    learning_rate: float
+        The learning rate.
+    lr_decay_rate: float
+        The lr decay rate.
+    tensorboard_cb: bool
+        Whether to enable the tensorboard callback.
+    batch_size: int
+        The batch size.
+    predict_residual: bool
+        Whether the model should predict residuals which are added onto the current state instead of the full state for
+        the next time step.
+    """
     assert model_type in ["gem_cnn", "eman", "gem_p_cnn", "eman_p"], (
         "Select model type from: ['gem_cnn', 'eman', 'gem_p_cnn', 'eman_p']"
     )
