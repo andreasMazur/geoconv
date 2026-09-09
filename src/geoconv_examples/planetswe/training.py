@@ -205,34 +205,32 @@ def training(model,
              add_input_zero_dim=False,
              predict_residual=False):
     """Trains a PlanetSWE model, checkpoints the best run, and stores training statistics.
-        
-        Parameters
-        ----------
-        model: tf.keras.Model
-            The model to operate on.
-        bc_path: str
-            The bc path.
-        swe_path: str
-            The swe path.
-        return_rotations: bool
-            Whether to enable return rotations.
-        save_path: str
-            The save path.
-        random_seed: Any
-            The random seed.
-        tensorboard_cb: bool
-            Whether to enable tensorboard cb.
-        batch_size: int
-            The batch size.
-        add_input_zero_dim: Any
-            The add input zero dim.
-        predict_residual: bool
-            Whether to enable predict residual.
-        
-        RReturns
-        -------
-        None
-            This function rReturns nothing.
+
+    Parameters
+    ----------
+    model: tf.keras.Model
+        The model to operate on.
+    bc_path: str
+        The path that points to the location where the barycentric coordinates for the sphere are saved.
+    swe_path: str
+        The path that points to the downloaded PlanetSWE dataset. Used to retrieve sphere signals.
+    return_rotations: bool
+        Whether the dataset should return rotation angles and whether the architecture expects parallel transport
+        angles.
+    save_path: str
+        The path that points to the location where the trained model shall be saved.
+    random_seed: int
+        The random seed used throughout the training.
+    tensorboard_cb: bool
+        Whether to enable the tensorboard callback.
+    batch_size: int
+        The batch size.
+    add_input_zero_dim: Any
+        Whether the dataset should concatenate a zero dimension to the height field such that returned signal vectors
+        are 4-dimensional. Gauge-equivariant architecture expect even-dimensional input vectors.
+    predict_residual: bool
+        Whether the model should predict residuals which are added onto the current state instead of the full state for
+        the next time step.
     """
     ######################
     # Define saving paths
