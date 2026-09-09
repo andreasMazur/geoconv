@@ -1,5 +1,12 @@
 # GeoConv
 
+[![GitHub stars](https://img.shields.io/github/stars/andreasMazur/geoconv)](https://github.com/andreasMazur/geoconv)
+[![PyPI downloads](https://img.shields.io/pypi/dm/geoconv)](https://pypi.org/project/geoconv/)
+[![CI](https://github.com/andreasMazur/geoconv/actions/workflows/python-package-conda.yml/badge.svg)](https://github.com/andreasMazur/geoconv/actions/workflows/python-package-conda.yml)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+[![License](https://img.shields.io/github/license/andreasMazur/geoconv)](https://github.com/andreasMazur/geoconv/blob/main/LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/geoconv)](https://pypi.org/project/geoconv/)
+
 ## Let's bend planes to curved surfaces.
 
 <img align="right" style="margin-left: 10px; width: 180px;" src="geoconv_cartoon.png">
