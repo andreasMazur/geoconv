@@ -65,7 +65,7 @@ def preprocess_mnist(output_path,
         A list of possible numbers for radial template coordinates.
     n_angulars: list
         A list of possible numbers for angular template coordinates.
-    max_temp_radius: float
+    max_temp_radius: float | None
         The max temp radius.
     method: str
         The charting algorithm.
