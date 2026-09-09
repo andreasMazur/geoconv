@@ -11,6 +11,29 @@ def define_hypermodel(hp,
                       n_radial,
                       n_angular,
                       predict_residual):
+    """Builds a PlanetSWE HSN hypermodel for KerasTuner.
+
+    Parameters
+    ----------
+    hp: kt.HyperParameters
+        The hyperparameter object.
+    output_dims: list
+        The output dims.
+    template_radius: float
+        The template radius.
+    n_radial: int
+        The number of radial coordinates of the template.
+    n_angular: int
+        The number of angular coordinates of the template.
+    predict_residual: bool
+        Whether the model should predict residuals which are added onto the current state instead of the full state for
+        the next time step.
+
+    Returns
+    -------
+    tf.keras.Model
+        The constructed model.
+    """
     model = define_model(
         n_radial=n_radial,
         n_angular=n_angular,
@@ -24,6 +47,31 @@ def define_hypermodel(hp,
 
 
 def define_model(n_radial, n_angular, template_radius, output_dims, learning_rate, lr_decay_rate, predict_residual):
+    """Builds the PlanetSWE HSN model.
+
+    Parameters
+    ----------
+    n_radial: int
+        The number of radial coordinates of the template.
+    n_angular: int
+        The number of angular coordinates of the template.
+    template_radius: float
+        The template radius.
+    output_dims: list
+        The output dims.
+    learning_rate: float
+        The learning rate.
+    lr_decay_rate: float
+        The lr decay rate.
+    predict_residual: bool
+        Whether the model should predict residuals which are added onto the current state instead of the full state for
+        the next time step.
+
+    Returns
+    -------
+    tf.keras.Model
+        The constructed model.
+    """
     # Define input layers
     features_input = tf.keras.Input(shape=(131_072, 4), name="features_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(131_072, n_radial, n_angular, 3, 3), name="bc_input", dtype=tf.float32)
