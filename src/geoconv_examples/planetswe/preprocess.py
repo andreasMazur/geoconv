@@ -9,6 +9,15 @@ import shutil
 
 
 def save_atlas(atlas, atlas_save_path):
+    """Saves an atlas and retries on transient file locking errors.
+        
+    Parameters
+    ----------
+    atlas: Atlas
+        The atlas to operate on.
+    atlas_save_path: str
+        The atlas save path.
+    """
     is_saved = False
     tries = 0
     while not is_saved:
@@ -29,7 +38,29 @@ def preprocess(path,
                template_resolutions,
                processes=1,
                chunks=16):
-    """Computes barycentric coordinates for the sphere for planetswe."""
+    """Computes barycentric coordinates for the sphere for planetswe.
+
+    Parameters
+    ----------
+    path: str
+        The path that points to the location of the downloaded PlanetSWE dataset.
+    save_path: str
+        The path that points to the location where the barycentric coordinates should be saved.
+    max_chart_radius: float
+        The max chart radius.
+    method: str
+        The charting algorithm.
+    normalization_method: str
+        The charting algorithm that shall be used to compute the geodesic diameter to normalize the sphere.
+    template_resolutions: list
+        The template resolutions, i.e. [(n_radial, n_angular), ...])].
+    processes: int
+        The number of concurrent processes for the preprocessing procedure.
+    chunks: int
+        The number of chunks to be used during preprocessing. One chunk contains a subset of points of the sphere and is
+        concurrently processed by all 'processes' concurrent processes. More chunks reduce memory usage at the cost of
+        taking more time to preprocess the sphere.
+    """
     # Check whether zip-file already exists
     if os.path.isfile(f"{save_path}.zip"):
         print(f"File already exists: {save_path}.zip. Skipping...")
@@ -83,7 +114,7 @@ def preprocess(path,
             atlas.determine_barycentric_coordinates(
                 n_radial=n_radial,
                 n_angular=n_angular,
-                radius=np.median(chart_radii),
+                template_radius=np.median(chart_radii),
                 processes=processes
             )
 
