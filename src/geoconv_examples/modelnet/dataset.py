@@ -10,12 +10,47 @@ MAX_N_VERTICES = 6042
 
 
 def adapt_generator(layer, path, set_type, chart_max_radius, method, do_zero_pad):
+    """Integrates a preprocessing layer to the ModelNet generator.
+
+    Parameters
+    ----------
+    layer: class
+        The preprocessing layer that is applied onto the elements returned by the dataset.
+    path: str
+        The path that point to the location of the preprocessed ModelNet dataset.
+    set_type: str
+        The set type. Has to be selected from: ['train', 'val', 'test', 'all'].
+    chart_max_radius: float
+        The maximum chart radius.
+    method: str
+        The charting algorithm.
+    do_zero_pad: bool
+        Whether to zero pad all arrays expect the ground truth label to the same size in the first axis as the
+        largest array in the dataset.
+
+    Returns
+    -------
+    generator:
+        A generator that yields input descriptors for the ModelNet dataset.
+    """
     gen = generator(path, set_type, chart_max_radius, method, return_rotations=False, do_zero_pad=do_zero_pad)
     for (vertices, bc), _ in tqdm(gen, postfix="Adapting normalization layer..."):
         yield layer(vertices[None, ...])
 
 
 def get_class_name_and_number(filepath):
+    """Extracts the ModelNet class name and sample number from a filepath within the ModelNet dataset.
+
+    Parameters
+    ----------
+    filepath: str
+        The filepath to a file in the preprocessed ModelNet dataset.
+
+    Returns
+    -------
+    (str, int):
+        The class name and the file-number contained in the given filepath.
+    """
     filepath = filepath.split("/")[-2]
     if filepath.count("_") == 2:
         cls_1, cls_2, number = filepath.split("_")
@@ -26,6 +61,18 @@ def get_class_name_and_number(filepath):
 
 
 def get_class_counts(zip_content):
+    """Counts how many samples exist per ModelNet class.
+
+    Parameters
+    ----------
+    zip_content: list
+        A list containing files paths pointing to shapes within the ModelNet dataset.
+
+    Returns
+    -------
+    int:
+        The class count.
+    """
     class_counts = {}
     for filepath in zip_content:
         cls, _ = get_class_name_and_number(filepath)
@@ -37,6 +84,20 @@ def get_class_counts(zip_content):
 
 
 def zero_pad(array, max_nodes=MAX_N_VERTICES):
+    """Pads an array of vertices to the ModelNet maximum vertex count.
+
+    Parameters
+    ----------
+    array: np.ndarray
+        The array.
+    max_nodes: int
+        The max nodes.
+
+    Returns
+    -------
+    np.ndarray:
+        The computed result.
+    """
     zeros = np.zeros((max_nodes - array.shape[0], *array.shape[1:]))
     return np.concatenate([array, zeros], axis=0)
 
