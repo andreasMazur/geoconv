@@ -1,4 +1,3 @@
-from geoconv.preprocessing.atlas import load_atlas
 from geoconv.pytorch.layers import (
     AngularMaxPooling,
     ConvDirac,
@@ -9,6 +8,7 @@ from geoconv.pytorch.layers import (
     ConvGeodesic,
     ConvHarmonic,
 )
+from geoconv.preprocessing.atlas import load_atlas
 from geoconv.utils.parallel_transport import concat_bc_and_angles
 
 from geoconv_examples.mnist.preprocess import preprocess_mnist

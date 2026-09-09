@@ -8,7 +8,6 @@ from geoconv.tensorflow.layers import (
     ConvEMANP,
     AngularMaxPooling
 )
-
 from geoconv.preprocessing.atlas import load_atlas
 from geoconv.utils.parallel_transport import concat_bc_and_angles
 
