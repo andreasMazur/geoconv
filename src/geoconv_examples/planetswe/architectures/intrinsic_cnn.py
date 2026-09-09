@@ -12,6 +12,31 @@ def define_hypermodel(hp,
                       n_angular,
                       kernel,
                       predict_residual):
+    """Builds a PlanetSWE intrinsic CNN hypermodel for KerasTuner.
+
+    Parameters
+    ----------
+    hp: kt.HyperParameters
+        The hyperparameter object.
+    output_dims: list
+        The output dims.
+    template_radius: float
+        The template radius.
+    n_radial: int
+        The number of radial coordinates of the template.
+    n_angular: int
+        The number of angular coordinates of the template.
+    kernel: str
+        The kernel.
+    predict_residual: bool
+        Whether the model should predict residuals which are added onto the current state instead of the full state for
+        the next time step.
+
+    Returns
+    -------
+    tf.keras.Model
+        The constructed model.
+    """
     model = define_model(
         n_radial=n_radial,
         n_angular=n_angular,
@@ -33,6 +58,33 @@ def define_model(n_radial,
                  learning_rate,
                  lr_decay_rate,
                  predict_residual):
+    """Builds the PlanetSWE intrinsic CNN model.
+
+    Parameters
+    ----------
+    n_radial: int
+        The number of radial coordinates of the template.
+    n_angular: int
+        The number of angular coordinates of the template.
+    template_radius: float
+        The template radius.
+    kernel: str
+        The kernel.
+    output_dims: list
+        The output dims.
+    learning_rate: float
+        The learning rate.
+    lr_decay_rate: float
+        The lr decay rate.
+    predict_residual: bool
+        Whether the model should predict residuals which are added onto the current state instead of the full state for
+        the next time step.
+
+    Returns
+    -------
+    tf.keras.Model
+        The constructed model.
+    """
     # Define input layers
     features_input = tf.keras.Input(shape=(131_072, 3), name="features_input", dtype=tf.float32)
     bc_input = tf.keras.Input(shape=(131_072, n_radial, n_angular, 3, 2), name="bc_input", dtype=tf.float32)
