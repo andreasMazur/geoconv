@@ -7,6 +7,8 @@ misc/
 test_scripts/
 sutherland_hodgman/
 *.hdf5
+*.keras
+*.json
 
 # Examples
 src/geoconv_examples/stanford_bunny/data/
