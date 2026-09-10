@@ -5,6 +5,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 [![License](https://img.shields.io/github/license/andreasMazur/geoconv)](https://github.com/andreasMazur/geoconv/blob/main/LICENSE)
 [![PyPI version](https://img.shields.io/pypi/v/geoconv)](https://pypi.org/project/geoconv/)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/andreasMazur/geoconv/blob/new_example/notebooks/getting_started.ipynb)
 
 ## Let's bend planes to curved surfaces.
 
