@@ -74,14 +74,14 @@ pytorch = [
     "torchvision",
 ]
 tensorflow = [
-    "tensorflow",
+    "tensorflow>=2.21.0",
     "tensorflow-probability",
     "tensorflow-datasets",
     "keras_tuner",
     "importlib_resources"
 ]
 tensorflow_gpu = [
-    "tensorflow[and-cuda]",
+    "tensorflow[and-cuda]>=2.21.0",
     "tensorflow-probability",
     "tensorflow-datasets",
     "keras_tuner",
