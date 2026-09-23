@@ -1,11 +1,60 @@
-from geoconv.preprocessing.barycentric_coordinates import polar_to_cart
-
-from tqdm import tqdm
+from io import BytesIO
 from scipy.linalg import blas
+from tqdm import tqdm
 
-import pygeodesic.geodesic as geodesic
 import numpy as np
 import trimesh
+
+
+def angle_distance(theta_max, theta_min):
+    """Compute the shortest angular distance between two angles
+
+    Parameters
+    ----------
+    theta_max: float
+        The first angle
+    theta_min: float
+        The second angle
+
+    Returns
+    -------
+    float:
+        The shortest angular distance between the two angles
+    """
+    return np.minimum(theta_max - theta_min, theta_min + 2.0 * np.pi - theta_max)
+
+
+def normal_pdf(mean_rho, mean_theta, var_rho, var_theta, rho, theta):
+    """Normal probability distribution for geodesic polar coordinates
+
+    Parameters
+    ----------
+    mean_rho: float
+        Mean radial distance of the normal
+    mean_theta: float
+        Mean angle for the Gaussian
+    var_rho: float
+        Mean radial distance variance of the kernel vertices
+    var_theta: float
+        Mean angle variance of the kernel vertices
+    rho: float
+        Radial coordinate of the interpolation point that shall be weighted
+    theta: float
+        Angular coordinate of the interpolation point that shall be weighted
+
+    Returns
+    -------
+    float:
+        The weight for the interpolation point (rho, theta)
+    """
+    norm_coefficient = 1 / np.sqrt((2 * np.pi) ** 2 * var_rho * var_theta)
+    max_angle = np.maximum(mean_theta, theta)
+    min_angle = np.minimum(mean_theta, theta)
+    delta_angle = angle_distance(max_angle, min_angle)
+    vec = np.array([rho - mean_rho, delta_angle])
+    mat = np.array([[1 / var_rho, 0], [0, 1 / var_theta]])
+    exp = np.exp(-(1 / 2) * vec.T @ mat @ vec)
+    return norm_coefficient * exp
 
 
 def compute_vector_angle(vector_a, vector_b, rotation_axis):
@@ -52,6 +101,11 @@ def get_faces_of_edge(edge, object_mesh):
         The edge for which the faces shall be returned.
     object_mesh: trimesh.Trimesh
         The underlying mesh.
+
+    Returns
+    -------
+    np.ndarray:
+        An array containing both faces for the given edge.
     """
     edge = np.sort(edge)
     # 1.) Get the edge index of `sorted_edge` "in both ways", i.e. two indices for `sorted_edge`
@@ -60,8 +114,37 @@ def get_faces_of_edge(edge, object_mesh):
     # 2.) Get faces of `sorted_edge` by retrieving `face_indices` for the found `edge_indices`
     face_indices = object_mesh.edges_face[edge_indices]
     considered_faces = object_mesh.faces[face_indices]
-    # 3.) Return sorted edge and corresponding faces
-    return edge, considered_faces
+    # 3.) Return faces of sorted edge
+    return np.array(considered_faces)
+
+
+def remove_nme(mesh):
+    """Removes non-manifold edges by removing all their faces.
+
+    Parameters
+    ----------
+    mesh: trimesh.Trimesh
+        The triangle mesh.
+
+    Returns
+    -------
+    trimesh.Trimesh:
+        The mesh without non-manifold edges.
+    """
+    # Check if non-manifold edges exist
+    non_manifold_edges = np.asarray(mesh.as_open3d.get_non_manifold_edges())
+    if non_manifold_edges.shape[0] > 0:
+        # Compute mask that removes non-manifold edges and all their faces
+        face_mask = np.full(mesh.faces.shape[0], True)
+        for edge in tqdm(non_manifold_edges, desc="Removing non-manifold edges.."):
+            sorted_edge = np.sort(edge)
+            edge_faces = get_faces_of_edge(sorted_edge, mesh)
+            for edge_f in edge_faces:
+                update_mask = np.logical_not((edge_f == mesh.faces).all(axis=-1))
+                face_mask = np.logical_and(face_mask, update_mask)
+        # Remove non-manifold edges and faces with mask
+        mesh = trimesh.Trimesh(mesh.vertices, mesh.faces[face_mask])
+    return mesh
 
 
 def get_neighbors(vertex, object_mesh):
@@ -83,206 +166,79 @@ def get_neighbors(vertex, object_mesh):
     return list(object_mesh.vertex_adjacency_graph[vertex].keys())
 
 
-def normalize_mesh(mesh, geodesic_diameter=None):
-    """Center mesh and scale x, y and z dimension with '1/geodesic diameter'.
+def repair_mesh(mesh):
+    """Merges very close vertices and removes degenerate faces (faces without 3 unique vertices).
 
     Parameters
     ----------
     mesh: trimesh.Trimesh
-        The triangle mesh, that shall be normalized
-    geodesic_diameter: float
-        The geodesic diameter. If not provided, this function will compute the geodesic diameter.
+        The mesh to validate.
 
     Returns
     -------
-    (trimesh.Trimesh, float):
-        The normalized mesh and the geodesic diameter, with which the mesh was normalized
+    trimesh.Trimesh:
+        The repaired mesh.
     """
-    # Center mesh
-    for dim in range(3):
-        mesh.vertices[:, dim] = mesh.vertices[:, dim] - mesh.vertices[:, dim].mean()
+    # 'merge_vertices'
+    # mesh.merge_vertices(merge_tex=True, merge_norm=True)  # (does not update vertex_adjacency_graph)
+    # Remove degenerate faces
+    # mesh.update_faces(mesh.nondegenerate_faces())  # (does not update vertex_adjacency_graph)
+    # Observed cases in which loaded mesh 'trimesh.load_mesh(...)' has less vertices than this:
+    # trimesh.Trimesh(vertices=mesh.vertices, faces=mesh.faces, process=True, validate=True)
 
-    # Determine geodesic diameter
-    if geodesic_diameter is None:
-        distance_matrix, geodesic_diameter = compute_geodesic_diameter(mesh)
+    # Merges vertices
+    loaded_mesh = trimesh.load_mesh(
+        BytesIO(mesh.export(file_type="stl")), file_type="stl"
+    )
 
-    # Scale mesh
-    for dim in range(3):
-        mesh.vertices[:, dim] = mesh.vertices[:, dim] * (1 / geodesic_diameter)
-    print(f"-> Normalized with geodesic diameter: {geodesic_diameter}")
+    # Repairs faces
+    mesh = trimesh.Trimesh(
+        vertices=loaded_mesh.vertices,
+        faces=loaded_mesh.faces,
+        process=True,
+        validate=True,
+    )
 
-    return mesh, geodesic_diameter
+    return mesh
 
 
-def compute_geodesic_diameter(mesh):
-    """Computes the geodesic diameter of a mesh.
-
-    In case the mesh contains a pair of vertices which are not connected by a path, this
-    function returns the largest geodesic distance that has been seen as the geodesic diameter.
+def compute_distance_matrix(vertices):
+    """Computes the Euclidean distance between given vertices.
 
     Parameters
     ----------
-    mesh: trimesh.Trimesh
-        The triangle mesh, for which the geodesic diameter shall be calculated.
-
-    Returns
-    -------
-    (np.array, float):
-        The distance matrix between all vertices of the mesh and the geodesic diameter of the mesh.
-    """
-    n_vertices = mesh.vertices.shape[0]
-    distance_matrix = np.zeros((n_vertices, n_vertices))
-    geoalg = geodesic.PyGeodesicAlgorithmExact(mesh.vertices, mesh.faces)
-    for sp in tqdm(range(n_vertices), postfix=f"Calculating geodesic diameter.."):
-        distances, _ = geoalg.geodesicDistances([sp], None)
-        distance_matrix[sp] = distances
-    return distance_matrix, distance_matrix[distance_matrix != np.inf].max()
-
-
-def gpc_systems_into_cart(gpc_systems):
-    """Translates the geodesic polar coordinates of given GPC-systems into cartesian
-
-    Parameters
-    ----------
-    gpc_systems: np.ndarray
-        A 3D-array containing all GPC-systems which shall be translated
+    vertices: np.ndarray
+        The vertices to compute the distance between.
 
     Returns
     -------
     np.ndarray:
-        The same GPC-systems but in cartesian coordinates
+        A square distance matrix for the given vertices.
     """
-    gpc_systems_cart = np.copy(gpc_systems)
-    return polar_to_cart(gpc_systems_cart[:, :, 1], gpc_systems_cart[:, :, 0])
+    norm = np.einsum("ij,ij->i", vertices, vertices)
+    norm = (
+        np.reshape(norm, (-1, 1))
+        - 2 * np.einsum("ik,jk->ij", vertices, vertices)
+        + np.reshape(norm, (1, -1))
+    )
+    norm[np.isnan(np.sqrt(norm))] = 0.0
+
+    return np.sqrt(norm)
 
 
-def reconstruct_template(gpc_system, b_coordinates):
-    """Reconstructs the template vertices with barycentric coordinates
+def compute_sub_distance_matrix(vertices, indices):
+    """Computes the distances for each vertex whose index is in 'indices'.
 
     Parameters
     ----------
-    gpc_system: np.ndarray
-        A 2D-array that describes a GPC-system. I.e. 'gpc_system[i]' contains the
-        geodesic polar coordinates (radial, angle) for the i-th vertex of the underlying
-        object mesh.
-    b_coordinates: np.ndarray
-        Contains the barycentric coordinates from which the template shall be reconstructed.
+    vertices: np.ndarray
+        All vertices towards which distances shall be computed.
+    indices: np.ndarray
+        The indices for the vertices from which distances shall be computed.
+
     Returns
     -------
     np.ndarray:
-        Cartesian template coordinates in the same format as returned by 'create_template_matrix'.
-
+        A sub-distance matrix for the given vertices.
     """
-
-    reconstructed_template = np.zeros((b_coordinates.shape[0], b_coordinates.shape[1], 2))
-    for rc in range(b_coordinates.shape[0]):
-        for ac in range(b_coordinates.shape[1]):
-            # Get vertices
-            vertex_indices = b_coordinates[rc, ac, :, 0].astype(np.int16)
-            vertices = [(gpc_system[vertex_indices[idx], 0], gpc_system[vertex_indices[idx], 1]) for idx in range(3)]
-            vertices = np.array([polar_to_cart(angles=y, scales=x) for x, y in vertices])
-
-            # Interpolate vertices
-            weights = b_coordinates[rc, ac, :, 1]
-            reconstructed_template[rc, ac] = vertices.T @ weights
-    return reconstructed_template
-
-
-def shuffle_mesh_vertices(mesh, given_shuffle=None):
-    """Shuffles the vertices of the mesh
-
-    Parameters
-    ----------
-    mesh: trimesh.Trimesh
-        The mesh from which you want to shuffle the vertices
-    given_shuffle: np.ndarray
-        A given shuffle of the vertices
-
-    Returns
-    -------
-    (trimesh.Trimesh, np.ndarray, np.ndarray)
-        The same mesh but with a different vertices order. Additionally, two arrays are returned. Both contain vertex
-        indices. Given a vertex index 'idx', it holds that:
-
-        mesh.vertices[idx] == shuffled_mesh.vertices[shuffle_map[idx]] == mesh.vertices[ground_truth[shuffle_map[idx]]]
-    """
-    ground_truth = np.arange(mesh.vertices.shape[0])
-    if given_shuffle is None:
-        np.random.shuffle(ground_truth)
-    else:
-        ground_truth = np.copy(given_shuffle)
-    mesh_vertices = np.copy(mesh.vertices)[ground_truth]
-
-    shuffle_map = []
-    for vertex_idx in range(mesh.vertices.shape[0]):
-        shuffle_map.append(np.where(ground_truth == vertex_idx)[0])
-    shuffle_map = np.array(shuffle_map).flatten()
-
-    mesh_faces = np.copy(mesh.faces)
-    for face_idx in range(mesh.faces.shape[0]):
-        mesh_faces[face_idx, 0] = shuffle_map[mesh.faces[face_idx, 0]]
-        mesh_faces[face_idx, 1] = shuffle_map[mesh.faces[face_idx, 1]]
-        mesh_faces[face_idx, 2] = shuffle_map[mesh.faces[face_idx, 2]]
-
-    shuffled_mesh = trimesh.Trimesh(vertices=mesh_vertices, faces=mesh_faces)
-
-    return shuffled_mesh, shuffle_map, ground_truth
-
-
-def get_included_faces(object_mesh, gpc_system):
-    """Retrieves face indices from GPC-system
-
-    Parameters
-    ----------
-    object_mesh: trimesh.Trimesh
-        The object mesh
-    gpc_system: np.ndarray
-        The considered GPC-system
-
-    Returns
-    -------
-    list:
-        The list of face IDs which are included in the GPC-system
-    """
-    included_face_ids = []
-
-    # Determine vertex IDs that are included in the GPC-system
-    gpc_vertex_ids = np.arange(gpc_system.shape[0])[gpc_system[:, 0] != np.inf]
-
-    # Determine what faces are entirely contained within the GPC-system
-    for face_id, face in enumerate(object_mesh.faces):
-        counter = 0
-        for vertex_id in face:
-            counter = counter + 1 if vertex_id in gpc_vertex_ids else counter
-        if counter == 3:
-            included_face_ids.append(face_id)
-
-    return included_face_ids
-
-
-def get_points_from_polygons(polygons):
-    """Returns the unique set of points given in a set of polygons
-
-    Parameters
-    ----------
-    polygons: np.ndarray
-        Set of polygons from which the set of unique points will be returned
-
-    Returns
-    -------
-    np.ndarray
-        The set of unique points
-    """
-    return np.unique(polygons.reshape((-1, 2)), axis=0)
-
-
-def find_largest_one_hop_dist(object_mesh):
-    """Finds the largest Euclidean distance from center vertex to a one-hop neighbor in a triangle mesh
-
-    Returns
-    -------
-    float:
-        The largest initialization distance from a center-vertex to a one-hop neighbor in the triangle mesh
-    """
-    all_edges = object_mesh.vertices[object_mesh.edges]
-    return np.linalg.norm(all_edges[:, 0, :] - all_edges[:, 1, :], axis=-1).max()
+    return np.linalg.norm(vertices[indices][:, None] - vertices[None, ...], axis=-1, ord=2)

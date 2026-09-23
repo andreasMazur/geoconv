@@ -1,0 +1,75 @@
+from geoconv.preprocessing.tp.tangent_projections import get_2d_projections
+
+from tqdm import tqdm
+
+import numpy as np
+
+
+def compute_angles_for_distances(triangle_mesh, local_geodesic_dists, chart_indices):
+    """Computes the angles for given local charts via tangent plane projections.
+
+    Computation of reference frames has been described in:
+    > [SHOT: Unique signatures of histograms for surface and texture
+     description.](https://doi.org/10.1016/j.cviu.2014.04.011)
+    > Salti, Samuele, Federico Tombari, and Luigi Di Stefano.
+
+    Parameters
+    ----------
+    triangle_mesh: trimesh.Trimesh
+        The triangle mesh on which we calculate the angles.
+    local_geodesic_dists: np.array
+        The geodesic distances calculated for the local chart.
+    chart_indices: np.ndarray | None
+        The indices of origin vertices around which charts are computed. If 'None', all origin vertices are used.
+
+    Returns
+    -------
+    np.ndarray:
+        An n x n array containing accompanying local angles for the given geodesic distances, completing the distances
+        to full local charts.
+    """
+    angle_charts = []
+    charts = enumerate(local_geodesic_dists) if chart_indices is None else zip(chart_indices, local_geodesic_dists)
+    for origin_idx, chart in tqdm(
+            charts,
+            total=local_geodesic_dists.shape[0],
+            desc="Computing angles using tangent plane projections"
+    ):
+        # Determine affine 3D neighborhood
+        origin_vertex = triangle_mesh.vertices[origin_idx]
+        neighborhood_indices = np.where(chart != np.inf)[0]
+        chart_neighborhood = triangle_mesh.vertices[neighborhood_indices]
+        chart_neighborhood = chart_neighborhood - origin_vertex
+
+        # Determine weights for covariance matrix
+        projections = get_2d_projections(chart_neighborhood, rescale=False)
+
+        # Get angles
+        angles = np.arctan2(projections[:, 1], projections[:, 0]) + np.pi
+
+        # Assign angles
+        angle_chart = np.full_like(chart, fill_value=-1.)
+        angle_chart[neighborhood_indices] = angles
+        angle_chart[origin_idx] = 0
+
+        angle_charts.append(angle_chart)
+    return np.array(angle_charts)
+
+
+def compute_angles_for_projections(projections):
+    """Computes angles from 2D tangent plane projections.
+
+    Parameters
+    ----------
+    projections: np.ndarray
+        The XY-coordinates of the tangent plane projections.
+
+    Returns
+    -------
+    np.ndarray:
+        The angles for all tangent plane projections.
+    """
+    angles = np.arctan2(projections[..., 1], projections[..., 0])
+    not_origin = (projections != [0., 0.]).all(axis=-1)
+    angles[not_origin] = angles[not_origin] + np.pi
+    return angles
