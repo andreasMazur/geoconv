@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: If you use this software, please cite the accompanying paper.
+authors:
+    - family-names: Mazur
+      given-names: Andreas
+    - family-names: Leins
+      given-names: David P.
+    - family-names: Hinder
+      given-names: Fabian
+    - family-names: Hammer
+      given-names: Barbara
+title: A Journey Through Surface Convolutions
+version: 1.0.0
+url: https://github.com/andreasMazur/geoconv
+date-released: '2026-09-23'
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Mazur
+      given-names: Andreas
+    - family-names: Leins
+      given-names: David P.
+    - family-names: Hinder
+      given-names: Fabian
+    - family-names: Hammer
+      given-names: Barbara
+  title: A Journey Through Surface Convolutions
+  url: https://openreview.net/forum?id=lCwv0bo973
+  year: '2026'
+  journal: "Transactions on Machine Learning Research"
