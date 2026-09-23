@@ -220,5 +220,4 @@ If you are using this repository, please cite our work and the publications of t
       doi: 10.1145/3131280.
 
 [11]: Federico Monti, Davide Boscaini, Jonathan Masci, Emanuele Rodolà, Jan Svoboda, and Michael M. Bronstein. Geometric
-      deep learning on graphs and manifolds using mixture model cnns. In 2017 IEEE Conference on Computer Vision and
-      Pattern Recognition (CVPR), 2017. doi: 10.1109/CVPR.2017.576.
+      deep learning on graphs and manifolds using mixture model cnns. In CVPR, 2017. doi: 10.1109/CVPR.2017.576.
