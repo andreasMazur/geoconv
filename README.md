@@ -153,7 +153,7 @@ Eventually, the networks can be trained as any other neural network in the respe
     | GeoConv + Tensorflow/Keras (**CPU**) | `pip install geoconv[tensorflow]`                                                       |
     | GeoConv + Tensorflow/Keras (**GPU**) | `pip install geoconv[tensorflow_gpu]`                                                   |
     | GeoConv + Pytorch (**CPU**)          | `pip install geoconv[pytorch] --extra-index-url https://download.pytorch.org/whl/cpu`   |
-    | GeoConv + Pytorch (**GPU**)          | `pip install geoconv[pytorch] --extra-index-url https://download.pytorch.org/whl/cu118` |
+    | GeoConv + Pytorch (**GPU**)          | `pip install geoconv[pytorch] --extra-index-url https://download.pytorch.org/whl/cu126` |
 
 3. In case OpenGL context cannot be created:
     ```bash
@@ -173,7 +173,7 @@ GeoConv is distributed under the terms of the **GNU General Public License v3.0 
 
 ## Citation
 
-Further information on GeoConv can be found in our paper:
+Further information on GeoConv can be found in our accompanying publication:
 
 ```bibtex
 @article{journey_through_surface_convs,
@@ -185,7 +185,7 @@ Further information on GeoConv can be found in our paper:
 }
 ```
 
-If you are using this repository, please cite our work and the publications of the original methods you have been using.
+If you use this repository, please cite our work as well as the publications describing the original methods you use.
 
 ## Referenced Literature
 
