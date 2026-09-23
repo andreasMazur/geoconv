@@ -189,8 +189,8 @@ If you are using this repository, please cite our work and the publications of t
 
 ## Referenced Literature
 
-[1]: Andreas Mazur, David P. Leins, Fabian Hinder, and Barbara Hammer. "A Journey Through Surface Convolutions". 
-     Transactions on Machine Learning Research. (2026). URL https://openreview.net/forum?id=lCwv0bo973.
+[1]: Andreas Mazur, David P. Leins, Fabian Hinder, and Barbara Hammer. A Journey Through Surface Convolutions. In 
+     Transactions on Machine Learning Research, 2026. URL https://openreview.net/forum?id=lCwv0bo973.
 
 [2]: Jonathan Masci, Davide Boscaini, Michael Bronstein, and Pierre Vandergheynst. Geodesic convolutional neural 
      networks on riemannian manifolds. In ICCV workshops, 2015. doi: 10.1109/ICCVW.2015.112.
