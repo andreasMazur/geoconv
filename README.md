@@ -11,52 +11,69 @@
 
 <img align="right" style="margin-left: 10px; width: 180px;" src="geoconv_cartoon.png">
 
-Intrinsic mesh CNNs [1] operate directly on object surfaces, therefore expanding the application of convolutions to
-non-Euclidean data.
+**GeoConv** is a library that provides end-to-end tools for deep learning on curved surfaces in 3D ambient spaces.
+That is, whether it is preprocessing your triangle mesh files into a format that can be fed into neural networks, or the
+implementation of surface convolutions, GeoConv has you covered.
 
-**GeoConv** is a library that provides end-to-end tools for deep learning on surfaces.
-That is, whether it is pre-processing your mesh files into a format that can be fed into neural networks, or the
-implementation of the **intrinsic surface convolutions** [1] themselves, GeoConv has you covered.
+## Library Design and Minimal Examples
 
-## Implementation
+GeoConv conceptually divides into two areas: 
+1. **Preprocessing**: evolves around the `Atlas`-class
+2. **Surface CNN design**: evolves around the `ConvBase`-class
 
-While this library is theoretically motivated by the work of [1], [2] and [3] it also adds additional functionalities
-such as the freedom of specifying new kernels, preprocessing algorithms like the one from [4], as well as visualization 
-and benchmark tools to verify your layer configuration, your pre-processing results or your trained models.
+**Preprocessing.** GeoConv implements the preprocessing procedure of triangle meshes in 3 steps: (i) compute local 
+surface charts on your triangle meshes, (ii) define template vertices, and (iii) compute barycentric coordinates. The
+`Atlas`-class contains methods that implement each preprocessing step (... and more QoL features such as chart 
+visualization and the possibility of applying linear chart transformations). Computing local charts, using any charting
+method of [1-4], is done by simply initializing an Atlas object:
 
-GeoConv provides the base layer `ConvIntrinsic` as a Tensorflow or Pytorch layer. Both implementations are equivalent.
-Only the ways in how they are configured slightly differ due to differences regarding Tensorflow and Pytorch. Check the
-minimal example below or the `geoconv_examples`-package for how you configure Intrinsic Mesh CNNs.
+```python
+from geoconv.preprocessing.atlas import Atlas
 
-## Installation
-1. Install **[BLAS](https://netlib.org/blas/#_reference_blas_version_3_10_0)** and **[CBLAS](https://netlib.org/blas/#_cblas)**:
-    ```bash
-    sudo apt install libatlas-base-dev
-    ```
+atlas = Atlas(
+    triangle_mesh=triangle_mesh,
+    max_radius=max_radius,  # maximum local chart radius
+    method="fmm",  # other alternatives: ["hdm", "dgpc", "tp"]
+    normalization_method="hdm",
+    processes=10  # number of concurrent processes used for preprocessing
+)
+```
 
-2. Install **geoconv**:
-    
-    | Installation Variant                 | Command                                                                                 |
-    |--------------------------------------|-----------------------------------------------------------------------------------------|
-    | GeoConv                              | `pip install geoconv`                                                                   |
-    | GeoConv + Tensorflow/Keras (**CPU**) | `pip install geoconv[tensorflow]`                                                       |
-    | GeoConv + Tensorflow/Keras (**GPU**) | `pip install geoconv[tensorflow_gpu]`                                                   |
-    | GeoConv + Pytorch (**CPU**)          | `pip install geoconv[pytorch] --extra-index-url https://download.pytorch.org/whl/cpu`   |
-    | GeoConv + Pytorch (**GPU**)          | `pip install geoconv[pytorch] --extra-index-url https://download.pytorch.org/whl/cu118` |
+The initialized object `atlas` already contains the normalized triangle mesh (geodesic diameter = 1) and all 
+local surface charts. The barycentric coordinates can now be computed for any desired template configuration (i.e.,
+polar grid config + template radius):
 
-3. If you want to run the FAUST example you also need to install:
-    ```bash
-    sudo apt install libflann-dev libeigen3-dev lz4
-    pip install cython==0.29.37
-    pip install pyshot@git+https://github.com/uhlmanngroup/pyshot@master
-    ```
+```python
+atlas.determine_barycentric_coordinates(
+    n_radial=n_radial,
+    n_angular=n_angular,
+    template_radius=chart_radius / 2
+)
+```
 
-4. In case OpenGL context cannot be created:
-    ```bash
-    conda install -c conda-forge libstdcxx-ng
-    ```
+One `Atlas` object can store multiple template configurations. Any atlas can be stored in either `hdf5`- or 
+`npy`-format:
 
-### Minimal Example (TensorFlow)
+```python
+atlas.save("./atlas.hdf5")  # one HDF5 file storing all information (potentially large file)
+atlas.save_training_data("./atlas_dir")  # a directory containing NumPy arrays required for training (typically smaller)
+```
+
+**Surface CNN design.** While preprocessing is completely DeepLearning-library-agnostic, network design is either done
+using `TensorFlow` or `Pytorch`. Currently, GeoConv provides implementations for the following surface convolutions:
+
+- Intrinsic surface convolutions (ISCs)
+- Geodesic surface convolutions (GCNNs) []
+- Harmonic surface convolutions (HSNs) []
+- Gauge-equivariant mesh convolutions (GEM-CNNs) []
+- Equivariant mesh attention convolutions (EMANs) []
+- GEM-CNN+
+- EMAN+
+
+Any surface convolution is implemented as a subclass of the `ConvBase`-class, which contains elementary methods for
+surface convolutions such as the `signal_pullback`, `signal_pullback_with_parallel_transport` and the `patch_operator`.
+
+A **TensorFlow** model could look like follows:
 
 ```python
 from geoconv.tensorflow.layers import ConvGeodesic
@@ -83,7 +100,7 @@ def define_model(input_dim, output_dim, n_radial, n_angular):
     return model
 ```
 
-### Minimal Example (PyTorch)
+In **PyTorch**, on the other hand, one could implement the same surface CNN as follows:
 
 ```python
 from geoconv.pytorch.layers import ConvGeodesic
@@ -112,23 +129,28 @@ class GCNN(nn.Module):
         return self.output(signal)
 ```
 
-### Inputs and preprocessing
+Eventually, the networks can be trained as any other neural network in the respective DeepLearning framework.
 
-As visible in the minimal examples above, the intrinsic surface convolutional layer (here geodesic convolution) expects
-two inputs:
-1. The signal defined on the mesh vertices (can be anything from descriptors like SHOT [5] to simple 3D-coordinates of
-the vertices).
-2. Barycentric coordinates for signal interpolation in the format specified by the output of
-``compute_barycentric_coordinates``.
+## Installation
+1. Install **[BLAS](https://netlib.org/blas/#_reference_blas_version_3_10_0)** and **[CBLAS](https://netlib.org/blas/#_cblas)**:
+    ```bash
+    sudo apt install libatlas-base-dev
+    ```
 
-For the latter: **GeoConv** supplies you with the necessary preprocessing functions:
-1. Use ``GPCSystemGroup(mesh).compute(u_max=u_max)`` on your triangle meshes (which are stored in a format that is
-supported by **[Trimesh](https://trimsh.org/index.html)**, e.g. 'ply') to compute local geodesic polar coordinate systems with the algorithm
-of [4].
-2. Use those GPC-systems and ``compute_barycentric_coordinates`` to compute the barycentric coordinates for the kernel 
-vertices. The result can without further effort directly be fed into the layer.
+2. Install **geoconv**:
+    
+    | Installation Variant                 | Command                                                                                 |
+    |--------------------------------------|-----------------------------------------------------------------------------------------|
+    | GeoConv                              | `pip install geoconv`                                                                   |
+    | GeoConv + Tensorflow/Keras (**CPU**) | `pip install geoconv[tensorflow]`                                                       |
+    | GeoConv + Tensorflow/Keras (**GPU**) | `pip install geoconv[tensorflow_gpu]`                                                   |
+    | GeoConv + Pytorch (**CPU**)          | `pip install geoconv[pytorch] --extra-index-url https://download.pytorch.org/whl/cpu`   |
+    | GeoConv + Pytorch (**GPU**)          | `pip install geoconv[pytorch] --extra-index-url https://download.pytorch.org/whl/cu118` |
 
-**For more thorough explanations on how GeoConv operates check out the `geoconv_examples`-package!**
+3. In case OpenGL context cannot be created:
+    ```bash
+    conda install -c conda-forge libstdcxx-ng
+    ```
 
 ## Intended Use, Citations and License
 
@@ -141,19 +163,49 @@ original inventors of the used methods by citing the corresponding publications.
 
 GeoConv is distributed under the terms of the **GNU General Public License v3.0 (GPL-3.0)**.
 
+## Citation
+
+Further information on GeoConv can be found in our paper:
+
+```bibtex
+@article{journey_through_surface_convs,
+    title={A Journey Through Surface Convolutions},
+    author={Andreas Mazur and David P. Leins and Fabian Hinder and Barbara Hammer},
+    journal={Transactions on Machine Learning Research},
+    year={2026},
+    url={https://openreview.net/forum?id=lCwv0bo973}
+}
+```
+
+If you are using this repository, please cite our work and the publications of the original methods you have been using.
+
 ## Referenced Literature
 
-[1]: Bronstein, Michael M., et al. "Geometric deep learning: Grids, groups, graphs, geodesics, and gauges." 
-     arXiv preprint arXiv:2104.13478 (2021).
+[1]: Mazur, Andreas, et al. "A Journey Through Surface Convolutions". Transactions on Machine Learning Research. (2026).
+     URL https://openreview.net/forum?id=lCwv0bo973.
 
-[2]: Monti, Federico, et al. "Geometric deep learning on graphs and manifolds using mixture model cnns." Proceedings
-     of the IEEE conference on computer vision and pattern recognition. 2017.
+[2]: Jonathan Masci, Davide Boscaini, Michael Bronstein, and Pierre Vandergheynst. Geodesic convolutional neural 
+     networks on riemannian manifolds. In ICCV workshops, 2015. doi: 10.1109/ICCVW.2015.112.
 
-[3]: Poulenard, Adrien, and Maks Ovsjanikov. "Multi-directional geodesic neural networks via equivariant convolution."
-     ACM Transactions on Graphics (TOG) 37.6 (2018): 1-14.
+[3]: Adrien Poulenard and Maks Ovsjanikov. Multi-directional geodesic neural networks via equivariant convolution. ACM
+     Trans. Graph., 2018. doi: 10.1145/3272127.3275102.
 
-[4]: Melvær, Eivind Lyche, and Martin Reimers. "Geodesic polar coordinates on polygonal meshes." Computer Graphics 
-     Forum. Vol. 31. No. 8. Oxford, UK: Blackwell Publishing Ltd, 2012.
+[4]: Ruben Wiersma, Elmar Eisemann, and Klaus Hildebrandt. Cnns on surfaces using rotation-equivariant features. ACM 
+     Trans. Graph., 2020. doi: 10.1145/3386569.3392437.
 
-[5]: Tombari, Federico, Samuele Salti, and Luigi Di Stefano. "Unique signatures of histograms for local surface
-     description." European conference on computer vision. Springer, Berlin, Heidelberg, 2010.
+[5]: Pim De Haan, Maurice Weiler, Taco Cohen, and Max Welling. Gauge equivariant mesh cnns: Anisotropic convolutions on
+     geometric graphs. In ICLR, 2021. URL https://openreview.net/forum?id=Jnspzp-oIZE.
+
+[6]: Sourya Basu, Jose Gallego-Posada, Francesco Viganò, James Rowbottom, and Taco Cohen. Equivariant mesh attention
+     networks. Transactions on Machine Learning Research, 2022. URL https://openreview.net/forum?id=3IqqJh2Ycy.
+
+[7]: R. Kimmel and J. A. Sethian. Computing geodesic paths on manifolds. PNAS, 1998. doi: 10.1073/pnas.95.15.8431.
+
+[8]: Eivind Lyche Melvær and Martin Reimers. Geodesic polar coordinates on polygonal meshes. In Computer Graphics Forum,
+     2012. doi: 10.1111/j.1467-8659.2012.03187.x.
+
+[9]: Samuele Salti, Federico Tombari, and Luigi Di Stefano. Shot: Unique signatures of histograms for surface and 
+     texture description. Computer Vision and Image Understanding, 2014. doi: 10.1016/j.cviu.2014.04.011.
+
+[10]: Keenan Crane, Clarisse Weischedel, and Max Wardetzky. The heat method for distance computation. Commun. ACM, 2017.
+     doi: 10.1145/3131280.
