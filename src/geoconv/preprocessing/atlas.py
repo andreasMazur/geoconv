@@ -1,5 +1,6 @@
 from geoconv.preprocessing.bc.bc_utils import polar_to_cart
-from geoconv.preprocessing.bc.wrapper import compute_barycentric_coordinates
+from geoconv.preprocessing.bc.wrapper import compute_barycentric_coordinates, \
+    compute_barycentric_coordinates_random_points
 from geoconv.preprocessing.distance_computation import normalize_shape, calculate_local_charts
 from geoconv.utils.parallel_transport import compute_parallel_transport, concat_bc_and_angles
 
@@ -678,6 +679,32 @@ class Atlas:
             return ax
         else:
             return ax
+
+    def get_ambient_space_coordinates(self, chart_idx, surface_points):
+        """Determines the ambient space coordinates of given surface points within a local chart.
+
+        Parameters
+        ----------
+        chart_idx: int
+            The index of the chart (i.e., the vertex index of the chart's origin).
+        surface_points: numpy.ndarray
+            The points for which ambient space coordinates are determined. Any of them needs to be within the local
+            chart.
+
+        Returns
+        -------
+        np.ndarray:
+            An array containing the three-dimensional ambient space coordinates for the given surface points.
+        """
+        # Compute barycentric coordinates
+        bc = compute_barycentric_coordinates_random_points(self, chart_idx, surface_points, processes=1)
+
+        # Get 3D triangles
+        indices = bc[..., 1].astype(np.int32)
+        surrounding_ambient_coords = self.triangle_mesh.vertices[indices]
+
+        # Get ambient coordinates of query surface points via barycentric coordinates interpolation
+        return np.einsum("bc,bcd->bd", bc[..., 0], surrounding_ambient_coords)
 
     def determine_barycentric_coordinates(self, n_radial, n_angular, template_radius, processes=None):
         """Computes and stores barycentric coordinates for one template resolution.

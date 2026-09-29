@@ -24,7 +24,7 @@ def compute_barycentric_coordinates(atlas, n_radial=2, n_angular=4, radius=0.05,
 
     Returns
     -------
-    A 5D-array containing the Barycentric coordinates for each template vertex and each chart. It has the following
+    A 5D-array containing the barycentric coordinates for each template vertex and each chart. It has the following
     structure:
         B[a, b, c, d, e]:
             - a: References chart centered in vertex `a` of object mesh `object_mesh`
@@ -60,3 +60,32 @@ def compute_barycentric_coordinates(atlas, n_radial=2, n_angular=4, radius=0.05,
         )
 
     return np.array(bc).reshape(n_charts, n_radial, n_angular, 3, 2)
+
+
+def compute_barycentric_coordinates_random_points(atlas, chart_idx, query_points, processes=1):
+    """Compute barycentric coordinates for a random set of points within a given chart of an atlas,
+
+    Parameters
+    ----------
+    atlas: Atlas
+        The atlas for the underlying mesh.
+    chart_idx: int
+        The index of the chart (i.e., the vertex index of the chart's origin).
+    query_points: np.ndarray
+        The surface points for which barycentric coordinates shall be computed.
+    processes: int
+        The amount of processes to use for parallel computation.
+
+    Returns
+    -------
+    np.ndarray:
+        An array of shape (n_surface_points, 3, 2), that contains the barycentric coordinates of the query points within
+        the selected chart.
+    """
+    triples = [(point, atlas.chart_triangles[chart_idx], atlas.chart_faces[chart_idx]) for point in query_points]
+    with Pool(processes) as p:
+        bc = p.starmap(
+            interpolation,
+            tqdm(triples, total=len(triples), postfix="Computing barycentric coordinates.."),
+        )
+    return np.array(bc).reshape(query_points.shape[0], 3, 2)
