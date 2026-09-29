@@ -697,7 +697,7 @@ class Atlas:
             An array containing the three-dimensional ambient space coordinates for the given surface points.
         """
         # Compute barycentric coordinates
-        bc = compute_barycentric_coordinates_random_points(self, chart_idx, surface_points, processes=1)
+        bc = compute_barycentric_coordinates_random_points(self, chart_idx, surface_points, processes=self.processes)
 
         # Get 3D triangles
         indices = bc[..., 1].astype(np.int32)
