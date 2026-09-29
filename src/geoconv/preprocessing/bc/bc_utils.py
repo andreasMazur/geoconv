@@ -58,7 +58,7 @@ def create_template_matrix(n_radial, n_angular, radius, in_cart=False):
     return coordinates
 
 
-def compute_barycentric(query_vertex, triangle):
+def compute_barycentric(query_vertex, triangle, eps=1e-9):
     """Computes barycentric coordinates
 
     Compare: https://blackpawn.com/texts/pointinpoly/
@@ -69,6 +69,10 @@ def compute_barycentric(query_vertex, triangle):
         1D-array that contains query-vertex in cartesian coordinates
     triangle: np.ndarray
         2D-array that depicts a triangle in cartesian coordinates
+    eps: float
+        Lower bound to the Gram determinant of the triangle, i.e., the determinant of the Gram matrix
+        of the triangle's edges. If the Gram determinant is smaller than 'eps', the triangle is considered
+        to be distorted and the query vertex is not considered to be in the triangle.
 
     Returns
     -------
@@ -85,7 +89,6 @@ def compute_barycentric(query_vertex, triangle):
     dot11, dot12 = v1.dot(v1), v1.dot(v2)
 
     denominator = dot00 * dot11 - dot01 * dot01
-    eps = 1e-6
     if denominator < eps:
         return (1.0, 0.0, 0.0,), False
     point_2_weight = (dot11 * dot02 - dot01 * dot12) / denominator
