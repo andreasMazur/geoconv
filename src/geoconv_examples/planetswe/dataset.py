@@ -31,7 +31,7 @@ def create_sphere(colatitude_theta, longitude_phi):
     z = np.cos(theta_grid)
     spherical_point_cloud = np.stack([x, y, z], axis=-1).reshape(-1, 3)
 
-    n_colatitude_indices, n_longitude_indices = 256, 512
+    n_colatitude_indices, n_longitude_indices = colatitude_theta.shape[0], longitude_phi.shape[0]
     faces = []
     for i in range(1, n_colatitude_indices - 2):
         for j in range(n_longitude_indices):
