@@ -10,7 +10,7 @@ import numpy as np
 import trimesh
 
 
-def create_sphere(colatitude_theta, longitude_phi):
+def create_sphere(colatitude_theta, longitude_phi, process=False):
     """Creates Cartesian coordinates for colatitude and longitude spherical coordinates.
 
     Parameters
@@ -19,6 +19,8 @@ def create_sphere(colatitude_theta, longitude_phi):
         The colatitude angles.
     longitude_phi: np.ndarray
         The longitude angles.
+    process: bool
+        Directs trimesh to remove NaN and Inf values, as well as to merge vertices.
 
     Returns
     -------
@@ -58,7 +60,7 @@ def create_sphere(colatitude_theta, longitude_phi):
         faces.append([p_north, p_prev2, p_prev])
 
     print(f"Created spherical point cloud with {spherical_point_cloud.shape[0]} vertices and {len(faces)} faces")
-    return trimesh.Trimesh(vertices=spherical_point_cloud, faces=np.array(faces), process=False)
+    return trimesh.Trimesh(vertices=spherical_point_cloud, faces=np.array(faces), process=process)
 
 
 def create_planetswe_sphere(path, normalization_method="hdm", processes=1):
