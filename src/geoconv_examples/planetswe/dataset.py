@@ -27,6 +27,11 @@ def create_sphere(colatitude_theta, longitude_phi, process=False):
     trimesh.Trimesh:
         A triangle mesh for the given spherical coordinates.
     """
+    if 0. in colatitude_theta or np.pi in colatitude_theta:
+        raise RuntimeError("Do not include the poles (0. or PI) into the colatitude angles.")
+    if 2 * np.pi in longitude_phi:
+        raise RuntimeError("Do not include 2*PI into longitude angles (use 0 instead).")
+
     theta_grid, phi_grid = np.meshgrid(colatitude_theta, longitude_phi, indexing="ij")
     x = np.sin(theta_grid) * np.cos(phi_grid)
     y = np.sin(theta_grid) * np.sin(phi_grid)
@@ -35,7 +40,7 @@ def create_sphere(colatitude_theta, longitude_phi, process=False):
 
     n_colatitude_indices, n_longitude_indices = colatitude_theta.shape[0], longitude_phi.shape[0]
     faces = []
-    for i in range(1, n_colatitude_indices - 2):
+    for i in range(n_colatitude_indices - 1):
         for j in range(n_longitude_indices):
             p0 = i * n_longitude_indices + j
             p1 = i * n_longitude_indices + (j + 1) % n_longitude_indices
@@ -43,21 +48,6 @@ def create_sphere(colatitude_theta, longitude_phi, process=False):
             p3 = (i + 1) * n_longitude_indices + (j + 1) % n_longitude_indices
             faces.append([p0, p2, p1])
             faces.append([p1, p2, p3])
-
-    # connecting interior ring (south pole)
-    for j in range(n_longitude_indices):
-        p_south = j
-        p_next = 1 * n_longitude_indices + j
-        p_next2 = 1 * n_longitude_indices + (j + 1) % n_longitude_indices
-        faces.append([p_south, p_next, p_next2])
-
-    # connecting interior ring (north pole)
-    offset = (n_colatitude_indices - 1) * n_longitude_indices
-    for j in range(n_longitude_indices):
-        p_north = offset + j
-        p_prev = (n_colatitude_indices - 2) * n_longitude_indices + j
-        p_prev2 = (n_colatitude_indices - 2) * n_longitude_indices + (j + 1) % n_longitude_indices
-        faces.append([p_north, p_prev2, p_prev])
 
     print(f"Created spherical point cloud with {spherical_point_cloud.shape[0]} vertices and {len(faces)} faces")
     return trimesh.Trimesh(vertices=spherical_point_cloud, faces=np.array(faces), process=process)
