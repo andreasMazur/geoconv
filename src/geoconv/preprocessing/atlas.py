@@ -680,7 +680,7 @@ class Atlas:
         else:
             return ax
 
-    def get_ambient_space_coordinates(self, chart_idx, surface_points):
+    def get_ambient_space_coordinates(self, chart_idx, surface_points, normal_offset=0.):
         """Determines the ambient space coordinates of given surface points within a local chart.
 
         Parameters
@@ -690,6 +690,9 @@ class Atlas:
         surface_points: numpy.ndarray
             The points for which ambient space coordinates are determined. Any of them needs to be within the local
             chart.
+        normal_offset: float
+            This floating number controls how far the ambient points are translated along the point-normal of the
+            chart's origin vertex.
 
         Returns
         -------
@@ -704,7 +707,14 @@ class Atlas:
         surrounding_ambient_coords = self.triangle_mesh.vertices[indices]
 
         # Get ambient coordinates of query surface points via barycentric coordinates interpolation
-        return np.einsum("bc,bcd->bd", bc[..., 0], surrounding_ambient_coords)
+        ambient_coordinates =  np.einsum("bc,bcd->bd", bc[..., 0], surrounding_ambient_coords)
+
+        # Translate along normal vector
+        if normal_offset != 0.:
+            normal_translation = self.triangle_mesh.vertex_normals[chart_idx] * normal_offset
+            ambient_coordinates += normal_translation
+
+        return ambient_coordinates
 
     def determine_barycentric_coordinates(self, n_radial, n_angular, template_radius, processes=None):
         """Computes and stores barycentric coordinates for one template resolution.
