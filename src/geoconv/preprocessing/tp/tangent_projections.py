@@ -28,6 +28,55 @@ def disambiguate_axis(axis, neighborhood):
     return axis if s_plus >= s_minus else -axis
 
 
+def determine_lrf(neighborhood_3d, rotation_axis):
+    """Determines local reference frames for given neighborhoods.
+
+    LRF-computation follows the formal procedure as described in:
+    > [SHOT: Unique signatures of histograms for surface and texture
+     description.](https://doi.org/10.1016/j.cviu.2014.04.011)
+    > Salti, Samuele, Federico Tombari, and Luigi Di Stefano.
+
+    Parameters
+    ----------
+    neighborhood_3d: np.ndarray
+        The 3D neighborhood to be projected.
+    rotation_axis: np.ndarray
+        The direction into which the z-axis should point.
+
+    Returns
+    -------
+    (np.array, np.array, np.array):
+        Three arrays of shape (3,) that contain the LRF axes in this order:
+        the x-axes, y-axes and z-axes for the given neighborhood.
+    """
+    # Determine weights for covariance matrix
+    neighbor_distances = np.linalg.norm(neighborhood_3d, axis=-1)
+    chart_neighborhood_radius = np.linalg.norm(neighborhood_3d, axis=-1).max()
+    neighbor_weights = chart_neighborhood_radius - neighbor_distances
+
+    # Compute distance-weighted covariance matrix
+    cov_matrix = 1 / neighbor_weights.sum() * np.einsum(
+        "n,ni,nj->ij", neighbor_weights, neighborhood_3d, neighborhood_3d
+    )
+
+    # Get eigenvalues and -vectors and disambiguate axes according to SHOT-paper
+    # Smallest eigenvalue: eigenvalues[0]
+    # Associated eigenvector: eigenvectors[:, 0]
+    _, eigenvectors = np.linalg.eigh(cov_matrix)
+    z_axis = disambiguate_axis(eigenvectors[:, 0], neighborhood_3d)  # (associated to the smallest eigenvalue)
+    if rotation_axis is not None:
+        dot_product = np.einsum("i,i->", z_axis, rotation_axis)
+        if dot_product < 0:
+            z_axis = -z_axis
+    x_axis = disambiguate_axis(eigenvectors[:, 2], neighborhood_3d)  # (associated to the largest eigenvalue)
+    y_axis = np.cross(z_axis, x_axis)
+
+    # 'x_axis': (3,)
+    # 'y_axis': (3,)
+    # 'z_axis': (3,)
+    return x_axis, y_axis, z_axis
+
+
 def get_2d_projections(neighborhood_3d, rotation_axis=None, x_axis=None, y_axis=None, z_axis=None, rescale=True):
     """Projects a 3D neighborhood into a 2D tangent plane via local covariance analysis.
 
@@ -57,27 +106,7 @@ def get_2d_projections(neighborhood_3d, rotation_axis=None, x_axis=None, y_axis=
 
     # Determine local reference frame via covariance analysis if not given
     if x_axis is None or y_axis is None or z_axis is None:
-        # Determine weights for covariance matrix
-        neighbor_distances = np.linalg.norm(neighborhood_3d, axis=-1)
-        chart_neighborhood_radius = np.linalg.norm(neighborhood_3d, axis=-1).max()
-        neighbor_weights = chart_neighborhood_radius - neighbor_distances
-
-        # Compute distance-weighted covariance matrix
-        cov_matrix = 1 / neighbor_weights.sum() * np.einsum(
-            "n,ni,nj->ij", neighbor_weights, neighborhood_3d, neighborhood_3d
-        )
-
-        # Get eigenvalues and -vectors and disambiguate axes according to SHOT-paper
-        # Smallest eigenvalue: eigenvalues[0]
-        # Associated eigenvector: eigenvectors[:, 0]
-        _, eigenvectors = np.linalg.eigh(cov_matrix)
-        z_axis = disambiguate_axis(eigenvectors[:, 0], neighborhood_3d)  # (associated to the smallest eigenvalue)
-        if rotation_axis is not None:
-            dot_product = np.einsum("i,i->", z_axis, rotation_axis)
-            if dot_product < 0:
-                z_axis = -z_axis
-        x_axis = disambiguate_axis(eigenvectors[:, 2], neighborhood_3d)  # (associated to the largest eigenvalue)
-        y_axis = np.cross(z_axis, x_axis)
+        x_axis, y_axis, z_axis = determine_lrf(neighborhood_3d, rotation_axis)
 
     # Project neighborhood into tangent plane (plane spanned by x- and y-axis)
     projections = neighborhood_3d - np.einsum("c,nc->n", z_axis, neighborhood_3d)[:, None] * z_axis[None, :]
