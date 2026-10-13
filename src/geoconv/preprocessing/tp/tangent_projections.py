@@ -28,7 +28,7 @@ def disambiguate_axis(axis, neighborhood):
     return axis if s_plus >= s_minus else -axis
 
 
-def determine_lrf(neighborhood_3d, rotation_axis):
+def determine_lrf(neighborhood_3d, rotation_axis=None):
     """Determines local reference frames for given neighborhoods.
 
     LRF-computation follows the formal procedure as described in:
@@ -40,7 +40,7 @@ def determine_lrf(neighborhood_3d, rotation_axis):
     ----------
     neighborhood_3d: np.ndarray
         The 3D neighborhood to be projected.
-    rotation_axis: np.ndarray
+    rotation_axis: np.ndarray | None
         The direction into which the z-axis should point.
 
     Returns
