@@ -28,7 +28,7 @@ def disambiguate_axis(axis, neighborhood):
     return axis if s_plus >= s_minus else -axis
 
 
-def determine_lrf(neighborhood_3d, rotation_axis=None):
+def determine_lrf(neighborhood_3d, rotation_axis=None, center_point_cloud=False):
     """Determines local reference frames for given neighborhoods.
 
     LRF-computation follows the formal procedure as described in:
@@ -42,6 +42,9 @@ def determine_lrf(neighborhood_3d, rotation_axis=None):
         The 3D neighborhood to be projected.
     rotation_axis: np.ndarray | None
         The direction into which the z-axis should point.
+    center_point_cloud: bool
+        Whether to center the mass of the point cloud to zero if not done before.
+        This is required to obtain correct normal directions.
 
     Returns
     -------
@@ -49,6 +52,10 @@ def determine_lrf(neighborhood_3d, rotation_axis=None):
         Three arrays of shape (3,) that contain the LRF axes in this order:
         the x-axes, y-axes and z-axes for the given neighborhood.
     """
+    # Center point cloud
+    if center_point_cloud:
+        neighborhood_3d = neighborhood_3d - np.mean(neighborhood_3d, axis=0)
+
     # Determine weights for covariance matrix
     neighbor_distances = np.linalg.norm(neighborhood_3d, axis=-1)
     chart_neighborhood_radius = np.linalg.norm(neighborhood_3d, axis=-1).max()
