@@ -499,7 +499,9 @@ class Atlas:
                         show_figure=True,
                         x_tick_labels=None,
                         y_tick_labels=None,
-                        additional_scatter_dots=None):
+                        additional_scatter_dots=None,
+                        fig=None,
+                        ax=None):
         """Visualizes one chart of the atlas.
 
         Parameters
@@ -513,7 +515,7 @@ class Atlas:
         show_vertex_indices: bool
             Whether to include vertex indices at their corresponding positions in the plot.
         save_path: str
-            The path where to save the plot.
+            The path where to save the plot. If the empty string is provided, the plot will not be saved.
         x_lims: tuple
             The min- and max values for the x-axis.
         y_lims: tuple
@@ -528,6 +530,15 @@ class Atlas:
             A list of labels for the y-ticks.
         additional_scatter_dots: np.ndarray | None
             An array of shape (n, 2) that scatters the given 2D points into the plot.
+        fig: matplotlib.figure.Figure | None
+            The figure to draw on. If provided, 'ax' has also to be provided.
+        ax: matplotlib.axes.Axes | None
+            The axis, on which the chart should be drawn. If provided, 'fig' has also to be provided.
+
+        Returns
+        -------
+        matplotlib.axes.Axes:
+            The axis, on which the chart was drawn on.
         """
         if visualize_3d:
             # Cartesian to polar conversion for visualization
@@ -554,7 +565,12 @@ class Atlas:
             trimesh.PointCloud(self.triangle_mesh.vertices, colors=color_array).show()
 
         # Create plot
-        fig, ax = plt.subplots()
+        assert None not in [fig, ax], (
+            f"You have to provide either none or both arguments for 'ax' and 'fig'. You passed: "
+            f"fig = '{fig}' and ax = '{ax}' to this function."
+        )
+        if ax is None and fig is None:
+            fig, ax = plt.subplots()
 
         # Read chart
         chart = self.charts[chart_idx]
